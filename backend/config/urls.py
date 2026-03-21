@@ -1,0 +1,47 @@
+"""
+URL Configuration for e-commerce project.
+
+File: backend/config/urls.py
+Description: Global project URL routing. Maps URL patterns to app-specific URLs and views.
+Routes all requests to appropriate modules and handles static file serving.
+"""
+from django.contrib import admin
+from django.urls import path, include, re_path
+from django.conf import settings
+from django.conf.urls.static import static
+from django.views.generic import TemplateView
+from django.views.static import serve
+from rest_framework.authtoken.views import obtain_auth_token
+from apps.system_core.views import login_view, logout_view
+import os
+
+urlpatterns = [
+    # Django Admin - restricted to staff only (hidden from public)
+    path('admin/', admin.site.urls),
+
+    # REST Framework Authentication
+    path('api-auth/', include('rest_framework.urls')),
+    path('api-token-auth/', obtain_auth_token, name='api_token_auth'),
+    path('api/login/', login_view, name='api_login'),
+    path('api/logout/', logout_view, name='api_logout'),
+
+    # Domain-Specific Module APIs
+    path('api/catalog/', include('apps.catalog.urls')),
+    path('api/orders/', include('apps.orders.urls')),
+    path('api/payments/', include('apps.payments.urls')),
+    path('api/logistics/', include('apps.logistics.urls')),
+    path('api/crm/', include('apps.crm.urls')),
+    path('api/marketing/', include('apps.marketing.urls')),
+    path('api/vision/', include('apps.vision.urls')),
+    path('api/system/', include('apps.system_core.urls')),
+
+    # React Static Assets (Served via Django staticfiles now)
+
+    # Monolithic Catch-All for React Router
+    re_path(r'^((?!api|admin|api-auth|api-token-auth|static|media).)*$', TemplateView.as_view(template_name='index.html')),
+]
+
+# Serve static and media files in development
+if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
