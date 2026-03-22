@@ -56,7 +56,7 @@ INSTALLED_APPS = [
     'corsheaders',
     # Local Domain Apps
     'apps.catalog',
-    'apps.vision',
+    'apps.eyewear_features',
     'apps.orders',
     'apps.marketing',
     'apps.payments',
@@ -113,9 +113,10 @@ TEMPLATES = [
 
 # Static/Media Configuration
 STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles_dist'
+STATIC_ROOT = BASE_DIR / 'staticfiles_collect'
 STATICFILES_DIRS = [
     BASE_DIR / 'staticfiles',
+    BASE_DIR / 'staticfiles_dist',
 ]
 
 MEDIA_URL = '/media/'

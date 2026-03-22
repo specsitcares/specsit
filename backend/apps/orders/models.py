@@ -7,7 +7,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from decimal import Decimal
 from apps.catalog.models import Variant
-from apps.vision.models import Lens, Prescription
+from apps.eyewear_features.models import Lens, Prescription
 from apps.marketing.models import Coupon
 from apps.system_core.models import MetadataItem
 

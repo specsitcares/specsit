@@ -9,6 +9,7 @@ from .models import Category, Brand, Manufacturer, Product, Variant, Collection
 class VariantInline(admin.TabularInline):
     model = Variant
     extra = 1
+    fields = ('sku', 'color', 'size', 'stock', 'vto_image_front', 'vto_video', 'price_adjustment')
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
@@ -35,7 +36,7 @@ class ProductAdmin(admin.ModelAdmin):
 
 @admin.register(Variant)
 class VariantAdmin(admin.ModelAdmin):
-    list_display = ('sku', 'product', 'color', 'size', 'stock', 'price_adjustment')
+    list_display = ('sku', 'product', 'color', 'size', 'stock', 'vto_image_front', 'vto_video', 'price_adjustment')
     list_filter = ('product__brand', 'color', 'size')
     search_fields = ('sku', 'product__title')
 
