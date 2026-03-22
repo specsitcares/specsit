@@ -30,6 +30,9 @@ const Navbar = () => {
                     <li><Link to="/" className="navbar-link">Home</Link></li>
                     <li><Link to="/products" className="navbar-link">Products</Link></li>
                     <li><Link to="/products?category=sunglasses" className="navbar-link">Sunglasses</Link></li>
+                    {user && (
+                        <li><Link to="/capture-face" className="navbar-link" style={{ color: 'var(--accent-color)' }}>✨ 3D Try-On Setup</Link></li>
+                    )}
                     {user && user.is_staff && (
                         <li><Link to="/admin" className="navbar-link" style={{ color: 'var(--warning-color)' }}>⚙️ Admin</Link></li>
                     )}

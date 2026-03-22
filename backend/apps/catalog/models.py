@@ -49,6 +49,8 @@ class Variant(models.Model):
     size = models.CharField(max_length=50, blank=True)
     stock = models.IntegerField(default=0)
     image = models.URLField(blank=True)
+    vto_image_front = models.ImageField(upload_to='vto_assets/', blank=True, null=True)
+    vto_video = models.FileField(upload_to='vto_assets/', blank=True, null=True)
     price_adjustment = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     def __str__(self): return f"{self.product.title} [{self.color}]"
 

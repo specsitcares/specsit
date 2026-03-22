@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
         ('catalog', '0001_initial'),
         ('marketing', '0001_initial'),
         ('system_core', '0001_initial'),
-        ('vision', '0001_initial'),
+        ('eyewear_features', '0001_initial'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
@@ -49,9 +49,9 @@ class Migration(migrations.Migration):
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('quantity', models.IntegerField(default=1)),
                 ('price_at_purchase', models.DecimalField(decimal_places=2, max_digits=12)),
-                ('lens', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='vision.lens')),
+                ('lens', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='eyewear_features.lens')),
                 ('order', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='items', to='orders.order')),
-                ('prescription', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='vision.prescription')),
+                ('prescription', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='eyewear_features.prescription')),
                 ('variant', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='catalog.variant')),
             ],
         ),

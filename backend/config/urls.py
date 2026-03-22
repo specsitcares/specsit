@@ -12,7 +12,7 @@ from django.conf.urls.static import static
 from django.views.generic import TemplateView
 from django.views.static import serve
 from rest_framework.authtoken.views import obtain_auth_token
-from apps.system_core.views import login_view, logout_view
+from apps.system_core.views import login_view, logout_view, register_view
 import os
 
 urlpatterns = [
@@ -24,6 +24,7 @@ urlpatterns = [
     path('api-token-auth/', obtain_auth_token, name='api_token_auth'),
     path('api/login/', login_view, name='api_login'),
     path('api/logout/', logout_view, name='api_logout'),
+    path('api/register/', register_view, name='api_register'),
 
     # Domain-Specific Module APIs
     path('api/catalog/', include('apps.catalog.urls')),
@@ -32,7 +33,7 @@ urlpatterns = [
     path('api/logistics/', include('apps.logistics.urls')),
     path('api/crm/', include('apps.crm.urls')),
     path('api/marketing/', include('apps.marketing.urls')),
-    path('api/vision/', include('apps.vision.urls')),
+    path('api/eyewear-features/', include('apps.eyewear_features.urls')),
     path('api/system/', include('apps.system_core.urls')),
 
     # React Static Assets (Served via Django staticfiles now)

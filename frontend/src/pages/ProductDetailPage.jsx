@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import apiClient from '../services/api';
 import { useCart } from '../context/CartContext';
+import VTOModal from '../components/VTOModal/VTOModal';
 import '../styles/products.css';
 
 const ProductDetailPage = () => {
@@ -25,8 +26,7 @@ const ProductDetailPage = () => {
     const [prescriptionType, setPrescriptionType] = useState(null); // 'upload', 'manual', 'later'
 
     // VTO State
-    const [showVTO, setShowVTO] = useState(false);
-    const videoRef = useRef(null);
+    const [isVTOModalOpen, setIsVTOModalOpen] = useState(false);
 
     useEffect(() => {
         setLoading(true);
@@ -40,32 +40,18 @@ const ProductDetailPage = () => {
                 setLoading(false);
             })
             .catch(err => {
-                setError("Vision lost. Product entry invalid.");
+                setError("Product entry not found.");
                 setLoading(false);
             });
     }, [id]);
 
-    const startCamera = async () => {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-            if (videoRef.current) videoRef.current.srcObject = stream;
-        } catch (err) {
-            console.error("Camera failed", err);
-        }
-    };
-
-    const stopCamera = () => {
-        if (videoRef.current?.srcObject) {
-            videoRef.current.srcObject.getTracks().forEach(t => t.stop());
-        }
-    };
 
     const handleAddToCart = () => {
         addToCart(product, selectedLens, { type: prescriptionType });
         navigate('/cart');
     };
 
-    if (loading) return <p>Fetching product intel...</p>;
+    if (loading) return <p>Loading product details...</p>;
     if (error) return (
         <div className="product-error">
             <h2>{error}</h2>
@@ -80,10 +66,10 @@ const ProductDetailPage = () => {
                 <div className="product-image-main">
                     <img src={product.variants?.[0]?.image || ''} alt={product.title} />
                     <button
-                        onClick={() => { setShowVTO(true); startCamera(); }}
+                        onClick={() => setIsVTOModalOpen(true)}
                         className="vto-button"
                     >
-                        VIRTUAL MIRROR MISSION CAPABLE
+                        ✨ 3D Virtual Try-On
                     </button>
                 </div>
 
@@ -96,8 +82,8 @@ const ProductDetailPage = () => {
                 </div>
 
                 <div className="product-badges">
-                    <div className="badge">AUTHENTICITY SECURED</div>
-                    <div className="badge">FREE GLOBAL SHIP</div>
+                    <div className="badge">100% AUTHENTIC</div>
+                    <div className="badge">FREE SHIPPING</div>
                     <div className="badge">14 DAY RETURNS</div>
                 </div>
             </div>
@@ -105,26 +91,26 @@ const ProductDetailPage = () => {
             {/* Right: Interaction Flow */}
             <div className="product-details-panel">
                 <h1 className="product-detail-title">{(product.title || '').toUpperCase()}</h1>
-                <p className="product-detail-price">${product.base_price} CREDITS</p>
+                <p className="product-detail-price">${product.base_price}</p>
                 <hr className="divider" />
 
                 {/* Flow Progress */}
                 <div className="flow-progress">
-                    <span className={`progress-step ${step === 'product' ? 'active' : ''}`}>1. PRODUCT CORE</span> 
-                    <span className={`progress-step ${step === 'lens-type' ? 'active' : ''}`}>2. LENS TECH</span> 
-                    <span className={`progress-step ${step === 'prescription' ? 'active' : ''}`}>3. VISION RX</span>
+                    <span className={`progress-step ${step === 'product' ? 'active' : ''}`}>1. FRAME DETAILS</span> 
+                    <span className={`progress-step ${step === 'lens-type' ? 'active' : ''}`}>2. LENS OPTIONS</span> 
+                    <span className={`progress-step ${step === 'prescription' ? 'active' : ''}`}>3. PRESCRIPTION</span>
                 </div>
 
                 {/* Step 1: Product / Lens Initiation */}
                 {step === 'product' && (
                     <div className="step-content">
-                        <h4 className="step-title">VISION OPTIMIZATION</h4>
-                        <p className="step-description">This {product.category_name} unit is mission ready. Select your optical shielding technology to proceed with the configuration.</p>
+                        <h4 className="step-title">FRAME DETAILS</h4>
+                        <p className="step-description">This {product.category_name} is ready for customization. Select your lenses to proceed.</p>
                         <button
                             onClick={() => setStep('lens-type')}
                             className="premium-btn full-width"
                         >
-                            SELECT LENS OPS →
+                            SELECT LENSES →
                         </button>
                     </div>
                 )}
@@ -142,9 +128,9 @@ const ProductDetailPage = () => {
                                 >
                                     <div className="lens-option-header">
                                         <h5>{lens.name.toUpperCase()}</h5>
-                                        {selectedLens?.id === lens.id && <span className="lens-badge">SECURED</span>}
+                                        {selectedLens?.id === lens.id && <span className="lens-badge">SELECTED</span>}
                                     </div>
-                                    <p>+{lens.price} Credits</p>
+                                    <p>+${lens.price}</p>
                                 </button>
                             ))}
                         </div>
@@ -156,7 +142,7 @@ const ProductDetailPage = () => {
                                 className="premium-btn"
                                 style={{ opacity: !selectedLens ? 0.5 : 1 }}
                             >
-                                CONTINUE TO VISION RX
+                                CONTINUE TO PRESCRIPTION
                             </button>
                         </div>
                     </div>
@@ -165,8 +151,8 @@ const ProductDetailPage = () => {
                 {/* Step 3: Prescription Flow */}
                 {step === 'prescription' && (
                     <div className="step-content">
-                        <h4 className="step-title">VISION SCAN RECORDS</h4>
-                        <p className="step-description">Select how you will provide your prescription data for this mission.</p>
+                        <h4 className="step-title">PRESCRIPTION DETAILS</h4>
+                        <p className="step-description">Select how you will provide your prescription for these glasses.</p>
                         <div className="prescription-options">
                             <button 
                                 onClick={() => setPrescriptionType('upload')} 
@@ -184,7 +170,7 @@ const ProductDetailPage = () => {
                                 onClick={() => setPrescriptionType('later')} 
                                 className={`rx-option full ${prescriptionType === 'later' ? 'selected' : ''}`}
                             >
-                                UPDATE AFTER LAUNCH
+                                UPDATE AFTER ORDER
                             </button>
                         </div>
                         <div className="step-actions">
@@ -195,31 +181,18 @@ const ProductDetailPage = () => {
                                 className="premium-btn"
                                 style={{ opacity: !prescriptionType ? 0.5 : 1 }}
                             >
-                                FINALIZE MISSION & ADD TO BAG
+                                ADD TO CART
                             </button>
                         </div>
                     </div>
                 )}
             </div>
 
-            {/* VTO Modal */}
-            {showVTO && (
-                <div className="vto-modal">
-                    <div className="vto-modal-content">
-                        <video ref={videoRef} autoPlay playsInline className="vto-video" />
-                        <div className="vto-overlay">
-                            {/* Glasses image overlay */}
-                            <img src={product.variants?.[0]?.image || ''} />
-                        </div>
-                        <button
-                            onClick={() => { setShowVTO(false); stopCamera(); }}
-                            className="vto-close"
-                        >
-                            CLOSE MIRROR
-                        </button>
-                    </div>
-                </div>
-            )}
+            <VTOModal 
+                isOpen={isVTOModalOpen} 
+                onClose={() => setIsVTOModalOpen(false)} 
+                product={product} 
+            />
         </div>
     );
 };

@@ -675,9 +675,8 @@
   }
 }
 
-  .product-filters {
-    position: relative;
-  }
+.product-filters {
+  position: relative;
 }
 
 @media (max-width: 480px) {

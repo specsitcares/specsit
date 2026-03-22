@@ -23,7 +23,7 @@ django.setup()
 
 from apps.system_core.models import MetadataGroup, MetadataItem  # type: ignore
 from apps.catalog.models import Category, Brand, Manufacturer, Product, Variant  # type: ignore
-from apps.vision.models import LensPackage, Lens  # type: ignore
+from apps.eyewear_features.models import LensPackage, Lens  # type: ignore
 from apps.marketing.models import Coupon  # type: ignore
 
 def seed():
