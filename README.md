@@ -1,87 +1,89 @@
 # E-Commerce Platform
 
-A modern, high-performance e-commerce system built with **Django REST Framework** (backend) and **React** (frontend). This platform is specifically optimized for the eyewear industry, featuring integrated Virtual Try-On (VTO) and Pupillary Distance (PD) calculation tools.
+A modern, high-performance e-commerce system built with **Django REST Framework** (backend) and **React** (frontend). Optimized specifically for the eyewear industry with integrated Virtual Try-On (VTO) and Pupillary Distance (PD) tools.
 
 ---
 
 ## 📋 Project Overview
 
-This platform follows a consolidated modular monolith architecture, ensuring high performance, easy scalability, and industry-standard security.
+This platform follows a consolidated modular monolith architecture for high performance, easy scalability, and industry-standard security.
 
 ### Key Features
+✅ **Consolidated 4-Module Architecture**:
+- **Catalog** — Products, Variants, Lenses, Prescriptions, and VTO Assets.
+- **Sales** — Logic for Orders, Carts, Coupons, and Shipments.
+- **Accounts** — User Identity, Addresses, Staff Management, and CRM.
+- **Core** — Auth, Metadata, System Config, and Analytics.
 
-✅ **Consolidated 4-Module Architecture:**
-- **Catalog** — Products, Variants, Taxonomy (Category, Brand), Lenses, Prescriptions, and VTO Assets.
-- **Sales** — Transactional logic, Order management, Carts, Coupons, and Shipments.
-- **Accounts** — User Identity, Addresses, Employee Management, and Customer CRM.
-- **Core** — Authentication, Metadata management, System Configuration, and Analytics.
-
-✅ **Eyewear Specialized Tools**
-- **Virtual Try-On (VTO)**: Integrated front-facing image/video support for frame visualization.
-- **PD Calculation**: Automated Pupillary Distance measurement system.
-- **Optical Prescriptions**: Full support for SPH, CYL, Axis, and Add power tracking.
-
-✅ **High Performance API**
-- **O(1) Data Retrieval**: Optimized using `select_related` and `prefetch_related` to eliminate N+1 query problems.
-- **RESTful Design**: Predictable and clean API endpoints across all modules.
-- **Role-Based Access**: Secure authentication with custom permission layers.
-
-✅ **Modern Tech Stack**
-- Backend: Django 6.0.3, DRF 3.15, Python 3.12+
-- Frontend: React 19, Vite 7, Tailwind CSS 4
-- Performance: SQL Joins for constant-time complexity lookups.
+✅ **Eyewear Specialized Tools**: VTO 지원 and automated PD measurement.
+✅ **Performance**: O(1) Data Retrieval with SQL Joins.
+✅ **Infrastructure**: Fully containerized using Docker and Nginx.
 
 ---
 
 ## 🏗️ Project Structure
 
-```
+```text
 e-commerce/
-├── backend/
-│   ├── config/                 # Django settings & Global URL configuration
-│   ├── apps/                   # Consolidated domain modules
-│   │   ├── catalog/            # Products, Lenses, Prescriptions, VTO & Reviews
-│   │   ├── sales/              # Orders, Carts, Coupons & Shipments
-│   │   ├── accounts/           # User Profiles, Addresses, Staff & CRM
-│   │   └── core/               # Auth, Metadata, Analytics & Config
-│   ├── manage.py               # Django management script
-│   ├── requirements.txt         # Python dependencies
+├── backend/                    # Django REST Framework Backend
+│   ├── apps/                   # Core business logic modules
+│   │   ├── catalog/            # Catalog, Lenses, & VTO
+│   │   ├── sales/              # Orders & Transactions
+│   │   ├── accounts/           # User Management & CRM
+│   │   └── core/               # System & Auth Utilities
+│   ├── config/                 # Settings, WSGI/ASGI, & URLs
+│   ├── scripts/                # Management & Data Seed scripts
+│   ├── static/                 # Collected static assets
+│   ├── templates/              # Internal Django templates
+│   ├── manage.py               # Django CLI
+│   ├── requirements.txt         # Backend Python dependencies
+│   └── Dockerfile              # Backend container definition
 │
-├── frontend/
-│   ├── src/
-│   │   ├── components/         # Reusable React components (VTO included)
-│   │   ├── context/            # Global State (Auth, Cart)
-│   │   ├── services/           # Optimized API service layer
-│   │   ├── pages/              # Functional page components
-│   │   └── App.jsx             # Root component
+├── frontend/                   # React (Vite) Frontend
+│   ├── src/                    # Application source code
+│   ├── public/                 # Static public assets
+│   ├── package.json            # Frontend dependencies
+│   ├── vite.config.js          # Build configuration
+│   └── Dockerfile              # Frontend container definition
+│
+├── nginx/                      # Reverse Proxy & Load Balancer Config
+│   └── default.conf            # Nginx routing rules
+│
+├── docker-compose.yml          # Services orchestration
+├── .gitignore                  # Version control exclusions
+└── README.md                   # Project documentation
 ```
 
 ---
 
 ## 🚀 Quick Start
 
-### Backend Setup
-1. **Virtual Environment**: `python -m venv venv`
-2. **Install**: `pip install -r requirements.txt`
-3. **Migrate**: `python manage.py migrate`
-4. **Run**: `python manage.py runserver 3002`
+### Using Docker (Preferred)
+1. **Build**: `docker-compose build`
+2. **Start**: `docker-compose up -d`
+3. **Migrate**: `docker-compose exec backend python manage.py migrate`
 
-### Frontend Setup
-1. **Install**: `npm install`
-2. **Run**: `npm run dev`
+### Local Development
+1. **Backend**: 
+   - `pip install -r backend/requirements.txt`
+   - `python backend/manage.py migrate`
+   - `python backend/manage.py runserver 3002`
+2. **Frontend**:
+   - `npm install`
+   - `npm run dev`
 
 ---
 
-## 📚 API Endpoints Overview
+## 📚 API Endpoints
 
-| Module | Base Path | Core Entities |
-|--------|-----------|---------------|
-| Catalog | `/api/catalog/` | Products, Lenses, Prescriptions, VTO |
-| Sales | `/api/sales/` | Orders, Cart, Coupons, Shipping |
-| Accounts | `/api/accounts/` | Addresses, Staff, Support Queries |
-| Core | `/api/core/` | Auth, Metadata, System Config |
+| Module | Base Path | Description |
+|--------|-----------|-------------|
+| Catalog | `/api/catalog/` | Items, Pricing, & VTO |
+| Sales | `/api/sales/` | Checkout & Fulfillment |
+| Accounts | `/api/accounts/` | Users & Addresses |
+| Core | `/api/core/` | System & Auth |
 
 ---
 
 ## 📄 License
-This project is licensed under the MIT License.
+MIT License. See LICENSE for details.

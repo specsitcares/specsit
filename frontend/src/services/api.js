@@ -16,13 +16,24 @@ const apiClient = axios.create({
   },
 });
 
-// Request interceptor - add auth token
+// Request interceptor - add auth token and handle FormData
 apiClient.interceptors.request.use(
   (config) => {
     const token = getAuthToken();
     if (token) {
       config.headers.Authorization = `Token ${token}`;
     }
+    
+    // For FormData, don't transform and let browser handle the Content-Type with boundary
+    if (config.data instanceof FormData) {
+      // Remove the default JSON Content-Type header
+      delete config.headers['Content-Type'];
+      
+      // Prevent axios from transforming FormData to JSON
+      // Keep the browser's automatic handling of FormData
+      config.transformRequest = [(data) => data];
+    }
+    
     return config;
   },
   (error) => Promise.reject(error)

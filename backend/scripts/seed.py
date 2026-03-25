@@ -21,7 +21,7 @@ sys.path.append(str(BACKEND_DIR / 'apps'))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
 from apps.catalog.models import Category, Product, Brand, Manufacturer, Variant  # type: ignore
-from apps.vision.models import Lens, LensPackage  # type: ignore
+from apps.eyewear_features.models import Lens, LensPackage  # type: ignore
 from apps.marketing.models import Coupon  # type: ignore
 from apps.system_core.models import MetadataItem, MetadataGroup  # type: ignore
 

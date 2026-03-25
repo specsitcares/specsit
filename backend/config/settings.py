@@ -55,14 +55,10 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'corsheaders',
     # Local Domain Apps
-    'apps.catalog',
-    'apps.vision',
-    'apps.orders',
-    'apps.marketing',
-    'apps.payments',
-    'apps.logistics',
-    'apps.crm',
-    'apps.system_core',
+    'apps.catalog',      # Products, Lenses, Prescriptions, Faces
+    'apps.sales',        # Orders, Coupons, Shipments, Cart
+    'apps.accounts',     # Users, Employees, Addresses, Queries
+    'apps.core',         # Metadata, Analytics, Config
 ]
 
 MIDDLEWARE = [
@@ -113,9 +109,10 @@ TEMPLATES = [
 
 # Static/Media Configuration
 STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles_dist'
+STATIC_ROOT = BASE_DIR / 'staticfiles_collect'
 STATICFILES_DIRS = [
     BASE_DIR / 'staticfiles',
+    BASE_DIR / 'staticfiles_dist',
 ]
 
 MEDIA_URL = '/media/'
