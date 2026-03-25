@@ -8,23 +8,12 @@ A modern, high-performance e-commerce system built with **Django REST Framework*
 
 This platform follows a consolidated modular monolith architecture for high performance, easy scalability, and industry-standard security.
 
-### Key Features
-✅ **Consolidated 4-Module Architecture**:
-- **Catalog** — Products, Variants, Lenses, Prescriptions, and VTO Assets.
-- **Sales** — Logic for Orders, Carts, Coupons, and Shipments.
-- **Accounts** — User Identity, Addresses, Staff Management, and CRM.
-- **Core** — Auth, Metadata, System Config, and Analytics.
-
-✅ **Eyewear Specialized Tools**: VTO 지원 and automated PD measurement.
-✅ **Performance**: O(1) Data Retrieval with SQL Joins.
-✅ **Infrastructure**: Fully containerized using Docker and Nginx.
-
 ---
 
 ## 🏗️ Project Structure
 
 ```text
-e-commerce/
+specsit1/
 ├── backend/                    # Django REST Framework Backend
 │   ├── apps/                   # Core business logic modules
 │   │   ├── catalog/            # Catalog, Lenses, & VTO
@@ -32,26 +21,30 @@ e-commerce/
 │   │   ├── accounts/           # User Management & CRM
 │   │   └── core/               # System & Auth Utilities
 │   ├── config/                 # Settings, WSGI/ASGI, & URLs
+│   ├── media/                  # User-uploaded assets (Images/Videos)
 │   ├── scripts/                # Management & Data Seed scripts
-│   ├── static/                 # Collected static assets
+│   ├── staticfiles_dist/        # Frontend build assets served by Django
 │   ├── templates/              # Internal Django templates
+│   ├── Dockerfile              # Backend container definition
 │   ├── manage.py               # Django CLI
-│   ├── requirements.txt         # Backend Python dependencies
-│   └── Dockerfile              # Backend container definition
+│   └── requirements.txt         # Backend Python dependencies
 │
 ├── frontend/                   # React (Vite) Frontend
 │   ├── src/                    # Application source code
 │   ├── public/                 # Static public assets
+│   ├── Dockerfile              # Frontend container definition
 │   ├── package.json            # Frontend dependencies
-│   ├── vite.config.js          # Build configuration
-│   └── Dockerfile              # Frontend container definition
+│   └── vite.config.js          # Build configuration
 │
+├── docs/                       # Project documentation & client guides
 ├── nginx/                      # Reverse Proxy & Load Balancer Config
-│   └── default.conf            # Nginx routing rules
-│
-├── docker-compose.yml          # Services orchestration
+├── venv/                       # Python Virtual Environment
+├── .env.example                # Example environment file
 ├── .gitignore                  # Version control exclusions
-└── README.md                   # Project documentation
+├── docker-compose.yml          # Services orchestration definition
+├── LICENSE                     # MIT License
+├── README.md                   # This documentation
+└── requirements.txt            # Root-level Python dependencies
 ```
 
 ---
@@ -65,10 +58,13 @@ e-commerce/
 
 ### Local Development
 1. **Backend**: 
-   - `pip install -r backend/requirements.txt`
+   - `python -m venv venv`
+   - `.\venv\Scripts\activate` (Windows)
+   - `pip install -r requirements.txt`
    - `python backend/manage.py migrate`
    - `python backend/manage.py runserver 3002`
 2. **Frontend**:
+   - `cd frontend`
    - `npm install`
    - `npm run dev`
 
