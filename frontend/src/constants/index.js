@@ -4,11 +4,9 @@
 
 export const API_ENDPOINTS = {
   CATALOG: '/api/catalog',
-  ORDERS: '/api/orders',
-  PAYMENTS: '/api/payments',
-  LOGISTICS: '/api/logistics',
-  CRM: '/api/crm',
-  MARKETING: '/api/marketing',
+  SALES: '/api/sales',
+  ACCOUNTS: '/api/accounts',
+  CORE: '/api/core',
 };
 
 export const HTTP_STATUS = {

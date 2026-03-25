@@ -12,29 +12,27 @@ from django.conf.urls.static import static
 from django.views.generic import TemplateView
 from django.views.static import serve
 from rest_framework.authtoken.views import obtain_auth_token
-from apps.system_core.views import login_view, logout_view, register_view
-import os
+from apps.core.views import login_view, logout_view, register_view
 
 urlpatterns = [
-    # Django Admin - restricted to staff only (hidden from public)
+    # Django Admin
     path('admin/', admin.site.urls),
 
-    # REST Framework Authentication
+    # Authentication
     path('api-auth/', include('rest_framework.urls')),
     path('api-token-auth/', obtain_auth_token, name='api_token_auth'),
-    path('api/login/', login_view, name='api_login'),
-    path('api/logout/', logout_view, name='api_logout'),
-    path('api/register/', register_view, name='api_register'),
+    # Compatibility Auth Endpoints (mapped to core)
+    path('api/login/', login_view, name='api_login_compat'),
+    path('api/logout/', logout_view, name='api_logout_compat'),
+    path('api/register/', register_view, name='api_register_compat'),
+    # Compatibility Eyewear Endpoints (mapped to catalog)
+    path('api/eyewear-features/', include('apps.catalog.urls')),
 
     # Domain-Specific Module APIs
     path('api/catalog/', include('apps.catalog.urls')),
-    path('api/orders/', include('apps.orders.urls')),
-    path('api/payments/', include('apps.payments.urls')),
-    path('api/logistics/', include('apps.logistics.urls')),
-    path('api/crm/', include('apps.crm.urls')),
-    path('api/marketing/', include('apps.marketing.urls')),
-    path('api/eyewear-features/', include('apps.eyewear_features.urls')),
-    path('api/system/', include('apps.system_core.urls')),
+    path('api/sales/', include('apps.sales.urls')),
+    path('api/accounts/', include('apps.accounts.urls')),
+    path('api/core/', include('apps.core.urls')),
 
     # React Static Assets (Served via Django staticfiles now)
 
