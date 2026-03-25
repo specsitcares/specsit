@@ -1,7 +1,8 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import vtoService from '../../services/vtoService';
-import apiClient from '../../services/api';
 import './FaceCapture.css';
+
+const CARD_WIDTH_MM = 85.6;
 
 const FaceCapture = ({ onCaptureComplete }) => {
     const videoRef = useRef(null);
@@ -11,6 +12,17 @@ const FaceCapture = ({ onCaptureComplete }) => {
     const [error, setError] = useState(null);
     const [saving, setSaving] = useState(false);
     const [success, setSuccess] = useState(false);
+    const [mode, setMode] = useState('pd'); // Default to PD measurement
+    const [pdValue, setPdValue] = useState(null);
+    
+    // Calibration markers
+    const [markers, setMarkers] = useState({
+        leftCard: { x: 150, y: 150 },
+        rightCard: { x: 350, y: 150 },
+        leftPupil: { x: 220, y: 250 },
+        rightPupil: { x: 280, y: 250 }
+    });
+    const [activeMarker, setActiveMarker] = useState(null);
 
     useEffect(() => {
         startCamera();
@@ -52,13 +64,6 @@ const FaceCapture = ({ onCaptureComplete }) => {
 
                 // Save locally
                 vtoService.saveFaceToLocal(dataUrl);
-
-                // Upload to backend
-                await uploadToBackend(dataUrl);
-                
-                if (onCaptureComplete) {
-                    onCaptureComplete(dataUrl);
-                }
             } catch (err) {
                 console.error("Error capturing photo:", err);
                 setError("Failed to capture photo. Please try again.");
@@ -66,58 +71,121 @@ const FaceCapture = ({ onCaptureComplete }) => {
         }
     };
 
-    const uploadToBackend = async (dataUrl) => {
+    const calculatePD = useCallback(() => {
+        const cardPx = Math.sqrt(
+            Math.pow(markers.rightCard.x - markers.leftCard.x, 2) + 
+            Math.pow(markers.rightCard.y - markers.leftCard.y, 2)
+        );
+        const pupilsPx = Math.sqrt(
+            Math.pow(markers.rightPupil.x - markers.leftPupil.x, 2) + 
+            Math.pow(markers.rightPupil.y - markers.leftPupil.y, 2)
+        );
+        
+        if (cardPx === 0) return 0;
+        
+        const ratio = CARD_WIDTH_MM / cardPx;
+        const pd = pupilsPx * ratio;
+        return pd.toFixed(1);
+    }, [markers]);
+
+    useEffect(() => {
+        if (capturedImage && mode === 'pd') {
+            setPdValue(calculatePD());
+        }
+    }, [markers, calculatePD, capturedImage, mode]);
+
+    const handleMarkerMouseDown = (key) => (e) => {
+        e.preventDefault();
+        setActiveMarker(key);
+    };
+
+    const handleMouseMove = (e) => {
+        if (!activeMarker) return;
+        
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        // Convert screen px to image px (aspect ratio preserved)
+        const scaleX = 640 / rect.width;
+        const scaleY = 480 / rect.height;
+
+        setMarkers(prev => ({
+            ...prev,
+            [activeMarker]: { x: x * scaleX, y: y * scaleY }
+        }));
+    };
+
+    const handleMouseUp = () => {
+        setActiveMarker(null);
+    };
+
+    const dataURLToBlob = (dataURL) => {
+        const arr = dataURL.split(','), mime = arr[0].match(/:(.*?);/)[1];
+        const bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+        let i = n;
+        while(i--) { u8arr[i] = bstr.charCodeAt(i); }
+        return new Blob([u8arr], {type:mime});
+    };
+
+    const uploadAndProceed = async () => {
         setSaving(true);
         setError(null);
         
         try {
-            console.log("Starting upload to backend...");
+            console.log("🚀 Starting upload. Mode:", mode, "PD Value:", pdValue);
             
             // Convert data URL to blob
-            const response = await fetch(dataUrl);
-            const blob = await response.blob();
-            console.log("Blob created, size:", blob.size, "bytes");
+            const blob = dataURLToBlob(capturedImage);
+            console.log("📦 Blob created. Size:", (blob.size / 1024).toFixed(2), "KB");
             
-            // Create FormData
+            // Build FormData with native Fetch API (NOT axios)
             const formData = new FormData();
             formData.append('image', blob, 'face_capture.jpg');
             
-            // Send to backend
-            console.log("Sending POST request to /api/eyewear-features/user-face/");
-            const uploadResponse = await apiClient.post('/eyewear-features/user-face/', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
+            if (mode === 'pd' && pdValue) {
+                formData.append('pd_distance', String(pdValue));
+                console.log("✏️ PD Distance added:", pdValue);
+            }
             
-            console.log("✅ Upload successful:", uploadResponse.data);
+            // Get auth token
+            const token = localStorage.getItem('token');
+            
+            console.log("📤 Using NATIVE FETCH API to /api/catalog/user-face/");
+            console.log("📋 Headers: Authorization only (Content-Type will be set automatically by browser)");
+            
+            // Use native Fetch API - it handles FormData correctly without axios interference
+            const response = await fetch('/api/catalog/user-face/', {
+                method: 'POST',
+                headers: {
+                    // ONLY Authorization - browser will set Content-Type automatically
+                    ...(token && { 'Authorization': `Token ${token}` }),
+                },
+                body: formData, // Pass FormData directly - fetch handles it
+            });
+
+            console.log("📨 Response received. Status:", response.status);
+            
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(`Upload failed: ${response.status} - ${JSON.stringify(errData)}`);
+            }
+
+            const data = await response.json();
+            console.log("✅ Upload successful:", data);
             setSuccess(true);
             
-            // Show success message for 3 seconds
-            setTimeout(() => setSuccess(false), 3000);
+            if (onCaptureComplete) {
+                onCaptureComplete(capturedImage, pdValue);
+            }
+
+            setTimeout(() => {
+                window.location.href = '/products';
+            }, 1000);
             
         } catch (err) {
             console.error("❌ Upload failed:", err);
-            
-            // Extract detailed error message
-            let errorMessage = "Upload failed. ";
-            
-            if (err.response?.status === 401) {
-                errorMessage += "Authentication failed. Please log in again.";
-            } else if (err.response?.status === 400) {
-                const data = err.response.data;
-                if (data.image) {
-                    errorMessage += `Image error: ${Array.isArray(data.image) ? data.image[0] : data.image}`;
-                } else {
-                    errorMessage += JSON.stringify(data);
-                }
-            } else if (err.response?.data) {
-                errorMessage += JSON.stringify(err.response.data);
-            } else {
-                errorMessage += err.message || "Network error";
-            }
-            
-            console.error("Error details:", errorMessage);
-            setError(errorMessage);
-            alert(`Upload Error:\n${errorMessage}`);
+            setError(`Upload Error: ${err.message}`);
         } finally {
             setSaving(false);
         }
@@ -127,30 +195,90 @@ const FaceCapture = ({ onCaptureComplete }) => {
         setCapturedImage(null);
         setSuccess(false);
         setError(null);
+        setPdValue(null);
         startCamera();
     };
 
     return (
         <div className="face-capture-container">
             <div className="capture-card">
-                <h2>Face Capture for 3D Try-On</h2>
-                <p>Align your face within the oval for the best results.</p>
+                <h2>{mode === 'pd' ? 'PD Measurement' : 'Face Capture'}</h2>
+                <p>
+                    {mode === 'pd' 
+                        ? 'Hold any standard card (credit card, ID) against your forehead.' 
+                        : 'Align your face within the oval.'}
+                </p>
                 
+                <div className="mode-toggle" style={{marginBottom: '20px'}}>
+                    <button 
+                        onClick={() => setMode('pd')} 
+                        className={mode === 'pd' ? 'active' : ''}
+                        disabled={!!capturedImage}
+                    >PD Mode</button>
+                    <button 
+                        onClick={() => setMode('vto')} 
+                        className={mode === 'vto' ? 'active' : ''}
+                        disabled={!!capturedImage}
+                    >VTO Mode</button>
+                </div>
+
                 {error && <div className="error-msg">{error}</div>}
-                {success && <div className="success-msg">✅ Photo saved successfully to database!</div>}
+                {success && <div className="success-msg">✅ Saved successfully! Redirecting...</div>}
                 
-                <div className="video-wrapper">
+                <div 
+                    className="video-wrapper" 
+                    onMouseMove={handleMouseMove} 
+                    onMouseUp={handleMouseUp}
+                    onMouseLeave={handleMouseUp}
+                    style={{cursor: activeMarker ? 'grabbing' : 'auto'}}
+                >
                     {!capturedImage ? (
                         <>
                             <video ref={videoRef} autoPlay playsInline muted />
-                            <div className="face-oval-overlay"></div>
+                            {mode === 'vto' && <div className="face-oval-overlay"></div>}
+                            {mode === 'pd' && <div className="card-guide-overlay"></div>}
                         </>
                     ) : (
-                        <img src={capturedImage} alt="Captured face" className="preview-img" />
+                        <div style={{position: 'relative', width: '100%', height: '100%'}}>
+                            <img src={capturedImage} alt="Captured face" className="preview-img" />
+                            {mode === 'pd' && (
+                                <>
+                                    {/* Markers for calibration */}
+                                    {Object.entries(markers).map(([key, pos]) => (
+                                        <div 
+                                            key={key}
+                                            className={`pd-marker ${key.includes('Card') ? 'card' : 'pupil'}`}
+                                            style={{ 
+                                                left: `${(pos.x / 640) * 100}%`, 
+                                                top: `${(pos.y / 480) * 100}%` 
+                                            }}
+                                            onMouseDown={handleMarkerMouseDown(key)}
+                                            title={key}
+                                        />
+                                    ))}
+                                    {/* Connector lines for visualization */}
+                                    <div className="pd-line" style={{
+                                        left: `${(markers.leftPupil.x / 640) * 100}%`,
+                                        top: `${(markers.leftPupil.y / 480) * 100}%`,
+                                        width: `${((markers.rightPupil.x - markers.leftPupil.x) / 640) * 100}%`,
+                                        transform: `rotate(${Math.atan2(markers.rightPupil.y - markers.leftPupil.y, markers.rightPupil.x - markers.leftPupil.x)}rad)`,
+                                        transformOrigin: '0 0'
+                                    }} />
+                                </>
+                            )}
+                        </div>
                     )}
                     <canvas ref={canvasRef} style={{ display: 'none' }} />
-                    {saving && <div className="saving-overlay">Saving to database...</div>}
+                    {saving && <div className="saving-overlay">Processing...</div>}
                 </div>
+
+                {capturedImage && mode === 'pd' && (
+                    <div className="pd-results">
+                        <p>Calculated PD:</p>
+                        <div className="pd-value">{pdValue} mm</div>
+                        <small>Drag the markers to align with your pupils and the card's top edges.</small>
+                    </div>
+                )}
 
                 <div className="capture-actions">
                     {!capturedImage ? (
@@ -162,18 +290,12 @@ const FaceCapture = ({ onCaptureComplete }) => {
                             <button onClick={retake} className="btn-retake" disabled={saving}>
                                 Retake
                             </button>
-                            <button 
-                                onClick={() => window.location.href = '/products'} 
-                                className="btn-proceed"
-                                disabled={saving}
-                            >
-                                {success ? "Start Shopping →" : "Continue Anyway"}
+                            <button onClick={uploadAndProceed} className="btn-proceed" disabled={saving}>
+                                {saving ? "Saving..." : "Save & Proceed →"}
                             </button>
                         </>
                     )}
                 </div>
-                
-                {saving && <p style={{textAlign: 'center', color: '#666', marginTop: '10px'}}>Uploading to server...</p>}
             </div>
         </div>
     );

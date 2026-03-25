@@ -167,6 +167,13 @@ const ProductDetailPage = () => {
                                 MANUAL INPUT
                             </button>
                             <button 
+                                onClick={() => navigate('/capture-face')} 
+                                className="rx-option full"
+                                style={{ border: '1px dashed #3b82f6', color: '#3b82f6' }}
+                            >
+                                📏 MEASURE PD (USING CAM)
+                            </button>
+                            <button 
                                 onClick={() => setPrescriptionType('later')} 
                                 className={`rx-option full ${prescriptionType === 'later' ? 'selected' : ''}`}
                             >

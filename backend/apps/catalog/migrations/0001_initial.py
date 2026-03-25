@@ -9,7 +9,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('system_core', '0001_initial'),
+        ('core', '0001_initial'),
     ]
 
     operations = [
@@ -56,7 +56,7 @@ class Migration(migrations.Migration):
                 ('updated_at', models.DateTimeField(auto_now=True)),
                 ('brand', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='catalog.brand')),
                 ('category', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='products', to='catalog.category')),
-                ('frame_type', models.ForeignKey(blank=True, limit_choices_to={'group__name': 'Frame Type'}, null=True, on_delete=django.db.models.deletion.SET_NULL, to='system_core.metadataitem')),
+                ('frame_type', models.ForeignKey(blank=True, limit_choices_to={'group__name': 'Frame Type'}, null=True, on_delete=django.db.models.deletion.SET_NULL, to='core.metadataitem')),
                 ('manufacturer', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='catalog.manufacturer')),
             ],
         ),

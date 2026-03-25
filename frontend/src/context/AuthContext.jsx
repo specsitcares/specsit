@@ -18,7 +18,7 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (username, password) => {
         try {
-            const response = await apiClient.post('/login/', { username, password });
+            const response = await apiClient.post('/core/login/', { username, password });
             const { token } = response.data;
             setAuthToken(token);
             localStorage.setItem('username', username);
@@ -31,7 +31,7 @@ export const AuthProvider = ({ children }) => {
 
     const register = async (username, email, password) => {
         try {
-            const response = await apiClient.post('/register/', { username, email, password });
+            const response = await apiClient.post('/core/register/', { username, email, password });
             const { token } = response.data;
             setAuthToken(token);
             localStorage.setItem('username', username);

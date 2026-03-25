@@ -55,14 +55,10 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'corsheaders',
     # Local Domain Apps
-    'apps.catalog',
-    'apps.eyewear_features',
-    'apps.orders',
-    'apps.marketing',
-    'apps.payments',
-    'apps.logistics',
-    'apps.crm',
-    'apps.system_core',
+    'apps.catalog',      # Products, Lenses, Prescriptions, Faces
+    'apps.sales',        # Orders, Coupons, Shipments, Cart
+    'apps.accounts',     # Users, Employees, Addresses, Queries
+    'apps.core',         # Metadata, Analytics, Config
 ]
 
 MIDDLEWARE = [
