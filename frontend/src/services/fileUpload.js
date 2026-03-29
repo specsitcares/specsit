@@ -28,13 +28,13 @@ export const uploadFaceCapture = async (imageBlob, pdDistance = null) => {
             console.log('📸 Upload: Image only (no PD distance)');
         }
 
-        console.log('📤 Uploading to /api/catalog/user-face/');
+        console.log('📤 Uploading to /api/eyewear-features/user-face/');
 
         // Get auth token
         const token = getAuthToken();
 
         // Use native Fetch API - it handles FormData correctly automatically
-        const response = await fetch(`${API_BASE_URL}/catalog/user-face/`, {
+        const response = await fetch(`${API_BASE_URL}/eyewear-features/user-face/`, {
             method: 'POST',
             headers: {
                 // ONLY add Authorization - do NOT set Content-Type

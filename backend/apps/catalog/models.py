@@ -1,6 +1,6 @@
 from django.db import models  # type: ignore
 from django.contrib.auth.models import User  # type: ignore
-from ..core.models import MetadataItem  # type: ignore
+from .core.models import MetadataItem  # type: ignore
 
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)

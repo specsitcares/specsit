@@ -3,7 +3,7 @@ from rest_framework.routers import SimpleRouter
 from .views import (
     CategoryViewSet, BrandViewSet, ProductViewSet, VariantViewSet,
     CollectionViewSet, LensPackageViewSet, LensViewSet,
-    PrescriptionViewSet, UserFaceViewSet, ReviewViewSet
+    PrescriptionViewSet, UserFaceViewSet, ReviewViewSet, MeasurePDView
 )
 
 router = SimpleRouter()
@@ -22,4 +22,6 @@ router.register(r'reviews', ReviewViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
+    # Standalone measure PD endpoint
+    path('measure-pd/', MeasurePDView.as_view(), name='measure-pd'),
 ]

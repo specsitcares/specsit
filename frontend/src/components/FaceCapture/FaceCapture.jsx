@@ -1,8 +1,6 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import vtoService from '../../services/vtoService';
 import './FaceCapture.css';
-
-const CARD_WIDTH_MM = 85.6;
 
 const FaceCapture = ({ onCaptureComplete }) => {
     const videoRef = useRef(null);
@@ -13,16 +11,11 @@ const FaceCapture = ({ onCaptureComplete }) => {
     const [saving, setSaving] = useState(false);
     const [success, setSuccess] = useState(false);
     const [mode, setMode] = useState('pd'); // Default to PD measurement
-    const [pdValue, setPdValue] = useState(null);
     
-    // Calibration markers
-    const [markers, setMarkers] = useState({
-        leftCard: { x: 150, y: 150 },
-        rightCard: { x: 350, y: 150 },
-        leftPupil: { x: 220, y: 250 },
-        rightPupil: { x: 280, y: 250 }
-    });
-    const [activeMarker, setActiveMarker] = useState(null);
+    // AI Measurement state
+    const [aiResult, setAiResult] = useState(null);
+    const [aiMeasuring, setAiMeasuring] = useState(false);
+    const [confirmedPd, setConfirmedPd] = useState(null);
 
     useEffect(() => {
         startCamera();
@@ -71,54 +64,50 @@ const FaceCapture = ({ onCaptureComplete }) => {
         }
     };
 
-    const calculatePD = useCallback(() => {
-        const cardPx = Math.sqrt(
-            Math.pow(markers.rightCard.x - markers.leftCard.x, 2) + 
-            Math.pow(markers.rightCard.y - markers.leftCard.y, 2)
-        );
-        const pupilsPx = Math.sqrt(
-            Math.pow(markers.rightPupil.x - markers.leftPupil.x, 2) + 
-            Math.pow(markers.rightPupil.y - markers.leftPupil.y, 2)
-        );
-        
-        if (cardPx === 0) return 0;
-        
-        const ratio = CARD_WIDTH_MM / cardPx;
-        const pd = pupilsPx * ratio;
-        return pd.toFixed(1);
-    }, [markers]);
 
-    useEffect(() => {
-        if (capturedImage && mode === 'pd') {
-            setPdValue(calculatePD());
+
+    // NEW: Handle AI-powered PD measurement via backend
+    const handleMeasureWithAI = async () => {
+        setAiMeasuring(true);
+        setError(null);
+        
+        try {
+            const blob = dataURLToBlob(capturedImage);
+            const formData = new FormData();
+            formData.append('image', blob, 'face_capture.jpg');
+            
+            const token = localStorage.getItem('token');
+            
+            console.log("🤖 Sending to MediaPipe AI endpoint...");
+            
+            const response = await fetch('/api/measure-pd/', {
+                method: 'POST',
+                headers: {
+                    ...(token && { 'Authorization': `Token ${token}` }),
+                },
+                body: formData,
+            });
+            
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData.details || errData.error || 'AI measurement failed');
+            }
+            
+            const data = await response.json();
+            console.log("✅ AI measurement result:", data);
+            
+            setAiResult(data);
+            setConfirmedPd(data.pd_mm);
+            
+        } catch (err) {
+            console.error("❌ AI measurement error:", err);
+            setError(`AI Measurement: ${err.message}. Please try again.`);
+        } finally {
+            setAiMeasuring(false);
         }
-    }, [markers, calculatePD, capturedImage, mode]);
-
-    const handleMarkerMouseDown = (key) => (e) => {
-        e.preventDefault();
-        setActiveMarker(key);
     };
 
-    const handleMouseMove = (e) => {
-        if (!activeMarker) return;
-        
-        const rect = e.currentTarget.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        
-        // Convert screen px to image px (aspect ratio preserved)
-        const scaleX = 640 / rect.width;
-        const scaleY = 480 / rect.height;
 
-        setMarkers(prev => ({
-            ...prev,
-            [activeMarker]: { x: x * scaleX, y: y * scaleY }
-        }));
-    };
-
-    const handleMouseUp = () => {
-        setActiveMarker(null);
-    };
 
     const dataURLToBlob = (dataURL) => {
         const arr = dataURL.split(','), mime = arr[0].match(/:(.*?);/)[1];
@@ -133,7 +122,7 @@ const FaceCapture = ({ onCaptureComplete }) => {
         setError(null);
         
         try {
-            console.log("🚀 Starting upload. Mode:", mode, "PD Value:", pdValue);
+            console.log("🚀 Starting upload. Mode:", mode, "PD Value:", confirmedPd);
             
             // Convert data URL to blob
             const blob = dataURLToBlob(capturedImage);
@@ -143,19 +132,20 @@ const FaceCapture = ({ onCaptureComplete }) => {
             const formData = new FormData();
             formData.append('image', blob, 'face_capture.jpg');
             
-            if (mode === 'pd' && pdValue) {
-                formData.append('pd_distance', String(pdValue));
-                console.log("✏️ PD Distance added:", pdValue);
+            // Use confirmed PD from AI measurement
+            const finalPd = confirmedPd;
+            if (mode === 'pd' && finalPd) {
+                formData.append('pd_distance', String(finalPd));
+                console.log("✏️ PD Distance added:", finalPd, "(AI Method)");
             }
             
             // Get auth token
             const token = localStorage.getItem('token');
             
-            console.log("📤 Using NATIVE FETCH API to /api/catalog/user-face/");
-            console.log("📋 Headers: Authorization only (Content-Type will be set automatically by browser)");
+            console.log("📤 Using NATIVE FETCH API to /api/eyewear-features/user-face/");
             
             // Use native Fetch API - it handles FormData correctly without axios interference
-            const response = await fetch('/api/catalog/user-face/', {
+            const response = await fetch('/api/eyewear-features/user-face/', {
                 method: 'POST',
                 headers: {
                     // ONLY Authorization - browser will set Content-Type automatically
@@ -176,7 +166,7 @@ const FaceCapture = ({ onCaptureComplete }) => {
             setSuccess(true);
             
             if (onCaptureComplete) {
-                onCaptureComplete(capturedImage, pdValue);
+                 onCaptureComplete(capturedImage, confirmedPd);
             }
 
             setTimeout(() => {
@@ -195,17 +185,18 @@ const FaceCapture = ({ onCaptureComplete }) => {
         setCapturedImage(null);
         setSuccess(false);
         setError(null);
-        setPdValue(null);
+        setAiResult(null);
+        setConfirmedPd(null);
         startCamera();
     };
 
     return (
         <div className="face-capture-container">
             <div className="capture-card">
-                <h2>{mode === 'pd' ? 'PD Measurement' : 'Face Capture'}</h2>
+                <h2>{mode === 'pd' ? 'AI PD Measurement' : 'Face Capture'}</h2>
                 <p>
                     {mode === 'pd' 
-                        ? 'Hold any standard card (credit card, ID) against your forehead.' 
+                        ? 'Position your face clearly for AI measurement. Ensure good lighting for accurate results.'
                         : 'Align your face within the oval.'}
                 </p>
                 
@@ -214,7 +205,7 @@ const FaceCapture = ({ onCaptureComplete }) => {
                         onClick={() => setMode('pd')} 
                         className={mode === 'pd' ? 'active' : ''}
                         disabled={!!capturedImage}
-                    >PD Mode</button>
+                    >🤖 AI PD Measurement</button>
                     <button 
                         onClick={() => setMode('vto')} 
                         className={mode === 'vto' ? 'active' : ''}
@@ -226,71 +217,79 @@ const FaceCapture = ({ onCaptureComplete }) => {
                 {success && <div className="success-msg">✅ Saved successfully! Redirecting...</div>}
                 
                 <div 
-                    className="video-wrapper" 
-                    onMouseMove={handleMouseMove} 
-                    onMouseUp={handleMouseUp}
-                    onMouseLeave={handleMouseUp}
-                    style={{cursor: activeMarker ? 'grabbing' : 'auto'}}
+                    className="video-wrapper"
+                    style={{cursor: 'auto'}}
                 >
                     {!capturedImage ? (
                         <>
                             <video ref={videoRef} autoPlay playsInline muted />
                             {mode === 'vto' && <div className="face-oval-overlay"></div>}
-                            {mode === 'pd' && <div className="card-guide-overlay"></div>}
                         </>
                     ) : (
                         <div style={{position: 'relative', width: '100%', height: '100%'}}>
                             <img src={capturedImage} alt="Captured face" className="preview-img" />
-                            {mode === 'pd' && (
-                                <>
-                                    {/* Markers for calibration */}
-                                    {Object.entries(markers).map(([key, pos]) => (
-                                        <div 
-                                            key={key}
-                                            className={`pd-marker ${key.includes('Card') ? 'card' : 'pupil'}`}
-                                            style={{ 
-                                                left: `${(pos.x / 640) * 100}%`, 
-                                                top: `${(pos.y / 480) * 100}%` 
-                                            }}
-                                            onMouseDown={handleMarkerMouseDown(key)}
-                                            title={key}
-                                        />
-                                    ))}
-                                    {/* Connector lines for visualization */}
-                                    <div className="pd-line" style={{
-                                        left: `${(markers.leftPupil.x / 640) * 100}%`,
-                                        top: `${(markers.leftPupil.y / 480) * 100}%`,
-                                        width: `${((markers.rightPupil.x - markers.leftPupil.x) / 640) * 100}%`,
-                                        transform: `rotate(${Math.atan2(markers.rightPupil.y - markers.leftPupil.y, markers.rightPupil.x - markers.leftPupil.x)}rad)`,
-                                        transformOrigin: '0 0'
-                                    }} />
-                                </>
-                            )}
                         </div>
                     )}
                     <canvas ref={canvasRef} style={{ display: 'none' }} />
-                    {saving && <div className="saving-overlay">Processing...</div>}
+                    {(saving || aiMeasuring) && <div className="saving-overlay">{aiMeasuring ? '🤖 Measuring...' : 'Processing...'}</div>}
                 </div>
 
-                {capturedImage && mode === 'pd' && (
-                    <div className="pd-results">
-                        <p>Calculated PD:</p>
-                        <div className="pd-value">{pdValue} mm</div>
-                        <small>Drag the markers to align with your pupils and the card's top edges.</small>
+                {/* NEW: Show AI result when available */}
+                {capturedImage && mode === 'pd' && aiResult && (
+                    <div className="ai-result-card" style={{
+                        backgroundColor: '#f0fdf4',
+                        border: '2px solid #22c55e',
+                        borderRadius: '8px',
+                        padding: '15px',
+                        marginTop: '15px',
+                        textAlign: 'center'
+                    }}>
+                        <p style={{margin: '0 0 10px 0', fontWeight: 'bold'}}>🤖 AI Measurement Complete</p>
+                        <div style={{fontSize: '24px', fontWeight: 'bold', color: '#16a34a', marginBottom: '8px'}}>
+                            {aiResult.pd_mm} mm
+                        </div>
+                        <p style={{margin: '8px 0', fontSize: '14px'}}>
+                            Confidence: <strong>{aiResult.confidence}</strong><br/>
+                            Range: {aiResult.range.min} - {aiResult.range.max} mm
+                        </p>
+                        {aiResult.confidence === 'low' && (
+                            <p style={{margin: '8px 0', fontSize: '12px', color: '#dc2626'}}>
+                                ⚠️ Low confidence. Consider re-capturing with better lighting.
+                            </p>
+                        )}
                     </div>
-                )}
+                )}}
 
                 <div className="capture-actions">
                     {!capturedImage ? (
-                        <button onClick={capturePhoto} className="btn-capture" disabled={!!error}>
-                            Capture Photo
-                        </button>
+                        <>
+                            <button onClick={capturePhoto} className="btn-capture" disabled={!!error}>
+                                Capture Photo
+                            </button>
+                            <small style={{display: 'block', textAlign: 'center', marginTop: '8px', color: '#666'}}>
+                                ✨ AI will automatically measure your PD after capture
+                            </small>
+                        </>
                     ) : (
                         <>
-                            <button onClick={retake} className="btn-retake" disabled={saving}>
+                            {mode === 'pd' && !aiResult && (
+                                <button 
+                                    onClick={handleMeasureWithAI} 
+                                    className="btn-proceed" 
+                                    disabled={aiMeasuring || saving}
+                                    style={{marginBottom: '10px'}}
+                                >
+                                    {aiMeasuring ? "🤖 Measuring..." : "🤖 Measure with AI"}
+                                </button>
+                            )}
+                            <button onClick={retake} className="btn-retake" disabled={saving || aiMeasuring}>
                                 Retake
                             </button>
-                            <button onClick={uploadAndProceed} className="btn-proceed" disabled={saving}>
+                            <button 
+                                onClick={uploadAndProceed} 
+                                className="btn-proceed" 
+                                disabled={saving || aiMeasuring || (mode === 'pd' && !confirmedPd)}
+                            >
                                 {saving ? "Saving..." : "Save & Proceed →"}
                             </button>
                         </>
