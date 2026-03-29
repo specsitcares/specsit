@@ -1,5 +1,5 @@
 """
-File: apps\core\models.py
+File: apps/catalog/core/models.py
 Module: core
 Description: System-wide shared models, utilities, and core dashboards. Defines the database schema and business logic for this module.
 """

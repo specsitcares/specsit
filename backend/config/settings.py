@@ -58,7 +58,7 @@ INSTALLED_APPS = [
     'apps.catalog',      # Products, Lenses, Prescriptions, Faces
     'apps.sales',        # Orders, Coupons, Shipments, Cart
     'apps.accounts',     # Users, Employees, Addresses, Queries
-    'apps.core',         # Metadata, Analytics, Config
+    'apps.catalog.core', # Metadata, Analytics, Config
 ]
 
 MIDDLEWARE = [
@@ -75,9 +75,13 @@ MIDDLEWARE = [
 
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:5175',
     'http://localhost:3000',
     'http://localhost:8000',
     'http://127.0.0.1:5173',
+    'http://127.0.0.1:5174',
+    'http://127.0.0.1:5175',
     'http://127.0.0.1:3000',
     'http://127.0.0.1:8000',
 ]
@@ -205,8 +209,14 @@ REST_FRAMEWORK = {
 CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[
     'http://localhost:3000',
     'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:5175',
+    'http://localhost:5176',
     'http://127.0.0.1:3000',
     'http://127.0.0.1:5173',
+    'http://127.0.0.1:5174',
+    'http://127.0.0.1:5175',
+    'http://127.0.0.1:5176',
 ])
 
 # Logging Configuration

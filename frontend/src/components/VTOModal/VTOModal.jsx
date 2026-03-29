@@ -15,7 +15,7 @@ const VTOModal = ({ isOpen, onClose, product }) => {
                     // Try to fetch from backend
                     try {
                         const token = localStorage.getItem('token');
-                        const res = await fetch('http://localhost:8000/api/catalog/user-face/', {
+                        const res = await fetch('/api/eyewear-features/user-face/', {
                             headers: { 'Authorization': `Token ${token}` }
                         });
                         const data = await res.json();

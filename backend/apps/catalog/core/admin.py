@@ -1,5 +1,5 @@
 """
-File: apps\core\admin.py
+File: apps/catalog/core/admin.py
 Module: core
 Description: System-wide shared models, utilities, and core dashboards. Registers models with the Django Admin interface for easy management.
 """

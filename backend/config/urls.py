@@ -12,7 +12,8 @@ from django.conf.urls.static import static
 from django.views.generic import TemplateView
 from django.views.static import serve
 from rest_framework.authtoken.views import obtain_auth_token
-from apps.core.views import login_view, logout_view, register_view
+from apps.catalog.core.views import login_view, logout_view, register_view
+from apps.catalog.views import MeasurePDView
 
 urlpatterns = [
     # Django Admin
@@ -25,6 +26,10 @@ urlpatterns = [
     path('api/login/', login_view, name='api_login_compat'),
     path('api/logout/', logout_view, name='api_logout_compat'),
     path('api/register/', register_view, name='api_register_compat'),
+    
+    # AI Measurement Endpoint
+    path('api/measure-pd/', MeasurePDView.as_view(), name='measure-pd'),
+    
     # Compatibility Eyewear Endpoints (mapped to catalog)
     path('api/eyewear-features/', include('apps.catalog.urls')),
 
@@ -32,7 +37,7 @@ urlpatterns = [
     path('api/catalog/', include('apps.catalog.urls')),
     path('api/sales/', include('apps.sales.urls')),
     path('api/accounts/', include('apps.accounts.urls')),
-    path('api/core/', include('apps.core.urls')),
+    path('api/core/', include('apps.catalog.core.urls')),
 
     # React Static Assets (Served via Django staticfiles now)
 

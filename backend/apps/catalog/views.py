@@ -1,6 +1,7 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from .models import Category, Brand, Manufacturer, Product, Variant, Collection, LensPackage, Lens, Prescription, UserFace, Review
 from .serializers import (
     CategorySerializer, BrandSerializer, ManufacturerSerializer,
@@ -10,8 +11,90 @@ from .serializers import (
 )
 from decimal import Decimal
 import logging
+import io
+import os
+import numpy as np
+from PIL import Image
 
 logger = logging.getLogger(__name__)
+
+# --- AI Utility Functions ---
+
+def calculate_pd_from_image(image_file):
+    """
+    Core AI logic for PD measurement using MediaPipe Tasks.
+    Optimized for O(1) time complexity post-landmark extraction.
+    Uses Ratio-Based Calibration (Face-Width/Eye-Distance).
+    """
+    try:
+        import mediapipe as mp
+        from mediapipe.tasks import python
+        from mediapipe.tasks.python import vision
+    except ImportError:
+        return {'error': 'AI measurement unavailable', 'details': 'MediaPipe library not found.'}, 503
+
+    try:
+        # Load and validate image
+        image_data = Image.open(io.BytesIO(image_file.read()))
+        image_np = np.array(image_data)
+        
+        # Initialize Face Landmarker
+        model_path = os.path.join(os.path.dirname(__file__), 'face_landmarker.task')
+        if not os.path.exists(model_path):
+            return {'error': 'AI model missing', 'details': 'Model asset not found on server.'}, 500
+
+        base_options = python.BaseOptions(model_asset_path=model_path)
+        options = vision.FaceLandmarkerOptions(
+            base_options=base_options,
+            output_face_blendshapes=False,
+            output_facial_transformation_matrixes=False,
+            num_faces=1
+        )
+        
+        with vision.FaceLandmarker.create_from_options(options) as landmarker:
+            mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=image_np)
+            results = landmarker.detect(mp_image)
+            
+            if not results.face_landmarks:
+                return {'error': 'No face detected', 'details': 'Ensure your face is clearly visible and well-lit.'}, 400
+            
+            # O(1) calculations using pre-defined indices
+            landmarks = results.face_landmarks[0]
+            
+            # Eye pupils (standard indices)
+            l_pupil = landmarks[468]
+            r_pupil = landmarks[473]
+            
+            # Face boundaries (zygomatic width indices)
+            l_face = landmarks[234]
+            r_face = landmarks[454]
+            
+            h, w = image_np.shape[:2]
+            
+            # Convert to actual coordinates
+            pd_px = np.linalg.norm(np.array([r_pupil.x * w, r_pupil.y * h]) - np.array([l_pupil.x * w, l_pupil.y * h]))
+            face_px = np.linalg.norm(np.array([r_face.x * w, r_face.y * h]) - np.array([l_face.x * w, l_face.y * h]))
+            
+            # Calibrate using 140mm average face width
+            pd_mm = (pd_px / face_px) * 140.0 if face_px > 0 else 63.0
+            
+            # Confidence Logic
+            if 58 <= pd_mm <= 72:
+                conf, margin = 'high', 1.0
+            elif 54 <= pd_mm <= 80:
+                conf, margin = 'medium', 2.0
+            else:
+                conf, margin = 'low', 3.5
+            
+            return {
+                'pd_mm': round(pd_mm, 1),
+                'confidence': conf,
+                'range': {'min': round(pd_mm - margin, 1), 'max': round(pd_mm + margin, 1)}
+            }, 200
+
+    except Exception as e:
+        logger.error(f"AI PD Calculation Error: {str(e)}")
+        return {'error': 'Measurement failed', 'details': str(e)}, 500
 
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Category.objects.select_related('parent').all().order_by('id')
@@ -126,6 +209,18 @@ class UserFaceViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(user_face)
         return Response(serializer.data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
 
+    @action(detail=False, methods=['post'])
+    def measure_pd(self, request):
+        """
+        AI-powered PD measurement using consolidated utility.
+        """
+        image_file = request.FILES.get('image')
+        if not image_file:
+            return Response({'error': 'No image provided'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        result, http_status = calculate_pd_from_image(image_file)
+        return Response(result, status=http_status)
+
     @action(detail=False, methods=['get'])
     def current(self, request):
         try:
@@ -141,3 +236,22 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+
+class MeasurePDView(APIView):
+    """
+    Standalone API endpoint for AI-powered PD measurement
+    Endpoint: POST /api/measure-pd/
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request):
+        """
+        Standalone standalone PD measurement using consolidated utility.
+        """
+        image_file = request.FILES.get('image')
+        if not image_file:
+            return Response({'error': 'No image provided'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        result, http_status = calculate_pd_from_image(image_file)
+        return Response(result, status=http_status)
