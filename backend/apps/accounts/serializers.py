@@ -18,6 +18,12 @@ class CustomerQuerySerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['user']
 
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        from django.contrib.auth.models import User
+        model = User
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'is_staff', 'date_joined']
+
 class EmployeeActionLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = EmployeeActionLog

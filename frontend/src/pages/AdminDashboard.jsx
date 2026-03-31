@@ -1,139 +1,152 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../services/api';
+import Sidebar from '../components/admin/Sidebar';
+import TopBar from '../components/admin/TopBar';
+import DashboardHome from '../components/admin/DashboardHome';
+import OrderTable from '../components/admin/OrderTable';
+import CustomerTable from '../components/admin/CustomerTable';
+import PrescriptionTable from '../components/admin/PrescriptionTable';
+import UserFaceTable from '../components/admin/UserFaceTable';
+import ProductTable from '../components/admin/ProductTable';
+import ShipmentTable from '../components/admin/ShipmentTable';
+import ReviewTable from '../components/admin/ReviewTable';
+import EmployeeTable from '../components/admin/EmployeeTable';
+import CouponTable from '../components/admin/CouponTable';
+import CategoryTable from '../components/admin/CategoryTable';
+import BrandTable from '../components/admin/BrandTable';
+import CollectionTable from '../components/admin/CollectionTable';
+import VariantTable from '../components/admin/VariantTable';
+import { useAuth } from '../context/AuthContext';
 import '../styles/admin.css';
 
 const AdminDashboard = () => {
-    const [activeApp, setActiveApp] = useState('Catalog');
-    const [subView, setSubView] = useState('Overview');
-    const [loading, setLoading] = useState(false);
+  const { user, logout } = useAuth();
+  const [activeApp, setActiveApp] = useState('Dashboards');
+  const [subView, setSubView] = useState('Defaults');
+  const [primaryView, setPrimaryView] = useState('Dashboard');
+  const [statsData, setStatsData] = useState(null);
+  const [recentOrders, setRecentOrders] = useState([]);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-    // Core data hooks
-    const [stats, setStats] = useState({ revenue: 0, orders: 0, stock: 0 });
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const statsRes = await apiClient.get('/sales/admin/stats/');
+        setStatsData(statsRes.data);
 
-    const apps = [
-        { name: 'Core', icon: '📊', views: ['Dashboard', 'Analytics', 'System Config'] },
-        { name: 'Catalog', icon: '🕶️', views: ['Products', 'Inventory', 'Brands', 'Addons', 'Categories'] },
-        { name: 'Sales', icon: '💰', views: ['Orders', 'Coupons', 'Cart Logs', 'Wishlists'] },
-        { name: 'Operations', icon: '🚚', views: ['Shipments', 'Payments', 'Prescriptions'] },
-        { name: 'Customer', icon: '🤝', views: ['Reviews', 'Queries', 'Employees', 'Geolocation'] },
-    ];
+        const ordersRes = await apiClient.get('/sales/admin/recent-orders/');
+        setRecentOrders(ordersRes.data);
+      } catch (err) {
+        console.error('Failed to fetch admin dashboard data', err);
+      }
+    };
+    fetchData();
+    const interval = setInterval(fetchData, 30000); // 30s for real-time feel
+    return () => clearInterval(interval);
+  }, []);
 
-    useEffect(() => {
-        // Initial sync
-    }, []);
+  useEffect(() => {
+    if (activeApp === 'Orders') setPrimaryView('Order');
+    else if (activeApp === 'Customers') setPrimaryView('Customers');
+    else if (activeApp === 'Dashboards') setPrimaryView('Dashboard');
+    else if (activeApp === 'Analytics') setPrimaryView('Analytics');
+    else setPrimaryView(activeApp);
+  }, [activeApp]);
 
-    const renderNavbar = () => (
-        <header className="admin-navbar">
-            <div className="navbar-brand">
-                <div className="navbar-logo">S</div>
-                <h1>SPECTSQ<span className="logo-accent">HQ</span></h1>
-            </div>
+  useEffect(() => {
+    const map = {
+      'All Orders': 'Order',
+      'Profiles': 'Customers',
+      'Customer Profiles': 'Customers',
+      'Customer Queries': 'Queries',
+      'All Prescriptions': 'Prescriptions',
+      'Face Captures': 'UserFace',
+      'All Products': 'Products',
+      'All Categories': 'Categories',
+      'All Brands': 'Brands',
+      'All Collections': 'Collections',
+      'All Variants': 'Variants',
+      'Track Shipments': 'Shipments',
+      'Pending Reviews': 'Reviews',
+      'Employees': 'Staff',
+      'Active Coupons': 'Coupons',
+    };
+    if (map[subView]) setPrimaryView(map[subView]);
+  }, [subView]);
 
-            <nav className="navbar-menu">
-                {apps.map(app => (
-                    <button
-                        key={app.name}
-                        onClick={() => { setActiveApp(app.name); setSubView(app.views[0]); }}
-                        className={`nav-link ${activeApp === app.name ? 'active' : ''}`}
-                    >
-                        {app.icon} {app.name}
-                    </button>
-                ))}
-            </nav>
+  const renderContent = () => {
+    switch (primaryView) {
+      case 'Dashboard':
+      case 'Dashboards':
+        return <DashboardHome statsData={statsData} recentOrders={recentOrders} />;
+      case 'Order':
+      case 'Orders':
+        return <OrderTable />;
+      case 'Customers':
+        return <CustomerTable />;
+      case 'Prescriptions':
+        return <PrescriptionTable />;
+      case 'UserFace':
+        return <UserFaceTable />;
+      case 'Products':
+        return <ProductTable />;
+      case 'Categories':
+        return <CategoryTable />;
+      case 'Brands':
+        return <BrandTable />;
+      case 'Collections':
+        return <CollectionTable />;
+      case 'Variants':
+        return <VariantTable />;
+      case 'Shipments':
+        return <ShipmentTable />;
+      case 'Reviews':
+        return <ReviewTable />;
+      case 'Staff':
+        return <EmployeeTable />;
+      case 'Coupons':
+        return <CouponTable />;
+      default:
+        return <DashboardHome statsData={statsData} recentOrders={recentOrders} />;
+    }
+  };
 
-            <div className="navbar-status">
-                <span>STATUS: <span className="status-online">ONLINE</span></span>
-                <div className="user-avatar"></div>
-            </div>
-        </header>
-    );
+  return (
+    <div className="admin-viewport-wrapper">
+      <TopBar
+        activeView={activeApp}
+        setActiveView={setActiveApp}
+        userName={user?.username || 'Olivia Rhye'}
+        userRole="Admin"
+        onLogout={logout}
+        toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+      />
 
-    const renderSubNav = () => (
-        <div className="admin-subnav">
-            {apps.find(a => a.name === activeApp)?.views.map(view => (
-                <button
-                    key={view}
-                    onClick={() => setSubView(view)}
-                    className={`subnav-link ${subView === view ? 'active' : ''}`}
-                >
-                    {view}
-                </button>
-            ))}
+      <div className="admin-layout-new">
+        <Sidebar
+          activeApp={activeApp}
+          setActiveApp={setActiveApp}
+          subView={subView}
+          setSubView={setSubView}
+          onClose={() => setSidebarOpen(false)}
+          isMobile={sidebarOpen}
+        />
+
+        <div className="admin-main-container">
+          {sidebarOpen && (
+            <div 
+              className="sidebar-backdrop mobile-only" 
+              onClick={() => setSidebarOpen(false)}
+              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 998 }}
+            ></div>
+          )}
+          <main className="admin-content-scroller">
+            {renderContent()}
+          </main>
         </div>
-    );
-
-    return (
-        <div className="admin-layout">
-            {renderNavbar()}
-            {renderSubNav()}
-
-            <main className="admin-main">
-                <div className="admin-header">
-                    <h2>{activeApp} <span className="header-accent">/</span> {subView}</h2>
-                    <p>System Command Portal - Real-time Data Sync Active</p>
-                </div>
-
-                {/* Dashboard / Analytics View */}
-                {activeApp === 'Core' && subView === 'Dashboard' && (
-                    <div className="stats-grid">
-                        {[
-                            { label: 'GROSS REVENUE', value: '$124,500', trend: '+12%', color: '#22c55e' },
-                            { label: 'ACTIVE MISSIONS', value: '42', trend: '-2', color: '#f59e0b' },
-                            { label: 'UNIQUE VISITORS', value: '1,280', trend: '+240', color: '#0ea5e9' },
-                            { label: 'STOCK HEALTH', value: '94%', trend: 'STABLE', color: '#6366f1' }
-                        ].map((card, i) => (
-                            <div key={i} className="stat-card">
-                                <div className="stat-header">
-                                    <span className="stat-label">{card.label}</span>
-                                    <span className="stat-trend" style={{ color: card.color }}>{card.trend}</span>
-                                </div>
-                                <div className="stat-value">{card.value}</div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-                {/* Generic Table Placeholder for other views */}
-                {!(activeApp === 'Core' && subView === 'Dashboard') && (
-                    <div className="admin-table-card">
-                        <div className="table-toolbar">
-                            <div className="table-search-group">
-                                <input placeholder={`Search ${subView}...`} className="table-search" />
-                                <select className="table-actions">
-                                    <option>Bulk Actions</option>
-                                </select>
-                            </div>
-                            <button className="premium-btn">+ New {subView.slice(0, -1)}</button>
-                        </div>
-                        <div className="table-container">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Entity Name</th>
-                                        <th>Status</th>
-                                        <th>Last Updated</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {[1, 2, 3, 4, 5].map(i => (
-                                        <tr key={i}>
-                                            <td className="table-id">#00{i}</td>
-                                            <td className="table-name">{subView} Record Entry {i}</td>
-                                            <td><span className="table-badge">ACTIVE</span></td>
-                                            <td className="table-date">2024-03-10</td>
-                                            <td><button className="table-action">MODIFY</button></td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                )}
-            </main>
-        </div>
-    );
+      </div>
+    </div>
+  );
 };
 
 export default AdminDashboard;

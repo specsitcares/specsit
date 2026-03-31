@@ -93,12 +93,17 @@ const HomePage = () => {
                         trending.map((p, idx) => (
                             <div key={idx} className="product-card">
                                 <div className="product-image">
-                                    <img src={p.variants?.[0]?.image || ''} alt={p.title} />
+                                    <h4 className="product-card-badge">{p.main_image ? 'HOT' : ''}</h4>
+                                    <img 
+                                        src={p.main_image || (p.variants?.[0]?.image) || 'https://placehold.co/300x200'} 
+                                        alt={p.title} 
+                                        onError={(e) => { e.target.src = 'https://placehold.co/300x200?text=No+Image'; }}
+                                    />
                                 </div>
                                 <div className="product-info">
                                     <h4 className="product-title">{p.title}</h4>
-                                    <p className="product-category">{p.category_name}</p>
-                                    <p className="product-price">${p.base_price}</p>
+                                    <p className="product-category">{p.category_name || 'Eyewear'}</p>
+                                    <p className="product-price">₹{Number(p.base_price).toLocaleString('en-IN')}</p>
                                     <div className="product-actions">
                                         <Link to={`/product/${p.id}`} className="btn-view">View Details</Link>
                                         <button className="btn-cart">Add to Cart</button>

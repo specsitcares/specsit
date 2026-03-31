@@ -2,12 +2,12 @@ from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .models import Category, Brand, Manufacturer, Product, Variant, Collection, LensPackage, Lens, Prescription, UserFace, Review
+from .models import Category, Brand, Manufacturer, Product, Variant, VariantImage, Collection, LensPackage, Lens, Prescription, UserFace, Review
 from .serializers import (
     CategorySerializer, BrandSerializer, ManufacturerSerializer,
     ProductSerializer, VariantSerializer, CollectionSerializer,
     LensPackageSerializer, LensSerializer, PrescriptionSerializer, UserFaceSerializer,
-    ReviewSerializer
+    ReviewSerializer, VariantImageSerializer
 )
 from decimal import Decimal
 import logging
@@ -96,14 +96,29 @@ def calculate_pd_from_image(image_file):
         logger.error(f"AI PD Calculation Error: {str(e)}")
         return {'error': 'Measurement failed', 'details': str(e)}, 500
 
-class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
+class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.select_related('parent').all().order_by('id')
     serializer_class = CategorySerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
-class BrandViewSet(viewsets.ReadOnlyModelViewSet):
+    def get_queryset(self):
+        if self.request.user.is_staff:
+            return Category.objects.all().order_by('id')
+        return Category.objects.filter(is_active=True).order_by('id')
+
+class BrandViewSet(viewsets.ModelViewSet):
     queryset = Brand.objects.all().order_by('id')
     serializer_class = BrandSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get_queryset(self):
+        if self.request.user.is_staff:
+            return Brand.objects.all().order_by('id')
+        return Brand.objects.filter(is_active=True).order_by('id')
+
+class ManufacturerViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Manufacturer.objects.all()
+    serializer_class = ManufacturerSerializer
     permission_classes = [permissions.AllowAny]
 
 class ProductViewSet(viewsets.ModelViewSet):
@@ -111,8 +126,26 @@ class ProductViewSet(viewsets.ModelViewSet):
     serializer_class = ProductSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
+    @action(detail=True, methods=['get'])
+    def recommended_lenses(self, request, pk=None):
+        from .models import Lens
+        from .serializers import LensSerializer
+        product = self.get_object()
+        # Simple recommendation logic - show active lenses
+        lenses = Lens.objects.filter(is_active=True)
+        serializer = LensSerializer(lenses, many=True)
+        return Response(serializer.data)
+
+    def perform_create(self, serializer):
+        # We no longer create a default variant here as the new UI 
+        # handles variant creation explicitly in Step 2.
+        serializer.save()
+
     def get_queryset(self):
-        queryset = Product.objects.filter(is_active=True).order_by('id')
+        if self.request.user.is_staff:
+            queryset = Product.objects.all().order_by('id')
+        else:
+            queryset = Product.objects.filter(is_active=True).order_by('id')
         category = self.request.query_params.get('category', None)
         if category is not None:
             if category.isdigit():
@@ -125,10 +158,10 @@ class ProductViewSet(viewsets.ModelViewSet):
         if shape:
             queryset = queryset.filter(frame_shape__iexact=shape)
             
-        # Filter by Frame Material
-        material = self.request.query_params.get('material', None)
-        if material:
-            queryset = queryset.filter(frame_material__iexact=material)
+        # Filter by Frame Width
+        width = self.request.query_params.get('width', None)
+        if width:
+            queryset = queryset.filter(frame_width__iexact=width)
 
         max_price = self.request.query_params.get('max_price', None)
         if max_price is not None:
@@ -139,27 +172,42 @@ class ProductViewSet(viewsets.ModelViewSet):
                 
         return queryset
 
-class VariantViewSet(viewsets.ReadOnlyModelViewSet):
+class VariantImageViewSet(viewsets.ModelViewSet):
+    queryset = VariantImage.objects.all()
+    serializer_class = VariantImageSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+class VariantViewSet(viewsets.ModelViewSet):
     queryset = Variant.objects.select_related('product', 'product__category', 'product__brand').all().order_by('id')
     serializer_class = VariantSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
-class CollectionViewSet(viewsets.ReadOnlyModelViewSet):
+    def get_queryset(self):
+        if self.request.user.is_staff:
+             return Variant.objects.all().order_by('id')
+        return Variant.objects.filter(stock__gt=0).order_by('id')
+
+class CollectionViewSet(viewsets.ModelViewSet):
     queryset = Collection.objects.prefetch_related('products').all().order_by('id')
     serializer_class = CollectionSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get_queryset(self):
+        if self.request.user.is_staff:
+            return Collection.objects.all().order_by('id')
+        return Collection.objects.filter(is_active=True).order_by('id')
 
 # --- Consolidated Eyewear Feature Views ---
 
-class LensPackageViewSet(viewsets.ReadOnlyModelViewSet):
+class LensPackageViewSet(viewsets.ModelViewSet):
     queryset = LensPackage.objects.all()
     serializer_class = LensPackageSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAdminUser]
 
-class LensViewSet(viewsets.ReadOnlyModelViewSet):
+class LensViewSet(viewsets.ModelViewSet):
     queryset = Lens.objects.select_related('package', 'type').all()
     serializer_class = LensSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAdminUser]
 
 class PrescriptionViewSet(viewsets.ModelViewSet):
     serializer_class = PrescriptionSerializer
@@ -230,12 +278,34 @@ class UserFaceViewSet(viewsets.ModelViewSet):
             return Response({'detail': 'No face capture found'}, status=status.HTTP_404_NOT_FOUND)
 
 class ReviewViewSet(viewsets.ModelViewSet):
-    queryset = Review.objects.filter(is_approved=True)
+    queryset = Review.objects.all()
     serializer_class = ReviewSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
+    def get_queryset(self):
+        # Non-admins see only approved reviews, admins see all
+        if self.request.user.is_staff:
+            return Review.objects.all()
+        return Review.objects.filter(is_approved=True)
+
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+    
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
+    def approve(self, request, pk=None):
+        """Admin action to approve a review"""
+        review = self.get_object()
+        review.is_approved = True
+        review.save()
+        return Response({'status': 'review approved'}, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
+    def reject(self, request, pk=None):
+        """Admin action to reject a review"""
+        review = self.get_object()
+        review.is_approved = False
+        review.save()
+        return Response({'status': 'review rejected'}, status=status.HTTP_200_OK)
 
 
 class MeasurePDView(APIView):

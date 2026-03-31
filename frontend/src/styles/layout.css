@@ -1,179 +1,156 @@
-/* ============================================
-   NAVIGATION & LAYOUT STYLES
-   ============================================ */
+/* ============================================================
+   GLOBAL LAYOUT & NAVBAR — PREMIUM EYEWEAR THEME
+   ============================================================ */
+
+:root {
+  --nav-height: 72px;
+  --glass-effect: backdrop-filter: blur(12px) saturate(180%);
+}
 
 .navbar {
-  background-color: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-color);
-  padding: 15px 20px;
+  height: var(--nav-height);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   position: sticky;
   top: 0;
-  z-index: 50;
-  box-shadow: var(--shadow-light);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  transition: all 0.3s ease;
 }
 
 .navbar-container {
-  max-width: 1400px;
+  max-width: 1280px;
   margin: 0 auto;
+  padding: 0 24px;
+  width: 100%;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 20px;
+  justify-content: space-between;
 }
 
 .navbar-logo {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--primary-color);
-  text-decoration: none;
   display: flex;
   align-items: center;
   gap: 10px;
+  text-decoration: none;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 800;
+  font-size: 20px;
+  color: var(--text-primary, #111);
+  letter-spacing: -0.5px;
 }
 
 .navbar-menu {
   display: flex;
-  gap: 20px;
-  align-items: center;
   list-style: none;
+  gap: 32px;
   margin: 0;
   padding: 0;
 }
 
 .navbar-link {
-  color: var(--text-primary);
   text-decoration: none;
   font-size: 14px;
   font-weight: 500;
-  padding: 8px 15px;
-  border-radius: 6px;
-  transition: all 0.2s ease;
-  cursor: pointer;
+  color: var(--text-secondary, #666);
+  transition: all 0.25s ease;
+  position: relative;
+  padding: 8px 0;
 }
 
 .navbar-link:hover {
-  background-color: var(--bg-tertiary);
-  color: var(--primary-color);
+  color: var(--primary-color, #0ea5e9);
 }
 
-.navbar-link.active {
-  color: var(--primary-color);
-  background-color: rgba(14, 165, 233, 0.1);
+.navbar-link::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--primary-color, #0ea5e9);
+  transition: width 0.3s ease;
+  border-radius: 99px;
 }
 
-.theme-toggle {
-  background: none;
-  border: 1px solid var(--border-color);
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 18px;
-  transition: all 0.2s ease;
-}
-
-.theme-toggle:hover {
-  background-color: var(--bg-tertiary);
+.navbar-link:hover::after {
+  width: 100%;
 }
 
 .navbar-actions {
   display: flex;
-  gap: 10px;
   align-items: center;
+  gap: 16px;
 }
 
 .navbar-badge {
-  background-color: var(--primary-color);
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  background: var(--error-color, #ef4444);
   color: white;
+  font-size: 10px;
+  font-weight: 700;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
-  width: 24px;
-  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
-  font-weight: 600;
-  position: absolute;
-  top: -5px;
-  right: -5px;
+  border: 2px solid white;
 }
 
-/* ============================================
-   FOOTER STYLES
-   ============================================ */
+.theme-toggle {
+  background: var(--bg-secondary, #f5f5f5);
+  border: 1px solid var(--border-color, #e0e0e0);
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 16px;
+}
 
+.theme-toggle:hover {
+  background: var(--bg-tertiary, #e8e8e8);
+  transform: translateY(-1px);
+}
+
+.btn-primary {
+  background: var(--primary-color, #0ea5e9);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 10px rgba(14, 165, 233, 0.2);
+}
+
+.btn-primary:hover {
+  background: #0284c7;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(14, 165, 233, 0.3);
+}
+
+/* Footer Section */
 .footer {
-  background-color: var(--bg-secondary);
-  color: var(--text-secondary);
-  border-top: 1px solid var(--border-color);
-  padding: 40px 20px 20px;
+  background: var(--bg-secondary, #f9fafb);
+  padding: 64px 24px;
+  border-top: 1px solid var(--border-color, #f0f0f0);
+  margin-top: auto;
 }
 
 .footer-container {
-  max-width: 1400px;
+  max-width: 1280px;
   margin: 0 auto;
-}
-
-.footer-content {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 30px;
-  margin-bottom: 30px;
-}
-
-.footer-section h4 {
-  color: var(--text-primary);
-  font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 15px;
-}
-
-.footer-links {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.footer-links a {
-  color: var(--text-secondary);
-  text-decoration: none;
-  font-size: 13px;
-  transition: color 0.2s ease;
-}
-
-.footer-links a:hover {
-  color: var(--primary-color);
-}
-
-.footer-bottom {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: 20px;
-  border-top: 1px solid var(--border-color);
-  font-size: 12px;
-}
-
-@media (max-width: 768px) {
-  .navbar-container {
-    flex-direction: column;
-  }
-
-  .navbar-menu {
-    flex-direction: column;
-    width: 100%;
-    gap: 10px;
-  }
-
-  .footer-bottom {
-    flex-direction: column;
-    gap: 10px;
-    text-align: center;
-  }
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 48px;
 }

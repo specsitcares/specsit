@@ -5,7 +5,7 @@ Description: Product management, categories, brands, and inventory catalog. Regi
 """
 from django.contrib import admin
 from .models import (
-    Category, Brand, Manufacturer, Product, Variant, Collection, 
+    Category, Brand, Manufacturer, Product, Variant, VariantImage, Collection, 
     LensPackage, Lens, Prescription, UserFace, Review
 )
 
@@ -16,14 +16,25 @@ class CategoryAdmin(admin.ModelAdmin):
 
 @admin.register(Brand)
 class BrandAdmin(admin.ModelAdmin):
-    list_display = ('name', 'label', 'status', 'created_at')
-    list_filter = ('status',)
+    list_display = ('name', 'label', 'is_active', 'created_at')
+    list_filter = ('is_active',)
     search_fields = ('name',)
 
 @admin.register(Manufacturer)
 class ManufacturerAdmin(admin.ModelAdmin):
     list_display = ('name',)
     search_fields = ('name',)
+
+class VariantImageInline(admin.TabularInline):
+    model = VariantImage
+    extra = 1
+
+@admin.register(Variant)
+class VariantAdmin(admin.ModelAdmin):
+    list_display = ('sku', 'product', 'color', 'stock', 'price_adjustment')
+    list_filter = ('color',)
+    search_fields = ('sku', 'product__title')
+    inlines = [VariantImageInline]
 
 class VariantInline(admin.TabularInline):
     model = Variant
@@ -35,12 +46,6 @@ class ProductAdmin(admin.ModelAdmin):
     list_filter = ('category', 'brand', 'is_active')
     search_fields = ('title', 'description')
     inlines = [VariantInline]
-
-@admin.register(Variant)
-class VariantAdmin(admin.ModelAdmin):
-    list_display = ('sku', 'product', 'color', 'size', 'stock', 'price_adjustment')
-    list_filter = ('color', 'size')
-    search_fields = ('sku', 'product__title')
 
 @admin.register(LensPackage)
 class LensPackageAdmin(admin.ModelAdmin):
@@ -68,3 +73,9 @@ class ReviewAdmin(admin.ModelAdmin):
     list_display = ('user', 'product', 'rating', 'is_approved', 'created_at')
     list_filter = ('rating', 'is_approved')
     search_fields = ('user__username', 'product__title')
+
+@admin.register(Collection)
+class CollectionAdmin(admin.ModelAdmin):
+    list_display = ('name', 'description', 'is_active')
+    list_filter = ('is_active',)
+    search_fields = ('name',)

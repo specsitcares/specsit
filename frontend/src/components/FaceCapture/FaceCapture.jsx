@@ -258,7 +258,7 @@ const FaceCapture = ({ onCaptureComplete }) => {
                             </p>
                         )}
                     </div>
-                )}}
+                )}
 
                 <div className="capture-actions">
                     {!capturedImage ? (

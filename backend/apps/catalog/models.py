@@ -5,14 +5,17 @@ from .core.models import MetadataItem  # type: ignore
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True)
+    image = models.ImageField(upload_to='categories/', blank=True, null=True)
     parent = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='subcategories')
+    is_active = models.BooleanField(default=True)
     def __str__(self): return self.name
 
 class Brand(models.Model):
     name = models.CharField(max_length=100, unique=True)
     label = models.CharField(max_length=100, blank=True)
     logo = models.ImageField(upload_to='brands/', blank=True, null=True)
-    status = models.BooleanField(default=True)
+    description = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     def __str__(self): return self.name
@@ -24,30 +27,29 @@ class Manufacturer(models.Model):
 
 class Product(models.Model):
     """
-    Main Product model, enhanced with technical eyewear specifications.
+    Main Product model, aligned with Figma design specs.
     """
     title = models.CharField(max_length=255)
-    description = models.TextField()
+    description = models.TextField() # Long description/Meta Description
+    short_description = models.TextField(blank=True)
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='products')
-    manufacturer = models.ForeignKey(Manufacturer, on_delete=models.SET_NULL, null=True, blank=True)
     brand = models.ForeignKey(Brand, on_delete=models.SET_NULL, null=True, blank=True)
+    manufacturer = models.ForeignKey(Manufacturer, on_delete=models.SET_NULL, null=True, blank=True)
     
-    # Frame Specs
-    frame_type = models.ForeignKey(MetadataItem, on_delete=models.SET_NULL, null=True, blank=True, limit_choices_to={'group__name': 'Frame Type'})
-    frame_shape = models.CharField(max_length=100, blank=True) # Rectangle, Square, Round, Cat-eye, etc.
-    frame_material = models.CharField(max_length=100, blank=True) # Acetate, Metal, TR90, Titanium, etc.
-    hinge_type = models.CharField(max_length=100, blank=True) # Spring, Standard
+    # SEO Fields
+    meta_title = models.CharField(max_length=255, blank=True)
+    meta_description = models.TextField(blank=True)
     
-    # Technical Measurements (mm)
-    bridge_width = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
-    temple_length = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
-    lens_width = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
-    lens_height = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    # Frame Specs from Figma
+    frame_type = models.CharField(max_length=100, blank=True, default='')
+    frame_shape = models.CharField(max_length=100, blank=True, default='') # Pilot / Aviator, Round, etc.
+    frame_width = models.CharField(max_length=100, blank=True, default='') # e.g. "Large (140mm)"
+    gender = models.CharField(max_length=20, choices=[('Men', 'Men'), ('Women', 'Women'), ('Unisex', 'Unisex')], default='Unisex')
     
-    base_price = models.DecimalField(max_digits=12, decimal_places=2)
-    tax_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
-    discount_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
+    base_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    frame_only_mode = models.BooleanField(default=False)
     
+    is_featured = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -57,23 +59,52 @@ class Product(models.Model):
 class Variant(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='variants')
     sku = models.CharField(max_length=100, unique=True)
-    color = models.CharField(max_length=50)
-    size = models.CharField(max_length=50, blank=True)
-    stock = models.IntegerField(default=0)
-    image = models.ImageField(upload_to='catalog/', blank=True, null=True)
     
-    # VTO Assets (Keep for feature support)
+    # Color Differentiation
+    lens_color = models.CharField(max_length=100, blank=True, default='')
+    frame_color = models.CharField(max_length=100, blank=True, default='')
+    color = models.CharField(max_length=100, help_text="Common color name for SEO/Display", default='') 
+    
+    # Color Selection from Figma
+    COLOR_METHOD_CHOICES = [('code', 'Color Code'), ('palette', 'Palette Image')]
+    color_selection_method = models.CharField(max_length=10, choices=COLOR_METHOD_CHOICES, default='code')
+    color_code = models.CharField(max_length=7, blank=True) # Hex code
+    palette_image = models.ImageField(upload_to='catalog/palettes/', blank=True, null=True)
+    
+    # Frame Details (from Figma Node 76:8389)
+    frame_material = models.CharField(max_length=100, blank=True, default='')
+    frame_size = models.CharField(max_length=100, blank=True, default='')
+    frame_weight = models.CharField(max_length=100, blank=True, default='')
+    
+    # Marketing and Tax
+    stock = models.IntegerField(default=0)
+    price_adjustment = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    tax_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
+    discount_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
+    is_bogo = models.BooleanField(default=False)
+    discount_start_date = models.DateField(null=True, blank=True)
+    discount_end_date = models.DateField(null=True, blank=True)
+    
+    # VTO Assets
     vto_image_front = models.ImageField(upload_to='vto_assets/', blank=True, null=True)
     vto_video = models.FileField(upload_to='vto_assets/', blank=True, null=True)
     
-    price_adjustment = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    def __str__(self): return f"{self.product.title} [{self.sku}]"
+
+class VariantImage(models.Model):
+    variant = models.ForeignKey(Variant, on_delete=models.CASCADE, related_name='images')
+    image = models.ImageField(upload_to='catalog/products/')
+    order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
     
-    def __str__(self): return f"{self.product.title} [{self.color}]"
+    class Meta:
+        ordering = ['order']
 
 class Collection(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
-    image = models.URLField(blank=True)
+    image = models.ImageField(upload_to='collections/', blank=True, null=True)
+    is_active = models.BooleanField(default=True)
     products = models.ManyToManyField(Product, related_name='collections')
     def __str__(self): return self.name
 
@@ -83,13 +114,16 @@ class LensPackage(models.Model):
     name = models.CharField(max_length=100) # Silver, Gold, Platinum
     description = models.TextField(blank=True)
     features = models.JSONField(default=list) # e.g. ["Anti-glare", "UV Protection"]
+    is_active = models.BooleanField(default=True)
     def __str__(self): return self.name
 
 class Lens(models.Model):
+    name = models.CharField(max_length=100, blank=True) # Optional override
     package = models.ForeignKey(LensPackage, on_delete=models.CASCADE, related_name='lenses')
     type = models.ForeignKey(MetadataItem, on_delete=models.SET_NULL, null=True, blank=True, limit_choices_to={'group__name': 'Lens Type'})
     price = models.DecimalField(max_digits=10, decimal_places=2)
     index = models.CharField(max_length=10, blank=True) # 1.5, 1.61, 1.67, 1.74
+    is_active = models.BooleanField(default=True)
     is_for_sunglasses = models.BooleanField(default=False)
     is_for_eyeglasses = models.BooleanField(default=True)
     def __str__(self): return f"{self.package.name}: {self.type.label if self.type else 'Generic'}"
@@ -99,6 +133,7 @@ class Prescription(models.Model):
     Enhanced Prescription model with full industry-standard fields.
     """
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='prescriptions')
+    patient_name = models.CharField(max_length=100, blank=True, null=True)
     
     # Right Eye (Oculus Dexter)
     od_sphere = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)

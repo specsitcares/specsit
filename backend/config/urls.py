@@ -16,8 +16,8 @@ from apps.catalog.core.views import login_view, logout_view, register_view
 from apps.catalog.views import MeasurePDView
 
 urlpatterns = [
-    # Django Admin
-    path('admin/', admin.site.urls),
+    # Django Admin (Core administration panel for comparison)
+    path('admin-django/', admin.site.urls),
 
     # Authentication
     path('api-auth/', include('rest_framework.urls')),
@@ -42,7 +42,7 @@ urlpatterns = [
     # React Static Assets (Served via Django staticfiles now)
 
     # Monolithic Catch-All for React Router
-    re_path(r'^((?!api|admin|api-auth|api-token-auth|static|media).)*$', TemplateView.as_view(template_name='index.html')),
+    re_path(r'^((?!api|admin-django|api-auth|api-token-auth|static|media).)*$', TemplateView.as_view(template_name='index.html')),
 ]
 
 # Serve static and media files in development

@@ -13,9 +13,11 @@ export const CartProvider = ({ children }) => {
     }, [cart]);
 
     const addToCart = (product, lens = null, prescription = null) => {
+        const variant = product.variants?.[0] || null;
         const newItem = {
-            id: `${product.id}-${lens?.id || 'no-lens'}-${prescription?.id || 'no-rx'}`,
+            id: `${product.id}-${variant?.id || 'no-var'}-${lens?.id || 'no-lens'}-${prescription?.id || 'no-rx'}`,
             product,
+            variant,
             lens,
             prescription,
             quantity: 1

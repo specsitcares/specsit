@@ -17,8 +17,8 @@ class Coupon(models.Model):
 
 class Order(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders', null=True, blank=True)
-    total_amount = models.DecimalField(max_digits=12, decimal_places=2)
-    paid_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    paid_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     
     payment_method = models.CharField(max_length=50, default='COD')
     status = models.ForeignKey(MetadataItem, on_delete=models.SET_NULL, null=True, blank=True, related_name='order_status')
@@ -38,8 +38,9 @@ class OrderItem(models.Model):
     variant = models.ForeignKey(Variant, on_delete=models.CASCADE)
     lens = models.ForeignKey(Lens, on_delete=models.SET_NULL, null=True, blank=True)
     prescription = models.ForeignKey(Prescription, on_delete=models.SET_NULL, null=True, blank=True)
+    patient_name = models.CharField(max_length=100, blank=True, null=True)
     quantity = models.IntegerField(default=1)
-    price_at_purchase = models.DecimalField(max_digits=12, decimal_places=2)
+    price_at_purchase = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     def __str__(self): return f"Item for Order #{self.order.id}"
 
 class Cart(models.Model):
@@ -61,3 +62,8 @@ class Shipment(models.Model):
     tracking_id = models.CharField(max_length=100, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     def __str__(self): return f"Shipment for Order #{self.order.id}"
+class LiveSession(models.Model):
+    session_id = models.CharField(max_length=255, unique=True)
+    current_page = models.CharField(max_length=255, default='Home Page')
+    last_activity = models.DateTimeField(auto_now=True)
+    def __str__(self): return f"Session {self.session_id} on {self.current_page}"

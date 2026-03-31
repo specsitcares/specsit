@@ -64,7 +64,11 @@ const ProductDetailPage = () => {
             {/* Left: Product Images & VTO */}
             <div className="product-images-section">
                 <div className="product-image-main">
-                    <img src={product.variants?.[0]?.image || ''} alt={product.title} />
+                    <img 
+                        src={product.main_image || (product.variants?.length > 0 ? product.variants[0].image : '/placeholder.jpg')} 
+                        alt={product.title} 
+                        onError={(e) => { e.target.src = 'https://placehold.co/600x400?text=Product+Image'; }}
+                    />
                     <button
                         onClick={() => setIsVTOModalOpen(true)}
                         className="vto-button"
@@ -74,11 +78,16 @@ const ProductDetailPage = () => {
                 </div>
 
                 <div className="product-thumbnails">
-                    {[1, 2, 3, 4].map(i => (
+                    {product.variants?.map((v, i) => (
                         <div key={i} className="thumbnail-item">
-                            <img src={product.variants?.[0]?.image || ''} />
+                            <img src={v.image || product.main_image} alt="variant" />
                         </div>
                     ))}
+                    {(!product.variants || product.variants.length === 0) && (
+                         <div className="thumbnail-item">
+                            <img src={product.main_image} alt="main" />
+                        </div>
+                    )}
                 </div>
 
                 <div className="product-badges">

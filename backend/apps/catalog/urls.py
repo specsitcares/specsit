@@ -1,16 +1,18 @@
 from django.urls import path, include
 from rest_framework.routers import SimpleRouter
 from .views import (
-    CategoryViewSet, BrandViewSet, ProductViewSet, VariantViewSet,
-    CollectionViewSet, LensPackageViewSet, LensViewSet,
+    CategoryViewSet, BrandViewSet, ManufacturerViewSet, ProductViewSet, VariantViewSet,
+    VariantImageViewSet, CollectionViewSet, LensPackageViewSet, LensViewSet,
     PrescriptionViewSet, UserFaceViewSet, ReviewViewSet, MeasurePDView
 )
 
 router = SimpleRouter()
 router.register(r'categories', CategoryViewSet)
 router.register(r'brands', BrandViewSet)
+router.register(r'manufacturers', ManufacturerViewSet)
 router.register(r'products', ProductViewSet)
 router.register(r'variants', VariantViewSet)
+router.register(r'variant-images', VariantImageViewSet)
 router.register(r'collections', CollectionViewSet)
 
 # Eyewear Features

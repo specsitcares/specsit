@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import apiClient from '../services/api';
 import '../styles/cart.css';
 
 const CheckoutPage = () => {
@@ -9,14 +10,48 @@ const CheckoutPage = () => {
 
     // Step state: 'address' -> 'payment' -> 'success'
     const [step, setStep] = useState('address');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [recipientNames, setRecipientNames] = useState({});
     const [address, setAddress] = useState({ name: '', phone: '', email: '', pin: '', house: '', area: '' });
     const [pinPlaced, setPinPlaced] = useState(false);
 
-    const handlePlaceOrder = () => {
-        setStep('success');
-        setTimeout(() => {
-            clearCart();
-        }, 2000);
+    const handleRecipientNameChange = (itemId, val) => {
+        setRecipientNames(prev => ({ ...prev, [itemId]: val }));
+    };
+
+    const handlePlaceOrder = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const orderData = {
+                total_amount: cartTotal,
+                payment_method: 'UPI', 
+                items: cart.map(item => {
+                    const variantId = item.variant?.id || (item.product?.variants?.length > 0 ? item.product.variants[0].id : null);
+                    return {
+                        variant_id: variantId,
+                        lens_id: item.lens?.id,
+                        prescription_id: item.prescription?.id,
+                        patient_name: recipientNames[item.id] || address.name || 'Member',
+                        quantity: item.quantity,
+                        price_at_purchase: parseFloat(item.product.base_price) + (item.lens ? parseFloat(item.lens.price) : 0)
+                    };
+                })
+            };
+
+            const response = await apiClient.post('/sales/orders/', orderData);
+            console.log('Order created:', response.data);
+            setStep('success');
+            setTimeout(() => {
+                clearCart();
+            }, 2000);
+        } catch (err) {
+            console.error('Checkout failed:', err);
+            setError(err.response?.data?.detail || "FAILED TO ESTABLISH ORDER PROTOCOL. ENSURE AUTHENTICATION STATUS.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     if (step === 'success') {
@@ -97,11 +132,11 @@ const CheckoutPage = () => {
                         </div>
 
                         <div className="payment-methods-grid">
-                            {[
+                        {[
                                 { id: 'upi', title: 'UPI INSTANT', desc: 'Secure Vision Transfer' },
-                                { id: 'card', title: 'NEURAL CREDIT', desc: 'Visa/Mastercard Protocol' },
-                                { id: 'partial', title: 'PHASE PAYMENT', desc: 'Pay 20% Now, Rest on Arrival' },
-                                { id: 'cod', title: 'CASH OPS', desc: 'Verify & Pay at Base' }
+                                { id: 'card', title: 'NEURAL CREDIT', desc: 'Secure Neural Link' },
+                                { id: 'partial', title: 'PHASE PAYMENT', desc: '20% Now, Rest on Delivery' },
+                                { id: 'cod', title: 'CASH OPS', desc: 'Pay at the Base' }
                             ].map((method) => (
                                 <button key={method.id} className="payment-method">
                                     <h4>{method.title}</h4>
@@ -110,12 +145,15 @@ const CheckoutPage = () => {
                             ))}
                         </div>
 
+                        {error && <p className="error-message" style={{ color: '#ff4d4d', marginTop: '10px' }}>{error}</p>}
+                        
                         <button
+                            disabled={loading}
                             onClick={handlePlaceOrder}
                             className="checkout-btn"
-                            style={{ marginTop: '40px' }}
+                            style={{ marginTop: '40px', opacity: loading ? 0.7 : 1 }}
                         >
-                            COMPLETE MISSION - ${cartTotal.toFixed(2)}
+                            {loading ? 'PRODUCING VISION...' : `COMPLETE MISSION - ₹${Number(cartTotal).toLocaleString('en-IN')}`}
                         </button>
                     </div>
                 )}
@@ -125,16 +163,27 @@ const CheckoutPage = () => {
                 <div className="checkout-summary">
                     <h3 className="summary-title">MISSION HUB</h3>
                     <div className="summary-items">
-                        {cart.map((item, idx) => (
-                            <div key={idx} className="summary-item">
-                                <span>{(item.product.title || '').toUpperCase()} (x{item.quantity})</span>
-                                <span>${(parseFloat(item.product.base_price) + (item.lens ? parseFloat(item.lens.price) : 0)) * item.quantity}</span>
+                        {cart.map((item) => (
+                            <div key={item.id} className="summary-item-card">
+                                <div className="summary-item-main">
+                                    <span>{(item.product.title || '').toUpperCase()} (x{item.quantity})</span>
+                                    <span>₹{Number((parseFloat(item.product.base_price) + (item.lens ? parseFloat(item.lens.price) : 0)) * item.quantity).toLocaleString('en-IN')}</span>
+                                </div>
+                                <div className="recipient-input-box">
+                                     <input 
+                                        type="text" 
+                                        placeholder="Who is this for? (e.g. Rohan)" 
+                                        value={recipientNames[item.id] || ''}
+                                        onChange={(e) => handleRecipientNameChange(item.id, e.target.value)}
+                                        className="recipient-name-field"
+                                     />
+                                </div>
                             </div>
                         ))}
                         <hr />
                         <div className="summary-row">
-                            <span>TOTAL</span>
-                            <span style={{ fontWeight: 'bold', fontSize: '20px' }}>${cartTotal.toFixed(2)}</span>
+                            <span>TOTAL MISSION COST</span>
+                            <span style={{ fontWeight: 'bold', fontSize: '20px' }}>₹{Number(cartTotal).toLocaleString('en-IN')}</span>
                         </div>
                     </div>
                 </div>
