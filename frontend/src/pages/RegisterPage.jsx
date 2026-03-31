@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useGoogleLogin } from '@react-oauth/google';
 import '../styles/login.css'; // Reusing login styles for consistency
 
 const RegisterPage = () => {
@@ -12,6 +13,14 @@ const RegisterPage = () => {
     const [loading, setLoading] = useState(false);
     const { register } = useAuth();
     const navigate = useNavigate();
+
+    const googleLogin = useGoogleLogin({
+        onSuccess: (codeResponse) => {
+            navigate(`/auth/callback?code=${codeResponse.code}`);
+        },
+        flow: 'auth-code',
+        onError: (error) => console.log('Login Failed:', error)
+    });
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -114,6 +123,20 @@ const RegisterPage = () => {
                         disabled={loading}
                     >
                         {loading ? 'Creating Account...' : 'Register'}
+                    </button>
+
+                    <div className="divider">
+                        <span>OR</span>
+                    </div>
+
+                    <button 
+                        type="button" 
+                        className="google-login-btn"
+                        onClick={() => googleLogin()}
+                        disabled={loading}
+                    >
+                        <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" alt="Google" />
+                        Sign up with Google
                     </button>
                 </form>
 

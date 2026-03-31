@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useGoogleLogin } from '@react-oauth/google';
 import '../styles/login.css';
 
 const LoginPage = () => {
@@ -10,6 +11,14 @@ const LoginPage = () => {
     const [loading, setLoading] = useState(false);
     const { login } = useAuth();
     const navigate = useNavigate();
+
+    const googleLogin = useGoogleLogin({
+        onSuccess: (codeResponse) => {
+            navigate(`/auth/callback?code=${codeResponse.code}`);
+        },
+        flow: 'auth-code',
+        onError: (error) => console.log('Login Failed:', error)
+    });
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -73,6 +82,20 @@ const LoginPage = () => {
                         disabled={loading}
                     >
                         {loading ? 'Signing in...' : 'Sign In'}
+                    </button>
+
+                    <div className="divider">
+                        <span>OR</span>
+                    </div>
+
+                    <button 
+                        type="button" 
+                        className="google-login-btn"
+                        onClick={() => googleLogin()}
+                        disabled={loading}
+                    >
+                        <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" alt="Google" />
+                        Sign in with Google
                     </button>
                 </form>
 

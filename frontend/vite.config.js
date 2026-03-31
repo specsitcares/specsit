@@ -10,13 +10,18 @@ export default defineConfig({
         tailwindcss(),
     ],
     server: {
+        port: 5174,
+        strictPort: true,
+        headers: {
+            'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+        },
         proxy: {
             '/api': {
-                target: 'http://127.0.0.1:8000',
+                target: 'http://localhost:8000',
                 changeOrigin: true,
             },
-            '/admin': {
-                target: 'http://127.0.0.1:8000',
+            '/media': {
+                target: 'http://localhost:8000',
                 changeOrigin: true,
             },
         }

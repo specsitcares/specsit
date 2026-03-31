@@ -198,7 +198,11 @@ const ProductListingPage = () => {
                         {products.map((p) => (
                             <div key={p.id} className="product-card">
                                 <div className="product-image">
-                                    <img src={p.variants?.[0]?.image || ''} alt={p.title} />
+                                    <img 
+                                        src={p.main_image || (p.variants?.length > 0 ? p.variants[0].image : '/placeholder.jpg')} 
+                                        alt={p.title} 
+                                        onError={(e) => { e.target.src = 'https://placehold.co/300x200?text=No+Image'; }}
+                                    />
                                 </div>
                                 <div className="product-info">
                                     <h4 className="product-title">{p.title}</h4>

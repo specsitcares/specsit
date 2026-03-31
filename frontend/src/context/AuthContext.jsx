@@ -10,7 +10,10 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         const token = getAuthToken();
-        if (token) {
+        const storedUser = localStorage.getItem('user');
+        if (token && storedUser) {
+            setUser(JSON.parse(storedUser));
+        } else if (token) {
             setUser({ token, username: localStorage.getItem('username') || 'Member' });
         }
         setLoading(false);
@@ -18,24 +21,43 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (username, password) => {
         try {
-            const response = await apiClient.post('/core/login/', { username, password });
-            const { token } = response.data;
+            const response = await apiClient.post('core/login/', { username, password });
+            const { token, is_staff } = response.data;
             setAuthToken(token);
             localStorage.setItem('username', username);
-            setUser({ token, username });
+            const userData = { token, username, is_staff };
+            localStorage.setItem('user', JSON.stringify(userData));
+            setUser(userData);
             return { success: true };
         } catch (error) {
             return { success: false, message: error.response?.data?.error || 'Login failed' };
         }
     };
 
-    const register = async (username, email, password) => {
+    const loginWithGoogleToken = async (googleToken) => {
         try {
-            const response = await apiClient.post('/core/register/', { username, email, password });
-            const { token } = response.data;
+            const response = await apiClient.post('core/google-login/', { token: googleToken });
+            const { token, username, email, is_staff } = response.data;
             setAuthToken(token);
             localStorage.setItem('username', username);
-            setUser({ token, username });
+            const userData = { token, username, email, is_staff };
+            localStorage.setItem('user', JSON.stringify(userData));
+            setUser(userData);
+            return { success: true };
+        } catch (error) {
+            return { success: false, message: error.response?.data?.error || 'Google login failed' };
+        }
+    };
+
+    const register = async (username, email, password) => {
+        try {
+            const response = await apiClient.post('core/register/', { username, email, password });
+            const { token, is_staff } = response.data;
+            setAuthToken(token);
+            localStorage.setItem('username', username);
+            const userData = { token, username, email, is_staff };
+            localStorage.setItem('user', JSON.stringify(userData));
+            setUser(userData);
             return { success: true };
         } catch (error) {
             return { success: false, message: JSON.stringify(error.response?.data) || 'Registration failed' };
@@ -45,11 +67,12 @@ export const AuthProvider = ({ children }) => {
     const logout = () => {
         clearAuthToken();
         localStorage.removeItem('username');
+        localStorage.removeItem('user');
         setUser(null);
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, logout, register, loading }}>
+        <AuthContext.Provider value={{ user, setUser, login, loginWithGoogleToken, logout, register, loading }}>
             {children}
         </AuthContext.Provider>
     );
