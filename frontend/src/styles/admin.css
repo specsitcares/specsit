@@ -241,7 +241,8 @@ body {
   overflow-y: auto;
   overflow-x: hidden;
   max-width: 100vw;
-  padding: 32px 48px;
+  /* Figma outer frame has no horizontal padding — reduced to 24px to maximize form width */
+  padding: 24px;
 }
 
 /* ── DASHBOARD Polish ────────────────────────────────────────── */
@@ -632,7 +633,7 @@ tr.expanded-parent {
   }
 
   .admin-main-container {
-    padding: 24px 16px !important;
+    padding: 16px !important;
   }
 
   .charts-grid-v3 {

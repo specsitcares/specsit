@@ -89,18 +89,20 @@
 .product-detail-title {
   font-size: 2.5rem;
   margin-bottom: 12px;
+  color: #040205;
+  font-weight: 500;
 }
 
 .product-detail-price {
   font-size: 1.75rem;
   font-weight: 800;
-  color: var(--primary-color, #0ea5e9);
+  color: #06B217;
 }
 
 .divider {
   margin: 32px 0;
   border: none;
-  border-top: 1px solid var(--border-color, #eee);
+  border-top: 1px solid #D9D9D9;
 }
 
 .flow-progress {
@@ -112,21 +114,34 @@
 .progress-step {
   font-size: 0.75rem;
   font-weight: 800;
-  color: var(--text-tertiary, #ccc);
+  color: #D9D9D9;
   letter-spacing: 0.1em;
+  transition: color 0.3s ease;
 }
 
 .progress-step.active {
-  color: var(--primary-color, #0ea5e9);
+  color: #06B217;
+}
+
+.progress-step.completed {
+  color: #06B217;
 }
 
 .step-title {
   font-size: 1.1rem;
   margin-bottom: 16px;
+  color: #171D25;
+}
+
+.step-description {
+  color: #697177;
+  font-size: 1rem;
+  line-height: 1.5;
+  margin-bottom: 24px;
 }
 
 .premium-btn {
-  background: var(--text-primary, #111);
+  background: #171D25;
   color: white;
   border: none;
   padding: 18px 32px;
@@ -141,13 +156,13 @@
 }
 
 .premium-btn:hover {
-  background: #333;
+  background: #040205;
   transform: translateY(-1px);
 }
 
 .premium-btn:disabled {
-  background: #eee;
-  color: #999;
+  background: #D9D9D9;
+  color: #697177;
   cursor: not-allowed;
   transform: none;
 }
@@ -161,7 +176,7 @@
 
 .lens-option {
   background: white;
-  border: 2px solid var(--border-color, #eee);
+  border: 2px solid #D9D9D9;
   border-radius: 16px;
   padding: 20px;
   text-align: left;
@@ -170,8 +185,8 @@
 }
 
 .lens-option.selected {
-  border-color: var(--primary-color, #0ea5e9);
-  background: rgba(14, 165, 233, 0.02);
+  border-color: #06B217;
+  background: rgba(6, 178, 23, 0.04);
 }
 
 .lens-option-header {
@@ -183,8 +198,35 @@
 
 .lens-badge {
   font-size: 0.65rem;
-  background: var(--primary-color, #0ea5e9);
+  background: #06B217;
   color: white;
   padding: 2px 8px;
   border-radius: 4px;
+}
+
+/* Prescription options */
+.rx-option {
+  border: 2px solid #D9D9D9;
+  color: #171D25;
+  transition: all 0.2s ease;
+}
+
+.rx-option.selected {
+  border-color: #06B217;
+  color: #06B217;
+}
+
+.btn-back {
+  color: #697177;
+  border: 1px solid #D9D9D9;
+  transition: all 0.2s ease;
+}
+
+.btn-back:hover {
+  border-color: #171D25;
+  color: #171D25;
+}
+
+.thumbnail-item.active {
+  border-color: #06B217;
 }

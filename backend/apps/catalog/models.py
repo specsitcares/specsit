@@ -44,7 +44,7 @@ class Product(models.Model):
     frame_type = models.CharField(max_length=100, blank=True, default='')
     frame_shape = models.CharField(max_length=100, blank=True, default='') # Pilot / Aviator, Round, etc.
     frame_width = models.CharField(max_length=100, blank=True, default='') # e.g. "Large (140mm)"
-    gender = models.CharField(max_length=20, choices=[('Men', 'Men'), ('Women', 'Women'), ('Unisex', 'Unisex')], default='Unisex')
+    gender = models.CharField(max_length=20, choices=[('Men', 'Men'), ('Women', 'Women'), ('Unisex', 'Unisex'), ('Kids', 'Kids')], default='Unisex')
     
     base_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     frame_only_mode = models.BooleanField(default=False)

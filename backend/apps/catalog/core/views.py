@@ -97,7 +97,7 @@ class MetadataGroupViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [AllowAny]
 
 class MetadataItemViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = MetadataItem.objects.all()
+    queryset = MetadataItem.objects.all().order_by('id')
     serializer_class = MetadataItemSerializer
     permission_classes = [AllowAny]
 

@@ -315,9 +315,15 @@ class RecordLiveActivityView(views.APIView):
         if not sid:
             return Response({'error': 'Missing session_id'}, status=400)
             
-        LiveSession.objects.update_or_create(
-            session_id=sid,
-            defaults={'current_page': page, 'last_activity': timezone.now()}
-        )
+        try:
+            LiveSession.objects.update_or_create(
+                session_id=sid,
+                defaults={'current_page': page, 'last_activity': timezone.now()}
+            )
+        except Exception as e:
+            # SQLite might lock under high concurrency. 
+            # Since this is non-critical activity tracking, we can fail silently.
+            print(f"Live activity record failed (likely DB lock): {e}")
+            
         return Response({'status': 'ok'})
 

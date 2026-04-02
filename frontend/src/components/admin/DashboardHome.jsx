@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
    DollarSign, ShoppingCart, Users, Package, Microscope, Truck,
    TrendingUp, TrendingDown, MoreVertical, Search, Filter, RefreshCw,
@@ -13,6 +13,11 @@ import apiClient from '../../services/api';
 import FormModal from './FormModal';
 
 const DashboardHome = ({ statsData, recentOrders }) => {
+   const [isMounted, setIsMounted] = useState(false);
+   useEffect(() => {
+      setIsMounted(true);
+   }, []);
+
    const [localDonut, setLocalDonut] = useState(null);
    const [isRefreshingDonut, setIsRefreshingDonut] = useState(false);
    const [expandedRows, setExpandedRows] = useState([]);
@@ -302,41 +307,45 @@ const DashboardHome = ({ statsData, recentOrders }) => {
 
                <div style={{ display: 'flex', alignItems: 'center', padding: '32px 24px', position: 'relative' }}>
                   {/* Left: Donut Chart */}
-                  <div style={{ width: '45%', height: 320, position: 'relative' }}>
-                     <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                           <Pie
-                              data={displayDonut}
-                              cx="50%"
-                              cy="50%"
-                              innerRadius="82%"
-                              outerRadius="95%"
-                              paddingAngle={4}
-                              dataKey="value"
-                              stroke="none"
-                              animationBegin={200}
-                              animationDuration={1500}
-                           >
-                              {displayDonut.map((e, i) => <Cell key={i} fill={e.color} />)}
-                           </Pie>
-                           <Tooltip
-                              content={({ active, payload }) => {
-                                 if (active && payload && payload.length) {
-                                    const item = payload[0].payload;
-                                    return (
-                                       <div style={{ background: '#101828', color: '#fff', padding: '10px 14px', borderRadius: '10px', border: 'none', fontSize: '11px' }}>
-                                          <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                             <div style={{ width: 6, height: 6, borderRadius: '50%', background: item.color }}></div>
-                                             {item.name}: {item.value}
+                  <div style={{ width: '45%', height: 320, position: 'relative', minWidth: 0 }}>
+                     {isMounted && (
+                        <ResponsiveContainer width="100%" height={320} minWidth={0}>
+                           <PieChart>
+                              <Pie
+                                 data={displayDonut}
+                                 cx="50%"
+                                 cy="50%"
+                                 innerRadius="82%"
+                                 outerRadius="95%"
+                                 paddingAngle={4}
+                                 dataKey="value"
+                                 stroke="none"
+                                 animationBegin={200}
+                                 animationDuration={1500}
+                              >
+                                 {displayDonut.map((e, i) => <Cell key={i} fill={e.color} />)}
+                              </Pie>
+                              <Tooltip
+                                 content={({ active, payload }) => {
+                                    if (active && payload && payload.length) {
+                                       const item = payload[0].payload;
+                                       return (
+                                          <div style={{ background: '#101828', color: '#fff', padding: '10px 14px', borderRadius: '10px', border: 'none', fontSize: '11px' }}>
+                                             <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                <div style={{ width: 6, height: 6, borderRadius: '50%', background: item.color }}></div>
+                                                {item.name}: {item.value}
+                                             </div>
                                           </div>
-                                       </div>
-                                    );
-                                 }
-                                 return null;
-                              }}
-                           />
-                        </PieChart>
-                     </ResponsiveContainer>
+                                       );
+                                    }
+                                    return null;
+                                 }}
+                              />
+                           </PieChart>
+                        </ResponsiveContainer>
+                     )}
+
+
                      <div style={{
                         position: 'absolute',
                         top: '50%',
@@ -376,60 +385,62 @@ const DashboardHome = ({ statsData, recentOrders }) => {
                   <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#101828', margin: 0 }}>Revenue Growth Trends</h3>
                   <div style={{ fontSize: '14px', fontWeight: 600, color: '#7F56D9', cursor: 'pointer' }}>View All</div>
                </div>
-               <div style={{ padding: '24px', height: 350 }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                     <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                        <defs>
-                           <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#7F56D9" stopOpacity={0.15} />
-                              <stop offset="95%" stopColor="#7F56D9" stopOpacity={0.01} />
-                           </linearGradient>
-                        </defs>
-                        <CartesianGrid stroke="#F2F4F7" />
-                        <XAxis
-                           dataKey="name"
-                           axisLine={false}
-                           tickLine={false}
-                           tick={{ fill: '#667085', fontSize: 12, fontWeight: 500 }}
-                           dy={15}
-                        />
-                        <YAxis
-                           axisLine={false}
-                           tickLine={false}
-                           tick={{ fill: '#667085', fontSize: 12, fontWeight: 500 }}
-                           tickFormatter={(val) => val >= 1000 ? `₹${(val / 1000).toFixed(0)}k` : `₹${val}`}
-                        />
-                        <Tooltip
-                           cursor={{ stroke: '#7F56D9', strokeWidth: 1, strokeDasharray: '4 4' }}
-                           content={({ active, payload }) => {
-                              if (active && payload && payload.length) {
-                                 return (
-                                    <div style={{ background: '#101828', color: '#fff', padding: '12px 16px', borderRadius: '16px', border: 'none' }}>
-                                       <div style={{ fontSize: '11px', color: '#98A2B3', marginBottom: '4px', fontWeight: 600 }}>{payload[0].payload.name} 2026</div>
-                                       <div style={{ fontSize: '18px', fontWeight: 800, color: '#fff' }}>₹{payload[0].value.toLocaleString('en-IN')}</div>
-                                       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: '4px', fontSize: '11px', color: '#12B76A', fontWeight: 700 }}>
-                                          <ArrowUpRight size={12} /> +12.5% vs last month
+               <div style={{ padding: '24px', height: 350, minWidth: 0 }}>
+                  {isMounted && (
+                     <ResponsiveContainer width="100%" height={350} minWidth={0}>
+                        <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                           <defs>
+                              <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                                 <stop offset="5%" stopColor="#7F56D9" stopOpacity={0.15} />
+                                 <stop offset="95%" stopColor="#7F56D9" stopOpacity={0.01} />
+                              </linearGradient>
+                           </defs>
+                           <CartesianGrid stroke="#F2F4F7" />
+                           <XAxis
+                              dataKey="name"
+                              axisLine={false}
+                              tickLine={false}
+                              tick={{ fill: '#667085', fontSize: 12, fontWeight: 500 }}
+                              dy={15}
+                           />
+                           <YAxis
+                              axisLine={false}
+                              tickLine={false}
+                              tick={{ fill: '#667085', fontSize: 12, fontWeight: 500 }}
+                              tickFormatter={(val) => val >= 1000 ? `₹${(val / 1000).toFixed(0)}k` : `₹${val}`}
+                           />
+                           <Tooltip
+                              cursor={{ stroke: '#7F56D9', strokeWidth: 1, strokeDasharray: '4 4' }}
+                              content={({ active, payload }) => {
+                                 if (active && payload && payload.length) {
+                                    return (
+                                       <div style={{ background: '#101828', color: '#fff', padding: '12px 16px', borderRadius: '16px', border: 'none' }}>
+                                          <div style={{ fontSize: '11px', color: '#98A2B3', marginBottom: '4px', fontWeight: 600 }}>{payload[0].payload.name} 2026</div>
+                                          <div style={{ fontSize: '18px', fontWeight: 800, color: '#fff' }}>₹{payload[0].value.toLocaleString('en-IN')}</div>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: '4px', fontSize: '11px', color: '#12B76A', fontWeight: 700 }}>
+                                             <ArrowUpRight size={12} /> +12.5% vs last month
+                                          </div>
                                        </div>
-                                    </div>
-                                 );
-                              }
-                              return null;
-                           }}
-                        />
-                        <Area
-                           type="monotone"
-                           dataKey="value"
-                           stroke="#7F56D9"
-                           strokeWidth={2}
-                           strokeDasharray="3 3"
-                           fillOpacity={1}
-                           fill="url(#areaGrad)"
-                           activeDot={{ r: 4, stroke: '#fff', strokeWidth: 2, fill: '#7F56D9' }}
-                           animationDuration={2000}
-                           animationEasing="ease-in-out"
-                        />
-                     </AreaChart>
-                  </ResponsiveContainer>
+                                    );
+                                 }
+                                 return null;
+                              }}
+                           />
+                           <Area
+                              type="monotone"
+                              dataKey="value"
+                              stroke="#7F56D9"
+                              strokeWidth={2}
+                              strokeDasharray="3 3"
+                              fillOpacity={1}
+                              fill="url(#areaGrad)"
+                              activeDot={{ r: 4, stroke: '#fff', strokeWidth: 2, fill: '#7F56D9' }}
+                              animationDuration={2000}
+                              animationEasing="ease-in-out"
+                           />
+                        </AreaChart>
+                     </ResponsiveContainer>
+                  )}
                </div>
             </div>
          </div>
@@ -439,13 +450,13 @@ const DashboardHome = ({ statsData, recentOrders }) => {
             <div className="table-card-header" style={{ padding: '20px 24px', display: 'flex', flexWrap: 'wrap', gap: '16px', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #EAECF0' }}>
                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#101828', margin: 0 }}>Recent Orders</h3>
-                  <span style={{ backgroundColor: '#F4EBFF', color: '#7F56D9', fontSize: '12px', padding: '2px 12px', borderRadius: '16px', fontWeight: 700 }}>
-                     {orders.length} Orders
+                  <span style={{ backgroundColor: '#F9F5FF', color: '#7F56D9', fontSize: '12px', padding: '2px 10px', borderRadius: '16px', fontWeight: 600, border: '1px solid #F4EBFF' }}>
+                     {totalOrders} Orders
                   </span>
                </div>
                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                  <div className="table-search-box" style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: '1', minWidth: '200px', maxWidth: '320px' }}>
-                     <Search size={16} style={{ position: 'absolute', left: 12, color: '#667085', pointerEvents: 'none' }} />
+                  <div className="table-search-box" style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: '1', minWidth: '40px', maxWidth: '320px' }}>
+                     <Search size={18} style={{ position: 'absolute', left: 12, color: '#667085', pointerEvents: 'none' }} />
                      <input
                         type="text"
                         placeholder="Search here..."
@@ -459,27 +470,28 @@ const DashboardHome = ({ statsData, recentOrders }) => {
                            border: '1px solid #D0D5DD',
                            borderRadius: '8px',
                            fontSize: '14px',
-                           backgroundColor: '#F9FAFB',
+                           backgroundColor: '#fff',
+                           boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)',
                            outline: 'none',
                            fontWeight: 500,
                            color: '#101828'
                         }}
                      />
-                     <div className="desktop-only" style={{ position: 'absolute', right: 10, display: 'flex', alignItems: 'center', gap: 4, padding: '2px 6px', border: '1px solid #D0D5DD', borderRadius: '6px', backgroundColor: '#fff', fontSize: '11px', color: '#667085', fontWeight: 700 }}>
-                        Ctrl L
+                     <div className="desktop-only" style={{ position: 'absolute', right: 10, display: 'flex', alignItems: 'center', gap: 4, padding: '2px 6px', border: '1px solid #D0D5DD', borderRadius: '6px', backgroundColor: '#fff', fontSize: '12px', color: '#667085', fontWeight: 600 }}>
+                        <span style={{ fontSize: '10px' }}>⌘</span> L
                      </div>
                   </div>
                   <button
                      onClick={() => setShowFilters(!showFilters)}
-                     style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', border: '1px solid #D0D5DD', borderRadius: '8px', backgroundColor: showFilters ? '#F9FAFB' : '#fff', fontSize: '14px', fontWeight: 600, color: '#344054' }}
+                     style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', border: '1px solid #D0D5DD', borderRadius: '8px', backgroundColor: showFilters ? '#F9FAFB' : '#fff', fontSize: '14px', fontWeight: 600, color: '#344054', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
                   >
-                     <Filter size={16} color="#667085" /> <span className="desktop-only">Filter</span> {statusFilter && <span style={{ width: '6px', height: '6px', borderRadius: 'full', backgroundColor: '#7F56D9' }}></span>}
+                     <Filter size={18} color="#667085" /> <span className="desktop-only">Filter</span> {statusFilter && <span style={{ width: '6px', height: '6px', borderRadius: 'full', backgroundColor: '#7F56D9' }}></span>}
                   </button>
                   <button
                      onClick={handleExport}
-                     style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', border: '1px solid #D0D5DD', borderRadius: '8px', backgroundColor: '#fff', fontSize: '14px', fontWeight: 600, color: '#344054' }}
+                     style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', border: '1px solid #D0D5DD', borderRadius: '8px', backgroundColor: '#fff', fontSize: '14px', fontWeight: 600, color: '#344054', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
                   >
-                     <FileDown size={16} color="#667085" /> <span className="desktop-only">Export Data</span>
+                     <FileDown size={18} color="#667085" /> <span className="desktop-only">Export Data</span>
                   </button>
                </div>
             </div>
@@ -502,7 +514,7 @@ const DashboardHome = ({ statsData, recentOrders }) => {
                         <select
                            value={statusFilter}
                            onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-                           style={{ width: '100%', padding: '10px 32px 10px 12px', border: '1px solid #D0D5DD', borderRadius: '8px', fontSize: '14px', fontWeight: 600, appearance: 'none', background: 'white', outline: 'none' }}
+                           style={{ width: '100%', padding: '10px 32px 10px 12px', border: '1px solid #D0D5DD', borderRadius: '8px', fontSize: '14px', fontWeight: 600, appearance: 'none', background: 'white', outline: 'none', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
                         >
                            <option value="">All Statuses</option>
                            {statusOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
@@ -554,12 +566,12 @@ const DashboardHome = ({ statsData, recentOrders }) => {
                   <thead>
                      <tr style={{ background: '#fff' }}>
                         <th style={{ padding: '12px 24px', width: 40 }}><input type="checkbox" /></th>
-                        <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 500 }}>Order ID <ArrowUpDown size={10} style={{ marginLeft: 4 }} /></th>
-                        <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 500 }}>Customer Name</th>
-                        <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 500 }}>Items</th>
-                        <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 500 }}>Prescription Status <ArrowUpDown size={10} style={{ marginLeft: 4 }} /></th>
-                        <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 500 }}>total (₹)</th>
-                        <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 500, textAlign: 'right' }}>action</th>
+                        <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'left', textTransform: 'capitalize' }}>Order ID <ArrowUpDown size={12} style={{ marginLeft: 4 }} /></th>
+                        <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'left', textTransform: 'capitalize' }}>Customer Name</th>
+                        <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'left', textTransform: 'capitalize' }}>Items</th>
+                        <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'left', textTransform: 'capitalize' }}>Prescription Status <ArrowUpDown size={12} style={{ marginLeft: 4 }} /></th>
+                        <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>total (₹)</th>
+                        <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'right' }}>action</th>
                      </tr>
                   </thead>
                   <tbody>
@@ -576,7 +588,7 @@ const DashboardHome = ({ statsData, recentOrders }) => {
                               </td>
                               <td style={{ padding: '16px 24px', backgroundColor: expandedRows.includes(o.id) ? '#F9F5FF' : '#fff' }}>
                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <span style={{ fontWeight: 600, color: '#344054' }}>{o.id}</span>
+                                    <span style={{ fontWeight: 600, color: '#344054' }}>{o.id.toString().startsWith('ORD-') ? o.id : `ORD-${o.id}`}</span>
                                     {o.item_count > 1 && <span style={{ backgroundColor: '#F4EBFF', color: '#7F56D9', fontSize: '11px', padding: '1px 6px', borderRadius: '16px', fontWeight: 700 }}>{o.item_count}</span>}
                                  </div>
                               </td>
@@ -587,16 +599,22 @@ const DashboardHome = ({ statsData, recentOrders }) => {
                                        <Glasses size={20} color="#D0D5DD" />
                                     </div>
                                     <div>
-                                       <div style={{ fontWeight: 500, color: '#344054', fontSize: '14px' }}>{o.items?.[0]?.variant_name}</div>
+                                       <div style={{ fontWeight: 500, color: '#344054', fontSize: '14px' }}>{o.items?.[0]?.variant_name || o.items?.[0]?.variant_sku || 'Standard Glasses'}</div>
                                        <div style={{ fontSize: '12px', color: '#667085' }}>{o.items?.[0]?.lens_desc}</div>
                                     </div>
                                  </div>
                               </td>
                               <td style={{ padding: '16px 24px', backgroundColor: expandedRows.includes(o.id) ? '#F9F5FF' : '#fff' }}>
-                                 <span style={{ backgroundColor: '#ECFDF3', color: '#027A48', padding: '4px 12px', borderRadius: '16px', fontSize: '12px', fontWeight: 600 }}>{o.status_label}</span>
+                                 <span style={{
+                                    backgroundColor: (o.items?.[0]?.prescription_status || 'N/A').toLowerCase() === 'approved' ? '#ECFDF3' : (o.items?.[0]?.prescription_status || '').toLowerCase().includes('pending') ? '#FFFAEB' : '#FEF3F2',
+                                    color: (o.items?.[0]?.prescription_status || 'N/A').toLowerCase() === 'approved' ? '#027A48' : (o.items?.[0]?.prescription_status || '').toLowerCase().includes('pending') ? '#B54708' : '#B42318',
+                                    padding: '4px 10px', borderRadius: '4px', fontSize: '12px', fontWeight: 600, textTransform: 'capitalize'
+                                 }}>
+                                    {o.items?.[0]?.prescription_status || 'N/A'}
+                                 </span>
                               </td>
                               <td style={{ padding: '16px 24px', fontWeight: 700, color: '#101828', backgroundColor: expandedRows.includes(o.id) ? '#F9F5FF' : '#fff' }}>
-                                 {o.total_amount} <div style={{ display: 'inline-flex', marginLeft: 8, padding: '3px', backgroundColor: '#F04438', color: '#fff', borderRadius: '4px', verticalAlign: 'middle' }}><FileDown size={12} /></div>
+                                 ₹{o.total_amount} <div style={{ display: 'inline-flex', marginLeft: 8, padding: '3px', backgroundColor: '#F04438', color: '#fff', borderRadius: '4px', verticalAlign: 'middle', cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); handleDownloadPDF(o); }}><FileDown size={12} /></div>
                               </td>
                               <td style={{ padding: '16px 24px', backgroundColor: expandedRows.includes(o.id) ? '#F9F5FF' : '#fff' }}>
                                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
@@ -671,28 +689,24 @@ const DashboardHome = ({ statsData, recentOrders }) => {
                                                    )}
                                                 </div>
                                                 <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                                                   <div style={{ fontSize: '14px', fontWeight: 700, color: '#344054', lineHeight: 1.2, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{item.variant_name}</div>
+                                                   <div style={{ fontSize: '14px', fontWeight: 700, color: '#344054', lineHeight: 1.2, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{item.variant_name || item.product_name || item.variant_sku || 'Glasses Frame'}</div>
                                                    <div style={{ fontSize: '11px', color: '#667085', marginTop: '2px', fontStyle: 'italic' }}>{item.lens_desc || 'Standard Edition'}</div>
                                                 </div>
-                                             </div>
-
-                                             {/* Aligned Col 3: Prescription Status (Under 'Prescription Status' Header) */}
-                                             <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-                                                <div style={{ fontSize: '9px', fontWeight: 800, color: '#667085', letterSpacing: '0.05em' }}>PRESCRIPTION</div>
-                                                <span style={{
-                                                   backgroundColor: (item.prescription_status || item.status || '').toLowerCase() === 'approved' ? '#ECFDF3' : '#FFFAEB',
-                                                   color: (item.prescription_status || item.status || '').toLowerCase() === 'approved' ? '#027A48' : '#B54708',
-                                                   padding: '4px 12px',
-                                                   borderRadius: '6px',
-                                                   fontSize: '11px',
-                                                   fontWeight: 800,
-                                                   border: `1px solid ${(item.prescription_status || item.status || '').toLowerCase() === 'approved' ? '#D1FADF' : '#FEF0C7'}`,
-                                                   textAlign: 'center',
-                                                   minWidth: '94px'
-                                                }}>
-                                                   {item.prescription_status || item.status || 'N/A'}
-                                                </span>
-                                             </div>
+                                                {/* Aligned Col 3: Prescription Status (Under 'Prescription Status' Header) */}
+                                                <div style={{ padding: '20px 24px', display: 'flex', alignItems: 'center' }}>
+                                                   <span style={{
+                                                      backgroundColor: (item.prescription_status || 'N/A').toLowerCase() === 'approved' ? '#ECFDF3' : (item.prescription_status || '').toLowerCase().includes('pending') ? '#FFFAEB' : '#FEF3F2',
+                                                      color: (item.prescription_status || 'N/A').toLowerCase() === 'approved' ? '#027A48' : (item.prescription_status || '').toLowerCase().includes('pending') ? '#B54708' : '#B42318',
+                                                      padding: '4px 12px',
+                                                      borderRadius: '4px',
+                                                      fontSize: '12px',
+                                                      fontWeight: 600,
+                                                      border: `1px solid ${(item.prescription_status || item.status || '').toLowerCase() === 'approved' ? '#D1FADF' : '#FEF0C7'}`,
+                                                      textAlign: 'center'
+                                                   }}>
+                                                      {item.prescription_status || item.status || 'N/A'}
+                                                   </span>
+                                                </div>      </div>
 
                                              {/* Aligned Col 4: Price & Unified PDF Icon (Under 'Total' Header) */}
                                              <div style={{ padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '10px', fontWeight: 700, color: '#101828', fontSize: '15px' }}>
@@ -741,7 +755,7 @@ const DashboardHome = ({ statsData, recentOrders }) => {
                      <select
                         value={perPage}
                         onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }}
-                        style={{ padding: '6px 32px 6px 12px', border: '1px solid #D0D5DD', borderRadius: '8px', fontWeight: 600, appearance: 'none', background: 'white', cursor: 'pointer', outline: 'none' }}
+                        style={{ padding: '8px 32px 8px 12px', border: '1px solid #D0D5DD', borderRadius: '8px', fontSize: '14px', fontWeight: 600, appearance: 'none', background: 'white', cursor: 'pointer', outline: 'none', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
                      >
                         <option value={10}>10</option>
                         <option value={20}>20</option>
@@ -755,22 +769,22 @@ const DashboardHome = ({ statsData, recentOrders }) => {
                   <button
                      disabled={page === 1}
                      onClick={() => setPage(page - 1)}
-                     style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '14px', color: page === 1 ? '#D0D5DD' : '#344054', fontWeight: 600, cursor: page === 1 ? 'default' : 'pointer', background: 'none', border: 'none', outline: 'none' }}
+                     style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '14px', color: page === 1 ? '#D0D5DD' : '#344054', fontWeight: 600, cursor: page === 1 ? 'default' : 'pointer', background: 'none', border: '1px solid #D0D5DD', borderRadius: '8px', padding: '6px 12px', outline: 'none' }}
                   >
                      <ChevronLeft size={16} /> Prev
                   </button>
 
                   <div style={{ display: 'flex', gap: 4 }}>
-                     {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
+                     {[1, 2, 3, '...', 50].map((n, i) => (
                         <button
-                           key={n}
-                           onClick={() => setPage(n)}
+                           key={i}
+                           onClick={() => typeof n === 'number' && setPage(n)}
                            style={{
                               width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px',
-                              background: page === n ? '#F4EBFF' : 'transparent',
-                              color: page === n ? '#7F56D9' : '#475467',
-                              fontWeight: page === n ? 700 : 500,
-                              border: 'none', cursor: 'pointer', outline: 'none'
+                              background: (page === n || (n === 1 && page === 1)) ? '#F4EBFF' : 'transparent',
+                              color: (page === n || (n === 1 && page === 1)) ? '#7F56D9' : '#475467',
+                              fontWeight: (page === n || (n === 1 && page === 1)) ? 700 : 500,
+                              border: 'none', cursor: typeof n === 'number' ? 'pointer' : 'default', outline: 'none'
                            }}
                         >
                            {n}
@@ -781,10 +795,37 @@ const DashboardHome = ({ statsData, recentOrders }) => {
                   <button
                      disabled={page >= totalPages}
                      onClick={() => setPage(page + 1)}
-                     style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '14px', color: page >= totalPages ? '#D0D5DD' : '#344054', fontWeight: 600, cursor: page >= totalPages ? 'default' : 'pointer', background: 'none', border: 'none', outline: 'none' }}
+                     style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '14px', color: page >= totalPages ? '#D0D5DD' : '#344054', fontWeight: 600, cursor: page >= totalPages ? 'default' : 'pointer', background: 'none', border: '1px solid #D0D5DD', borderRadius: '8px', padding: '6px 12px', outline: 'none' }}
                   >
                      Next <ChevronRight size={16} />
                   </button>
+
+                  <span style={{ color: '#D0D5DD', margin: '0 8px' }}>/</span>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                     <span style={{ fontSize: '14px', color: '#344054', fontWeight: 600 }}>Go to Page</span>
+                     <input
+                        type="text"
+                        defaultValue={page}
+                        style={{ width: '40px', padding: '6px', border: '1px solid #D0D5DD', borderRadius: '8px', textAlign: 'center', fontSize: '14px', fontWeight: 600 }}
+                        onKeyDown={(e) => {
+                           if (e.key === 'Enter') {
+                              const p = parseInt(e.target.value);
+                              if (p >= 1 && p <= totalPages) setPage(p);
+                           }
+                        }}
+                     />
+                     <button
+                        onClick={(e) => {
+                           const val = e.currentTarget.previousSibling.value;
+                           const p = parseInt(val);
+                           if (p >= 1 && p <= totalPages) setPage(p);
+                        }}
+                        style={{ color: '#344054', fontWeight: 700, border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2 }}
+                     >
+                        Go <ChevronRight size={14} />
+                     </button>
+                  </div>
                </div>
 
                <div style={{ fontSize: '14px', color: '#475467', fontWeight: 500 }}>
@@ -811,4 +852,3 @@ const DashboardHome = ({ statsData, recentOrders }) => {
 };
 
 export default DashboardHome;
-
