@@ -1,102 +1,108 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Download, Edit, Trash2, Package, Plus, MoreHorizontal, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Filter, Download, Edit, Trash2, Package, Plus, MoreHorizontal, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import apiClient from '../../services/api';
-import FormModal from './FormModal';
+import ProductDetailsForm from './ProductDetailsForm';
 
-const ProductTable = ({ onAddProduct, onEditProduct }) => {
+const ProductTable = () => {
   const [products, setProducts]   = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [brands, setBrands]       = useState([]);
   const [loading, setLoading]     = useState(true);
-  const [showForm, setShowForm]   = useState(false);
+  const [showMultiStepForm, setShowMultiStepForm] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [formMode, setFormMode]   = useState('create');
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage]           = useState(1);
   const PER_PAGE = 10;
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { 
+    if (!showMultiStepForm) {
+      fetchData(); 
+    }
+  }, [showMultiStepForm]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [prodRes, catRes, brandRes] = await Promise.all([
-        apiClient.get('/catalog/products/'),
-        apiClient.get('/catalog/categories/'),
-        apiClient.get('/catalog/brands/')
-      ]);
-      setProducts(Array.isArray(prodRes.data) ? prodRes.data : (prodRes.data.results || []));
-      setCategories(Array.isArray(catRes.data) ? catRes.data : (catRes.data.results || []));
-      setBrands(Array.isArray(brandRes.data) ? brandRes.data : (brandRes.data.results || []));
-    } catch (err) { console.error('Fetch error', err); }
-    finally { setLoading(false); }
+      const res = await apiClient.get('/catalog/products/');
+      setProducts(Array.isArray(res.data) ? res.data : (res.data.results || []));
+    } catch (err) { 
+      console.error('Fetch error', err); 
+    } finally { 
+      setLoading(false); 
+    }
   };
 
-  const fetchProducts = async () => {
-    const res = await apiClient.get('/catalog/products/');
-    setProducts(Array.isArray(res.data) ? res.data : (res.data.results || []));
+  const handleCreateClick = () => {
+    setSelectedProduct(null);
+    setShowMultiStepForm(true);
   };
 
-  const productFormFields = [
-    { name: 'title',       label: 'Product Name',    type: 'text',     required: true },
-    { name: 'description', label: 'Description',     type: 'textarea', rows: 3 },
-    { name: 'category',    label: 'Category',        type: 'select',   options: categories.map(c => ({ value: c.id, label: c.name })), required: true },
-    { name: 'brand',       label: 'Brand',           type: 'select',   options: brands.map(b => ({ value: b.id, label: b.name })), required: true },
-    { name: 'base_price',  label: 'Base Price (₹)',  type: 'number',   required: true, min: 0, step: 100 },
-    { name: 'gender',      label: 'Gender',          type: 'select',   options: [{ value: 'Men', label: 'Men' }, { value: 'Women', label: 'Women' }, { value: 'Unisex', label: 'Unisex' }] },
-    { name: 'glass_type',  label: 'Glass Type',      type: 'select',   options: [{ value: 'Eyeglasses', label: 'Eyeglasses' }, { value: 'Sunglasses', label: 'Sunglasses' }, { value: 'Reading Glasses', label: 'Reading Glasses' }] },
-    { name: 'main_image',  label: 'Main Image',      type: 'file',     accept: 'image/*' },
-    { name: 'is_featured', label: 'Featured',        type: 'checkbox' },
-    { name: 'is_active',   label: 'Active',          type: 'checkbox', defaultValue: true },
-  ];
+  const handleEditClick = async (p) => {
+    setLoading(true);
+    try {
+      // Fetch full product details including variants for editing
+      const res = await apiClient.get(`/catalog/products/${p.id}/`);
+      setSelectedProduct(res.data);
+      setShowMultiStepForm(true);
+    } catch (err) {
+      console.error('Failed to fetch product details', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const handleCreateClick = () => { if (onAddProduct) { onAddProduct(); } else { setFormMode('create'); setSelectedProduct(null); setShowForm(true); } };
-  const handleEditClick   = (p) => { if (onEditProduct) { onEditProduct(p); } else { setFormMode('edit'); setSelectedProduct(p); setShowForm(true); } };
-  const handleDeleteClick = (p) => { setFormMode('edit'); setSelectedProduct(p); setShowForm(true); };
-
-  const handleFormSubmit = async (formData) => {
-    const data = new FormData();
-    Object.keys(formData).forEach(k => {
-      if (formData[k] != null) {
-        if (k === 'main_image' && typeof formData[k] === 'string') return;
-        data.append(k, formData[k]);
+  const handleDeleteClick = async (id) => {
+    if (window.confirm('Are you sure you want to delete this product? This will remove all variants and images.')) {
+      try {
+        await apiClient.delete(`/catalog/products/${id}/`);
+        fetchData();
+      } catch (err) {
+        console.error('Delete failed', err);
       }
-    });
-    if (formMode === 'create') await apiClient.post('/catalog/products/', data);
-    else await apiClient.patch(`/catalog/products/${selectedProduct.id}/`, data);
-    fetchProducts();
+    }
   };
 
-  const handleFormDelete = async (id) => {
-    await apiClient.delete(`/catalog/products/${id}/`);
-    fetchProducts();
-  };
-
-  const filtered   = products.filter(p =>
+  const filtered = products.filter(p =>
     [p.title, p.category_name, p.brand_name, String(p.id)]
       .some(v => v?.toLowerCase().includes(searchQuery.toLowerCase()))
   );
+  
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
   const paginated  = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
-  if (loading) return <div className="db-loading-state">Loading catalog…</div>;
+  // If showing the multi-step form, render it instead of the table list
+  if (showMultiStepForm) {
+    return (
+      <ProductDetailsForm 
+        onBack={() => setShowMultiStepForm(false)} 
+        editProduct={selectedProduct}
+      />
+    );
+  }
+
+  if (loading) return <div className="db-loading-state">Syncing catalog data...</div>;
 
   return (
-    <div className="admin-table-wrapper">
+    <div className="admin-table-wrapper" style={{ animation: 'fadeIn 0.3s ease' }}>
       <div className="table-toolbar">
         <div>
           <div className="table-title">Product Catalog</div>
-          <div className="table-subtitle">{filtered.length} products</div>
+          <div className="table-subtitle">{filtered.length} products total in your inventory</div>
         </div>
         <div className="table-actions">
           <div className="table-search-box">
             <Search size={14} />
-            <input type="text" placeholder="Search products…" value={searchQuery}
-              onChange={e => { setSearchQuery(e.target.value); setPage(1); }} />
+            <input 
+              type="text" 
+              placeholder="Search by ID, name or brand…" 
+              value={searchQuery}
+              onChange={e => { setSearchQuery(e.target.value); setPage(1); }} 
+            />
           </div>
-          <button className="btn btn-outline"><Filter size={14} /> Filter</button>
-          <button className="btn btn-outline"><Download size={14} /> Export</button>
-          <button className="btn btn-primary" onClick={handleCreateClick}><Plus size={14} /> Add Product</button>
+          <button className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Filter size={14} /> Refine
+          </button>
+          <button className="btn btn-primary" onClick={handleCreateClick} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Plus size={16} strokeWidth={3} /> Add New Product
+          </button>
         </div>
       </div>
 
@@ -105,52 +111,55 @@ const ProductTable = ({ onAddProduct, onEditProduct }) => {
           <thead>
             <tr>
               <th style={{ width: 40 }}><input type="checkbox" /></th>
-              <th>Product</th>
-              <th>Category</th>
-              <th>Brand</th>
-              <th>Price</th>
-              <th>Status</th>
+              <th>Product Details</th>
+              <th>Primary Category</th>
+              <th>Brand / Manufacturer</th>
+              <th>Base Value</th>
+              <th>Live Status</th>
               <th style={{ textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {paginated.length === 0 ? (
               <tr><td colSpan={7}>
-                <div className="empty-state">
-                  <div className="empty-state-icon"><Package size={22} /></div>
-                  <div className="empty-state-title">No products found</div>
-                  <div className="empty-state-desc">Add your first product to get started.</div>
+                <div className="empty-state" style={{ padding: '64px 0' }}>
+                  <div className="empty-state-icon" style={{ background: '#F9FAFB', border: '1px solid #EAECF0' }}><Package size={32} color="#D0D5DD" /></div>
+                  <div className="empty-state-title" style={{ marginTop: '16px' }}>No products found</div>
+                  <div className="empty-state-desc">Try adjusting your search or add a new eyewear model.</div>
                 </div>
               </td></tr>
             ) : paginated.map(p => (
-              <tr key={p.id}>
+              <tr key={p.id} className="row-hover-effect">
                 <td><input type="checkbox" /></td>
                 <td>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 40, height: 40, borderRadius: 8, background: 'var(--gray-100)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div className="table-img-placeholder" style={{ width: 48, height: 48, borderRadius: 10, background: '#F2F4F7', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #EAECF0' }}>
                       {p.main_image
                         ? <img src={p.main_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                        : <Package size={18} color="var(--brand-700)" />}
+                        : <Package size={20} color="#98A2B3" />}
                     </div>
                     <div>
-                      <div className="cell-text-primary">{p.title}</div>
-                      <div className="cell-text-secondary">#{p.id} {p.is_featured && '⭐'}</div>
+                      <div className="cell-text-primary" style={{ fontWeight: 700 }}>{p.title}</div>
+                      <div className="cell-text-secondary" style={{ fontSize: '12px' }}>SKU: PRD-{p.id} {p.is_featured && <span style={{ color: '#FDB022' }}>★</span>}</div>
                     </div>
                   </div>
                 </td>
-                <td><span className="cell-text-secondary">{p.category_name || '—'}</span></td>
-                <td><span className="cell-text-secondary">{p.brand_name || '—'}</span></td>
-                <td><div className="cell-text-primary">₹{Number(p.base_price || 0).toLocaleString('en-IN')}</div></td>
+                <td><span className="badge badge-neutral" style={{ background: '#F2F4F7', color: '#344054', border: 'none' }}>{p.category_name || 'Sunglasses'}</span></td>
+                <td><span className="cell-text-secondary" style={{ fontWeight: 600, color: '#475467' }}>{p.brand_name || 'Ray-Ban'}</span></td>
+                <td><div className="cell-text-primary" style={{ color: '#7F56D9', fontWeight: 700 }}>₹{Number(p.base_price || 0).toLocaleString('en-IN')}</div></td>
                 <td>
-                  <span className={`badge ${p.is_active ? 'badge-success' : 'badge-neutral'}`}>
-                    <span className="badge-dot" />{p.is_active ? 'Active' : 'Inactive'}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                     <div style={{ width: 8, height: 8, borderRadius: '50%', background: p.is_active ? '#12B76A' : '#D0D5DD' }}></div>
+                     <span style={{ fontSize: '14px', fontWeight: 600, color: p.is_active ? '#027A48' : '#344054' }}>
+                       {p.is_active ? 'Published' : 'Draft'}
+                     </span>
+                  </div>
                 </td>
                 <td>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 4 }}>
-                    <button className="row-action-btn edit" onClick={() => handleEditClick(p)}><Edit size={14} /></button>
-                    <button className="row-action-btn delete" onClick={() => handleDeleteClick(p)}><Trash2 size={14} /></button>
-                    <button className="row-action-btn"><MoreHorizontal size={14} /></button>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                    <button className="row-action-btn edit" onClick={() => handleEditClick(p)} title="Edit Specification"><Edit size={16} /></button>
+                    <button className="row-action-btn delete" onClick={() => handleDeleteClick(p.id)} title="Delete Product"><Trash2 size={16} /></button>
+                    <button className="row-action-btn" title="More Options"><MoreHorizontal size={16} /></button>
                   </div>
                 </td>
               </tr>
@@ -160,18 +169,21 @@ const ProductTable = ({ onAddProduct, onEditProduct }) => {
       </div>
 
       <div className="table-pagination">
-        <div className="pagination-info">Showing {paginated.length ? (page-1)*PER_PAGE+1 : 0}–{Math.min(page*PER_PAGE, filtered.length)} of {filtered.length}</div>
+        <div className="pagination-info">Page {page} of {totalPages || 1} • {filtered.length} Results</div>
         <div className="pagination-controls">
-          <button className="page-btn" disabled={page===1} onClick={() => setPage(p=>p-1)}><ChevronLeft size={14}/></button>
-          {Array.from({length: Math.min(totalPages,5)},(_,i)=>i+1).map(n=>(
-            <button key={n} className={`page-btn ${page===n?'active':''}`} onClick={()=>setPage(n)}>{n}</button>
-          ))}
-          <button className="page-btn" disabled={page>=totalPages||totalPages===0} onClick={()=>setPage(p=>p+1)}><ChevronRight size={14}/></button>
+          <button className="page-btn" disabled={page===1} onClick={() => setPage(p=>p-1)}><ChevronLeft size={16}/></button>
+          {[...Array(totalPages)].map((_, i) => (
+             <button 
+               key={i+1} 
+               className={`page-btn ${page === i+1 ? 'active' : ''}`}
+               onClick={() => setPage(i+1)}
+             >
+               {i+1}
+             </button>
+          )).slice(0, 5)}
+          <button className="page-btn" disabled={page>=totalPages||totalPages===0} onClick={() => setPage(p=>p+1)}><ChevronRight size={16}/></button>
         </div>
       </div>
-
-      <FormModal isOpen={showForm} onClose={() => setShowForm(false)} onSubmit={handleFormSubmit}
-        onDelete={handleFormDelete} mode={formMode} title="Product" fields={productFormFields} initialData={selectedProduct || {}} />
     </div>
   );
 };

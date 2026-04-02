@@ -27,9 +27,12 @@ class OrderItemSerializer(serializers.ModelSerializer):
             return obj.prescription.status.label
         return "N/A"
 
+    lens_desc = serializers.ReadOnlyField(source='lens.description')
+    price = serializers.ReadOnlyField(source='price_at_purchase')
+
     class Meta:
         model = OrderItem
-        fields = ['id', 'variant_name', 'variant_image', 'variant_sku', 'quantity', 'price_at_purchase', 'prescription_status', 'patient_name', 'prescription']
+        fields = ['id', 'variant_name', 'variant_image', 'variant_sku', 'quantity', 'price_at_purchase', 'price', 'lens_desc', 'prescription_status', 'patient_name', 'prescription']
 
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)

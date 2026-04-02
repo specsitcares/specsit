@@ -1,0 +1,811 @@
+/* ============================================================
+   VARIANTS & PRICING — FIGMA SPEC (node 76:8237)
+   Exact match: colors, padding, gaps, fonts, radii
+   ============================================================ */
+
+:root {
+  --vp-brand-600: #68408D;
+  --vp-brand-700: #57346F;
+  --vp-brand-50:  #F9F5FF;
+  --vp-gray-50:  #F9FAFB;
+  --vp-gray-100: #F2F4F7;
+  --vp-gray-200: #EAECF0;
+  --vp-gray-300: #D0D5DD;
+  --vp-gray-400: #98A2B3;
+  --vp-gray-500: #667085;
+  --vp-gray-700: #344054;
+  --vp-gray-900: #101828;
+}
+
+/* ──── Section Header ─────────────────────────────────────── */
+.vp-section-header {
+  margin-bottom: 24px;
+}
+
+.vp-header-text h3 {
+  font-size: 20px;
+  font-weight: 500;
+  font-family: 'Roboto', sans-serif;
+  color: #040205;
+  margin-bottom: 4px;
+  line-height: 1.171875em;
+}
+
+.vp-header-text p {
+  font-size: 16px;
+  font-weight: 500;
+  font-family: 'Roboto', sans-serif;
+  color: #697177;
+  line-height: 1.5;
+  letter-spacing: 0.005em;
+}
+
+/* ──── Color Variant Header Row ───────────────────────────── */
+.vp-variant-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 0 12px;
+  border-top: 1px solid #E0E0E0;
+}
+
+/* Figma style_FISSKA: Roboto 500, 18px */
+.vp-variant-header h3 {
+  font-size: 18px;
+  font-weight: 500;
+  font-family: 'Roboto', sans-serif;
+  color: #040205;
+  line-height: 1.171875em;
+}
+
+/* Figma fill_K1KQCQ: #5CB518 green (NOT purple) */
+.vp-add-variant-btn {
+  background: #5CB518;
+  border: 1px solid #5CB518;
+  color: #FFFFFF;
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: 'Geist', 'Roboto', sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  line-height: 1.714;
+  box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s;
+}
+
+.vp-add-variant-btn:hover {
+  background: #4D9A14;
+}
+
+/* ──── Variant Card ───────────────────────────────────────── */
+.vp-variant-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.vp-variant-card {
+  border: 1px solid #E0E0E0;
+  border-radius: 8px;
+  background: white;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.vp-variant-card.expanded {
+  border-color: #68408D;
+  box-shadow: 0 4px 8px rgba(104, 64, 141, 0.08);
+}
+
+/* Figma fill_7J887N: #DBDBDB, padding 12px */
+.vp-variant-card-header {
+  padding: 12px;
+  background: #DBDBDB;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Figma style_KXG50R: Roboto 500, 16px */
+.variant-title {
+  font-size: 16px;
+  font-weight: 500;
+  font-family: 'Roboto', sans-serif;
+  color: #040205;
+  line-height: 1.171875em;
+}
+
+.chevron-icon {
+  color: #020617;
+  transition: transform 0.3s;
+  width: 24px;
+  height: 24px;
+}
+
+.chevron-icon.open {
+  transform: rotate(180deg);
+  color: #68408D;
+}
+
+/* Figma: #FDFAFF bg, dashed border #68408D, padding 20px, gap 24px */
+.vp-variant-card-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  background: #FDFAFF;
+  border: 1px dashed #68408D;
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.vp-remove-container {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Figma: bg rgba(220,38,38,0.1), text #DC2626 */
+.vp-remove-variant-btn {
+  background: rgba(220, 38, 38, 0.1);
+  border: none;
+  color: #DC2626;
+  font-size: 14px;
+  font-family: 'Geist', 'Roboto', sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  line-height: 1.714;
+  box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s;
+}
+
+.vp-remove-variant-btn:hover {
+  background: rgba(220, 38, 38, 0.18);
+}
+
+/* Figma layout_OO4UTR: row, gap 24px */
+.vp-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+/* ──── Form Field Overrides (Figma spec) ──────────────────── */
+/* Figma style_NWLZXO: Roboto 500, 16px, #020617 */
+.vp-variant-card-body .form-field-label,
+.vp-marketing-box .form-field-label {
+  font-size: 16px;
+  font-weight: 500;
+  font-family: 'Roboto', sans-serif;
+  color: #020617;
+  line-height: 1.25em;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Figma required star: #C02828 */
+.vp-variant-card-body .required-star {
+  color: #C02828;
+  font-weight: 800;
+  font-size: 16px;
+}
+
+/* Figma field: border #D2D2D2, border-radius 6px, padding 12px 14px */
+.vp-variant-card-body .form-field-input,
+.vp-variant-card-body .form-field-textarea,
+.vp-variant-card-body .form-field-select-wrapper select,
+.vp-marketing-box .form-field-input {
+  padding: 12px 14px;
+  border: 1px solid #D2D2D2;
+  border-radius: 6px;
+  font-size: 16px;
+  font-family: 'Roboto', sans-serif;
+  font-weight: 400;
+  color: #020617;
+  line-height: 1.25em;
+  background: white;
+  outline: none;
+  transition: all 0.2s;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.vp-variant-card-body .form-field-input:focus,
+.vp-variant-card-body .form-field-select-wrapper select:focus {
+  border-color: #0F172A;
+  box-shadow: 0px 0px 0px 4px rgba(15, 23, 42, 1), 0px 0px 0px 2px rgba(255, 255, 255, 1);
+}
+
+.vp-variant-card-body .form-field-input.has-error {
+  border-color: #DC2626;
+  box-shadow: 0px 0px 0px 4px rgba(220, 38, 38, 1), 0px 0px 0px 2px rgba(255, 255, 255, 1);
+}
+
+.vp-field-error {
+  font-size: 14px;
+  font-weight: 500;
+  font-family: 'Roboto', sans-serif;
+  color: #DC2626;
+  line-height: 1.428;
+  margin-top: 2px;
+}
+
+/* Figma placeholder: Roboto 400, 14px */
+.vp-variant-card-body .form-field-input::placeholder {
+  font-size: 14px;
+  color: #020617;
+  font-weight: 400;
+}
+
+/* Figma help text: Roboto 400, 14px, #64748B */
+.vp-help-text {
+  font-size: 14px;
+  font-weight: 400;
+  font-family: 'Roboto', sans-serif;
+  color: #64748B;
+  line-height: 1.428;
+  margin-top: 4px;
+}
+
+/* ──── Color Selection Area ──────────────────────────────── */
+/* Figma: column, gap 12px */
+.vp-color-selection-area {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Figma: title row with divider */
+.vp-color-section-title {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.vp-color-section-title .section-label {
+  font-size: 16px;
+  font-weight: 500;
+  font-family: 'Roboto', sans-serif;
+  color: #040205;
+  line-height: 1.171875em;
+}
+
+.vp-color-divider {
+  border: none;
+  border-top: 1px solid #E0E0E0;
+  margin: 0;
+}
+
+/* Figma tabs: bg #FAF2FF, padding 4px, border-radius 8px */
+.vp-tabs-container {
+  background: #FAF2FF;
+  padding: 4px;
+  border-radius: 8px;
+}
+
+.vp-tabs {
+  display: flex;
+}
+
+/* Figma tab: padding 12px, Roboto 500, 16px, fill width */
+.vp-tab {
+  padding: 12px;
+  font-size: 16px;
+  font-family: 'Roboto', sans-serif;
+  font-weight: 500;
+  color: #040205;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  line-height: 1.25em;
+  text-align: center;
+  flex: 1;
+  transition: all 0.2s;
+}
+
+/* Figma active tab: white bg, shadow */
+.vp-tab.active {
+  background: #FFFFFF;
+  color: #040205;
+  box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
+}
+
+/* ──── Color Code Field ──────────────────────────────────── */
+.vp-color-field {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.vp-color-field .form-field-input {
+  padding: 10px 12px;
+  border: 1px solid #E2E8F0;
+}
+
+.vp-color-swatch-trigger {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  border: 2px solid white;
+  box-shadow: 0 0 0 1px var(--vp-gray-200);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  flex-shrink: 0;
+  background: #0F172A;
+}
+
+.vp-color-swatch-trigger input[type="color"] {
+  position: absolute;
+  top: -10px; left: -10px; width: 60px; height: 60px;
+  cursor: pointer;
+  opacity: 0;
+}
+
+/* Palette dropzone */
+.vp-palette-dropzone {
+  border: 1px dashed var(--vp-gray-300);
+  background: white;
+  padding: 12px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.palette-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.palette-preview img { width: 32px; height: 32px; border-radius: 4px; object-fit: cover; }
+.palette-preview span { font-size: 13px; color: var(--vp-gray-700); flex: 1; }
+
+/* ──── Images Section ─────────────────────────────────────── */
+.vp-images-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.vp-images-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Figma counter: Roboto 400, 14px, #020617 */
+.label-counter {
+  font-size: 14px;
+  color: #020617;
+  font-weight: 400;
+  font-family: 'Roboto', sans-serif;
+  line-height: 1.428;
+  text-align: center;
+}
+
+/* Figma dropzone: border dashed #68408D, border-radius 12px */
+.vp-dropzone-wrapper {
+  border: 1px dashed #68408D;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* Figma upload area: bg #FDFAFF, height 216px, centered */
+.vp-dropzone {
+  background: #FDFAFF;
+  padding: 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 216px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  border-radius: 0;
+}
+
+.vp-dropzone:hover {
+  background: #F5EDFF;
+}
+
+/* Figma upload icon: 40x40 */
+.upload-icon-circle {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--vp-gray-500);
+  margin-bottom: 4px;
+}
+
+/* Figma: Roboto 500, 16px, #171D25 */
+.vp-dropzone-text p:first-child {
+  font-size: 16px;
+  font-weight: 500;
+  font-family: 'Roboto', sans-serif;
+  color: #171D25;
+  line-height: 1.171875em;
+  margin-bottom: 2px;
+}
+
+/* Figma: Roboto 500, 16px, #A9ACB4 */
+.vp-dropzone-text p:last-child {
+  font-size: 16px;
+  font-weight: 500;
+  font-family: 'Roboto', sans-serif;
+  color: #A9ACB4;
+  line-height: 1.171875em;
+}
+
+/* Figma: white bg, border #E2E8F0, text #54575C, padding 8px 12px */
+.vp-browse-btn {
+  background: white;
+  border: 1px solid #E2E8F0;
+  color: #54575C;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 16px;
+  font-family: 'Roboto', sans-serif;
+  font-weight: 500;
+  line-height: 1.5;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: all 0.2s;
+}
+
+.vp-browse-btn:hover {
+  background: #F8FAFC;
+}
+
+/* Figma preview thumbnails: 80x80, gap 12px, bg #F3F3F3 */
+.vp-preview-area {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 24px 20px;
+  background: #F3F3F3;
+  border-top: 1px solid #D2D2D2;
+}
+
+.vp-preview-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+  padding: 12px 24px 20px;
+  background: #F3F3F3;
+  border-top: 1px solid #D2D2D2;
+}
+
+/* Figma preview card: 80x80 */
+.vp-preview-card {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border-radius: 9px;
+  border: 0.75px solid #D2D2D2;
+  overflow: hidden;
+  background: white;
+}
+
+.preview-media {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.preview-media img,
+.preview-media video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.remove-media-btn {
+  position: absolute;
+  top: -2px; right: -2px;
+  width: 27px; height: 27px;
+  background: #636363;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.remove-media-btn:hover { background: #F04438; scale: 1.1; }
+
+/* ──── Alert ──────────────────────────────────────────────── */
+/* Figma: bg #FFF7ED, border #9A3412, text #9A3412, padding 16px */
+.vp-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 8px;
+  margin-top: 8px;
+}
+
+.vp-alert-warning {
+  background: #FFF7ED;
+  border: 1px solid #9A3412;
+  color: #9A3412;
+}
+
+.vp-alert-icon {
+  padding: 2px 0 0;
+  flex-shrink: 0;
+  color: #EA580C;
+}
+
+.vp-alert-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Figma: Roboto 500, 16px, #9A3412 */
+.vp-alert-body strong {
+  font-size: 16px;
+  font-weight: 500;
+  font-family: 'Roboto', sans-serif;
+  color: #9A3412;
+  line-height: 1.5;
+}
+
+/* Figma: Roboto 400, 14px, #9A3412 */
+.vp-alert-body span {
+  font-size: 14px;
+  font-weight: 400;
+  font-family: 'Roboto', sans-serif;
+  color: #9A3412;
+  line-height: 1.714;
+}
+
+/* ── Marketing Box ────────────────────────────────────────── */
+/* Figma: bg #FDFAFF, border 1px dashed #68408D, padding 20px, gap 24px */
+.vp-marketing-box {
+  background: #FDFAFF;
+  border: 1px dashed #68408D;
+  border-radius: 6px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Figma checkbox row */
+.vp-bogo-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.vp-bogo-row:hover { opacity: 0.9; }
+
+.vp-checkbox {
+  width: 16px; height: 16px;
+  border: 1.5px solid var(--vp-gray-300);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  flex-shrink: 0;
+}
+
+.vp-checkbox.checked {
+  background: var(--vp-brand-600);
+  border-color: var(--vp-brand-600);
+}
+
+/* Figma style_JU38J5: Roboto 500, 16px, #171D25 */
+.vp-bogo-row label {
+  font-size: 16px;
+  font-weight: 500;
+  font-family: 'Roboto', sans-serif;
+  color: #171D25;
+  cursor: pointer;
+  line-height: 1.25em;
+}
+
+/* ──── Date Picker Row ────────────────────────────────────── */
+/* Figma: row, gap 24px */
+.vp-date-picker-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.vp-date-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Figma: Roboto 500, 16px, #171D25 */
+.vp-date-field label {
+  font-size: 16px;
+  font-weight: 500;
+  font-family: 'Roboto', sans-serif;
+  color: #171D25;
+  line-height: 1.25em;
+}
+
+/* Figma: border #D2D2D2, padding 8px 12px, border-radius 6px */
+.vp-date-field input[type="date"] {
+  padding: 8px 12px;
+  border: 1px solid #D2D2D2;
+  border-radius: 6px;
+  font-size: 16px;
+  font-family: 'Roboto', sans-serif;
+  font-weight: 400;
+  color: #64748B;
+  background: white;
+  outline: none;
+  line-height: 1.25em;
+  width: 100%;
+  box-sizing: border-box;
+  transition: all 0.2s;
+}
+
+.vp-date-field input[type="date"]:focus {
+  border-color: #0F172A;
+  color: #020617;
+}
+
+/* ──── Prefix Input ──────────────────────────────────────── */
+.vp-variant-card-body .input-prefix {
+  position: absolute;
+  left: 14px;
+  font-size: 16px;
+  font-weight: 400;
+  color: #020617;
+}
+
+.vp-variant-card-body .form-field-input.has-prefix {
+  padding-left: 32px;
+}
+
+/* ──── Select Overrides ──────────────────────────────────── */
+.vp-variant-card-body .form-field-select-wrapper select {
+  padding: 14px 12px;
+  border: 1px solid #D2D2D2;
+  appearance: none;
+  cursor: pointer;
+}
+
+.vp-variant-card-body .select-chevron {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--vp-gray-500);
+}
+
+/* ──── Responsive ─────────────────────────────────────────── */
+
+/* Tablet (<= 1024px) */
+@media screen and (max-width: 1024px) {
+  .vp-variant-card-header {
+    padding: 16px;
+  }
+}
+
+/* Mobile Portrait & Landscape (<= 768px) */
+@media screen and (max-width: 768px) {
+  .vp-section-header {
+    margin-bottom: 16px;
+  }
+
+  .vp-header-text h3 {
+    font-size: 18px;
+  }
+
+  .vp-header-text p {
+    font-size: 14px;
+  }
+
+  .vp-row,
+  .vp-date-picker-row {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .vp-variant-card-body {
+    padding: 16px;
+    gap: 20px;
+  }
+
+  .vp-marketing-box {
+    padding: 16px;
+    gap: 20px;
+  }
+
+  .vp-tabs {
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .vp-tabs-container {
+    padding: 8px;
+  }
+
+  .vp-tab {
+    padding: 10px;
+    font-size: 14px;
+  }
+
+  .variant-title {
+    font-size: 14px;
+    max-width: 70%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .vp-preview-grid {
+    grid-template-columns: repeat(3, 1fr);
+    padding: 12px;
+  }
+
+  .vp-preview-card {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1/1;
+  }
+}
+
+/* Small Mobile (<= 480px) */
+@media screen and (max-width: 480px) {
+  .vp-variant-header h3 {
+    font-size: 16px;
+  }
+
+  .vp-add-variant-btn {
+    padding: 4px 6px;
+    font-size: 12px;
+  }
+
+  .vp-dropzone-text p:first-child,
+  .vp-dropzone-text p:last-child {
+    font-size: 14px;
+  }
+
+  .vp-preview-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
