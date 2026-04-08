@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Plus, Edit, Trash2, FolderOpen, MoreHorizontal, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Filter, Plus, Edit, Trash2, FolderOpen, MoreVertical, ChevronLeft, ChevronRight, Edit2 } from 'lucide-react';
 import apiClient from '../../services/api';
 import FormModal from './FormModal';
+import BaseAdminTable from './BaseAdminTable';
 
 const CategoryTable = () => {
   const [categories, setCategories] = useState([]);
@@ -11,7 +12,8 @@ const CategoryTable = () => {
   const [formMode, setFormMode] = useState('create');
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
-  const PER_PAGE = 10;
+  const [perPage, setPerPage] = useState(10);
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => { fetchCategories(); }, []);
 
@@ -35,100 +37,130 @@ const CategoryTable = () => {
         data.append(k, formData[k]);
       }
     });
-    if (formMode === 'create') await apiClient.post('/catalog/categories/', data);
-    else await apiClient.patch(`/catalog/categories/${selectedCategory.id}/`, data);
-    fetchCategories();
+    try {
+      if (formMode === 'create') await apiClient.post('/catalog/categories/', data);
+      else await apiClient.patch(`/catalog/categories/${selectedCategory.id}/`, data);
+      setShowForm(false);
+      fetchCategories();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleFormDelete = async (id) => {
-    await apiClient.delete(`/catalog/categories/${id}/`);
-    fetchCategories();
+    try {
+      await apiClient.delete(`/catalog/categories/${id}/`);
+      setShowForm(false);
+      fetchCategories();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const filtered = categories.filter(c =>
     [c.name, c.slug, c.description].some(v => v?.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const totalPages = Math.ceil(filtered.length / PER_PAGE);
-  const paginated  = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const paginated = filtered.slice((page - 1) * perPage, page * perPage);
 
-  if (loading) return <div className="db-loading-state">Loading categories…</div>;
+  const columns = [
+    { label: 'Category', key: 'category', sortable: true },
+    { label: 'Parent', key: 'parent', sortable: true },
+    { label: 'Description', key: 'description' },
+    { label: 'Status', key: 'status', sortable: true },
+    { label: 'Action', key: 'action', align: 'right' }
+  ];
+
+  const renderRow = (c, idx) => (
+    <tr key={c.id || idx} style={{ borderBottom: '1px solid #EAECF0', backgroundColor: '#fff' }}>
+      <td style={{ padding: '16px 24px' }}>
+        <input type="checkbox" style={{ cursor: 'pointer', borderRadius: '4px', accentColor: '#7F56D9' }} />
+      </td>
+      <td style={{ padding: '16px 24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 42, height: 42, borderRadius: 8, background: '#F4EBFF', color: '#7F56D9', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+            {c.image ? <img src={c.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <FolderOpen size={20} />}
+          </div>
+          <div>
+            <div style={{ fontWeight: 600, color: '#101828', fontSize: '14px' }}>{c.name}</div>
+            <div style={{ fontSize: '12px', color: '#667085' }}>{c.slug}</div>
+          </div>
+        </div>
+      </td>
+      <td style={{ padding: '16px 24px' }}>
+        <span style={{ fontSize: '14px', color: '#475467' }}>{c.parent_name || '—'}</span>
+      </td>
+      <td style={{ padding: '16px 24px', maxWidth: 220 }}>
+        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '14px', color: '#667085' }}>
+          {c.description || '—'}
+        </div>
+      </td>
+      <td style={{ padding: '16px 24px' }}>
+        <span style={{
+          backgroundColor: c.is_active ? '#ECFDF3' : '#F2F4F7',
+          color: c.is_active ? '#027A48' : '#344054',
+          padding: '4px 10px',
+          borderRadius: '16px',
+          fontSize: '12px',
+          fontWeight: 600,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          border: `1px solid ${c.is_active ? '#ABEFC6' : '#D0D5DD'}`
+        }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: c.is_active ? '#12B76A' : '#667085' }}></span>
+          {c.is_active ? 'Active' : 'Inactive'}
+        </span>
+      </td>
+      <td style={{ padding: '16px 24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+          <div
+            onClick={() => handleEditClick(c)}
+            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+            title="Edit Category"
+          >
+            <Edit2 size={16} />
+          </div>
+          <div
+            onClick={() => handleDeleteClick(c)}
+            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+            title="Delete Category"
+          >
+            <Trash2 size={16} />
+          </div>
+        </div>
+      </td>
+    </tr>
+  );
 
   return (
-    <div className="admin-table-wrapper">
-      <div className="table-toolbar">
-        <div>
-          <div className="table-title">Product Categories</div>
-          <div className="table-subtitle">{filtered.length} categories</div>
-        </div>
-        <div className="table-actions">
-          <div className="table-search-box">
-            <Search size={14} />
-            <input type="text" placeholder="Search categories…" value={searchQuery}
-              onChange={e => { setSearchQuery(e.target.value); setPage(1); }} />
+    <>
+      <BaseAdminTable
+        title="Product Categories"
+        count={filtered.length}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        onAdd={handleCreateClick}
+        addLabel="Add Category"
+        columns={columns}
+        data={paginated}
+        loading={loading}
+        renderRow={renderRow}
+        pagination={{
+          page,
+          perPage,
+          totalCount: filtered.length,
+          onPageChange: setPage,
+          onPerPageChange: setPerPage
+        }}
+        showFilters={showFilters}
+        setShowFilters={setShowFilters}
+        filterContent={
+          <div style={{ display: 'flex', gap: '16px' }}>
+             <div style={{ fontSize: '14px', color: '#667085' }}>No active filters available for categories.</div>
           </div>
-          <button className="btn btn-outline"><Filter size={14} /> Filter</button>
-          <button className="btn btn-primary" onClick={handleCreateClick}><Plus size={14} /> Add Category</button>
-        </div>
-      </div>
-
-      <div style={{ overflowX: 'auto' }}>
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th style={{ width: 40 }}><input type="checkbox" /></th>
-              <th>Category</th>
-              <th>Parent</th>
-              <th>Description</th>
-              <th>Status</th>
-              <th style={{ textAlign: 'right' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {paginated.length === 0 ? (
-              <tr><td colSpan={6}><div className="empty-state">No categories found.</div></td></tr>
-            ) : paginated.map(c => (
-              <tr key={c.id}>
-                <td><input type="checkbox" /></td>
-                <td>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 34, height: 34, borderRadius: 6, background: 'var(--brand-50)', color: 'var(--brand-700)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                      {c.image ? <img src={c.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <FolderOpen size={16} />}
-                    </div>
-                    <div>
-                      <div className="cell-text-primary">{c.name}</div>
-                      <div className="cell-text-secondary">{c.slug}</div>
-                    </div>
-                  </div>
-                </td>
-                <td><span className="cell-text-secondary">{c.parent_name || '—'}</span></td>
-                <td style={{ maxWidth: 200 }}><div className="cell-text-secondary" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.description || '—'}</div></td>
-                <td>
-                  <span className={`badge ${c.is_active ? 'badge-success' : 'badge-neutral'}`}>
-                    <span className="badge-dot" />{c.is_active ? 'Active' : 'Inactive'}
-                  </span>
-                </td>
-                <td>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 4 }}>
-                    <button className="row-action-btn edit" onClick={() => handleEditClick(c)}><Edit size={14}/></button>
-                    <button className="row-action-btn delete" onClick={() => handleDeleteClick(c)}><Trash2 size={14}/></button>
-                    <button className="row-action-btn"><MoreHorizontal size={14}/></button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="table-pagination">
-        <div className="pagination-info">Showing {paginated.length ? (page-1)*PER_PAGE+1 : 0}–{Math.min(page*PER_PAGE, filtered.length)} of {filtered.length}</div>
-        <div className="pagination-controls">
-          <button className="page-btn" disabled={page===1} onClick={() => setPage(p=>p-1)}><ChevronLeft size={14}/></button>
-          <button className="page-btn active">{page}</button>
-          <button className="page-btn" disabled={page>=totalPages||totalPages===0} onClick={() => setPage(p=>p+1)}><ChevronRight size={14}/></button>
-        </div>
-      </div>
+        }
+      />
 
       <FormModal isOpen={showForm} onClose={() => setShowForm(false)} onSubmit={handleFormSubmit}
         onDelete={handleFormDelete} mode={formMode} title="Category" 
@@ -140,7 +172,7 @@ const CategoryTable = () => {
           { name: 'is_active', label: 'Active', type: 'checkbox', defaultValue: true }
         ]} 
         initialData={selectedCategory || {}} />
-    </div>
+    </>
   );
 };
 

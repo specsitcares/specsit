@@ -3,16 +3,16 @@
    ============================================================ */
 
 :root {
-  --pf-brand-600: #7F56D9;
-  --pf-brand-700: #6941C6;
-  --pf-brand-50: #F9F5FF;
+  --pf-brand-600: #68408D;
+  --pf-brand-700: #57346F;
+  --pf-brand-50: rgba(104, 64, 141, 0.1);
   --pf-gray-200: #EAECF0;
   --pf-gray-300: #D0D5DD;
   --pf-gray-500: #667085;
   --pf-gray-700: #344054;
   --pf-gray-900: #101828;
   --pf-success-50: #ECFDF3;
-  --pf-success-600: #039855;
+  --pf-success-600: #06B217;
   --pf-error-50: #FEF3F2;
   --pf-error-600: #D92D20;
 }
@@ -126,9 +126,9 @@
 }
 
 .product-form-columns {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 40px; /* Increased gap for section separation */
 }
 
 .form-sub-section {
@@ -206,8 +206,9 @@
 .form-field-input:focus,
 .form-field-textarea:focus,
 .form-field-select-wrapper select:focus {
-  border-color: var(--pf-brand-600);
-  box-shadow: 0px 0px 0px 4px var(--pf-brand-50);
+  border-color: var(--pf-brand-600) !important;
+  box-shadow: 0px 0px 0px 4px var(--pf-brand-50) !important;
+  caret-color: var(--pf-brand-600) !important;
 }
 
 .form-field-input.has-error {
@@ -473,7 +474,7 @@ input:checked+.toggle-slider:before {
   width: 25px;
   height: 25px;
   border-radius: 50%;
-  background: var(--pf-brand-600);
+  background: #06B217;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -490,7 +491,8 @@ input:checked+.toggle-slider:before {
   flex: 1;
   height: 0;
   border-top: 1.5px solid var(--pf-gray-300);
-  margin-top: -24px; /* Align with circle centers */
+  margin-top: -24px;
+  /* Align with circle centers */
 }
 
 .pf-step-connector.completed {
@@ -499,8 +501,10 @@ input:checked+.toggle-slider:before {
 
 @media screen and (max-width: 600px) {
   .pf-step-label {
-    display: none; /* Hide labels on very small screens to save space */
+    display: none;
+    /* Hide labels on very small screens to save space */
   }
+
   .pf-step-connector {
     margin-top: 0;
   }
@@ -634,7 +638,8 @@ input:checked+.toggle-slider:before {
     border-radius: 0;
     border-left: none;
     border-right: none;
-    margin: 0 -16px; /* Bleed out on mobile if container has padding */
+    margin: 0 -16px;
+    /* Bleed out on mobile if container has padding */
   }
 
   .section-title-row h2 {

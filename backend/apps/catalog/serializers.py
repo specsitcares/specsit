@@ -86,15 +86,67 @@ class LensPackageSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class LensSerializer(serializers.ModelSerializer):
-    package_name = serializers.ReadOnlyField(source='package.name')
-    name = serializers.SerializerMethodField()
+    package_name = serializers.CharField(required=False)
+    description = serializers.CharField(required=False, allow_blank=True)
+    features = serializers.JSONField(required=False)
     
     class Meta:
         model = Lens
-        fields = '__all__'
+        fields = [
+            'id', 'name', 'package', 'package_name', 'description', 'features',
+            'type', 'price', 'index', 'is_active', 'is_for_sunglasses', 'is_for_eyeglasses'
+        ]
+        extra_kwargs = {
+            'package': {'read_only': True}
+        }
+
+    def to_representation(self, instance):
+        """Flatten the linked package fields for the API response."""
+        data = super().to_representation(instance)
+        if instance.package:
+            data['package_name'] = instance.package.name
+            data['description'] = instance.package.description
+            data['features'] = instance.package.features
+        return data
+
+    def create(self, validated_data):
+        package_name = validated_data.pop('package_name', 'Basic')
+        description = validated_data.pop('description', '')
+        features = validated_data.pop('features', [])
+            
+        # Seamlessly get or create the package
+        package, _ = LensPackage.objects.get_or_create(
+            name=package_name,
+            defaults={
+                'description': description,
+                'features': features
+            }
+        )
         
-    def get_name(self, obj):
-        return obj.name if obj.name else obj.package.name
+        lens = Lens.objects.create(package=package, **validated_data)
+        return lens
+
+    def update(self, instance, validated_data):
+        # Extract fields
+        package_name = validated_data.pop('package_name', None)
+        description = validated_data.pop('description', None)
+        features = validated_data.pop('features', None)
+        
+        if package_name or description is not None or features is not None:
+            package = instance.package
+            if package_name:
+                package.name = package_name
+            if description is not None:
+                package.description = description
+            if features is not None:
+                package.features = features
+            package.save()
+
+        # Update the Lens itself
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
 
 class PrescriptionSerializer(serializers.ModelSerializer):
     class Meta:

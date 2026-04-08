@@ -119,13 +119,13 @@ const ReviewSubmit = ({ formData, categories, brands, confirmed, setConfirmed, e
         marginBottom: '32px'
       }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-          <thead>
-            <tr style={{ textAlign: 'left', borderBottom: '1px solid #F2F4F7' }}>
-              <th style={{ padding: '12px 8px', fontWeight: '500', color: '#667085' }}>SKU</th>
-              <th style={{ padding: '12px 8px', fontWeight: '500', color: '#667085' }}>Lens Color</th>
-              <th style={{ padding: '12px 8px', fontWeight: '500', color: '#667085' }}>Frame Color</th>
-              <th style={{ padding: '12px 8px', fontWeight: '500', color: '#667085' }}>Stock</th>
-              <th style={{ padding: '12px 8px', fontWeight: '500', color: '#667085' }}>Price</th>
+          <thead style={{ background: '#F9FAFB' }}>
+            <tr style={{ textAlign: 'left', borderBottom: '1px solid #EAECF0' }}>
+              <th style={{ padding: '12px 8px', fontWeight: '600', color: '#475467', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.05em' }}>SKU</th>
+              <th style={{ padding: '12px 8px', fontWeight: '600', color: '#475467', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.05em' }}>Lens Color</th>
+              <th style={{ padding: '12px 8px', fontWeight: '600', color: '#475467', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.05em' }}>Frame Color</th>
+              <th style={{ padding: '12px 8px', fontWeight: '600', color: '#475467', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.05em' }}>Stock</th>
+              <th style={{ padding: '12px 8px', fontWeight: '600', color: '#475467', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.05em' }}>Price</th>
             </tr>
           </thead>
           <tbody>
@@ -136,7 +136,11 @@ const ReviewSubmit = ({ formData, categories, brands, confirmed, setConfirmed, e
                   <td style={{ padding: '12px 8px', color: '#667085' }}>{v.colorName || 'Crystal Green'}</td>
                   <td style={{ padding: '12px 8px', color: '#667085' }}>{v.frameColor || 'Black'}</td>
                   <td style={{ padding: '12px 8px', fontWeight: '600', color: '#101828' }}>{v.quantity || 45}</td>
-                  <td style={{ padding: '12px 8px', fontWeight: '600', color: '#101828' }}>${(parseFloat(formData.base_price || 0) + parseFloat(v.variantPrice || 0)).toFixed(2)}</td>
+                  <td style={{ padding: '12px 8px', fontWeight: '600', color: '#101828' }}>
+                    ${v.variantPrice && parseFloat(v.variantPrice) > 0 
+                      ? parseFloat(v.variantPrice).toFixed(2) 
+                      : parseFloat(formData.base_price || 0).toFixed(2)}
+                  </td>
                 </tr>
               ))
             ) : (

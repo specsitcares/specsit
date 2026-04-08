@@ -1,0 +1,393 @@
+/* Order Confirmation Page Styles */
+.order-confirmation-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 20px;
+  min-height: 80vh;
+}
+
+.success-header {
+  text-align: center;
+  margin-bottom: 48px;
+  padding: 40px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20px;
+  color: white;
+}
+
+.success-icon {
+  margin-bottom: 24px;
+}
+
+.success-title {
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.success-subtitle {
+  font-size: 18px;
+  opacity: 0.9;
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.order-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  margin-bottom: 48px;
+}
+
+@media (max-width: 768px) {
+  .order-details-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.order-summary-section,
+.shipping-section,
+.support-section {
+  background: white;
+  border: 1px solid #E5E7EB;
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.section-header h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.section-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.order-info {
+  margin-bottom: 32px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #F3F4F6;
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-row span:first-child {
+  color: #6B7280;
+  font-weight: 500;
+}
+
+.info-row strong {
+  color: #111827;
+  font-weight: 600;
+}
+
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.status-badge.pending {
+  background: #FEF3C7;
+  color: #D97706;
+}
+
+.status-badge.accepted,
+.status-badge.processing {
+  background: #DBEAFE;
+  color: #2563EB;
+}
+
+.status-badge.shipped {
+  background: #D1FAE5;
+  color: #065F46;
+}
+
+.order-items {
+  margin-bottom: 32px;
+}
+
+.order-item {
+  display: flex;
+  gap: 16px;
+  padding: 20px 0;
+  border-bottom: 1px solid #F3F4F6;
+}
+
+.order-item:last-child {
+  border-bottom: none;
+}
+
+.item-image {
+  width: 80px;
+  height: 80px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #F9FAFB;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.item-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.placeholder-image {
+  color: #9CA3AF;
+}
+
+.item-details {
+  flex: 1;
+}
+
+.item-details h4 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 4px;
+}
+
+.item-meta {
+  font-size: 14px;
+  color: #6B7280;
+  margin-bottom: 8px;
+}
+
+.item-price {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.order-total {
+  border-top: 2px solid #E5E7EB;
+  padding-top: 24px;
+}
+
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.delivery-timeline {
+  margin-bottom: 32px;
+}
+
+.timeline-item {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  position: relative;
+}
+
+.timeline-item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 24px;
+  bottom: -24px;
+  width: 2px;
+  background: #E5E7EB;
+}
+
+.timeline-item.completed::after {
+  background: #10B981;
+}
+
+.timeline-icon {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #E5E7EB;
+  color: #9CA3AF;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.timeline-item.completed .timeline-icon {
+  background: #10B981;
+  color: white;
+}
+
+.timeline-item.current .timeline-icon {
+  background: #3B82F6;
+  color: white;
+}
+
+.timeline-content h4 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 4px;
+}
+
+.timeline-content p {
+  font-size: 14px;
+  color: #6B7280;
+}
+
+.address-section {
+  margin-top: 32px;
+}
+
+.address-card {
+  background: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.address-name {
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 8px;
+}
+
+.address-details {
+  color: #6B7280;
+  margin-bottom: 4px;
+  line-height: 1.5;
+}
+
+.address-country {
+  color: #6B7280;
+  font-size: 14px;
+}
+
+.support-info p {
+  color: #6B7280;
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+.contact-methods {
+  margin-bottom: 24px;
+}
+
+.contact-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  color: #6B7280;
+}
+
+.contact-item span {
+  font-weight: 500;
+}
+
+.support-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.btn-primary,
+.btn-secondary {
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background: #7C3AED;
+  color: white;
+  border: 1px solid #7C3AED;
+}
+
+.btn-primary:hover {
+  background: #6D28D9;
+}
+
+.btn-secondary {
+  background: white;
+  color: #6B7280;
+  border: 1px solid #D1D5DB;
+}
+
+.btn-secondary:hover {
+  background: #F9FAFB;
+  border-color: #9CA3AF;
+}
+
+.loading-state,
+.error-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+}
+
+@media (max-width: 640px) {
+  .order-confirmation-container {
+    padding: 20px 16px;
+  }
+
+  .success-title {
+    font-size: 24px;
+  }
+
+  .success-subtitle {
+    font-size: 16px;
+  }
+
+  .order-details-grid {
+    gap: 24px;
+  }
+
+  .order-summary-section,
+  .shipping-section,
+  .support-section {
+    padding: 24px;
+  }
+
+  .support-actions {
+    flex-direction: column;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    width: 100%;
+  }
+}

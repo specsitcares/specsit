@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Edit, Trash2, MoreVertical, ChevronDown, Search, Filter, Download, Command, Plus } from 'lucide-react';
+import { Edit, Trash2, MoreVertical, ChevronDown, Search, Filter, Download, Command, Plus, User, Edit2 } from 'lucide-react';
 import apiClient from '../../services/api';
 import FormModal from './FormModal';
+import BaseAdminTable from './BaseAdminTable';
 
 const EmployeeTable = () => {
   const [employees, setEmployees] = useState([]);
@@ -9,6 +10,10 @@ const EmployeeTable = () => {
   const [showForm, setShowForm] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [formMode, setFormMode] = useState('create');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
+  const [showFilters, setShowFilters] = useState(false);
 
   const employeeFormFields = [
     { name: 'name', label: 'Full Name', type: 'text', required: true },
@@ -58,65 +63,122 @@ const EmployeeTable = () => {
       } else {
         await apiClient.put(`/accounts/employees/${selectedEmployee.id}/`, formData);
       }
+      setShowForm(false);
       fetchEmployees();
     } catch (err) {
-      throw err;
+      console.error(err);
     }
   };
 
   const handleFormDelete = async (id) => {
     try {
       await apiClient.delete(`/accounts/employees/${id}/`);
+      setShowForm(false);
       fetchEmployees();
     } catch (err) {
-      throw err;
+      console.error(err);
     }
   };
 
-  if (loading) return <div style={{ padding: '20px' }}>Loading employees...</div>;
+  const filtered = employees.filter(e =>
+    [e.name, e.email, e.role].some(v => v?.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  const paginated = filtered.slice((page - 1) * perPage, page * perPage);
+
+  const columns = [
+    { label: 'Name', key: 'name', sortable: true },
+    { label: 'Email', key: 'email', sortable: true },
+    { label: 'Role', key: 'role', sortable: true },
+    { label: 'Phone', key: 'phone', sortable: true },
+    { label: 'Created', key: 'created', sortable: true },
+    { label: 'Action', key: 'action', align: 'right' }
+  ];
+
+  const renderRow = (emp, idx) => (
+    <tr key={emp.id || idx} style={{ borderBottom: '1px solid #EAECF0', backgroundColor: '#fff' }}>
+      <td style={{ padding: '16px 24px' }}>
+        <input type="checkbox" style={{ cursor: 'pointer', borderRadius: '4px', accentColor: '#7F56D9' }} />
+      </td>
+      <td style={{ padding: '16px 24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#F4EBFF', color: '#7F56D9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <User size={16} />
+          </div>
+          <div style={{ fontWeight: 600, color: '#101828', fontSize: '14px' }}>{emp.name || '-'}</div>
+        </div>
+      </td>
+      <td style={{ padding: '16px 24px' }}>
+        <div style={{ fontSize: '14px', color: '#475467' }}>{emp.email || '-'}</div>
+      </td>
+      <td style={{ padding: '16px 24px' }}>
+        <span style={{
+          backgroundColor: '#F9F5FF',
+          color: '#6941C6',
+          padding: '4px 10px',
+          borderRadius: '16px',
+          fontSize: '12px',
+          fontWeight: 600,
+          border: '1px solid #E9D7FE'
+        }}>
+          {emp.role || 'Agent'}
+        </span>
+      </td>
+      <td style={{ padding: '16px 24px' }}>
+        <div style={{ fontSize: '14px', color: '#475467' }}>{emp.phone_number || 'N/A'}</div>
+      </td>
+      <td style={{ padding: '16px 24px' }}>
+        <div style={{ fontSize: '13px', color: '#667085' }}>{new Date(emp.created_at).toLocaleDateString()}</div>
+      </td>
+      <td style={{ padding: '16px 24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+          <div
+            onClick={() => handleEditClick(emp)}
+            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+            title="Edit Employee"
+          >
+            <Edit2 size={16} />
+          </div>
+          <div
+            onClick={() => handleFormDelete(emp.id)}
+            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+            title="Delete Employee"
+          >
+            <Trash2 size={16} />
+          </div>
+        </div>
+      </td>
+    </tr>
+  );
 
   return (
-    <div className="admin-table-container">
-      <div className="table-header-toolbar">
-        <div className="table-title">Staff & Employees <span className="order-count">{employees.length} Total</span></div>
-        <div className="toolbar-actions">
-          <div className="search-box">
-            <Search size={16} /><input type="text" placeholder="Search here..." />
-            <span className="shortcut"><Command size={10} /> K</span>
+    <>
+      <BaseAdminTable
+        title="Staff & Employees"
+        count={filtered.length}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        onAdd={handleCreateClick}
+        addLabel="Create"
+        columns={columns}
+        data={paginated}
+        loading={loading}
+        renderRow={renderRow}
+        pagination={{
+          page,
+          perPage,
+          totalCount: filtered.length,
+          onPageChange: setPage,
+          onPerPageChange: setPerPage
+        }}
+        showFilters={showFilters}
+        setShowFilters={setShowFilters}
+        filterContent={
+          <div style={{ display: 'flex', gap: '16px' }}>
+             <div style={{ fontSize: '14px', color: '#667085' }}>No active filters available for employees.</div>
           </div>
-          <button className="toolbar-btn"><Filter size={16} /> <span>Filter</span></button>
-          <button className="toolbar-btn"><Download size={16} /> <span>Export</span></button>
-          <button className="toolbar-btn primary" onClick={handleCreateClick}><Plus size={16} /> <span>Create</span></button>
-        </div>
-      </div>
-      <table className="orders-data-table">
-        <thead>
-          <tr>
-            <th style={{ width: 40 }}><input type="checkbox" disabled /></th>
-            <th>Name <ChevronDown size={14} /></th>
-            <th>Email</th>
-            <th>Role</th>
-            <th>Phone</th>
-            <th>Created</th>
-            <th className="action-col">action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {employees.length > 0 ? employees.map((emp) => (
-            <tr key={emp.id}>
-              <td><input type="checkbox" disabled /></td>
-              <td><strong>{emp.name || '-'}</strong></td>
-              <td>{emp.email || '-'}</td>
-              <td><div className="status-badge" style={{ backgroundColor: '#e0e7ff', color: '#4f46e5' }}>{emp.role || 'Agent'}</div></td>
-              <td>{emp.phone_number || 'N/A'}</td>
-              <td>{new Date(emp.created_at).toLocaleDateString()}</td>
-              <td className="action-col"><div className="action-btns"><button onClick={() => handleEditClick(emp)} title="Edit"><Edit size={16} /></button><button onClick={() => handleFormDelete(emp.id)} title="Delete"><Trash2 size={16} /></button><button title="More"><MoreVertical size={16} /></button></div></td>
-            </tr>
-          )) : (
-            <tr><td colSpan={7} style={{ textAlign: 'center', padding: '20px' }}>No employees found</td></tr>
-          )}
-        </tbody>
-      </table>
+        }
+      />
 
       <FormModal
         isOpen={showForm}
@@ -128,7 +190,7 @@ const EmployeeTable = () => {
         fields={employeeFormFields}
         initialData={selectedEmployee || {}}
       />
-    </div>
+    </>
   );
 };
 

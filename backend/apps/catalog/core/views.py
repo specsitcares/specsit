@@ -91,12 +91,19 @@ def logout_view(request):
 
 # --- Metadata & System Config ViewSets ---
 
-class MetadataGroupViewSet(viewsets.ReadOnlyModelViewSet):
+class MetadataGroupViewSet(viewsets.ModelViewSet):
     queryset = MetadataGroup.objects.all()
     serializer_class = MetadataGroupSerializer
     permission_classes = [AllowAny]
 
-class MetadataItemViewSet(viewsets.ReadOnlyModelViewSet):
+    def get_queryset(self):
+        queryset = MetadataGroup.objects.all()
+        name = self.request.query_params.get('name')
+        if name:
+            queryset = queryset.filter(name__iexact=name)
+        return queryset
+
+class MetadataItemViewSet(viewsets.ModelViewSet):
     queryset = MetadataItem.objects.all().order_by('id')
     serializer_class = MetadataItemSerializer
     permission_classes = [AllowAny]

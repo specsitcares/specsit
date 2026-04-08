@@ -20,6 +20,9 @@ const ProductListingPage = () => {
     const [maxPrice, setMaxPrice] = useState(1000);
     const [sortBy, setSortBy] = useState('newest');
     const [brands, setBrands] = useState([]);
+    const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
 
     const categoryParam = searchParams.get('category');
     const collectionParam = searchParams.get('collection');
@@ -37,37 +40,42 @@ const ProductListingPage = () => {
 
     // Load products based on filters
     useEffect(() => {
+        const fetchData = () => {
+            const params = new URLSearchParams();
+            if (selectedCategory) params.append('category', selectedCategory);
+            if (selectedBrand) params.append('brand', selectedBrand);
+            if (searchQuery) params.append('search', searchQuery);
+            if (maxPrice < 1000) params.append('max_price', maxPrice);
+            params.append('page', currentPage);
+            params.append('page_size', 12);
+
+            apiClient.get(`/catalog/products/?${params.toString()}`)
+                .then(res => {
+                    const data = res.data.results || res.data;
+                    const count = res.data.count || data.length;
+                    setTotalPages(Math.ceil(count / 12));
+
+                    let sortedData = [...data];
+                    if (sortBy !== 'newest') {
+                        applySorting(sortedData);
+                    } else {
+                        setProducts(sortedData);
+                    }
+                    setLoading(false);
+                })
+                .catch(err => {
+                    if (!products.length) setError(err.message || 'Failed to load products');
+                    setLoading(false);
+                });
+        };
+
         setLoading(true);
         setError(null);
-
-        const params = new URLSearchParams();
-        if (selectedCategory) params.append('category', selectedCategory);
-        if (maxPrice < 1000) params.append('max_price', maxPrice);
-
-        apiClient.get(`/catalog/products/?${params.toString()}`)
-            .then(res => {
-                let data = res.data.results || res.data;
-
-                // Apply additional client-side filters
-                if (selectedBrand) {
-                    data = data.filter(p => p.brand?.id === parseInt(selectedBrand));
-                }
-
-                // Apply collection filter
-                if (collectionParam) {
-                    apiClient.get(`/catalog/collections/${collectionParam}/`).then(colRes => {
-                        data = data.filter(p => (colRes.data.products || []).includes(p.id));
-                        applySorting(data);
-                    });
-                } else {
-                    applySorting(data);
-                }
-            })
-            .catch(err => {
-                setError(err.message);
-                setLoading(false);
-            });
-    }, [selectedCategory, selectedBrand, maxPrice, collectionParam, sortBy]);
+        fetchData();
+        
+        const interval = setInterval(fetchData, 5000); // 5s Customer Polling
+        return () => clearInterval(interval);
+    }, [selectedCategory, selectedBrand, searchQuery, maxPrice, currentPage, sortBy]);
 
     const applySorting = (data) => {
         let sortedData = [...data];
@@ -166,18 +174,29 @@ const ProductListingPage = () => {
             <main className="product-main">
                 <div className="product-header">
                     <h1>Products</h1>
-                    <div className="product-sort">
-                        <label htmlFor="sort">Sort by:</label>
-                        <select 
-                            id="sort"
-                            value={sortBy}
-                            onChange={(e) => setSortBy(e.target.value)}
-                        >
-                            <option value="newest">Newest</option>
-                            <option value="price-low">Price: Low to High</option>
-                            <option value="price-high">Price: High to Low</option>
-                            <option value="name">Name: A-Z</option>
-                        </select>
+                    <div className="search-and-sort">
+                        <div className="search-bar">
+                            <input
+                                type="text"
+                                placeholder="Search products..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="search-input"
+                            />
+                        </div>
+                        <div className="product-sort">
+                            <label htmlFor="sort">Sort by:</label>
+                            <select
+                                id="sort"
+                                value={sortBy}
+                                onChange={(e) => setSortBy(e.target.value)}
+                            >
+                                <option value="newest">Newest</option>
+                                <option value="price-low">Price: Low to High</option>
+                                <option value="price-high">Price: High to Low</option>
+                                <option value="name">Name: A-Z</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
@@ -194,7 +213,8 @@ const ProductListingPage = () => {
                         </button>
                     </div>
                 ) : (
-                    <div className="product-grid">
+                    <>
+                        <div className="product-grid">
                         {products.map((p) => (
                             <div key={p.id} className="product-card">
                                 <div className="product-image">
@@ -216,6 +236,38 @@ const ProductListingPage = () => {
                             </div>
                         ))}
                     </div>
+
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                        <div className="pagination">
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                disabled={currentPage === 1}
+                                className="pagination-btn"
+                            >
+                                Previous
+                            </button>
+
+                            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                                <button
+                                    key={page}
+                                    onClick={() => setCurrentPage(page)}
+                                    className={`pagination-btn ${page === currentPage ? 'active' : ''}`}
+                                >
+                                    {page}
+                                </button>
+                            ))}
+
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                disabled={currentPage === totalPages}
+                                className="pagination-btn"
+                            >
+                                Next
+                            </button>
+                        </div>
+                    )}
+                    </>
                 )}
             </main>
         </div>

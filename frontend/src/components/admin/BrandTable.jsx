@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Plus, Edit, Trash2, Tag, MoreHorizontal, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Filter, Plus, Edit, Trash2, Tag, MoreVertical, ChevronLeft, ChevronRight, Edit2 } from 'lucide-react';
 import apiClient from '../../services/api';
 import FormModal from './FormModal';
+import BaseAdminTable from './BaseAdminTable';
 
 const BrandTable = () => {
   const [brands, setBrands] = useState([]);
@@ -11,7 +12,8 @@ const BrandTable = () => {
   const [formMode, setFormMode] = useState('create');
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
-  const PER_PAGE = 10;
+  const [perPage, setPerPage] = useState(10);
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => { fetchBrands(); }, []);
 
@@ -35,96 +37,130 @@ const BrandTable = () => {
         data.append(k, formData[k]);
       }
     });
-    if (formMode === 'create') await apiClient.post('/catalog/brands/', data);
-    else await apiClient.patch(`/catalog/brands/${selectedBrand.id}/`, data);
-    fetchBrands();
+    try {
+      if (formMode === 'create') await apiClient.post('/catalog/brands/', data);
+      else await apiClient.patch(`/catalog/brands/${selectedBrand.id}/`, data);
+      setShowForm(false);
+      fetchBrands();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleFormDelete = async (id) => {
-    await apiClient.delete(`/catalog/brands/${id}/`);
-    fetchBrands();
+    try {
+      await apiClient.delete(`/catalog/brands/${id}/`);
+      setShowForm(false);
+      fetchBrands();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const filtered = brands.filter(b =>
     [b.name, b.slug, b.description].some(v => v?.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const totalPages = Math.ceil(filtered.length / PER_PAGE);
-  const paginated  = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const paginated = filtered.slice((page - 1) * perPage, page * perPage);
 
-  if (loading) return <div className="db-loading-state">Loading brands…</div>;
+  const columns = [
+    { label: 'Brand', key: 'brand', sortable: true },
+    { label: 'Slug', key: 'slug', sortable: true },
+    { label: 'Description', key: 'description' },
+    { label: 'Status', key: 'status', sortable: true },
+    { label: 'Action', key: 'action', align: 'right' }
+  ];
+
+  const renderRow = (b, idx) => (
+    <tr key={b.id || idx} style={{ borderBottom: '1px solid #EAECF0', backgroundColor: '#fff' }}>
+      <td style={{ padding: '16px 24px' }}>
+        <input type="checkbox" style={{ cursor: 'pointer', borderRadius: '4px', accentColor: '#7F56D9' }} />
+      </td>
+      <td style={{ padding: '16px 24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 42, height: 42, borderRadius: 8, background: '#fff', border: '1px solid #EAECF0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', padding: 4 }}>
+            {b.logo ? <img src={b.logo} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <Tag size={20} color="#D0D5DD" />}
+          </div>
+          <div>
+            <div style={{ fontWeight: 600, color: '#101828', fontSize: '14px' }}>{b.name}</div>
+            <div style={{ fontSize: '12px', color: '#667085' }}>#ID: {b.id}</div>
+          </div>
+        </div>
+      </td>
+      <td style={{ padding: '16px 24px' }}>
+        <span style={{ fontFamily: 'monospace', fontSize: '12px', color: '#475467' }}>{b.slug}</span>
+      </td>
+      <td style={{ padding: '16px 24px', maxWidth: 220 }}>
+        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '14px', color: '#667085' }}>
+          {b.description || '—'}
+        </div>
+      </td>
+      <td style={{ padding: '16px 24px' }}>
+        <span style={{
+          backgroundColor: b.is_active ? '#ECFDF3' : '#F2F4F7',
+          color: b.is_active ? '#027A48' : '#344054',
+          padding: '4px 10px',
+          borderRadius: '16px',
+          fontSize: '12px',
+          fontWeight: 600,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          border: `1px solid ${b.is_active ? '#ABEFC6' : '#D0D5DD'}`
+        }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: b.is_active ? '#12B76A' : '#667085' }}></span>
+          {b.is_active ? 'Active' : 'Inactive'}
+        </span>
+      </td>
+      <td style={{ padding: '16px 24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+          <div
+            onClick={() => handleEditClick(b)}
+            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+            title="Edit Brand"
+          >
+            <Edit2 size={16} />
+          </div>
+          <div
+            onClick={() => handleEditClick(b)}
+            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+            title="Delete Brand"
+          >
+            <Trash2 size={16} />
+          </div>
+        </div>
+      </td>
+    </tr>
+  );
 
   return (
-    <div className="admin-table-wrapper">
-      <div className="table-toolbar">
-        <div>
-          <div className="table-title">Brand Management</div>
-          <div className="table-subtitle">{filtered.length} brands in catalog</div>
-        </div>
-        <div className="table-actions">
-          <div className="table-search-box">
-            <Search size={14} />
-            <input type="text" placeholder="Search brands…" value={searchQuery}
-              onChange={e => { setSearchQuery(e.target.value); setPage(1); }} />
+    <>
+      <BaseAdminTable
+        title="Brand Management"
+        count={filtered.length}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        onAdd={handleCreateClick}
+        addLabel="Add Brand"
+        columns={columns}
+        data={paginated}
+        loading={loading}
+        renderRow={renderRow}
+        pagination={{
+          page,
+          perPage,
+          totalCount: filtered.length,
+          onPageChange: setPage,
+          onPerPageChange: setPerPage
+        }}
+        showFilters={showFilters}
+        setShowFilters={setShowFilters}
+        filterContent={
+          <div style={{ display: 'flex', gap: '16px' }}>
+             <div style={{ fontSize: '14px', color: '#667085' }}>No active filters available for brands.</div>
           </div>
-          <button className="btn btn-primary" onClick={handleCreateClick}><Plus size={14} /> Add Brand</button>
-        </div>
-      </div>
-
-      <div style={{ overflowX: 'auto' }}>
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th style={{ width: 40 }}><input type="checkbox" /></th>
-              <th>Brand</th>
-              <th>Slug</th>
-              <th>Description</th>
-              <th>Status</th>
-              <th style={{ textAlign: 'right' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {paginated.map(b => (
-              <tr key={b.id}>
-                <td><input type="checkbox" /></td>
-                <td>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 42, height: 42, borderRadius: 6, background: 'var(--white)', border: '1px solid var(--gray-100)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', padding: 4 }}>
-                      {b.logo ? <img src={b.logo} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <Tag size={16} color="var(--gray-300)" />}
-                    </div>
-                    <div>
-                      <div className="cell-text-primary">{b.name}</div>
-                      <div className="cell-text-secondary">#ID: {b.id}</div>
-                    </div>
-                  </div>
-                </td>
-                <td><span className="cell-text-secondary" style={{ fontFamily: 'monospace', fontSize: '11px' }}>{b.slug}</span></td>
-                <td style={{ maxWidth: 220 }}><div className="cell-text-secondary" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.description || '—'}</div></td>
-                <td>
-                  <span className={`badge ${b.is_active ? 'badge-success' : 'badge-neutral'}`}>
-                    <span className="badge-dot" />{b.is_active ? 'Active' : 'Inactive'}
-                  </span>
-                </td>
-                <td>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 4 }}>
-                    <button className="row-action-btn edit" onClick={() => handleEditClick(b)}><Edit size={14}/></button>
-                    <button className="row-action-btn delete" onClick={() => handleDeleteClick(b)}><Trash2 size={14}/></button>
-                    <button className="row-action-btn"><MoreHorizontal size={14}/></button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="table-pagination">
-        <div className="pagination-info">Page {page} of {totalPages || 1}</div>
-        <div className="pagination-controls">
-          <button className="page-btn" disabled={page===1} onClick={() => setPage(p=>p-1)}><ChevronLeft size={14}/></button>
-          <button className="page-btn" disabled={page>=totalPages||totalPages===0} onClick={() => setPage(p=>p+1)}><ChevronRight size={14}/></button>
-        </div>
-      </div>
+        }
+      />
 
       <FormModal isOpen={showForm} onClose={() => setShowForm(false)} onSubmit={handleFormSubmit}
         onDelete={handleFormDelete} mode={formMode} title="Brand" 
@@ -135,7 +171,7 @@ const BrandTable = () => {
           { name: 'is_active', label: 'Active', type: 'checkbox', defaultValue: true }
         ]} 
         initialData={selectedBrand || {}} />
-    </div>
+    </>
   );
 };
 

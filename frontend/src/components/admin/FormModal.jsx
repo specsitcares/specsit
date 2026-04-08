@@ -17,6 +17,7 @@ const FormModal = ({
   fields = [],
   initialData = {},
   loading = false,
+  children,
 }) => {
   const [formData, setFormData] = useState({});
   const [errors, setErrors] = useState({});
@@ -30,10 +31,10 @@ const FormModal = ({
     return () => setMounted(false);
   }, []);
 
-  // Initialize form data
+  // Initialize form data when modal opens
   useEffect(() => {
     if (isOpen) {
-      if (mode === 'edit' && initialData) {
+      if (mode === 'edit' && initialData && Object.keys(initialData).length > 0) {
         setFormData(initialData);
       } else {
         const emptyData = {};
@@ -46,7 +47,8 @@ const FormModal = ({
       setSuccessMessage('');
       setShowDeleteConfirm(false);
     }
-  }, [isOpen, mode, initialData, fields]);
+    // Only re-run when these core state-triggering props change
+  }, [isOpen, mode]); 
 
   const handleInputChange = (e) => {
     const { name, value, type, checked, files } = e.target;
@@ -55,8 +57,6 @@ const FormModal = ({
       setFormData(prev => ({ ...prev, [name]: checked }));
     } else if (type === 'file') {
       setFormData(prev => ({ ...prev, [name]: files[0] }));
-    } else if (type === 'number') {
-      setFormData(prev => ({ ...prev, [name]: parseFloat(value) || 0 }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
@@ -240,6 +240,7 @@ const FormModal = ({
                   );
                 })}
               </div>
+              {children}
             </div>
 
             <div className="form-modal-footer">
