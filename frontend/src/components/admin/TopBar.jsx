@@ -23,9 +23,9 @@ const TopBar = ({
 
       {/* BRANDING and NAV TABS */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-        <button 
-          className="mobile-sidebar-trigger" 
-          onClick={toggleSidebar} 
+        <button
+          className="mobile-sidebar-trigger"
+          onClick={toggleSidebar}
           style={{ display: 'none', background: 'transparent', border: 'none', color: '#FEFCFF', cursor: 'pointer', outline: 'none' }}
         >
           <Menu size={24} />

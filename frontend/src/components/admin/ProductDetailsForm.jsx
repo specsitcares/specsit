@@ -165,16 +165,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
   };
 
   const validateStep1 = () => {
-    const newErrors = {};
-    if (!formData.title?.trim()) newErrors.title = 'Product title is required';
-    if (!formData.category) newErrors.category = 'Category is required';
-    if (formData.base_price === '' || formData.base_price === null) newErrors.base_price = 'Base price is required';
-    
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return false;
-    }
-    return true;
+    return true; // Disabled for testing
   };
 
   const handleNext = () => {
@@ -414,7 +405,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
                   </div>
 
                   <div className="form-field">
-                    <label className="form-field-label">Product Title <span className="required-star">*</span></label>
+                    <label className="form-field-label">Product Title</label>
                     <input
                       type="text"
                       className={`form-field-input ${errors.title ? 'has-error' : ''}`}
@@ -427,7 +418,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
 
                   <div className="form-field-row">
                     <div className="form-field">
-                      <label className="form-field-label">Category <span className="required-star">*</span></label>
+                      <label className="form-field-label">Category</label>
                       <div className="form-field-select-wrapper">
                         <select 
                           value={formData.category} 
@@ -486,7 +477,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
 
                   <div className="form-field-row">
                     <div className="form-field">
-                      <label className="form-field-label">Base Price <span className="required-star">*</span></label>
+                      <label className="form-field-label">Base Price</label>
                       <div className="form-field-input-wrapper">
                         <span className="input-prefix">₹</span>
                         <input

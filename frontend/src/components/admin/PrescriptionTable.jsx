@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Plus, Edit, Trash2, FileText, MoreHorizontal, ChevronLeft, ChevronRight, Activity } from 'lucide-react';
+import { Search, Filter, Plus, Edit, Trash2, FileText, MoreVertical, ChevronLeft, ChevronRight, Activity, Edit2 } from 'lucide-react';
 import apiClient from '../../services/api';
 import FormModal from './FormModal';
+import BaseAdminTable from './BaseAdminTable';
 
 const PrescriptionTable = () => {
   const [prescriptions, setPrescriptions] = useState([]);
@@ -11,7 +12,8 @@ const PrescriptionTable = () => {
   const [formMode, setFormMode] = useState('create');
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
-  const PER_PAGE = 10;
+  const [perPage, setPerPage] = useState(10);
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => { fetchPrescriptions(); }, []);
 
@@ -24,104 +26,134 @@ const PrescriptionTable = () => {
 
   const handleCreateClick = () => { setFormMode('create'); setSelectedRx(null); setShowForm(true); };
   const handleEditClick   = (rx) => { setFormMode('edit');   setSelectedRx(rx);    setShowForm(true); };
-  const handleDeleteClick = (rx) => { setFormMode('edit');   setSelectedRx(rx);    setShowForm(true); };
 
   const handleFormSubmit = async (formData) => {
-    if (formMode === 'create') await apiClient.post('/catalog/prescriptions/', formData);
-    else await apiClient.patch(`/catalog/prescriptions/${selectedRx.id}/`, formData);
-    fetchPrescriptions();
+    try {
+      if (formMode === 'create') await apiClient.post('/catalog/prescriptions/', formData);
+      else await apiClient.patch(`/catalog/prescriptions/${selectedRx.id}/`, formData);
+      setShowForm(false);
+      fetchPrescriptions();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleFormDelete = async (id) => {
-    await apiClient.delete(`/catalog/prescriptions/${id}/`);
-    fetchPrescriptions();
+    try {
+      await apiClient.delete(`/catalog/prescriptions/${id}/`);
+      setShowForm(false);
+      fetchPrescriptions();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const filtered = prescriptions.filter(rx =>
     [rx.user_name, rx.vision_type, String(rx.id)].some(v => v?.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const totalPages = Math.ceil(filtered.length / PER_PAGE);
-  const paginated  = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const paginated = filtered.slice((page - 1) * perPage, page * perPage);
 
-  if (loading) return <div className="db-loading-state">Loading prescriptions…</div>;
+  const columns = [
+    { label: 'Customer', key: 'customer', sortable: true },
+    { label: 'Vision Type', key: 'vision', sortable: true },
+    { label: 'PD Distance', key: 'pd', sortable: true },
+    { label: 'Status', key: 'status', sortable: true },
+    { label: 'Created', key: 'created', sortable: true },
+    { label: 'Action', key: 'action', align: 'right' }
+  ];
+
+  const renderRow = (rx, idx) => (
+    <tr key={rx.id || idx} style={{ borderBottom: '1px solid #EAECF0', backgroundColor: '#fff' }}>
+      <td style={{ padding: '16px 24px' }}>
+        <input type="checkbox" style={{ cursor: 'pointer', borderRadius: '4px', accentColor: '#7F56D9' }} />
+      </td>
+      <td style={{ padding: '16px 24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#F4EBFF', color: '#7F56D9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <FileText size={18} />
+          </div>
+          <div style={{ fontWeight: 600, color: '#101828', fontSize: '14px' }}>{rx.user_name || 'Anonymous'}</div>
+        </div>
+      </td>
+      <td style={{ padding: '16px 24px' }}>
+        <span style={{ fontSize: '14px', color: '#475467' }}>{rx.vision_type || '—'}</span>
+      </td>
+      <td style={{ padding: '16px 24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Activity size={14} color="#667085" />
+          <span style={{ fontSize: '14px', fontWeight: 600, color: '#344054' }}>{rx.pd_distance ? `${rx.pd_distance}mm` : '—'}</span>
+        </div>
+      </td>
+      <td style={{ padding: '16px 24px' }}>
+        <span style={{
+          backgroundColor: (rx.status_label || 'pending').toLowerCase() === 'approved' ? '#ECFDF3' : '#FFFAEB',
+          color: (rx.status_label || 'pending').toLowerCase() === 'approved' ? '#027A48' : '#B54708',
+          padding: '4px 10px',
+          borderRadius: '16px',
+          fontSize: '12px',
+          fontWeight: 600,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          border: `1px solid ${(rx.status_label || 'pending').toLowerCase() === 'approved' ? '#ABEFC6' : '#FEDF89'}`
+        }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: (rx.status_label || 'pending').toLowerCase() === 'approved' ? '#12B76A' : '#F79009' }}></span>
+          {rx.status_label || 'Pending'}
+        </span>
+      </td>
+      <td style={{ padding: '16px 24px' }}>
+        <span style={{ fontSize: '13px', color: '#667085' }}>{new Date(rx.created_at).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })}</span>
+      </td>
+      <td style={{ padding: '16px 24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+          <div
+            onClick={() => handleEditClick(rx)}
+            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+            title="Edit Prescription"
+          >
+            <Edit2 size={16} />
+          </div>
+          <div
+            onClick={() => handleEditClick(rx)}
+            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+            title="Delete Prescription"
+          >
+            <Trash2 size={16} />
+          </div>
+        </div>
+      </td>
+    </tr>
+  );
 
   return (
-    <div className="admin-table-wrapper">
-      <div className="table-toolbar">
-        <div>
-          <div className="table-title">Optical Prescriptions</div>
-          <div className="table-subtitle">{filtered.length} active prescriptions</div>
-        </div>
-        <div className="table-actions">
-          <div className="table-search-box">
-            <Search size={14} />
-            <input type="text" placeholder="Search customer or type…" value={searchQuery}
-              onChange={e => { setSearchQuery(e.target.value); setPage(1); }} />
+    <>
+      <BaseAdminTable
+        title="Optical Prescriptions"
+        count={filtered.length}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        onAdd={handleCreateClick}
+        addLabel="Add Prescription"
+        columns={columns}
+        data={paginated}
+        loading={loading}
+        renderRow={renderRow}
+        pagination={{
+          page,
+          perPage,
+          totalCount: filtered.length,
+          onPageChange: setPage,
+          onPerPageChange: setPerPage
+        }}
+        showFilters={showFilters}
+        setShowFilters={setShowFilters}
+        filterContent={
+          <div style={{ display: 'flex', gap: '16px' }}>
+             <div style={{ fontSize: '14px', color: '#667085' }}>Prescription filters coming soon.</div>
           </div>
-          <button className="btn btn-outline"><Filter size={14} /> Filter</button>
-          <button className="btn btn-primary" onClick={handleCreateClick}><Plus size={14} /> Add Prescription</button>
-        </div>
-      </div>
-
-      <div style={{ overflowX: 'auto' }}>
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th style={{ width: 40 }}><input type="checkbox" /></th>
-              <th>Customer</th>
-              <th>Vision Type</th>
-              <th>PD Distance</th>
-              <th>Status</th>
-              <th>Created</th>
-              <th style={{ textAlign: 'right' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {paginated.map(rx => (
-              <tr key={rx.id}>
-                <td><input type="checkbox" /></td>
-                <td>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--brand-50)', color: 'var(--brand-700)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <FileText size={16} />
-                    </div>
-                    <div className="cell-text-primary">{rx.user_name || 'Anonymous'}</div>
-                  </div>
-                </td>
-                <td><span className="cell-text-secondary">{rx.vision_type || '—'}</span></td>
-                <td>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Activity size={12} color="var(--gray-400)" />
-                    <span className="cell-text-primary" style={{ fontSize: '13px' }}>{rx.pd_distance ? `${rx.pd_distance}mm` : '—'}</span>
-                  </div>
-                </td>
-                <td>
-                  <span className={`badge ${(rx.status_label || 'pending').toLowerCase() === 'approved' ? 'badge-success' : 'badge-warning'}`}>
-                    <span className="badge-dot" />{rx.status_label || 'Pending'}
-                  </span>
-                </td>
-                <td><span className="cell-text-secondary">{new Date(rx.created_at).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })}</span></td>
-                <td>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 4 }}>
-                    <button className="row-action-btn edit" onClick={() => handleEditClick(rx)}><Edit size={14}/></button>
-                    <button className="row-action-btn delete" onClick={() => handleDeleteClick(rx)}><Trash2 size={14}/></button>
-                    <button className="row-action-btn"><MoreHorizontal size={14}/></button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="table-pagination">
-        <div className="pagination-info">Showing {paginated.length} of {filtered.length}</div>
-        <div className="pagination-controls">
-          <button className="page-btn" disabled={page===1} onClick={() => setPage(p=>p-1)}><ChevronLeft size={14}/></button>
-          <button className="page-btn" disabled={page>=totalPages||totalPages===0} onClick={() => setPage(p=>p+1)}><ChevronRight size={14}/></button>
-        </div>
-      </div>
+        }
+      />
 
       <FormModal isOpen={showForm} onClose={() => setShowForm(false)} onSubmit={handleFormSubmit}
         onDelete={handleFormDelete} mode={formMode} title="Prescription"
@@ -137,7 +169,7 @@ const PrescriptionTable = () => {
           { name: 'os_cylinder', label: 'OS Cylinder', type: 'number', step: 0.25 }
         ]}
         initialData={selectedRx || {}} />
-    </div>
+    </>
   );
 };
 

@@ -10,7 +10,7 @@
   --gray-25:  #FCFCFD;
   --gray-50:  #F9FAFB;
   --gray-100: #F2F4F7;
-  --gray-200: #E9EAEB;
+  --gray-200: #E0E0E0;
   --gray-300: #D5D7DA;
   --gray-400: #A4A7AE;
   --gray-500: #717680;
@@ -237,12 +237,17 @@ body {
 
 .admin-main-container {
   flex: 1;
-  background: white;
+  background: var(--gray-50);
   overflow-y: auto;
   overflow-x: hidden;
   max-width: 100vw;
-  /* Figma outer frame has no horizontal padding — reduced to 24px to maximize form width */
-  padding: 24px;
+  /* Standard Page Padding for Admin */
+  padding: 32px;
+}
+
+/* Specific Override for Order Detail to ensure 40px padding as requested */
+.admin-main-container:has(.order-detail-container) {
+  padding: 40px;
 }
 
 /* ── DASHBOARD Polish ────────────────────────────────────────── */

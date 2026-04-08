@@ -1,0 +1,619 @@
+.order-detail-container {
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  min-height: calc(100vh - 64px);
+  background: #F9FAFB; /* Full-page gray background */
+  font-family: 'Inter', sans-serif;
+  color: #040205;
+}
+
+.order-detail-inner {
+  width: 100%;
+  padding: 0;
+}
+
+/* Breadcrumb */
+.breadcrumb-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.breadcrumb-item {
+  font-size: 14px;
+  font-weight: 500;
+  color: #7047EB;
+  cursor: pointer;
+}
+
+.breadcrumb-item.active {
+  color: #667085;
+  cursor: default;
+}
+
+/* Header */
+.order-detail-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+}
+
+.order-id-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #040205;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+}
+
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 600;
+  background: #F2F4F7;
+  color: #475467;
+}
+
+.status-badge.preparing,
+.status-badge.preparing-glasses {
+  background: #FEF6EE;
+  color: #B93815;
+}
+
+.status-badge.quality-check {
+  background: #EFF8FF;
+  color: #175CD3;
+  border: 1px solid #B2DDFF;
+}
+
+.status-badge.shipped,
+.status-badge.delivered {
+  background: #ECFDF3;
+  color: #027A48;
+  border: 1px solid #ABEFC6;
+}
+
+.status-badge.received,
+.status-badge.order-received {
+  background: #F9F5FF;
+  color: #6941C6;
+  border: 1px solid #E9D7FE;
+}
+
+/* Main Grid: 640px / 360px (Plus 24px gap) = 1024px */
+.order-detail-grid {
+  display: grid;
+  grid-template-columns: 1.8fr 1fr; /* Fluid scaling */
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+/* Cards */
+.order-lifecycle-card,
+.order-summary-card,
+.customer-info-card,
+.product-spec-card {
+  background: #FFFFFF;
+  border: 1px solid #E0E0E0;
+  border-radius: 20px;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+  overflow: hidden;
+}
+
+.card-header {
+  padding: 18px 24px;
+  border-bottom: 1px solid #EAECF0;
+  background: #F9FAFB;
+}
+
+.card-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+  color: #040205; /* Figma Black */
+}
+
+.card-content {
+  padding: 20px;
+}
+
+/* Stepper */
+.stepper-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.step-item {
+  display: flex;
+  gap: 12px;
+  position: relative;
+}
+
+.step-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 24px;
+  position: relative;
+}
+
+.step-indicator {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #FFF;
+  border: 2px solid #EAECF0;
+  z-index: 2;
+  transition: all 0.2s ease;
+}
+
+.step-indicator.completed {
+  background: #12B76A;
+  border-color: #12B76A;
+  color: white;
+}
+
+.step-indicator.accepted {
+  border-color: #12B76A;
+}
+
+.accepted-dot {
+  width: 12px;
+  height: 12px;
+  background: #12B76A;
+  border-radius: 50%;
+}
+
+.step-line {
+  position: absolute;
+  left: 11px;
+  top: 24px;
+  bottom: 0;
+  width: 2px;
+  background: #EAECF0;
+  z-index: 1;
+}
+
+.step-item.completed .step-line,
+.step-item.accepted .step-line {
+  background: #12B76A;
+}
+
+.step-item:last-child .step-line {
+  display: none;
+}
+
+.step-content {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 24px;
+}
+
+.step-item:last-child .step-content {
+  padding-bottom: 0;
+}
+
+.step-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.step-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline; /* Perfectly align text bottom */
+  width: 100%;
+  margin-bottom: 2px;
+}
+
+.step-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #101828;
+  line-height: 1.2;
+}
+
+.step-time {
+  font-size: 12px;
+  color: #667085;
+  font-weight: 500;
+}
+
+.step-description {
+  font-size: 13px;
+  color: #667085;
+  line-height: 1.4;
+  margin-top: 0;
+}
+
+.step-indicator.current {
+  border-color: #7F56D9;
+  background: white;
+  border-width: 2px;
+}
+
+.step-indicator.current::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  background: #7F56D9;
+  border-radius: 50%;
+}
+
+.step-item.current .step-title {
+  color: #7F56D9;
+}
+
+.prepared-action-btn {
+  margin-top: 16px;
+  padding: 8px 16px;
+  background: #7F56D9;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  width: fit-content;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+}
+
+/* Dropzone */
+.dropzone-container {
+  margin-top: 16px;
+  padding: 24px;
+  border: 1px dashed #D0D5DD;
+  border-radius: 8px;
+  text-align: center;
+  background: #FFFFFF;
+}
+
+.dropzone-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #101828;
+  margin-bottom: 4px;
+}
+
+.dropzone-subtitle {
+  font-size: 12px;
+  color: #667085;
+  margin-bottom: 16px;
+}
+
+.browse-btn {
+  padding: 6px 14px;
+  border: 1px solid #D0D5DD;
+  background: white;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #344054;
+  cursor: pointer;
+}
+
+.prepared-action-btn:hover {
+  background: #6941C6;
+  transform: translateY(-1px);
+}
+
+/* Right Column */
+.right-column {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Summary Details */
+.product-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.product-summary-left {
+  display: flex;
+  gap: 16px;
+}
+
+.product-image-wrap {
+  width: 64px;
+  height: 64px;
+  border: 1px solid #E0E0E0;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.product-image-wrap img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.product-summary-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.product-name-bold {
+  font-size: 15px;
+  font-weight: 700;
+  color: #040205;
+}
+
+.product-options {
+  font-size: 13px;
+  color: #475467;
+}
+
+.product-price-bold {
+  font-size: 15px;
+  font-weight: 700;
+  color: #040205;
+}
+
+.status-pill {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  background: #FEF6EE;
+  color: #B93815;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.cost-breakdown {
+  border-top: 1px solid #E0E0E0;
+  padding-top: 24px;
+  margin-top: 24px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.summary-label {
+  font-size: 14px;
+  color: #64748B; /* Figma Slate */
+}
+
+.summary-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #040205; /* Figma Black */
+}
+
+.summary-total {
+  border-top: 1px dashed #E0E0E0;
+  padding-top: 20px;
+  margin-top: 12px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 18px;
+  font-weight: 700;
+  color: #040205; /* Figma Black */
+}
+
+.prescription-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid #EAECF0;
+  border-radius: 8px;
+  margin-top: 24px;
+  background: #F9FAFB;
+}
+
+.file-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pdf-icon-box {
+  background: #FEF3F2;
+  padding: 8px;
+  border-radius: 6px;
+  color: #D92D20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.file-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #101828;
+}
+
+.file-meta {
+  font-size: 12px;
+  color: #667085;
+}
+
+.view-link {
+  font-size: 14px;
+  font-weight: 700;
+  color: #7F56D9;
+  text-decoration: none;
+  cursor: pointer;
+  background: #F4EBFF;
+  padding: 4px 12px;
+  border-radius: 6px;
+}
+
+.view-link:hover {
+  background: #E9D7FE;
+}
+
+/* Customer Card */
+.customer-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.customer-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #4E342E;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.customer-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #040205;
+}
+
+.customer-id {
+  font-size: 13px;
+  color: #667085;
+}
+
+.contact-section {
+  margin-bottom: 24px;
+}
+
+.contact-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #040205;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  display: block;
+  letter-spacing: 0.05em;
+}
+
+.contact-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: #344054;
+  margin-bottom: 8px;
+}
+
+.address-block {
+  padding: 16px;
+  background: #F9F5FF;
+  border-radius: 8px;
+  border: 1px solid #E9D7FE;
+  font-size: 13px;
+  color: #6941C6;
+  line-height: 1.6;
+}
+
+/* Product Specifications — High Fidelity Vertical Stack */
+.spec-vertical-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.spec-info-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.spec-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #040205; /* Figma Slate */
+}
+
+.spec-value-main {
+  font-size: 16px;
+  font-weight: 700;
+  color: #040205; /* True Black */
+}
+
+.spec-subtext {
+  font-size: 14px;
+  color: #667085;
+}
+
+.spec-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.verified-badge {
+  padding: 4px 10px;
+  background: #D1FAE5; /* Mint BG */
+  color: #065F46; /* Emerald Text */
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.prescription-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.prescription-table thead {
+  background: #F3EAFE; /* Figma Lavender */
+}
+
+.prescription-table th {
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  color: #040205; /* Figma Slate */
+  text-transform: uppercase;
+}
+
+.prescription-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #E0E0E0;
+  font-size: 14px;
+  color: #040205;
+}
+
+.prescription-type {
+  font-weight: 700;
+  color: #040205;
+}
+
+.pd-row td {
+  border-bottom: none;
+  font-size: 13px;
+  color: #040205;
+  padding-top: 8px;
+}
+
+@media (max-width: 1024px) {
+  .order-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}

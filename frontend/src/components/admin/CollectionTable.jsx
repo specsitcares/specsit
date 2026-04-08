@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Plus, Edit, Trash2, Layers, MoreHorizontal, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Filter, Plus, Edit, Trash2, Layers, MoreVertical, ChevronLeft, ChevronRight, Edit2 } from 'lucide-react';
 import apiClient from '../../services/api';
 import FormModal from './FormModal';
+import BaseAdminTable from './BaseAdminTable';
 
 const CollectionTable = () => {
   const [collections, setCollections] = useState([]);
@@ -11,7 +12,8 @@ const CollectionTable = () => {
   const [formMode, setFormMode] = useState('create');
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
-  const PER_PAGE = 10;
+  const [perPage, setPerPage] = useState(10);
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => { fetchCollections(); }, []);
 
@@ -25,7 +27,6 @@ const CollectionTable = () => {
 
   const handleCreateClick = () => { setFormMode('create'); setSelectedCollection(null); setShowForm(true); };
   const handleEditClick   = (c) => { setFormMode('edit');   setSelectedCollection(c);    setShowForm(true); };
-  const handleDeleteClick = (c) => { setFormMode('edit');   setSelectedCollection(c);    setShowForm(true); };
 
   const handleFormSubmit = async (formData) => {
     const data = new FormData();
@@ -35,101 +36,139 @@ const CollectionTable = () => {
         data.append(k, formData[k]);
       }
     });
-    if (formMode === 'create') await apiClient.post('/catalog/collections/', data);
-    else await apiClient.patch(`/catalog/collections/${selectedCollection.id}/`, data);
-    fetchCollections();
+    try {
+      if (formMode === 'create') await apiClient.post('/catalog/collections/', data);
+      else await apiClient.patch(`/catalog/collections/${selectedCollection.id}/`, data);
+      setShowForm(false);
+      fetchCollections();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleFormDelete = async (id) => {
-    await apiClient.delete(`/catalog/collections/${id}/`);
-    fetchCollections();
+    try {
+      await apiClient.delete(`/catalog/collections/${id}/`);
+      setShowForm(false);
+      fetchCollections();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const filtered = collections.filter(c =>
     [c.name, c.description].some(v => v?.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const totalPages = Math.ceil(filtered.length / PER_PAGE);
-  const paginated  = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const paginated = filtered.slice((page - 1) * perPage, page * perPage);
 
-  if (loading) return <div className="db-loading-state">Loading collections…</div>;
+  const columns = [
+    { label: 'Collection', key: 'collection', sortable: true },
+    { label: 'Description', key: 'description' },
+    { label: 'Products', key: 'products', sortable: true },
+    { label: 'Status', key: 'status', sortable: true },
+    { label: 'Action', key: 'action', align: 'right' }
+  ];
+
+  const renderRow = (c, idx) => (
+    <tr key={c.id || idx} style={{ borderBottom: '1px solid #EAECF0', backgroundColor: '#fff' }}>
+      <td style={{ padding: '16px 24px' }}>
+        <input type="checkbox" style={{ cursor: 'pointer', borderRadius: '4px', accentColor: '#7F56D9' }} />
+      </td>
+      <td style={{ padding: '16px 24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 48, height: 32, borderRadius: 6, background: '#F4EBFF', color: '#7F56D9', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+            {c.image ? <img src={c.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Layers size={18} />}
+          </div>
+          <div>
+            <div style={{ fontWeight: 600, color: '#101828', fontSize: '14px' }}>{c.name}</div>
+            <div style={{ fontSize: '12px', color: '#667085' }}>ID: {c.id}</div>
+          </div>
+        </div>
+      </td>
+      <td style={{ padding: '16px 24px', maxWidth: 280 }}>
+        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '14px', color: '#667085' }}>
+          {c.description || '—'}
+        </div>
+      </td>
+      <td style={{ padding: '16px 24px' }}>
+        <span style={{
+          backgroundColor: '#F9F5FF',
+          color: '#6941C6',
+          padding: '4px 10px',
+          borderRadius: '16px',
+          fontSize: '12px',
+          fontWeight: 700,
+          border: '1px solid #E9D7FE'
+        }}>
+          {c.products?.length || 0} items
+        </span>
+      </td>
+      <td style={{ padding: '16px 24px' }}>
+        <span style={{
+          backgroundColor: c.is_active ? '#ECFDF3' : '#F2F4F7',
+          color: c.is_active ? '#027A48' : '#344054',
+          padding: '4px 10px',
+          borderRadius: '16px',
+          fontSize: '12px',
+          fontWeight: 600,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          border: `1px solid ${c.is_active ? '#ABEFC6' : '#D0D5DD'}`
+        }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: c.is_active ? '#12B76A' : '#667085' }}></span>
+          {c.is_active ? 'Active' : 'Inactive'}
+        </span>
+      </td>
+      <td style={{ padding: '16px 24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+          <div
+            onClick={() => handleEditClick(c)}
+            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+            title="Edit Collection"
+          >
+            <Edit2 size={16} />
+          </div>
+          <div
+            onClick={() => handleCreateClick()} // Using create click logic as delete placeholder if needed, or implement delete
+            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+          >
+            <MoreVertical size={16} />
+          </div>
+        </div>
+      </td>
+    </tr>
+  );
 
   return (
-    <div className="admin-table-wrapper">
-      <div className="table-toolbar">
-        <div>
-          <div className="table-title">Product Collections</div>
-          <div className="table-subtitle">{filtered.length} curated collections</div>
-        </div>
-        <div className="table-actions">
-          <div className="table-search-box">
-            <Search size={14} />
-            <input type="text" placeholder="Search collections…" value={searchQuery}
-              onChange={e => { setSearchQuery(e.target.value); setPage(1); }} />
+    <>
+      <BaseAdminTable
+        title="Product Collections"
+        count={filtered.length}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        onAdd={handleCreateClick}
+        addLabel="Add Collection"
+        columns={columns}
+        data={paginated}
+        loading={loading}
+        renderRow={renderRow}
+        pagination={{
+          page,
+          perPage,
+          totalCount: filtered.length,
+          onPageChange: setPage,
+          onPerPageChange: setPerPage
+        }}
+        showFilters={showFilters}
+        setShowFilters={setShowFilters}
+        filterContent={
+          <div style={{ display: 'flex', gap: '16px' }}>
+             <div style={{ fontSize: '14px', color: '#667085' }}>Collection filters coming soon.</div>
           </div>
-          <button className="btn btn-primary" onClick={handleCreateClick}><Plus size={14} /> Add Collection</button>
-        </div>
-      </div>
-
-      <div style={{ overflowX: 'auto' }}>
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th style={{ width: 40 }}><input type="checkbox" /></th>
-              <th>Collection</th>
-              <th>Description</th>
-              <th>Products</th>
-              <th>Status</th>
-              <th style={{ textAlign: 'right' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {paginated.map(c => (
-              <tr key={c.id}>
-                <td><input type="checkbox" /></td>
-                <td>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 48, height: 32, borderRadius: 4, background: 'var(--brand-50)', color: 'var(--brand-700)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                      {c.image ? <img src={c.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Layers size={16} />}
-                    </div>
-                    <div>
-                      <div className="cell-text-primary">{c.name}</div>
-                      <div className="cell-text-secondary">ID: {c.id}</div>
-                    </div>
-                  </div>
-                </td>
-                <td style={{ maxWidth: 280 }}><div className="cell-text-secondary" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.description || '—'}</div></td>
-                <td>
-                  <span className="badge badge-brand" style={{ background: 'var(--brand-100)', color: 'var(--brand-800)', border: 'none' }}>
-                    {c.products?.length || 0} items
-                  </span>
-                </td>
-                <td>
-                  <span className={`badge ${c.is_active ? 'badge-success' : 'badge-neutral'}`}>
-                    <span className="badge-dot" />{c.is_active ? 'Active' : 'Inactive'}
-                  </span>
-                </td>
-                <td>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 4 }}>
-                    <button className="row-action-btn edit" onClick={() => handleEditClick(c)}><Edit size={14}/></button>
-                    <button className="row-action-btn delete" onClick={() => handleDeleteClick(c)}><Trash2 size={14}/></button>
-                    <button className="row-action-btn"><MoreHorizontal size={14}/></button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="table-pagination">
-        <div className="pagination-info">{filtered.length} total collections</div>
-        <div className="pagination-controls">
-          <button className="page-btn" disabled={page===1} onClick={() => setPage(p=>p-1)}><ChevronLeft size={14}/></button>
-          <button className="page-btn active">{page}</button>
-          <button className="page-btn" disabled={page>=totalPages||totalPages===0} onClick={() => setPage(p=>p+1)}><ChevronRight size={14}/></button>
-        </div>
-      </div>
+        }
+      />
 
       <FormModal isOpen={showForm} onClose={() => setShowForm(false)} onSubmit={handleFormSubmit}
         onDelete={handleFormDelete} mode={formMode} title="Collection" 
@@ -140,7 +179,7 @@ const CollectionTable = () => {
           { name: 'is_active', label: 'Active', type: 'checkbox', defaultValue: true }
         ]} 
         initialData={selectedCollection || {}} />
-    </div>
+    </>
   );
 };
 

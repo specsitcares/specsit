@@ -16,7 +16,9 @@ import CategoryTable from '../components/admin/CategoryTable';
 import BrandTable from '../components/admin/BrandTable';
 import CollectionTable from '../components/admin/CollectionTable';
 import VariantTable from '../components/admin/VariantTable';
+import LensManagement from '../components/admin/LensManagement';
 import { useAuth } from '../context/AuthContext';
+import OrderDetail from '../components/admin/OrderDetail';
 import '../styles/admin.css';
 
 const AdminDashboard = () => {
@@ -27,6 +29,7 @@ const AdminDashboard = () => {
   const [statsData, setStatsData] = useState(null);
   const [recentOrders, setRecentOrders] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [viewingOrderId, setViewingOrderId] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -41,7 +44,7 @@ const AdminDashboard = () => {
       }
     };
     fetchData();
-    const interval = setInterval(fetchData, 30000); // 30s for real-time feel
+    const interval = setInterval(fetchData, 5000); // 5s for real-time feel
     return () => clearInterval(interval);
   }, []);
 
@@ -56,6 +59,8 @@ const AdminDashboard = () => {
   useEffect(() => {
     const map = {
       'All Orders': 'Order',
+      'Return Window': 'Order',
+      'Warranty Window': 'Order',
       'Profiles': 'Customers',
       'Customer Profiles': 'Customers',
       'Customer Queries': 'Queries',
@@ -66,6 +71,7 @@ const AdminDashboard = () => {
       'All Brands': 'Brands',
       'All Collections': 'Collections',
       'All Variants': 'Variants',
+      'Manage Lenses': 'Lenses',
       'Track Shipments': 'Shipments',
       'Pending Reviews': 'Reviews',
       'Employees': 'Staff',
@@ -75,13 +81,19 @@ const AdminDashboard = () => {
   }, [subView]);
 
   const renderContent = () => {
+    if (viewingOrderId) {
+      return <OrderDetail orderId={viewingOrderId} onBack={() => setViewingOrderId(null)} />;
+    }
+    
     switch (primaryView) {
       case 'Dashboard':
       case 'Dashboards':
-        return <DashboardHome statsData={statsData} recentOrders={recentOrders} />;
+        return <DashboardHome statsData={statsData} recentOrders={recentOrders} onOrderClick={id => setViewingOrderId(id)} />;
       case 'Order':
-      case 'Orders':
-        return <OrderTable />;
+      case 'Orders': {
+        const cat = subView === 'Return Window' ? 'returns' : subView === 'Warranty Window' ? 'warranty' : null;
+        return <OrderTable category={cat} onViewDetails={id => setViewingOrderId(id)} />;
+      }
       case 'Customers':
         return <CustomerTable />;
       case 'Prescriptions':
@@ -98,6 +110,8 @@ const AdminDashboard = () => {
         return <CollectionTable />;
       case 'Variants':
         return <VariantTable />;
+      case 'Lenses':
+        return <LensManagement />;
       case 'Shipments':
         return <ShipmentTable />;
       case 'Reviews':

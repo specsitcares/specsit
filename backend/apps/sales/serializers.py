@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import Order, OrderItem, Cart, Wishlist, Coupon, Shipment
 from apps.catalog.core.models import MetadataItem
+from apps.catalog.serializers import PrescriptionSerializer, LensSerializer
 
 class CouponSerializer(serializers.ModelSerializer):
     class Meta:
@@ -29,10 +30,13 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
     lens_desc = serializers.ReadOnlyField(source='lens.description')
     price = serializers.ReadOnlyField(source='price_at_purchase')
-
+    
+    prescription = PrescriptionSerializer(read_only=True)
+    lens = LensSerializer(read_only=True)
+    
     class Meta:
         model = OrderItem
-        fields = ['id', 'variant_name', 'variant_image', 'variant_sku', 'quantity', 'price_at_purchase', 'price', 'lens_desc', 'prescription_status', 'patient_name', 'prescription']
+        fields = ['id', 'variant_name', 'variant_image', 'variant_sku', 'quantity', 'price_at_purchase', 'price', 'lens_desc', 'prescription_status', 'patient_name', 'prescription', 'lens']
 
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
@@ -74,8 +78,31 @@ class OrderSerializer(serializers.ModelSerializer):
         read_only_fields = ['created_at']
 
     def create(self, validated_data):
-        items_data = self.context.get('request').data.get('items', [])
-        order = Order.objects.create(**validated_data)
+        request = self.context.get('request')
+        items_data = request.data.get('items', [])
+        addr_data = request.data.get('shipping_address')
+        
+        # Create or find address
+        from apps.accounts.models import Address
+        shipping_address = None
+        if addr_data:
+            # For simplicity in this workflow, we'll create a new address entry for the order
+            # In a production app, we might check for existing identical addresses
+            shipping_address = Address.objects.create(
+                user=request.user if request.user.is_authenticated else None,
+                full_name_contact=addr_data.get('name', 'Customer'),
+                street_address=f"{addr_data.get('house', '')}, {addr_data.get('area', '')}",
+                city=addr_data.get('city', 'Unknown'),
+                state=addr_data.get('state', 'Unknown'),
+                pin_code=addr_data.get('pin', ''),
+                title='Order Address'
+            )
+        
+        order = Order.objects.create(
+            shipping_address=shipping_address,
+            billing_address=shipping_address, # Defaulting billing to shipping
+            **validated_data
+        )
         
         for item_data in items_data:
             OrderItem.objects.create(
@@ -83,6 +110,7 @@ class OrderSerializer(serializers.ModelSerializer):
                 variant_id=item_data.get('variant_id'),
                 lens_id=item_data.get('lens_id'),
                 prescription_id=item_data.get('prescription_id'),
+                patient_name=item_data.get('patient_name'),
                 quantity=item_data.get('quantity', 1),
                 price_at_purchase=item_data.get('price_at_purchase')
             )

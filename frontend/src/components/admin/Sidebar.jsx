@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   LayoutGrid, User, CheckCircle, CircleDollarSign, Briefcase, 
-  ChevronDown, Search, Columns, LogOut, X
+  ChevronDown, Search, Columns, LogOut, X, ShoppingCart, Package, ShieldCheck, Box
 } from 'lucide-react';
 
 const Sidebar = ({
@@ -32,15 +32,15 @@ const Sidebar = ({
       subs: ['Defaults', 'eCommerce', 'Projects', 'Marketing']
     },
     {
-      key: 'Orders', label: 'Orders', icon: <User size={20} />,
-      subs: ['All Orders', 'Pending Orders']
+      key: 'Orders', label: 'Orders', icon: <ShoppingCart size={20} />,
+      subs: ['All Orders', 'Return Window', 'Warranty Window']
     },
     {
-      key: 'Products', label: 'Products Catalog', icon: <User size={20} />,
-      subs: ['All Products', 'All Categories', 'All Brands', 'All Collections', 'All Variants']
+      key: 'Products', label: 'Products Catalog', icon: <Package size={20} />,
+      subs: ['All Products', 'All Categories', 'All Brands', 'All Collections', 'All Variants', 'Manage Lenses']
     },
     {
-      key: 'Inventory', label: 'Inventory & Stock', icon: <User size={20} />,
+      key: 'Inventory', label: 'Inventory & Stock', icon: <Box size={20} />,
       subs: ['Current Stock', 'Low Stock', 'Restock Records']
     },
     {

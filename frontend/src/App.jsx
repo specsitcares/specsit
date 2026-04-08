@@ -12,6 +12,7 @@ import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import OrderConfirmationPage from './pages/OrderConfirmationPage';
 import AdminDashboard from './pages/AdminDashboard';
 import FaceCapture from './components/FaceCapture/FaceCapture';
 import AuthCallbackPage from './pages/AuthCallbackPage';
@@ -20,7 +21,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { useLocation } from 'react-router-dom';
 import apiClient from './services/api';
 
-const GOOGLE_CLIENT_ID = "400833653678-5e6t671fhhcov37u0qo7pg1es8p80qq8.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID = "400833653678-plj7o92fk61bacu3rv4toi774dppu4qa.apps.googleusercontent.com";
 
 const LiveTracker = () => {
     const location = useLocation();
@@ -37,12 +38,12 @@ const LiveTracker = () => {
                 let page = 'Other Page';
                 const path = location.pathname;
                 if (path === '/') page = 'Home Page';
-                else if (path.startsWith('/product/')) page = 'Product Detail';
-                else if (path === '/cart') page = 'Cart Page';
-                else if (path === '/checkout') page = 'Checkout';
-                else if (path === '/products') page = 'Shop';
-                else if (path === '/admin') page = 'Admin Dashboard';
-                else if (path === '/login' || path === '/register') page = 'Auth Page';
+                else if (path.startsWith('/product/')) page = 'Viewing Product';
+                else if (path === '/cart') page = 'In Cart';
+                else if (path === '/checkout') page = 'Checking Out';
+                else if (path === '/products') page = 'Browsing Shop';
+                else if (path === '/admin') page = 'Managing Admin';
+                else if (path === '/login' || path === '/register') page = 'On Auth Page';
 
                 await apiClient.post('/sales/live/report-activity/', {
                     session_id: sid,
@@ -52,7 +53,7 @@ const LiveTracker = () => {
         };
 
         report();
-        const interval = setInterval(report, 45000);
+        const interval = setInterval(report, 15000); // 15s for tighter live sync
         return () => clearInterval(interval);
     }, [location.pathname]);
 
@@ -74,6 +75,7 @@ const App = () => {
                                     <Route path="product/:id" element={<ProductDetailPage />} />
                                     <Route path="cart" element={<CartPage />} />
                                     <Route path="checkout" element={<CheckoutPage />} />
+                                    <Route path="order-confirmation" element={<OrderConfirmationPage />} />
                                     <Route path="login" element={<LoginPage />} />
                                     <Route path="register" element={<RegisterPage />} />
                                     <Route path="auth/callback" element={<AuthCallbackPage />} />

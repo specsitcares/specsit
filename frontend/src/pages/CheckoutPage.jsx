@@ -16,8 +16,15 @@ const CheckoutPage = () => {
     const [address, setAddress] = useState({ name: '', phone: '', email: '', pin: '', house: '', area: '' });
     const [pinPlaced, setPinPlaced] = useState(false);
 
-    const handleRecipientNameChange = (itemId, val) => {
-        setRecipientNames(prev => ({ ...prev, [itemId]: val }));
+    const [selectedPayment, setSelectedPayment] = useState('cod');
+
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setAddress(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleRecipientNameChange = (itemId, name) => {
+        setRecipientNames(prev => ({ ...prev, [itemId]: name }));
     };
 
     const handlePlaceOrder = async () => {
@@ -26,7 +33,8 @@ const CheckoutPage = () => {
         try {
             const orderData = {
                 total_amount: cartTotal,
-                payment_method: 'UPI', 
+                payment_method: selectedPayment.toUpperCase(), 
+                shipping_address: address,
                 items: cart.map(item => {
                     const variantId = item.variant?.id || (item.product?.variants?.length > 0 ? item.product.variants[0].id : null);
                     return {
@@ -41,11 +49,13 @@ const CheckoutPage = () => {
             };
 
             const response = await apiClient.post('/sales/orders/', orderData);
-            console.log('Order created:', response.data);
-            setStep('success');
+            const newOrderId = response.data.id;
+            
+            navigate(`/order-confirmation?order_id=${newOrderId}`);
+            
             setTimeout(() => {
                 clearCart();
-            }, 2000);
+            }, 1000);
         } catch (err) {
             console.error('Checkout failed:', err);
             setError(err.response?.data?.detail || "FAILED TO ESTABLISH ORDER PROTOCOL. ENSURE AUTHENTICATION STATUS.");
@@ -67,6 +77,8 @@ const CheckoutPage = () => {
         );
     }
 
+    const isAddressValid = address.name && address.phone && address.pin && address.house;
+
     return (
         <div className="checkout-container">
             <div className="checkout-layout">
@@ -83,15 +95,15 @@ const CheckoutPage = () => {
                         <div className="form-grid">
                             <div className="form-field">
                                 <label>VISION AGENT NAME</label>
-                                <input type="text" placeholder="Full Name" />
+                                <input name="name" type="text" placeholder="Full Name" value={address.name} onChange={handleInputChange} />
                             </div>
                             <div className="form-field">
                                 <label>COMMS CHANNEL</label>
-                                <input type="text" placeholder="Phone Number" />
+                                <input name="phone" type="text" placeholder="Phone Number" value={address.phone} onChange={handleInputChange} />
                             </div>
                             <div className="form-field form-field-full">
                                 <label>DIGITAL HANDOFF</label>
-                                <input type="email" placeholder="Email Address" />
+                                <input name="email" type="email" placeholder="Email Address" value={address.email} onChange={handleInputChange} />
                             </div>
 
                             {/* Tactical Location Pin Segment */}
@@ -105,19 +117,23 @@ const CheckoutPage = () => {
 
                             <div className="form-field">
                                 <label>POST CODE</label>
-                                <input type="text" placeholder="Pincode" />
+                                <input name="pin" type="text" placeholder="Pincode" value={address.pin} onChange={handleInputChange} />
                             </div>
                             <div className="form-field">
                                 <label>UNIT/HOUSE</label>
-                                <input type="text" placeholder="Building Name" />
+                                <input name="house" type="text" placeholder="Building Name" value={address.house} onChange={handleInputChange} />
+                            </div>
+                            <div className="form-field form-field-full">
+                                <label>AREA / STREET</label>
+                                <input name="area" type="text" placeholder="Area / Street Details" value={address.area} onChange={handleInputChange} />
                             </div>
                         </div>
 
                         <button
-                            disabled={!pinPlaced}
+                            disabled={!pinPlaced || !isAddressValid}
                             onClick={() => setStep('payment')}
                             className="checkout-btn"
-                            style={{ opacity: pinPlaced ? 1 : 0.5 }}
+                            style={{ opacity: (pinPlaced && isAddressValid) ? 1 : 0.5 }}
                         >
                             PROCEED TO PAYMENT HUD →
                         </button>
@@ -138,7 +154,12 @@ const CheckoutPage = () => {
                                 { id: 'partial', title: 'PHASE PAYMENT', desc: '20% Now, Rest on Delivery' },
                                 { id: 'cod', title: 'CASH OPS', desc: 'Pay at the Base' }
                             ].map((method) => (
-                                <button key={method.id} className="payment-method">
+                                <button 
+                                    key={method.id} 
+                                    className={`payment-method ${selectedPayment === method.id ? 'active' : ''}`}
+                                    onClick={() => setSelectedPayment(method.id)}
+                                    style={{ border: selectedPayment === method.id ? '2px solid #7F56D9' : '1px solid #ddd' }}
+                                >
                                     <h4>{method.title}</h4>
                                     <p>{method.desc}</p>
                                 </button>
@@ -167,7 +188,7 @@ const CheckoutPage = () => {
                             <div key={item.id} className="summary-item-card">
                                 <div className="summary-item-main">
                                     <span>{(item.product.title || '').toUpperCase()} (x{item.quantity})</span>
-                                    <span>₹{Number((parseFloat(item.product.base_price) + (item.lens ? parseFloat(item.lens.price) : 0)) * item.quantity).toLocaleString('en-IN')}</span>
+                                    <span>₹{Number((parseFloat(item.product.base_price || 0) + (item.lens ? parseFloat(item.lens.price || 0) : 0)) * item.quantity).toLocaleString('en-IN')}</span>
                                 </div>
                                 <div className="recipient-input-box">
                                      <input 

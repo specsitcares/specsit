@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import {
   Search, Filter, Download, Edit, Trash2,
-  Mail, Calendar, Plus, MoreHorizontal, ChevronLeft, ChevronRight
+  Mail, Calendar, Plus, MoreVertical, ChevronLeft, ChevronRight,
+  User, Edit2
 } from 'lucide-react';
 import apiClient from '../../services/api';
 import FormModal from './FormModal';
+import BaseAdminTable from './BaseAdminTable';
 
 const CustomerTable = () => {
   const [customers, setCustomers] = useState([]);
@@ -14,7 +16,8 @@ const CustomerTable = () => {
   const [formMode, setFormMode] = useState('create');
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
-  const PER_PAGE = 10;
+  const [perPage, setPerPage] = useState(10);
+  const [showFilters, setShowFilters] = useState(false);
 
   const customerFormFields = [
     { name: 'username',   label: 'Username',     type: 'text',     required: true, placeholder: 'username' },
@@ -37,21 +40,35 @@ const CustomerTable = () => {
     }
   };
 
-  useEffect(() => { fetchCustomers(); }, []);
+  useEffect(() => { 
+    fetchCustomers(); 
+    const interval = setInterval(fetchCustomers, 5000); // Real-time poll
+    return () => clearInterval(interval);
+  }, []);
 
   const handleCreateClick = () => { setFormMode('create'); setSelectedCustomer(null); setShowForm(true); };
   const handleEditClick   = (c)  => { setFormMode('edit');   setSelectedCustomer(c);    setShowForm(true); };
   const handleDeleteClick = (c)  => { setFormMode('edit');   setSelectedCustomer(c);    setShowForm(true); };
 
   const handleFormSubmit = async (formData) => {
-    if (formMode === 'create') await apiClient.post('/accounts/users/', formData);
-    else await apiClient.patch(`/accounts/users/${selectedCustomer.id}/`, formData);
-    fetchCustomers();
+    try {
+      if (formMode === 'create') await apiClient.post('/accounts/users/', formData);
+      else await apiClient.patch(`/accounts/users/${selectedCustomer.id}/`, formData);
+      setShowForm(false);
+      fetchCustomers();
+    } catch (err) {
+      console.error('Form submission failed', err);
+    }
   };
 
   const handleFormDelete = async (id) => {
-    await apiClient.delete(`/accounts/users/${id}/`);
-    fetchCustomers();
+    try {
+      await apiClient.delete(`/accounts/users/${id}/`);
+      setShowForm(false);
+      fetchCustomers();
+    } catch (err) {
+      console.error('Delete failed', err);
+    }
   };
 
   const filtered = customers.filter(u =>
@@ -59,139 +76,125 @@ const CustomerTable = () => {
       .some(v => v?.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const totalPages = Math.ceil(filtered.length / PER_PAGE);
-  const paginated  = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const paginated = filtered.slice((page - 1) * perPage, page * perPage);
 
   const initials = (u) => (u.first_name?.[0] || u.username?.[0] || '?').toUpperCase();
-
   const avatarColors = ['#F9F5FF','#EFF8FF','#ECFDF3','#FFFAEB','#FEF3F2'];
   const textColors   = ['#6941C6','#1570EF','#067647','#B54708','#B42318'];
   const colorIdx     = (id) => id % avatarColors.length;
 
-  if (loading) return (
-    <div className="db-loading-state">Loading customer profiles…</div>
+  const columns = [
+    { label: 'Customer', key: 'customer', sortable: true },
+    { label: 'Email', key: 'email', sortable: true },
+    { label: 'Role', key: 'role', sortable: true },
+    { label: 'Joined', key: 'joined', sortable: true },
+    { label: 'Action', key: 'action', align: 'right' }
+  ];
+
+  const renderRow = (u, idx) => (
+    <tr key={u.id || idx} style={{ borderBottom: '1px solid #EAECF0', backgroundColor: '#fff' }}>
+      <td style={{ padding: '16px 24px' }}>
+        <input type="checkbox" style={{ cursor: 'pointer', borderRadius: '4px', accentColor: '#7F56D9' }} />
+      </td>
+      <td style={{ padding: '16px 24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 40, height: 40, borderRadius: '50%',
+            background: avatarColors[colorIdx(u.id || 0)],
+            color: textColors[colorIdx(u.id || 0)],
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 14, fontWeight: 700, flexShrink: 0,
+            border: '1px solid #EAECF0'
+          }}>
+            {initials(u)}
+          </div>
+          <div>
+            <div style={{ fontWeight: 600, color: '#101828', fontSize: '14px' }}>
+              {u.first_name || u.username} {u.last_name || ''}
+            </div>
+            <div style={{ fontSize: '12px', color: '#667085' }}>@{u.username}</div>
+          </div>
+        </div>
+      </td>
+      <td style={{ padding: '16px 24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#475467', fontSize: '14px' }}>
+          <Mail size={14} color="#667085" />
+          {u.email || '—'}
+        </div>
+      </td>
+      <td style={{ padding: '16px 24px' }}>
+        <span style={{
+          backgroundColor: u.is_staff ? '#F9F5FF' : '#F2F4F7',
+          color: u.is_staff ? '#6941C6' : '#414651',
+          padding: '4px 10px',
+          borderRadius: '16px',
+          fontSize: '12px',
+          fontWeight: 600,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          border: `1px solid ${u.is_staff ? '#E9D7FE' : '#D0D5DD'}`
+        }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: u.is_staff ? '#7F56D9' : '#667085' }}></span>
+          {u.is_staff ? 'Admin' : 'Customer'}
+        </span>
+      </td>
+      <td style={{ padding: '16px 24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#475467', fontSize: '14px' }}>
+          <Calendar size={14} color="#667085" />
+          {u.date_joined ? new Date(u.date_joined).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+        </div>
+      </td>
+      <td style={{ padding: '16px 24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+          <div
+            onClick={() => handleEditClick(u)}
+            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+            title="Edit Customer"
+          >
+            <Edit2 size={16} />
+          </div>
+          <div
+            onClick={() => handleEditClick(u)} // Assuming delete also opens edit modal with delete option as per original code handleEditClick and handleDeleteClick was same
+            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+            title="Delete Customer"
+          >
+            <Trash2 size={16} />
+          </div>
+        </div>
+      </td>
+    </tr>
   );
 
   return (
-    <div className="admin-table-wrapper">
-      {/* Toolbar */}
-      <div className="table-toolbar">
-        <div>
-          <div className="table-title">Customer Profiles</div>
-          <div className="table-subtitle">{filtered.length} users total</div>
-        </div>
-        <div className="table-actions">
-          <div className="table-search-box">
-            <Search size={14} />
-            <input
-              type="text"
-              placeholder="Search customers…"
-              value={searchQuery}
-              onChange={e => { setSearchQuery(e.target.value); setPage(1); }}
-            />
+    <>
+      <BaseAdminTable
+        title="Customer Profiles"
+        count={filtered.length}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        onAdd={handleCreateClick}
+        addLabel="Add Customer"
+        columns={columns}
+        data={paginated}
+        loading={loading}
+        renderRow={renderRow}
+        pagination={{
+          page,
+          perPage,
+          totalCount: filtered.length,
+          onPageChange: setPage,
+          onPerPageChange: setPerPage
+        }}
+        showFilters={showFilters}
+        setShowFilters={setShowFilters}
+        filterContent={
+          <div style={{ display: 'flex', gap: '16px' }}>
+             {/* Add customer specific filters here if needed */}
+             <div style={{ fontSize: '14px', color: '#667085' }}>No active filters available for customers.</div>
           </div>
-          <button className="btn btn-outline"><Filter size={14} /> Filter</button>
-          <button className="btn btn-outline"><Download size={14} /> Export</button>
-          <button className="btn btn-primary" onClick={handleCreateClick}>
-            <Plus size={14} /> Add Customer
-          </button>
-        </div>
-      </div>
-
-      {/* Table */}
-      <div style={{ overflowX: 'auto' }}>
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th style={{ width: 40 }}><input type="checkbox" /></th>
-              <th>Customer</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Joined</th>
-              <th style={{ textAlign: 'right' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {paginated.length === 0 ? (
-              <tr>
-                <td colSpan={6}>
-                  <div className="empty-state">
-                    <div className="empty-state-icon"><Search size={20} /></div>
-                    <div className="empty-state-title">No customers found</div>
-                    <div className="empty-state-desc">Try adjusting your search.</div>
-                  </div>
-                </td>
-              </tr>
-            ) : paginated.map((u) => (
-              <tr key={u.id}>
-                <td><input type="checkbox" /></td>
-                <td>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{
-                      width: 34, height: 34, borderRadius: '50%',
-                      background: avatarColors[colorIdx(u.id)],
-                      color: textColors[colorIdx(u.id)],
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 13, fontWeight: 700, flexShrink: 0
-                    }}>
-                      {initials(u)}
-                    </div>
-                    <div>
-                      <div className="cell-text-primary">
-                        {u.first_name || u.username} {u.last_name || ''}
-                      </div>
-                      <div className="cell-text-secondary">@{u.username}</div>
-                    </div>
-                  </div>
-                </td>
-                <td>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--gray-500)', fontSize: 13 }}>
-                    <Mail size={13} />
-                    {u.email || '—'}
-                  </div>
-                </td>
-                <td>
-                  <span className={`badge ${u.is_staff ? 'badge-brand' : 'badge-neutral'}`}>
-                    <span className="badge-dot" />
-                    {u.is_staff ? 'Admin' : 'Customer'}
-                  </span>
-                </td>
-                <td>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--gray-500)', fontSize: 13 }}>
-                    <Calendar size={13} />
-                    {u.date_joined ? new Date(u.date_joined).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
-                  </div>
-                </td>
-                <td>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 4 }}>
-                    <button className="row-action-btn edit" title="Edit" onClick={() => handleEditClick(u)}><Edit size={14} /></button>
-                    <button className="row-action-btn delete" title="Delete" onClick={() => handleDeleteClick(u)}><Trash2 size={14} /></button>
-                    <button className="row-action-btn" title="More"><MoreHorizontal size={14} /></button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Pagination */}
-      <div className="table-pagination">
-        <div className="pagination-info">
-          Showing {Math.min((page - 1) * PER_PAGE + 1, filtered.length)}–{Math.min(page * PER_PAGE, filtered.length)} of {filtered.length} customers
-        </div>
-        <div className="pagination-controls">
-          <button className="page-btn" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
-            <ChevronLeft size={14} />
-          </button>
-          {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map(n => (
-            <button key={n} className={`page-btn ${page === n ? 'active' : ''}`} onClick={() => setPage(n)}>{n}</button>
-          ))}
-          <button className="page-btn" disabled={page === totalPages || totalPages === 0} onClick={() => setPage(p => p + 1)}>
-            <ChevronRight size={14} />
-          </button>
-        </div>
-      </div>
+        }
+      />
 
       <FormModal
         isOpen={showForm}
@@ -203,7 +206,7 @@ const CustomerTable = () => {
         onSubmit={handleFormSubmit}
         onDelete={handleFormDelete}
       />
-    </div>
+    </>
   );
 };
 

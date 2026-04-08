@@ -3,7 +3,7 @@ import {
    DollarSign, ShoppingCart, Users, Package, Microscope, Truck,
    TrendingUp, TrendingDown, MoreVertical, Search, Filter, RefreshCw,
    FileText, Globe, Activity, AlertTriangle, AlertCircle, ChevronDown, ChevronRight, ChevronLeft,
-   Edit2, Trash2, FileDown, ArrowUpDown, Glasses
+   Edit2, Trash2, FileDown, ArrowUpDown, ArrowUpRight, Glasses
 } from 'lucide-react';
 import {
    AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -11,9 +11,13 @@ import {
 } from 'recharts';
 import apiClient from '../../services/api';
 import FormModal from './FormModal';
+import BaseAdminTable from './BaseAdminTable';
 
-const DashboardHome = ({ statsData, recentOrders }) => {
+const DashboardHome = ({ statsData, recentOrders: recentOrdersProp, onOrderClick }) => {
    const [isMounted, setIsMounted] = useState(false);
+   const [fetchedOrders, setFetchedOrders] = useState([]);
+   const [serverTotal, setServerTotal] = useState(0);
+   const [goToInputVal, setGoToInputVal] = useState('1');
    useEffect(() => {
       setIsMounted(true);
    }, []);
@@ -121,83 +125,28 @@ const DashboardHome = ({ statsData, recentOrders }) => {
       { name: 'payment_method', label: 'Payment Method', type: 'text', required: true },
    ];
 
-   const statsList = useMemo(() => statsData?.stats || [
-      { title: "Total Orders", value: "240", trend: "down", trendValue: "23" },
-      { title: "Total Revenue", value: "₹48,560", trend: "up", trendValue: "23" },
-      { title: "Pending Prescriptions", value: "12", trend: "up", trendValue: "23" },
-      { title: "Low Stock Products", value: "7", trend: "up", trendValue: "23" },
-      { title: "Today's Orders", value: "18", trend: "up", trendValue: "23" },
-      { title: "Active Shipments", value: "9", trend: "up", trendValue: "23" },
-   ], [statsData]);
+   const statsList = useMemo(() => {
+      if (!statsData?.stats) {
+         return [
+            { title: 'Total Orders', value: '–', trend: 'down', trendValue: '' },
+            { title: 'Total Revenue', value: '–', trend: 'down', trendValue: '' },
+            { title: 'Pending Prescriptions', value: '–', trend: 'down', trendValue: '' },
+            { title: 'Low Stock Products', value: '–', trend: 'down', trendValue: '' },
+            { title: "Today's Orders", value: '–', trend: 'down', trendValue: '' },
+            { title: 'Active Shipments', value: '–', trend: 'down', trendValue: '' },
+         ];
+      }
+      return statsData.stats;
+   }, [statsData]);
 
-   const attentionList = useMemo(() => statsData?.attention || [
-      { label: "Prescriptions need review", count: 12, icon: "FileText", link: "Review All Now" },
-      { label: "Products running low", count: 7, icon: "AlertTriangle", link: "Update Stock Now" },
-      { label: "Products out of stock", count: 4, icon: "AlertCircle", link: "Restock Immediately" },
-      { label: "Shipments in transit", count: 0, icon: "Truck", link: "View All Shipments" },
-   ], [statsData]);
+   const attentionList = useMemo(() => statsData?.attention || [], [statsData]);
 
-   const chartData = useMemo(() => statsData?.charts?.line || [
-      { name: "Jan", value: 12000 }, { name: "Feb", value: 19000 }, { name: "Mar", value: 15000 },
-      { name: "Apr", value: 22000 }, { name: "May", value: 30000 }, { name: "Jun", value: 25000 },
-      { name: "Jul", value: 35000 }, { name: "Aug", value: 42000 }, { name: "Sep", value: 38000 },
-      { name: "Oct", value: 48000 }, { name: "Nov", value: 45000 }, { name: "Dec", value: 52000 },
-   ], [statsData]);
+   const chartData = useMemo(() => statsData?.charts?.line || [], [statsData]);
 
-   const donutData = useMemo(() => statsData?.charts?.donut || [
-      { name: "Home Page", value: 42, color: "#7F56D9" },
-      { name: "Product Detail", value: 28, color: "#F79009" },
-      { name: "Shop", value: 18, color: "#2FCA9A" },
-      { name: "Cart / Checkout", value: 12, color: "#F04438" },
-   ], [statsData]);
+   const donutData = useMemo(() => statsData?.charts?.donut || [], [statsData]);
    const displayDonut = localDonut || donutData;
 
-   const allOrders = useMemo(() => {
-      const baseOrders = recentOrders?.length > 0 ? recentOrders : [
-         {
-            id: 'ORD-24031',
-            customer_name: 'Priya Sharma',
-            status_label: 'Approved',
-            total_amount: '4,850',
-            item_count: 2,
-            items: [
-               { customer_name: 'Rohan Kapoor', variant_name: 'John Jacobs Frame', lens_desc: 'Photochromic + -1.75', status: 'Approved', price: '3,450' },
-               { customer_name: 'Sneha Rao', variant_name: 'Ray-Ban Aviator', lens_desc: 'Photochromic + -1.75', status: 'Pending', price: '5,650' }
-            ]
-         },
-         {
-            id: 'ORD-24030',
-            customer_name: 'Arjun Reddy',
-            status_label: 'Approved',
-            total_amount: '7,299',
-            item_count: 1,
-            items: [
-               { variant_name: 'Oakley Holbrook', lens_desc: 'Photochromic + -1.75', status: 'Approved', price: '7,299' }
-            ]
-         }
-      ];
 
-      if (!searchQuery && !statusFilter && !dateFilter.from && !dateFilter.to) return baseOrders;
-      const q = searchQuery.toLowerCase();
-
-      return baseOrders.filter(o => {
-         const searchMatch = !q || (
-            (o.id || '').toString().toLowerCase().includes(q) ||
-            (o.customer_name || '').toLowerCase().includes(q) ||
-            (o.items || []).some(item => (item.variant_name || '').toLowerCase().includes(q))
-         );
-
-         const currentStatusLabel = o.status_label || (statusOptions.find(opt => opt.value === o.status)?.label) || '';
-         const filterLabel = statusOptions.find(opt => opt.value === Number(statusFilter))?.label || '';
-         const statusMatch = !statusFilter || currentStatusLabel === filterLabel;
-
-         const orderDate = o.created_at ? new Date(o.created_at) : new Date();
-         const fromMatch = !dateFilter.from || orderDate >= new Date(dateFilter.from);
-         const toMatch = !dateFilter.to || orderDate <= new Date(dateFilter.to);
-
-         return searchMatch && statusMatch && fromMatch && toMatch;
-      });
-   }, [recentOrders, searchQuery, statusFilter, dateFilter, statusOptions]);
 
    const handleExport = async () => {
       console.log('Initiating dashboard export...');
@@ -235,61 +184,145 @@ const DashboardHome = ({ statsData, recentOrders }) => {
       }
    };
 
-   const totalOrders = allOrders.length;
+   // Fetch orders with server-side pagination
+   const isFiltering = !!(searchQuery || statusFilter || dateFilter.from || dateFilter.to);
+   useEffect(() => {
+      const fetchOrders = async () => {
+         try {
+            const res = await apiClient.get('/sales/orders/', {
+               params: {
+                  page,
+                  page_size: perPage,
+                  limit: perPage,
+                  ordering: '-created_at',
+                  search: searchQuery,
+                  status: statusFilter,
+                  date_from: dateFilter.from,
+                  date_to: dateFilter.to
+               }
+            });
+            const data = res.data;
+            const results = data.results || data.data || data;
+            if (Array.isArray(results)) {
+               if (data.count !== undefined) {
+                  setFetchedOrders(results);
+                  setServerTotal(data.count);
+               } else {
+                  setFetchedOrders(results);
+                  setServerTotal(results.length);
+               }
+            } else {
+               setFetchedOrders([]);
+               setServerTotal(0);
+            }
+         } catch (err) {
+            console.error('DashboardHome: fetch orders failed', err);
+            // Fall back to recentOrdersProp if API fails
+            if (recentOrdersProp?.length) {
+               setFetchedOrders(recentOrdersProp);
+               setServerTotal(recentOrdersProp.length);
+            }
+         }
+      };
+      fetchOrders();
+      const interval = setInterval(fetchOrders, 5000);
+      return () => clearInterval(interval);
+   }, [page, perPage, searchQuery, statusFilter, dateFilter]);
+
+   // Reset page to 1 when filters change
+   useEffect(() => {
+      setPage(1);
+   }, [searchQuery, statusFilter, dateFilter.from, dateFilter.to, perPage]);
+
+   // Sync go-to input with current page
+   useEffect(() => {
+      setGoToInputVal(String(page));
+   }, [page]);
+
+   const allOrders = fetchedOrders;
+   const totalOrders = serverTotal;
    const totalPages = Math.ceil(totalOrders / perPage) || 1;
-   const orders = useMemo(() => {
-      const start = (page - 1) * perPage;
-      return allOrders.slice(start, start + perPage);
-   }, [allOrders, page, perPage]);
+   const orders = allOrders;
 
    return (
-      <div className="dashboard-strict-wrapper">
-         <h1 className="dash-title" style={{ fontSize: '20px', fontWeight: 700, margin: '24px 0', color: '#101828' }}>Admin Dashboard</h1>
+      <>
+         <h1 className="dash-title" style={{ fontSize: '20px', fontWeight: 700, margin: '24px 0', color: '#040205', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            Admin Dashboard
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 700, color: '#12B76A', background: '#ECFDF3', padding: '4px 10px', borderRadius: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+               <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#12B76A', animation: 'pulse 1.5s infinite' }}></span>
+               Live Activity
+            </span>
+         </h1>
+         <style>{`
+            @keyframes pulse {
+               0% { opacity: 1; transform: scale(1); }
+               50% { opacity: 0.4; transform: scale(1.3); }
+               100% { opacity: 1; transform: scale(1); }
+            }
+         `}</style>
 
          {/* Stats Cards (Row 1) - Final Visual Parity */}
          <div className="db-stats-row-v2" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px', marginBottom: '32px' }}>
-            {statsList.map((s, idx) => (
-               <div key={idx} className="mini-stat-card" style={{ border: '1px solid #EAECF0', borderRadius: '12px', background: '#fff', padding: '24px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-                     <div style={{ background: '#F4EBFF', color: '#7F56D9', padding: '8px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        {idx === 0 ? <ShoppingCart size={20} /> : idx === 1 ? <DollarSign size={20} /> : idx === 2 ? <Microscope size={20} /> : idx === 3 ? <Package size={20} /> : idx === 4 ? <FileText size={20} /> : <Truck size={20} />}
+            {statsList.map((s, idx) => {
+               const IconComponent = s.title.includes('Revenue') ? DollarSign :
+                  s.title.includes('Orders') ? ShoppingCart :
+                     s.title.includes('Prescription') ? Microscope :
+                        s.title.includes('Stock') ? Package :
+                           s.title.includes('Shipment') ? Truck : FileText;
+
+               return (
+                  <div key={idx} className="mini-stat-card" style={{ border: '1px solid #E0E0E0', borderRadius: '12px', background: '#fff', padding: '24px' }}>
+                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+                        <div style={{ background: '#F4EBFF', color: '#7F56D9', padding: '8px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                           <IconComponent size={20} />
+                        </div>
+                        <MoreVertical size={18} color="#98A2B3" cursor="pointer" />
                      </div>
-                     <MoreVertical size={18} color="#98A2B3" cursor="pointer" />
+                     <div style={{ fontSize: '14px', color: '#667085', fontWeight: 500, marginBottom: '8px' }}>{s.title}</div>
+                     <div style={{ fontSize: '28px', fontWeight: 700, color: '#040205', marginBottom: '8px', display: 'flex', alignItems: 'baseline' }}>
+                        {s.value}
+                     </div>
+                     <div style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600, color: s.trend === 'up' ? '#027A48' : '#B42318' }}>
+                        {s.trend === 'up' ? <TrendingUp size={14} /> : <TrendingDown size={14} />} {s.trendValue}% last period
+                     </div>
                   </div>
-                  <div style={{ fontSize: '14px', color: '#667085', fontWeight: 500, marginBottom: '8px' }}>{s.title}</div>
-                  <div style={{ fontSize: '28px', fontWeight: 700, color: '#101828', marginBottom: '8px', display: 'flex', alignItems: 'baseline' }}>
-                     {s.value}
-                  </div>
-                  <div style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600, color: s.trend === 'up' ? '#027A48' : '#B42318' }}>
-                     {s.trend === 'up' ? <TrendingUp size={14} /> : <TrendingDown size={14} />} {s.trendValue}% last period
-                  </div>
-               </div>
-            ))}
+               );
+            })}
          </div>
 
          <h2 className="section-label-new" style={{ fontSize: '18px', fontWeight: 700, marginBottom: '20px' }}>Attention Required</h2>
          <div className="attention-cards-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', marginBottom: '32px' }}>
-            {attentionList.map((a, idx) => (
-               <div key={idx} className="attention-info-card" style={{ border: '1px solid #EAECF0', borderRadius: '12px', background: '#fff', padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                     <div style={{ color: idx % 4 === 0 ? '#1570EF' : idx % 4 === 1 ? '#F79009' : idx % 4 === 2 ? '#F04438' : '#12B76A' }}>
-                        {idx === 0 ? <FileText size={24} /> : idx === 1 ? <AlertTriangle size={24} /> : idx === 2 ? <AlertCircle size={24} /> : <Truck size={24} />}
+            {attentionList.map((a, idx) => {
+               const AttIcon = a.label.includes('Prescription') ? FileText :
+                  a.label.includes('low') || a.label.includes('stock') ? AlertTriangle :
+                     a.label.includes('out') ? AlertCircle : Truck;
+               const AttColor = a.label.includes('Prescription') ? '#1570EF' :
+                  a.label.includes('low') || a.label.includes('stock') ? '#F79009' :
+                     a.label.includes('out') ? '#F04438' : '#12B76A';
+               return (
+                  <div key={idx} className="attention-info-card" style={{ border: '1px solid #E0E0E0', borderRadius: '12px', background: '#fff', padding: '0', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                     <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                           <div style={{ color: AttColor }}>
+                              <AttIcon size={24} />
+                           </div>
+                           <div style={{ fontSize: '28px', fontWeight: 700, color: '#040205' }}>{a.count}</div>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                           <div style={{ fontSize: '15px', color: '#475467', fontWeight: 600, lineHeight: 1.4 }}>{a.label}</div>
+                           <button style={{ fontSize: '14px', fontWeight: 700, color: '#7F56D9', border: 'none', background: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline', alignSelf: 'flex-start' }}>View Details</button>
+                        </div>
                      </div>
-                     <div style={{ fontSize: '28px', fontWeight: 700, color: '#101828' }}>{a.count}</div>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                     <div style={{ fontSize: '15px', color: '#475467', fontWeight: 600, lineHeight: 1.4 }}>{a.label}</div>
-                     <button style={{ fontSize: '14px', fontWeight: 700, color: '#7F56D9', border: 'none', background: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline', alignSelf: 'flex-start' }}>{a.link}</button>
-                  </div>
-               </div>
-            ))}
+               );
+            })}
          </div>
 
          {/* Dual Charts (Row 3 - Responsive Grid) */}
          <div className="charts-grid-v3" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: '24px', marginBottom: '40px' }}>
-            <div className="chart-box-v3" style={{ border: '1px solid #EAECF0', borderRadius: '16px', background: '#fff' }}>
-               <div className="chart-header-v3" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', borderBottom: '1px solid #EAECF0' }}>
-                  <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#101828', margin: 0 }}>Attention Required</h3>
+            <div className="chart-box-v3" style={{ border: '1px solid #E0E0E0', borderRadius: '16px', background: '#fff', overflow: 'hidden' }}>
+               <div className="chart-header-v3" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid #E0E0E0', background: '#fff' }}>
+                  <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#040205', margin: 0 }}>Attention Required</h3>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                      <RefreshCw
                         size={16}
@@ -330,7 +363,7 @@ const DashboardHome = ({ statsData, recentOrders }) => {
                                     if (active && payload && payload.length) {
                                        const item = payload[0].payload;
                                        return (
-                                          <div style={{ background: '#101828', color: '#fff', padding: '10px 14px', borderRadius: '10px', border: 'none', fontSize: '11px' }}>
+                                          <div style={{ background: '#040205', color: '#fff', padding: '10px 14px', borderRadius: '10px', border: 'none', fontSize: '11px' }}>
                                              <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
                                                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: item.color }}></div>
                                                 {item.name}: {item.value}
@@ -354,7 +387,7 @@ const DashboardHome = ({ statsData, recentOrders }) => {
                         textAlign: 'center',
                         pointerEvents: 'none'
                      }}>
-                        <div style={{ fontSize: '13px', fontWeight: 800, color: '#101828', lineHeight: 1.2 }}>
+                        <div style={{ fontSize: '13px', fontWeight: 800, color: '#040205', lineHeight: 1.2 }}>
                            Attention<br />Required
                         </div>
                      </div>
@@ -371,7 +404,7 @@ const DashboardHome = ({ statsData, recentOrders }) => {
                               flexShrink: 0
                            }}></div>
                            <div style={{ fontSize: '13px', color: '#475467', fontWeight: 600 }}>
-                              {d.name.replace('Page', '').trim()}
+                              {(d.name || 'Unknown Page').replace('Page', '').trim()}
                            </div>
                         </div>
                      ))}
@@ -380,9 +413,9 @@ const DashboardHome = ({ statsData, recentOrders }) => {
             </div>
 
             {/* Area Chart: Revenue Monthly Trends */}
-            <div className="chart-box-v3" style={{ border: '1px solid #EAECF0', borderRadius: '16px', background: '#fff', overflow: 'hidden' }}>
-               <div className="chart-header-v3" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', borderBottom: '1px solid #EAECF0' }}>
-                  <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#101828', margin: 0 }}>Revenue Growth Trends</h3>
+            <div className="chart-box-v3" style={{ border: '1px solid #E0E0E0', borderRadius: '16px', background: '#fff', overflow: 'hidden' }}>
+               <div className="chart-header-v3" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', borderBottom: '1px solid #E0E0E0' }}>
+                  <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#040205', margin: 0 }}>Revenue Growth Trends</h3>
                   <div style={{ fontSize: '14px', fontWeight: 600, color: '#7F56D9', cursor: 'pointer' }}>View All</div>
                </div>
                <div style={{ padding: '24px', height: 350, minWidth: 0 }}>
@@ -406,6 +439,7 @@ const DashboardHome = ({ statsData, recentOrders }) => {
                            <YAxis
                               axisLine={false}
                               tickLine={false}
+                              domain={[0, 'auto']}
                               tick={{ fill: '#667085', fontSize: 12, fontWeight: 500 }}
                               tickFormatter={(val) => val >= 1000 ? `₹${(val / 1000).toFixed(0)}k` : `₹${val}`}
                            />
@@ -414,11 +448,11 @@ const DashboardHome = ({ statsData, recentOrders }) => {
                               content={({ active, payload }) => {
                                  if (active && payload && payload.length) {
                                     return (
-                                       <div style={{ background: '#101828', color: '#fff', padding: '12px 16px', borderRadius: '16px', border: 'none' }}>
+                                       <div style={{ background: '#040205', color: '#fff', padding: '12px 16px', borderRadius: '16px', border: 'none' }}>
                                           <div style={{ fontSize: '11px', color: '#98A2B3', marginBottom: '4px', fontWeight: 600 }}>{payload[0].payload.name} 2026</div>
                                           <div style={{ fontSize: '18px', fontWeight: 800, color: '#fff' }}>₹{payload[0].value.toLocaleString('en-IN')}</div>
                                           <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: '4px', fontSize: '11px', color: '#12B76A', fontWeight: 700 }}>
-                                             <ArrowUpRight size={12} /> +12.5% vs last month
+                                             <ArrowUpRight size={12} /> Trend Indicator
                                           </div>
                                        </div>
                                     );
@@ -434,7 +468,7 @@ const DashboardHome = ({ statsData, recentOrders }) => {
                               strokeDasharray="3 3"
                               fillOpacity={1}
                               fill="url(#areaGrad)"
-                              activeDot={{ r: 4, stroke: '#fff', strokeWidth: 2, fill: '#7F56D9' }}
+                              activeDot={{ r: 4, stroke: '#fefefe', strokeWidth: 2, fill: '#7F56D9' }}
                               animationDuration={2000}
                               animationEasing="ease-in-out"
                            />
@@ -446,71 +480,200 @@ const DashboardHome = ({ statsData, recentOrders }) => {
          </div>
 
          {/* THE ORDERS TABLE (Strict Alignment & Real-time Connectivity) */}
-         <div className="orders-table-card overflow-x-auto scrollbar-hide" style={{ border: '1px solid #EAECF0', borderRadius: '16px', backgroundColor: '#fff', marginTop: '32px' }}>
-            <div className="table-card-header" style={{ padding: '20px 24px', display: 'flex', flexWrap: 'wrap', gap: '16px', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #EAECF0' }}>
-               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#101828', margin: 0 }}>Recent Orders</h3>
-                  <span style={{ backgroundColor: '#F9F5FF', color: '#7F56D9', fontSize: '12px', padding: '2px 10px', borderRadius: '16px', fontWeight: 600, border: '1px solid #F4EBFF' }}>
-                     {totalOrders} Orders
-                  </span>
-               </div>
-               <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                  <div className="table-search-box" style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: '1', minWidth: '40px', maxWidth: '320px' }}>
-                     <Search size={18} style={{ position: 'absolute', left: 12, color: '#667085', pointerEvents: 'none' }} />
-                     <input
-                        type="text"
-                        placeholder="Search here..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        ref={searchInputRef}
-                        className="responsive-search-input"
-                        style={{
-                           width: '100%',
-                           padding: '10px 48px 10px 38px',
-                           border: '1px solid #D0D5DD',
-                           borderRadius: '8px',
-                           fontSize: '14px',
-                           backgroundColor: '#fff',
-                           boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)',
-                           outline: 'none',
-                           fontWeight: 500,
-                           color: '#101828'
-                        }}
-                     />
-                     <div className="desktop-only" style={{ position: 'absolute', right: 10, display: 'flex', alignItems: 'center', gap: 4, padding: '2px 6px', border: '1px solid #D0D5DD', borderRadius: '6px', backgroundColor: '#fff', fontSize: '12px', color: '#667085', fontWeight: 600 }}>
-                        <span style={{ fontSize: '10px' }}>⌘</span> L
-                     </div>
-                  </div>
-                  <button
-                     onClick={() => setShowFilters(!showFilters)}
-                     style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', border: '1px solid #D0D5DD', borderRadius: '8px', backgroundColor: showFilters ? '#F9FAFB' : '#fff', fontSize: '14px', fontWeight: 600, color: '#344054', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+         <BaseAdminTable
+            title="Recent Orders"
+            count={totalOrders}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            onSearchEnter={() => { /* automatic via setPage(1) or useEffect */ }}
+            columns={[
+               { label: 'Order ID', key: 'id', sortable: true },
+               { label: 'Customer Name', key: 'customer', sortable: true },
+               { label: 'Items', key: 'items' },
+               { label: 'Prescription Status', key: 'rx', sortable: true },
+               { label: 'Total (₹)', key: 'total', sortable: true },
+               { label: 'Action', key: 'action', align: 'right' }
+            ]}
+            data={orders}
+            loading={false}
+            renderRow={(o, idx) => (
+               <React.Fragment key={o.id || idx}>
+                  <tr
+                     onClick={() => toggleRow(o.id)}
+                     style={{ cursor: 'pointer', borderBottom: '1px solid #EAECF0', backgroundColor: expandedRows.includes(o.id) ? '#F9F5FF' : '#fff', transition: 'background 0.2s' }}
                   >
-                     <Filter size={18} color="#667085" /> <span className="desktop-only">Filter</span> {statusFilter && <span style={{ width: '6px', height: '6px', borderRadius: 'full', backgroundColor: '#7F56D9' }}></span>}
-                  </button>
-                  <button
-                     onClick={handleExport}
-                     style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', border: '1px solid #D0D5DD', borderRadius: '8px', backgroundColor: '#fff', fontSize: '14px', fontWeight: 600, color: '#344054', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
-                  >
-                     <FileDown size={18} color="#667085" /> <span className="desktop-only">Export Data</span>
-                  </button>
-               </div>
-            </div>
-
-            {/* Integrated Horizontal Filter Bar (Inline) */}
-            {showFilters && (
-               <div style={{
-                  padding: '16px 24px',
-                  backgroundColor: '#F9FAFB',
-                  borderBottom: '1px solid #EAECF0',
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  alignItems: 'flex-end',
-                  gap: '16px',
-                  animation: 'slideDown 0.2s ease-out'
-               }}>
+                     <td style={{ padding: '16px 24px', backgroundColor: expandedRows.includes(o.id) ? '#F9F5FF' : 'inherit' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                           <div onClick={(e) => { e.stopPropagation(); toggleRow(o.id); }} style={{ color: '#98A2B3', cursor: 'pointer' }}>
+                              {expandedRows.includes(o.id) ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                           </div>
+                           <input type="checkbox" onClick={(e) => e.stopPropagation()} style={{ cursor: 'pointer', borderRadius: '4px' }} />
+                        </div>
+                     </td>
+                     <td style={{ padding: '16px 24px', backgroundColor: expandedRows.includes(o.id) ? '#F9F5FF' : 'inherit' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                           <span style={{ fontWeight: 600, color: '#344054' }}>{o.id.toString().startsWith('ORD-') ? o.id : `ORD-${o.id}`}</span>
+                           {o.item_count > 1 && <span style={{ backgroundColor: '#F4EBFF', color: '#7F56D9', fontSize: '11px', padding: '1px 6px', borderRadius: '16px', fontWeight: 700 }}>{o.item_count}</span>}
+                        </div>
+                     </td>
+                     <td style={{ padding: '16px 24px', fontWeight: 600, color: '#101828', backgroundColor: expandedRows.includes(o.id) ? '#F9F5FF' : 'inherit' }}>
+                        {o.customer_name || 'Walking Customer'}
+                     </td>
+                     <td style={{ padding: '16px 24px', backgroundColor: expandedRows.includes(o.id) ? '#F9F5FF' : 'inherit' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                           <div style={{ width: 40, height: 40, border: '1px solid #EAECF0', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F9FAFB', overflow: 'hidden' }}>
+                              {o.items?.[0]?.variant_image ? (
+                                 <img src={o.items[0].variant_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              ) : (
+                                 <Glasses size={20} color="#D0D5DD" />
+                              )}
+                           </div>
+                           <div>
+                              <div style={{ fontWeight: 500, color: '#344054', fontSize: '14px' }}>{o.items?.[0]?.variant_name || o.items?.[0]?.variant_sku || 'Standard Glasses'}</div>
+                              <div style={{ fontSize: '12px', color: '#667085' }}>{o.items?.[0]?.lens_desc || 'No Description'}</div>
+                           </div>
+                        </div>
+                     </td>
+                     <td style={{ padding: '16px 24px', backgroundColor: expandedRows.includes(o.id) ? '#F9F5FF' : 'inherit' }}>
+                        {(() => {
+                           const statuses = o.items?.map(i => (i.prescription_status || 'N/A').toLowerCase()) || [];
+                           const allApproved = statuses.length > 0 && statuses.every(s => s === 'approved');
+                           const anyPending = statuses.some(s => s.includes('pending'));
+                           const label = allApproved ? 'All Approved' : anyPending ? 'Action Required' : o.items?.[0]?.prescription_status || 'N/A';
+                           const color = allApproved ? '#027A48' : anyPending ? '#B54708' : '#B42318';
+                           const bg = allApproved ? '#ECFDF3' : anyPending ? '#FFFAEB' : '#FEF3F2';
+                           return (
+                              <span style={{ backgroundColor: bg, color: color, padding: '4px 10px', borderRadius: '4px', fontSize: '12px', fontWeight: 600, textTransform: 'capitalize', border: `1px solid ${allApproved ? '#D1FADF' : '#FEF0C7'}` }}>
+                                 {label}
+                              </span>
+                           );
+                        })()}
+                     </td>
+                     <td style={{ padding: '16px 24px', fontWeight: 700, color: '#101828', backgroundColor: expandedRows.includes(o.id) ? '#F9F5FF' : 'inherit' }}>
+                        ₹{Number(o.total_amount || 0).toLocaleString('en-IN')}
+                        <div style={{ display: 'inline-flex', marginLeft: 8, padding: '3px', backgroundColor: '#F04438', color: '#fff', borderRadius: '4px', verticalAlign: 'middle', cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); handleDownloadPDF(o); }}>
+                           <FileDown size={12} />
+                        </div>
+                     </td>
+                     <td style={{ padding: '16px 24px', backgroundColor: expandedRows.includes(o.id) ? '#F9F5FF' : 'inherit' }}>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                           <div onClick={(e) => { e.stopPropagation(); handleEdit(o); }} style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}>
+                              <Edit2 size={16} />
+                           </div>
+                           <div onClick={(e) => { e.stopPropagation(); handleDelete(o); }} style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}>
+                              <Trash2 size={16} />
+                           </div>
+                           <div className="relative">
+                              <div onClick={(e) => { e.stopPropagation(); setOpenDropdown(openDropdown === o.id ? null : o.id); }} style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: openDropdown === o.id ? '#F9FAFB' : '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}>
+                                 <MoreVertical size={16} />
+                              </div>
+                              {openDropdown === o.id && (
+                                 <>
+                                    <div className="fixed inset-0 z-[100]" onClick={(e) => { e.stopPropagation(); setOpenDropdown(null); }}></div>
+                                    <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-[101] overflow-hidden" style={{ filter: 'drop-shadow(0px 4px 6px -2px rgba(16, 24, 40, 0.03))' }}>
+                                       <div onClick={(e) => { e.stopPropagation(); setOpenDropdown(null); onOrderClick(o.id); }} style={{ padding: '12px 16px', fontSize: '13px', fontWeight: 600, color: '#344054', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', borderBottom: '1px solid #F2F4F7' }}>
+                                          <FileText size={16} color="#667085" /> View Details
+                                       </div>
+                                       <div onClick={(e) => { e.stopPropagation(); setOpenDropdown(null); handleEdit(o); }} style={{ padding: '12px 16px', fontSize: '13px', fontWeight: 600, color: '#344054', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', borderBottom: '1px solid #F2F4F7' }}>
+                                          <Edit2 size={16} color="#667085" /> Edit Order
+                                       </div>
+                                       <div onClick={(e) => { e.stopPropagation(); setOpenDropdown(null); handleDownloadPDF(o); }} style={{ padding: '12px 16px', fontSize: '13px', fontWeight: 600, color: '#344054', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', borderBottom: '1px solid #F2F4F7' }}>
+                                          <FileDown size={16} color="#667085" /> Download PDF
+                                       </div>
+                                       <div onClick={(e) => { e.stopPropagation(); setOpenDropdown(null); handleDelete(o); }} style={{ padding: '12px 16px', fontSize: '13px', fontWeight: 600, color: '#D92D20', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+                                          <Trash2 size={16} color="#D92D20" /> Delete Order
+                                       </div>
+                                    </div>
+                                 </>
+                              )}
+                           </div>
+                        </div>
+                     </td>
+                  </tr>
+                  {expandedRows.includes(o.id) && (
+                     <tr style={{ background: '#F9FAFB' }}>
+                        <td colSpan={7} style={{ padding: '12px 24px' }}>
+                           <div style={{ backgroundColor: '#ffffff', border: '1px solid #EAECF0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                              {o.items?.map((item, si) => (
+                                 <div
+                                    key={item.id || si}
+                                    style={{
+                                       display: 'grid',
+                                       gridTemplateColumns: '144px 1.25fr 2fr 180px 160px 140px',
+                                       alignItems: 'center',
+                                       borderBottom: si === o.items.length - 1 ? 'none' : '1px solid #F2F4F7',
+                                       background: '#ffffff',
+                                       padding: '0'
+                                    }}
+                                 >
+                                    <div style={{ height: '40px' }}></div>
+                                    <div style={{ padding: '20px 24px', fontWeight: 600, color: '#101828', fontSize: '15px' }}>
+                                       {item.patient_name || item.customer_name || o.customer_name}
+                                    </div>
+                                    <div style={{ padding: '20px 24px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                       <div style={{ width: '40px', height: '40px', border: '1px solid #F2F4F7', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F9FAFB', flexShrink: 0 }}>
+                                          {item.variant_image ? (
+                                             <img src={item.variant_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '6px' }} />
+                                          ) : (
+                                             <Glasses size={20} color="#D0D5DD" />
+                                          )}
+                                       </div>
+                                       <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                                          <div style={{ fontSize: '14px', fontWeight: 700, color: '#344054', lineHeight: 1.2, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{item.variant_name || item.product_name || item.variant_sku || 'Glasses Frame'}</div>
+                                          <div style={{ fontSize: '11px', color: '#667085', marginTop: '2px', fontStyle: 'italic' }}>{item.lens_desc || 'Standard Edition'}</div>
+                                       </div>
+                                    </div>
+                                    <div style={{ padding: '20px 24px', display: 'flex', alignItems: 'center' }}>
+                                       <span style={{
+                                          backgroundColor: (item.prescription_status || 'N/A').toLowerCase() === 'approved' ? '#ECFDF3' : (item.prescription_status || '').toLowerCase().includes('pending') ? '#FFFAEB' : '#FEF3F2',
+                                          color: (item.prescription_status || 'N/A').toLowerCase() === 'approved' ? '#027A48' : (item.prescription_status || '').toLowerCase().includes('pending') ? '#B54708' : '#B42318',
+                                          padding: '4px 12px',
+                                          borderRadius: '4px',
+                                          fontSize: '12px',
+                                          fontWeight: 600,
+                                          border: `1px solid ${(item.prescription_status || item.status || '').toLowerCase() === 'approved' ? '#D1FADF' : '#FEF0C7'}`,
+                                          textAlign: 'center'
+                                       }}>
+                                          {item.prescription_status || item.status || 'N/A'}
+                                       </span>
+                                    </div>
+                                    <div style={{ padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '10px', fontWeight: 700, color: '#101828', fontSize: '15px' }}>
+                                       ₹{Number(item.price || item.unit_price || item.price_at_purchase || 0).toLocaleString('en-IN')}
+                                       <div
+                                          onClick={(e) => { e.stopPropagation(); console.log('Download PDF for item', item.id); }}
+                                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F04438', color: '#ffffff', padding: '5px', borderRadius: '4px', cursor: 'pointer' }}
+                                          title="Download PDF"
+                                       >
+                                          <FileDown size={11} strokeWidth={3} />
+                                       </div>
+                                    </div>
+                                    <div style={{ padding: '20px 24px', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                                       <button onClick={(e) => { e.stopPropagation(); handleEdit(o); }} style={{ width: '34px', height: '34px', border: '1px solid #E0E0E0', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085' }}><Edit2 size={16} /></button>
+                                       <button onClick={(e) => { e.stopPropagation(); handleDelete(o); }} style={{ width: '34px', height: '34px', border: '1px solid #E0E0E0', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085' }}><Trash2 size={16} /></button>
+                                    </div>
+                                 </div>
+                              ))}
+                           </div>
+                        </td>
+                     </tr>
+                  )}
+               </React.Fragment>
+            )}
+            pagination={{
+               page,
+               perPage,
+               totalCount: totalOrders,
+               onPageChange: setPage,
+               onPerPageChange: setPerPage
+            }}
+            showFilters={showFilters}
+            setShowFilters={setShowFilters}
+            onExport={handleExport}
+            filterContent={
+               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: '16px' }}>
                   <div style={{ flex: '1', minWidth: '200px' }}>
                      <label style={{ display: 'block', textTransform: 'uppercase', fontSize: '10px', fontWeight: 800, color: '#667085', marginBottom: '6px', letterSpacing: '0.05em' }}>Filter by Status</label>
-                     <div className="relative group" style={{ position: 'relative' }}>
+                     <div style={{ position: 'relative' }}>
                         <select
                            value={statusFilter}
                            onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
@@ -522,7 +685,6 @@ const DashboardHome = ({ statsData, recentOrders }) => {
                         <ChevronDown size={14} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#667085' }} />
                      </div>
                   </div>
-
                   <div style={{ display: 'flex', gap: '12px', flex: '2', minWidth: '320px' }}>
                      <div style={{ flex: '1' }}>
                         <label style={{ display: 'block', textTransform: 'uppercase', fontSize: '10px', fontWeight: 800, color: '#667085', marginBottom: '6px', letterSpacing: '0.05em' }}>Date From</label>
@@ -543,7 +705,6 @@ const DashboardHome = ({ statsData, recentOrders }) => {
                         />
                      </div>
                   </div>
-
                   <div style={{ display: 'flex', gap: '8px' }}>
                      <button
                         onClick={() => { setStatusFilter(''); setDateFilter({ from: '', to: '' }); }}
@@ -559,295 +720,23 @@ const DashboardHome = ({ statsData, recentOrders }) => {
                      </button>
                   </div>
                </div>
-            )}
+            }
+         />
 
-            <div className="table-scroll-wrap" style={{ overflowX: 'auto' }}>
-               <table className="figma-table">
-                  <thead>
-                     <tr style={{ background: '#fff' }}>
-                        <th style={{ padding: '12px 24px', width: 40 }}><input type="checkbox" /></th>
-                        <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'left', textTransform: 'capitalize' }}>Order ID <ArrowUpDown size={12} style={{ marginLeft: 4 }} /></th>
-                        <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'left', textTransform: 'capitalize' }}>Customer Name</th>
-                        <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'left', textTransform: 'capitalize' }}>Items</th>
-                        <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'left', textTransform: 'capitalize' }}>Prescription Status <ArrowUpDown size={12} style={{ marginLeft: 4 }} /></th>
-                        <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>total (₹)</th>
-                        <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'right' }}>action</th>
-                     </tr>
-                  </thead>
-                  <tbody>
-                     {orders.map((o, idx) => (
-                        <React.Fragment key={idx}>
-                           <tr style={{ cursor: 'pointer', backgroundColor: expandedRows.includes(o.id) ? '#F9F5FF' : '#fff' }}>
-                              <td style={{ padding: '16px 24px', backgroundColor: expandedRows.includes(o.id) ? '#F9F5FF' : '#fff' }}>
-                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <div onClick={() => toggleRow(o.id)} style={{ color: '#98A2B3' }}>
-                                       {expandedRows.includes(o.id) ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                                    </div>
-                                    <input type="checkbox" />
-                                 </div>
-                              </td>
-                              <td style={{ padding: '16px 24px', backgroundColor: expandedRows.includes(o.id) ? '#F9F5FF' : '#fff' }}>
-                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <span style={{ fontWeight: 600, color: '#344054' }}>{o.id.toString().startsWith('ORD-') ? o.id : `ORD-${o.id}`}</span>
-                                    {o.item_count > 1 && <span style={{ backgroundColor: '#F4EBFF', color: '#7F56D9', fontSize: '11px', padding: '1px 6px', borderRadius: '16px', fontWeight: 700 }}>{o.item_count}</span>}
-                                 </div>
-                              </td>
-                              <td style={{ padding: '16px 24px', fontWeight: 600, color: '#101828', backgroundColor: expandedRows.includes(o.id) ? '#F9F5FF' : '#fff' }}>{o.customer_name}</td>
-                              <td style={{ padding: '16px 24px', backgroundColor: expandedRows.includes(o.id) ? '#F9F5FF' : '#fff' }}>
-                                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                    <div style={{ width: 40, height: 40, border: '1px solid #EAECF0', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F9FAFB' }}>
-                                       <Glasses size={20} color="#D0D5DD" />
-                                    </div>
-                                    <div>
-                                       <div style={{ fontWeight: 500, color: '#344054', fontSize: '14px' }}>{o.items?.[0]?.variant_name || o.items?.[0]?.variant_sku || 'Standard Glasses'}</div>
-                                       <div style={{ fontSize: '12px', color: '#667085' }}>{o.items?.[0]?.lens_desc}</div>
-                                    </div>
-                                 </div>
-                              </td>
-                              <td style={{ padding: '16px 24px', backgroundColor: expandedRows.includes(o.id) ? '#F9F5FF' : '#fff' }}>
-                                 <span style={{
-                                    backgroundColor: (o.items?.[0]?.prescription_status || 'N/A').toLowerCase() === 'approved' ? '#ECFDF3' : (o.items?.[0]?.prescription_status || '').toLowerCase().includes('pending') ? '#FFFAEB' : '#FEF3F2',
-                                    color: (o.items?.[0]?.prescription_status || 'N/A').toLowerCase() === 'approved' ? '#027A48' : (o.items?.[0]?.prescription_status || '').toLowerCase().includes('pending') ? '#B54708' : '#B42318',
-                                    padding: '4px 10px', borderRadius: '4px', fontSize: '12px', fontWeight: 600, textTransform: 'capitalize'
-                                 }}>
-                                    {o.items?.[0]?.prescription_status || 'N/A'}
-                                 </span>
-                              </td>
-                              <td style={{ padding: '16px 24px', fontWeight: 700, color: '#101828', backgroundColor: expandedRows.includes(o.id) ? '#F9F5FF' : '#fff' }}>
-                                 ₹{o.total_amount} <div style={{ display: 'inline-flex', marginLeft: 8, padding: '3px', backgroundColor: '#F04438', color: '#fff', borderRadius: '4px', verticalAlign: 'middle', cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); handleDownloadPDF(o); }}><FileDown size={12} /></div>
-                              </td>
-                              <td style={{ padding: '16px 24px', backgroundColor: expandedRows.includes(o.id) ? '#F9F5FF' : '#fff' }}>
-                                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-                                    <div
-                                       onClick={(e) => { e.stopPropagation(); handleEdit(o); }}
-                                       style={{ width: 34, height: 34, border: '1px solid #EAECF0', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085' }}
-                                       title="Edit Order"
-                                    >
-                                       <Edit2 size={16} />
-                                    </div>
-                                    <div
-                                       onClick={(e) => { e.stopPropagation(); handleDelete(o); }}
-                                       style={{ width: 34, height: 34, border: '1px solid #EAECF0', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085' }}
-                                       title="Delete Order"
-                                    >
-                                       <Trash2 size={16} />
-                                    </div>
-                                    <div className="relative">
-                                       <div
-                                          onClick={(e) => { e.stopPropagation(); setOpenDropdown(openDropdown === o.id ? null : o.id); }}
-                                          style={{ width: 34, height: 34, border: '1px solid #EAECF0', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: openDropdown === o.id ? '#F9FAFB' : '#ffffff', color: '#667085' }}
-                                       >
-                                          <MoreVertical size={16} />
-                                       </div>
-                                       {openDropdown === o.id && (
-                                          <>
-                                             <div className="fixed inset-0 z-10" onClick={() => setOpenDropdown(null)}></div>
-                                             <div style={{ position: 'absolute', right: 0, marginTop: '4px', width: '180px', backgroundColor: '#ffffff', border: '1px solid #EAECF0', borderRadius: '8px', zIndex: 20, overflow: 'hidden' }}>
-                                                <div onClick={(e) => { e.stopPropagation(); setOpenDropdown(null); toggleRow(o.id); }} style={{ padding: '10px 16px', fontSize: '13px', fontWeight: 600, color: '#344054', cursor: 'pointer', borderBottom: '1px solid #F2F4F7' }}>View Details</div>
-                                                <div onClick={(e) => { e.stopPropagation(); setOpenDropdown(null); handleEdit(o); }} style={{ padding: '10px 16px', fontSize: '13px', fontWeight: 600, color: '#344054', cursor: 'pointer', borderBottom: '1px solid #F2F4F7' }}>Edit Order</div>
-                                                <div onClick={(e) => { e.stopPropagation(); setOpenDropdown(null); handleDownloadPDF(o); }} style={{ padding: '10px 16px', fontSize: '13px', fontWeight: 600, color: '#344054', cursor: 'pointer', borderBottom: '1px solid #F2F4F7' }}>Download PDF</div>
-                                                <div onClick={(e) => { e.stopPropagation(); setOpenDropdown(null); handleDelete(o); }} style={{ padding: '10px 16px', fontSize: '13px', fontWeight: 600, color: '#D92D20', cursor: 'pointer' }}>Delete Order</div>
-                                             </div>
-                                          </>
-                                       )}
-                                    </div>
-                                 </div>
-                              </td>
-                           </tr>
-                           {/* Sub-row detail (Real Grid Synchronization for Pixel-Perfect Alignment) */}
-                           {expandedRows.includes(o.id) && (
-                              <tr style={{ background: '#F9F5FF' }}>
-                                 <td colSpan={7} style={{ padding: '16px 24px', backgroundColor: '#F9F5FF' }}>
-                                    <div style={{ backgroundColor: '#ffffff', border: '1px solid #EAECF0', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-                                       {o.items?.map((item, si) => (
-                                          <div
-                                             key={item.id || si}
-                                             style={{
-                                                display: 'grid',
-                                                gridTemplateColumns: '144px 1.25fr 2fr 180px 160px 140px',
-                                                alignItems: 'center',
-                                                borderBottom: si === o.items.length - 1 ? 'none' : '1px solid #F2F4F7',
-                                                background: '#ffffff',
-                                                padding: '0' // Remove outer padding to align with table cells
-                                             }}
-                                          >
-                                             {/* Spacer for Checkbox + ID column (144px exactly offsets the left table content) */}
-                                             <div style={{ height: '40px' }}></div>
-
-                                             {/* Aligned Col 1: Customer Name (Under 'Customer Name' Header) */}
-                                             <div style={{ padding: '20px 24px', fontWeight: 600, color: '#101828', fontSize: '15px' }}>
-                                                {item.patient_name || item.customer_name || o.customer_name}
-                                             </div>
-
-                                             {/* Aligned Col 2: Item Details (Under 'Items' Header) */}
-                                             <div style={{ padding: '20px 24px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                                <div style={{ width: '40px', height: '40px', border: '1px solid #F2F4F7', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F9FAFB', flexShrink: 0 }}>
-                                                   {item.variant_image ? (
-                                                      <img src={item.variant_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '6px' }} />
-                                                   ) : (
-                                                      <Glasses size={20} color="#D0D5DD" />
-                                                   )}
-                                                </div>
-                                                <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                                                   <div style={{ fontSize: '14px', fontWeight: 700, color: '#344054', lineHeight: 1.2, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{item.variant_name || item.product_name || item.variant_sku || 'Glasses Frame'}</div>
-                                                   <div style={{ fontSize: '11px', color: '#667085', marginTop: '2px', fontStyle: 'italic' }}>{item.lens_desc || 'Standard Edition'}</div>
-                                                </div>
-                                                {/* Aligned Col 3: Prescription Status (Under 'Prescription Status' Header) */}
-                                                <div style={{ padding: '20px 24px', display: 'flex', alignItems: 'center' }}>
-                                                   <span style={{
-                                                      backgroundColor: (item.prescription_status || 'N/A').toLowerCase() === 'approved' ? '#ECFDF3' : (item.prescription_status || '').toLowerCase().includes('pending') ? '#FFFAEB' : '#FEF3F2',
-                                                      color: (item.prescription_status || 'N/A').toLowerCase() === 'approved' ? '#027A48' : (item.prescription_status || '').toLowerCase().includes('pending') ? '#B54708' : '#B42318',
-                                                      padding: '4px 12px',
-                                                      borderRadius: '4px',
-                                                      fontSize: '12px',
-                                                      fontWeight: 600,
-                                                      border: `1px solid ${(item.prescription_status || item.status || '').toLowerCase() === 'approved' ? '#D1FADF' : '#FEF0C7'}`,
-                                                      textAlign: 'center'
-                                                   }}>
-                                                      {item.prescription_status || item.status || 'N/A'}
-                                                   </span>
-                                                </div>      </div>
-
-                                             {/* Aligned Col 4: Price & Unified PDF Icon (Under 'Total' Header) */}
-                                             <div style={{ padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '10px', fontWeight: 700, color: '#101828', fontSize: '15px' }}>
-                                                ₹{Number(item.price || item.unit_price || item.price_at_purchase || 0).toLocaleString('en-IN')}
-                                                <div
-                                                   onClick={(e) => { e.stopPropagation(); console.log('Download PDF for item', item.id); }}
-                                                   style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F04438', color: '#ffffff', padding: '5px', borderRadius: '4px', cursor: 'pointer' }}
-                                                   title="Download PDF"
-                                                >
-                                                   <FileDown size={11} strokeWidth={3} />
-                                                </div>
-                                             </div>
-
-                                             {/* Aligned Col 5: Actions (Under 'Action' Header) */}
-                                             <div style={{ padding: '20px 24px', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                                                <button
-                                                   onClick={(e) => { e.stopPropagation(); handleEdit(o); }}
-                                                   style={{ width: '34px', height: '34px', border: '1px solid #EAECF0', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085' }}
-                                                >
-                                                   <Edit2 size={16} />
-                                                </button>
-                                                <button
-                                                   onClick={(e) => { e.stopPropagation(); handleDelete(o); }}
-                                                   style={{ width: '34px', height: '34px', border: '1px solid #EAECF0', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085' }}
-                                                >
-                                                   <Trash2 size={16} />
-                                                </button>
-                                             </div>
-                                          </div>
-                                       ))}
-                                    </div>
-                                 </td>
-                              </tr>
-                           )}
-                        </React.Fragment>
-                     ))}
-                  </tbody>
-               </table>
-            </div>
-
-            {/* Final Pagination Strip (Pixel Perfect) */}
-            <div style={{ padding: '16px 24px', whiteSpace: 'nowrap', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #EAECF0', background: '#fff' }}>
-               <div style={{ fontSize: '14px', color: '#344054', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  Rows per Page
-                  <div style={{ position: 'relative' }}>
-                     <select
-                        value={perPage}
-                        onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }}
-                        style={{ padding: '8px 32px 8px 12px', border: '1px solid #D0D5DD', borderRadius: '8px', fontSize: '14px', fontWeight: 600, appearance: 'none', background: 'white', cursor: 'pointer', outline: 'none', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
-                     >
-                        <option value={10}>10</option>
-                        <option value={20}>20</option>
-                        <option value={50}>50</option>
-                     </select>
-                     <ChevronDown size={14} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#667085' }} />
-                  </div>
-               </div>
-
-               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <button
-                     disabled={page === 1}
-                     onClick={() => setPage(page - 1)}
-                     style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '14px', color: page === 1 ? '#D0D5DD' : '#344054', fontWeight: 600, cursor: page === 1 ? 'default' : 'pointer', background: 'none', border: '1px solid #D0D5DD', borderRadius: '8px', padding: '6px 12px', outline: 'none' }}
-                  >
-                     <ChevronLeft size={16} /> Prev
-                  </button>
-
-                  <div style={{ display: 'flex', gap: 4 }}>
-                     {[1, 2, 3, '...', 50].map((n, i) => (
-                        <button
-                           key={i}
-                           onClick={() => typeof n === 'number' && setPage(n)}
-                           style={{
-                              width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px',
-                              background: (page === n || (n === 1 && page === 1)) ? '#F4EBFF' : 'transparent',
-                              color: (page === n || (n === 1 && page === 1)) ? '#7F56D9' : '#475467',
-                              fontWeight: (page === n || (n === 1 && page === 1)) ? 700 : 500,
-                              border: 'none', cursor: typeof n === 'number' ? 'pointer' : 'default', outline: 'none'
-                           }}
-                        >
-                           {n}
-                        </button>
-                     ))}
-                  </div>
-
-                  <button
-                     disabled={page >= totalPages}
-                     onClick={() => setPage(page + 1)}
-                     style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '14px', color: page >= totalPages ? '#D0D5DD' : '#344054', fontWeight: 600, cursor: page >= totalPages ? 'default' : 'pointer', background: 'none', border: '1px solid #D0D5DD', borderRadius: '8px', padding: '6px 12px', outline: 'none' }}
-                  >
-                     Next <ChevronRight size={16} />
-                  </button>
-
-                  <span style={{ color: '#D0D5DD', margin: '0 8px' }}>/</span>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                     <span style={{ fontSize: '14px', color: '#344054', fontWeight: 600 }}>Go to Page</span>
-                     <input
-                        type="text"
-                        defaultValue={page}
-                        style={{ width: '40px', padding: '6px', border: '1px solid #D0D5DD', borderRadius: '8px', textAlign: 'center', fontSize: '14px', fontWeight: 600 }}
-                        onKeyDown={(e) => {
-                           if (e.key === 'Enter') {
-                              const p = parseInt(e.target.value);
-                              if (p >= 1 && p <= totalPages) setPage(p);
-                           }
-                        }}
-                     />
-                     <button
-                        onClick={(e) => {
-                           const val = e.currentTarget.previousSibling.value;
-                           const p = parseInt(val);
-                           if (p >= 1 && p <= totalPages) setPage(p);
-                        }}
-                        style={{ color: '#344054', fontWeight: 700, border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2 }}
-                     >
-                        Go <ChevronRight size={14} />
-                     </button>
-                  </div>
-               </div>
-
-               <div style={{ fontSize: '14px', color: '#475467', fontWeight: 500 }}>
-                  Showing {(page - 1) * perPage + 1} - {Math.min(page * perPage, totalOrders)} of {totalOrders}
-               </div>
-            </div>
-
-            <FormModal
-               isOpen={showForm}
-               onClose={() => setShowForm(false)}
-               onSubmit={handleFormSubmit}
-               onDelete={() => deleteOrder(selectedOrder?.id)}
-               mode={formMode}
-               title="Order"
-               fields={orderFormFields}
-               initialData={selectedOrder ? {
-                  ...selectedOrder,
-                  status: statusOptions.find(opt => opt.label === selectedOrder.status_label)?.value || selectedOrder.status
-               } : {}}
-            />
-         </div>
-      </div>
+         <FormModal
+            isOpen={showForm}
+            onClose={() => setShowForm(false)}
+            onSubmit={handleFormSubmit}
+            onDelete={() => deleteOrder(selectedOrder?.id)}
+            mode={formMode}
+            title="Order"
+            fields={orderFormFields}
+            initialData={selectedOrder ? {
+               ...selectedOrder,
+               status: statusOptions.find(opt => opt.label === selectedOrder.status_label)?.value || selectedOrder.status
+            } : {}}
+         />
+      </>
    );
 };
 

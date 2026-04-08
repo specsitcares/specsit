@@ -29,20 +29,26 @@ const ProductDetailPage = () => {
     const [isVTOModalOpen, setIsVTOModalOpen] = useState(false);
 
     useEffect(() => {
+        const fetchDetails = () => {
+            apiClient.get(`/catalog/products/${id}/`)
+                .then(res => {
+                    setProduct(res.data);
+                    return apiClient.get(`/catalog/products/${id}/recommended_lenses/`);
+                })
+                .then(res => {
+                    setRecommendedLenses(res.data.results || res.data);
+                    setLoading(false);
+                })
+                .catch(err => {
+                    if (!product) setError("Product entry not found.");
+                    setLoading(false);
+                });
+        };
+
         setLoading(true);
-        apiClient.get(`/catalog/products/${id}/`)
-            .then(res => {
-                setProduct(res.data);
-                return apiClient.get(`/catalog/products/${id}/recommended_lenses/`);
-            })
-            .then(res => {
-                setRecommendedLenses(res.data.results || res.data);
-                setLoading(false);
-            })
-            .catch(err => {
-                setError("Product entry not found.");
-                setLoading(false);
-            });
+        fetchDetails();
+        const interval = setInterval(fetchDetails, 5000); // 5s Customer Polling
+        return () => clearInterval(interval);
     }, [id]);
 
 

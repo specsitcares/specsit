@@ -77,7 +77,7 @@ const AuthCallbackPage = () => {
                     <h2>{status}</h2>
                 </div>
             )}
-            <style jsx>{`
+            <style>{`
                 .spinner {
                     border: 4px solid rgba(0, 0, 0, 0.1);
                     width: 36px;

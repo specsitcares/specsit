@@ -119,3 +119,123 @@
 .form-field label { font-size: 0.85rem; font-weight: 700; color: var(--text-secondary, #666); }
 .form-field input { padding: 14px 18px; border-radius: 12px; border: 1px solid #eee; background: #fafafa; font-size: 0.95rem; }
 .form-field input:focus { border-color: var(--primary-color, #0ea5e9); outline: none; background: white; }
+
+/* Checkout Mission Hub */
+.checkout-container {
+  max-width: 1280px;
+  margin: 40px auto;
+  padding: 0 24px;
+}
+
+.checkout-layout {
+  display: grid;
+  grid-template-columns: 1fr 420px;
+  gap: 48px;
+}
+
+.checkout-summary {
+  background: #F9FAFB;
+  border: 1px solid #EAECF0;
+  border-radius: 20px;
+  padding: 32px;
+  height: fit-content;
+  position: sticky;
+  top: 100px;
+}
+
+.summary-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #101828;
+  margin-bottom: 24px;
+  letter-spacing: 0.05em;
+}
+
+.summary-item-card {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #EAECF0;
+}
+
+.summary-item-main {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 700;
+  font-size: 14px;
+  color: #344054;
+  margin-bottom: 8px;
+}
+
+.recipient-input-box {
+  margin-top: 8px;
+}
+
+.recipient-name-field {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #D0D5DD;
+  font-size: 13px;
+  background: white;
+  transition: all 0.2s;
+}
+
+.recipient-name-field:focus {
+  border-color: #7F56D9;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(127, 86, 217, 0.1);
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 24px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #101828;
+}
+
+.checkout-btn {
+  width: 100%;
+  padding: 16px;
+  background: #7F56D9;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.checkout-btn:hover {
+  background: #6941C6;
+  transform: translateY(-2px);
+}
+
+.pin-deployment {
+  grid-column: span 2;
+  padding: 16px;
+  background: #F9F5FF;
+  border: 2px dashed #7F56D9;
+  border-radius: 12px;
+  color: #6941C6;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+  margin: 16px 0;
+  transition: all 0.2s;
+}
+
+.pin-deployment:hover {
+  background: #F4EBFF;
+}
+
+.pin-success {
+  color: #027A48;
+}

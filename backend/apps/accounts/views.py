@@ -62,22 +62,42 @@ class GoogleOAuthView(APIView):
 
     def post(self, request):
         code = request.data.get('code')
+        # Some frontend flows (like popups) use 'postmessage' as the redirect_uri
+        redirect_uri = request.data.get('redirect_uri', settings.GOOGLE_REDIRECT_URI)
+        
         if not code:
             return Response({'error': 'Code not provided'}, status=status.HTTP_400_BAD_REQUEST)
 
         # 1. Exchange code for token
         token_url = "https://oauth2.googleapis.com/token"
-        data = {
-            'code': code,
-            'client_id': settings.GOOGLE_CLIENT_ID,
-            'client_secret': settings.GOOGLE_CLIENT_SECRET,
-            'redirect_uri': settings.GOOGLE_REDIRECT_URI,
-            'grant_type': 'authorization_code',
-        }
         
-        token_res = requests.post(token_url, data=data)
-        token_data = token_res.json()
-        print(f"GOOGLE TOKEN DATA: {token_data}") # SERVER LOG FOR DEBUGGING
+        # Define the possible redirect URIs to try
+        # 'postmessage' is standard for frontend popups, while the configured URI is for redirects
+        # IMPORTANT: Try 'postmessage' FIRST because Google may invalidate the code after one failure.
+        uris_to_try = ['postmessage', redirect_uri, settings.GOOGLE_REDIRECT_URI]
+        # Remove duplicates while preserving order
+        uris_to_try = list(dict.fromkeys(uris_to_try))
+        
+        token_data = {}
+        for uri in uris_to_try:
+            data = {
+                'code': code,
+                'client_id': settings.GOOGLE_CLIENT_ID,
+                'client_secret': settings.GOOGLE_CLIENT_SECRET,
+                'redirect_uri': uri,
+                'grant_type': 'authorization_code',
+            }
+            token_res = requests.post(token_url, data=data)
+            token_data = token_res.json()
+            
+            # If we got a token, stop retrying
+            if 'access_token' in token_data:
+                break
+            
+            # Log the failure for debugging
+            print(f"FAILED OAuth with URI {uri}: {token_data.get('error')}")
+
+        print(f"FINAL GOOGLE TOKEN DATA: {token_data}") # SERVER LOG FOR DEBUGGING
 
         if 'error' in token_data:
             return Response({
@@ -100,13 +120,20 @@ class GoogleOAuthView(APIView):
             return Response({'error': 'Email not provided by Google'}, status=status.HTTP_400_BAD_REQUEST)
 
         # 3. Get or create user
-        # Try to find user by email first
         user = User.objects.filter(email=email).first()
         created = False
         
         if not user:
+            # Check if username exists as something else
+            base_username = email.split('@')[0]
+            username = base_username
+            counter = 1
+            while User.objects.filter(username=username).exists():
+                username = f"{base_username}{counter}"
+                counter += 1
+                
             user = User.objects.create_user(
-                username=email, # Use email as username
+                username=username,
                 email=email,
                 first_name=first_name,
                 last_name=last_name

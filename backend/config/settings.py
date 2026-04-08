@@ -255,4 +255,4 @@ EMAIL_USE_TLS = env('EMAIL_USE_TLS', default=True)
 # Google OAuth Configuration
 GOOGLE_CLIENT_ID = env('GOOGLE_CLIENT_ID', default='')
 GOOGLE_CLIENT_SECRET = env('GOOGLE_CLIENT_SECRET', default='')
-GOOGLE_REDIRECT_URI = env('GOOGLE_REDIRECT_URI', default='http://localhost:5173/auth/callback')
+GOOGLE_REDIRECT_URI = env('GOOGLE_REDIRECT_URI', default='http://localhost:5174/auth/callback')

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Plus, Edit, Trash2, MoreHorizontal, Star, ChevronLeft, ChevronRight, User } from 'lucide-react';
+import { Search, Filter, Plus, Edit, Trash2, MoreVertical, Star, ChevronLeft, ChevronRight, User, Edit2 } from 'lucide-react';
 import apiClient from '../../services/api';
 import FormModal from './FormModal';
+import BaseAdminTable from './BaseAdminTable';
 
 const ReviewTable = () => {
   const [reviews, setReviews] = useState([]);
@@ -11,7 +12,8 @@ const ReviewTable = () => {
   const [formMode, setFormMode] = useState('create');
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
-  const PER_PAGE = 10;
+  const [perPage, setPerPage] = useState(10);
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => { fetchReviews(); }, []);
 
@@ -26,107 +28,139 @@ const ReviewTable = () => {
   const handleEditClick   = (r) => { setFormMode('edit');   setSelectedReview(r);    setShowForm(true); };
 
   const handleFormSubmit = async (formData) => {
-    if (formMode === 'create') await apiClient.post('/catalog/reviews/', formData);
-    else await apiClient.patch(`/catalog/reviews/${selectedReview.id}/`, formData);
-    fetchReviews();
+    try {
+      if (formMode === 'create') await apiClient.post('/catalog/reviews/', formData);
+      else await apiClient.patch(`/catalog/reviews/${selectedReview.id}/`, formData);
+      setShowForm(false);
+      fetchReviews();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleFormDelete = async (id) => {
-    await apiClient.delete(`/catalog/reviews/${id}/`);
-    fetchReviews();
+    try {
+      await apiClient.delete(`/catalog/reviews/${id}/`);
+      setShowForm(false);
+      fetchReviews();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const filtered = reviews.filter(r =>
     [r.user_name, r.product_name, r.comment].some(v => v?.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const totalPages = Math.ceil(filtered.length / PER_PAGE);
-  const paginated  = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const paginated = filtered.slice((page - 1) * perPage, page * perPage);
 
-  if (loading) return <div className="db-loading-state">Loading product reviews…</div>;
+  const columns = [
+    { label: 'Customer', key: 'customer', sortable: true },
+    { label: 'Product', key: 'product', sortable: true },
+    { label: 'Rating', key: 'rating', sortable: true },
+    { label: 'Comment', key: 'comment' },
+    { label: 'Status', key: 'status', sortable: true },
+    { label: 'Created', key: 'created', sortable: true },
+    { label: 'Action', key: 'action', align: 'right' }
+  ];
+
+  const renderRow = (r, idx) => (
+    <tr key={r.id || idx} style={{ borderBottom: '1px solid #EAECF0', backgroundColor: '#fff' }}>
+      <td style={{ padding: '16px 24px' }}>
+        <input type="checkbox" style={{ cursor: 'pointer', borderRadius: '4px', accentColor: '#7F56D9' }} />
+      </td>
+      <td style={{ padding: '16px 24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#F4EBFF', color: '#7F56D9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <User size={16} />
+          </div>
+          <div style={{ fontWeight: 600, color: '#101828', fontSize: '14px' }}>{r.user_name || 'Anonymous'}</div>
+        </div>
+      </td>
+      <td style={{ padding: '16px 24px' }}>
+        <div style={{ fontSize: '13px', color: '#344054', fontWeight: 500 }}>{r.product_name || '—'}</div>
+      </td>
+      <td style={{ padding: '16px 24px' }}>
+        <div style={{ display: 'flex', gap: 2 }}>
+          {[...Array(5)].map((_, i) => (
+            <Star key={i} size={14} fill={i < r.rating ? '#F79009' : 'none'} color={i < r.rating ? '#F79009' : '#D0D5DD'} />
+          ))}
+        </div>
+      </td>
+      <td style={{ padding: '16px 24px', maxWidth: 280 }}>
+        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', lineHeight: 1.5, fontSize: '13px', color: '#667085' }}>
+          {r.comment || '—'}
+        </div>
+      </td>
+      <td style={{ padding: '16px 24px' }}>
+        <span style={{
+          backgroundColor: r.is_approved ? '#ECFDF3' : '#FFFAEB',
+          color: r.is_approved ? '#027A48' : '#B54708',
+          padding: '4px 10px',
+          borderRadius: '16px',
+          fontSize: '12px',
+          fontWeight: 600,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          border: `1px solid ${r.is_approved ? '#ABEFC6' : '#FEDF89'}`
+        }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: r.is_approved ? '#12B76A' : '#F79009' }}></span>
+          {r.is_approved ? 'Approved' : 'Pending'}
+        </span>
+      </td>
+      <td style={{ padding: '16px 24px' }}>
+        <span style={{ fontSize: '13px', color: '#667085' }}>{new Date(r.created_at).toLocaleDateString()}</span>
+      </td>
+      <td style={{ padding: '16px 24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+          <div
+            onClick={() => handleEditClick(r)}
+            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+            title="Edit Review"
+          >
+            <Edit2 size={16} />
+          </div>
+          <div
+            onClick={() => { setSelectedReview(r); setFormMode('edit'); setShowForm(true); }}
+            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+            title="Delete Review"
+          >
+            <Trash2 size={16} />
+          </div>
+        </div>
+      </td>
+    </tr>
+  );
 
   return (
-    <div className="admin-table-wrapper">
-      <div className="table-toolbar">
-        <div>
-          <div className="table-title">Product Reviews</div>
-          <div className="table-subtitle">{filtered.length} customer feedbacks</div>
-        </div>
-        <div className="table-actions">
-          <div className="table-search-box">
-            <Search size={14} />
-            <input type="text" placeholder="Search customer or content…" value={searchQuery}
-              onChange={e => { setSearchQuery(e.target.value); setPage(1); }} />
+    <>
+      <BaseAdminTable
+        title="Product Reviews"
+        count={filtered.length}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        onAdd={handleCreateClick}
+        addLabel="Add Review"
+        columns={columns}
+        data={paginated}
+        loading={loading}
+        renderRow={renderRow}
+        pagination={{
+          page,
+          perPage,
+          totalCount: filtered.length,
+          onPageChange: setPage,
+          onPerPageChange: setPerPage
+        }}
+        showFilters={showFilters}
+        setShowFilters={setShowFilters}
+        filterContent={
+          <div style={{ display: 'flex', gap: '16px' }}>
+             <div style={{ fontSize: '14px', color: '#667085' }}>No active filters available for reviews.</div>
           </div>
-          <button className="btn btn-outline"><Filter size={14} /> Filter</button>
-          <button className="btn btn-primary" onClick={handleCreateClick}><Plus size={14} /> Add Mock Review</button>
-        </div>
-      </div>
-
-      <div style={{ overflowX: 'auto' }}>
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th style={{ width: 40 }}><input type="checkbox" /></th>
-              <th>Customer</th>
-              <th>Product</th>
-              <th>Rating</th>
-              <th style={{ width: '30%' }}>Comment</th>
-              <th>Status</th>
-              <th>Created</th>
-              <th style={{ textAlign: 'right' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {paginated.map(r => (
-              <tr key={r.id}>
-                <td><input type="checkbox" /></td>
-                <td>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--brand-50)', color: 'var(--brand-700)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <User size={14} />
-                    </div>
-                    <div className="cell-text-primary">{r.user_name || 'Anonymous'}</div>
-                  </div>
-                </td>
-                <td><div className="cell-text-primary" style={{ fontSize: '13px' }}>{r.product_name || '—'}</div></td>
-                <td>
-                  <div style={{ display: 'flex', gap: 1 }}>
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} size={13} fill={i < r.rating ? 'var(--warning-500)' : 'none'} color={i < r.rating ? 'var(--warning-500)' : 'var(--gray-300)'} />
-                    ))}
-                  </div>
-                </td>
-                <td><div className="cell-text-secondary" style={{ overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', lineHeight: 1.4 }}>{r.comment || '—'}</div></td>
-                <td>
-                  <span className={`badge ${r.is_approved ? 'badge-success' : 'badge-warning'}`}>
-                    <span className="badge-dot" />{r.is_approved ? 'Approved' : 'Pending'}
-                  </span>
-                </td>
-                <td><span className="cell-text-secondary">{new Date(r.created_at).toLocaleDateString()}</span></td>
-                <td>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 4 }}>
-                    <button className="row-action-btn edit" onClick={() => handleEditClick(r)}><Edit size={14}/></button>
-                    <button className="row-action-btn delete" onClick={() => { setSelectedReview(r); setFormMode('edit'); setShowForm(true); }}><Trash2 size={14}/></button>
-                    <button className="row-action-btn"><MoreHorizontal size={14}/></button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="table-pagination">
-        <div className="pagination-info">Showing {paginated.length} of {filtered.length}</div>
-        <div className="pagination-controls">
-          <button className="page-btn" disabled={page===1} onClick={() => setPage(p=>p-1)}><ChevronLeft size={14}/></button>
-          {Array.from({length: Math.min(totalPages, 5)}, (_,i)=>i+1).map(n => (
-            <button key={n} className={`page-btn ${page===n?'active':''}`} onClick={()=>setPage(n)}>{n}</button>
-          ))}
-          <button className="page-btn" disabled={page>=totalPages||totalPages===0} onClick={() => setPage(p=>p+1)}><ChevronRight size={14}/></button>
-        </div>
-      </div>
+        }
+      />
 
       <FormModal isOpen={showForm} onClose={() => setShowForm(false)} onSubmit={handleFormSubmit}
         onDelete={handleFormDelete} mode={formMode} title="Review"
@@ -139,7 +173,7 @@ const ReviewTable = () => {
           { name: 'is_approved', label: 'Approve Publicly', type: 'checkbox' }
         ]}
         initialData={selectedReview || {}} />
-    </div>
+    </>
   );
 };
 
