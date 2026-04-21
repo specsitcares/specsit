@@ -122,7 +122,7 @@ class ManufacturerViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.AllowAny]
 
 class ProductViewSet(viewsets.ModelViewSet):
-    queryset = Product.objects.select_related('category', 'brand', 'manufacturer').prefetch_related('variants', 'reviews').all().order_by('id')
+    queryset = Product.objects.select_related('category', 'brand', 'manufacturer').prefetch_related('variants', 'reviews').all().order_by('-created_at')
     serializer_class = ProductSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
@@ -131,46 +131,146 @@ class ProductViewSet(viewsets.ModelViewSet):
         from .models import Lens
         from .serializers import LensSerializer
         product = self.get_object()
-        # Simple recommendation logic - show active lenses
         lenses = Lens.objects.filter(is_active=True)
         serializer = LensSerializer(lenses, many=True)
         return Response(serializer.data)
 
     def perform_create(self, serializer):
-        # We no longer create a default variant here as the new UI 
-        # handles variant creation explicitly in Step 2.
         serializer.save()
 
-    def get_queryset(self):
-        if self.request.user.is_staff:
-            queryset = Product.objects.all().order_by('id')
+    def perform_destroy(self, instance):
+        from apps.sales.models import OrderItem
+        if OrderItem.objects.filter(variant__product=instance).exists():
+            # Keep product data for order history but hide it
+            instance.is_active = False
+            instance.save()
         else:
-            queryset = Product.objects.filter(is_active=True).order_by('id')
-        category = self.request.query_params.get('category', None)
-        if category is not None:
+            instance.delete()
+
+    def get_queryset(self):
+        params = self.request.query_params
+        if self.request.user.is_staff:
+            queryset = Product.objects.filter(is_active=True).select_related('category', 'brand').prefetch_related('variants')
+        else:
+            queryset = Product.objects.filter(is_active=True).select_related('category', 'brand').prefetch_related('variants')
+
+        # Filter by product_type
+        product_type = params.get('product_type')
+        if product_type:
+            queryset = queryset.filter(product_type=product_type)
+
+        # Filter by lens_type (multi-value: lens_type=Single Vision&lens_type=Progressive)
+        lens_types = params.getlist('lens_type')
+        if lens_types:
+            queryset = queryset.filter(lens_type__in=lens_types)
+
+        # Filter by brand_name — check both the CharField and the FK brand name
+        brand_name = params.get('brand_name')
+        if brand_name:
+            from django.db.models import Q
+            queryset = queryset.filter(
+                Q(brand_name__icontains=brand_name) | Q(brand__name__icontains=brand_name)
+            )
+
+        # Price range on final_price
+        min_price = params.get('min_price')
+        max_price = params.get('max_price')
+        if min_price:
+            try:
+                queryset = queryset.filter(final_price__gte=min_price)
+            except ValueError:
+                pass
+        if max_price:
+            try:
+                queryset = queryset.filter(final_price__lte=max_price)
+            except ValueError:
+                pass
+
+        # Stock status filter — all three branches use low_stock_threshold
+        from django.db.models import F
+        stock_status = params.get('stock_status')
+        if stock_status == 'in_stock':
+            queryset = queryset.filter(stock_quantity__gt=F('low_stock_threshold'))
+        elif stock_status == 'low_stock':
+            queryset = queryset.filter(stock_quantity__gt=0, stock_quantity__lte=F('low_stock_threshold'))
+        elif stock_status == 'out_of_stock':
+            queryset = queryset.filter(stock_quantity__lte=0)
+
+        # is_active filter
+        is_active = params.get('is_active')
+        if is_active == 'true':
+            queryset = queryset.filter(is_active=True)
+        elif is_active == 'false':
+            queryset = queryset.filter(is_active=False)
+
+        # Search
+        search = params.get('search')
+        if search:
+            from django.db.models import Q
+            queryset = queryset.filter(
+                Q(title__icontains=search) |
+                Q(sku__icontains=search) |
+                Q(brand_name__icontains=search)
+            )
+
+        # Frame filters
+        frame_style = params.getlist('frame_style')
+        if frame_style:
+            queryset = queryset.filter(frame_style__in=frame_style)
+
+        frame_material = params.getlist('frame_material')
+        if frame_material:
+            queryset = queryset.filter(frame_material__in=frame_material)
+
+        # Existing filters
+        category = params.get('category')
+        if category:
             if category.isdigit():
                 queryset = queryset.filter(category__id=category)
             else:
                 queryset = queryset.filter(category__name__iexact=category)
-                
-        # Filter by Frame Shape
-        shape = self.request.query_params.get('shape', None)
-        if shape:
-            queryset = queryset.filter(frame_shape__iexact=shape)
-            
-        # Filter by Frame Width
-        width = self.request.query_params.get('width', None)
-        if width:
-            queryset = queryset.filter(frame_width__iexact=width)
 
-        max_price = self.request.query_params.get('max_price', None)
-        if max_price is not None:
+        # Frame shape — multi-value support
+        shapes = params.getlist('shape')
+        if shapes:
+            from django.db.models import Q
+            shape_q = Q()
+            for s in shapes:
+                shape_q |= Q(frame_shape__iexact=s)
+            queryset = queryset.filter(shape_q)
+
+        # Gender filter — multi-value
+        genders = params.getlist('gender')
+        if genders:
+            queryset = queryset.filter(gender__in=genders)
+
+        # Discount minimum filter
+        discount_min = params.get('discount_min')
+        if discount_min:
             try:
-                queryset = queryset.filter(base_price__lte=max_price)
-            except ValueError:
+                queryset = queryset.filter(discount_percentage__gte=float(discount_min))
+            except (ValueError, TypeError):
                 pass
-                
+
+        # Sorting
+        sort_by = params.get('sort_by', '-created_at')
+        allowed_sorts = ['created_at', '-created_at', 'final_price', '-final_price',
+                         'title', '-title', 'stock_quantity', '-stock_quantity']
+        if sort_by in allowed_sorts:
+            queryset = queryset.order_by(sort_by)
+        else:
+            queryset = queryset.order_by('-created_at')
+
         return queryset
+
+    @action(detail=False, methods=['get'], permission_classes=[permissions.AllowAny])
+    def check_sku(self, request):
+        sku = request.query_params.get('sku', '')
+        product_id = request.query_params.get('exclude_id')
+        qs = Product.objects.filter(sku=sku)
+        if product_id:
+            qs = qs.exclude(pk=product_id)
+        return Response({'exists': qs.exists()})
 
 class VariantImageViewSet(viewsets.ModelViewSet):
     queryset = VariantImage.objects.all()
@@ -283,25 +383,107 @@ class ReviewViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
-        # Non-admins see only approved reviews, admins see all
+        from django.db.models import Q
+        params = self.request.query_params
+
         if self.request.user.is_staff:
-            return Review.objects.all()
-        return Review.objects.filter(is_approved=True)
+            qs = Review.objects.select_related('user', 'product', 'order').all()
+        elif self.request.user.is_authenticated:
+            # Authenticated customers see approved reviews OR their own (pending) reviews
+            qs = Review.objects.select_related('user', 'product', 'order').filter(
+                Q(is_approved=True) | Q(user=self.request.user)
+            )
+        else:
+            qs = Review.objects.filter(is_approved=True).select_related('user', 'product')
+
+        # Filters
+        is_approved = params.get('is_approved')
+        if is_approved == 'true':
+            qs = qs.filter(is_approved=True)
+        elif is_approved == 'false':
+            qs = qs.filter(is_approved=False)
+
+        product_id = params.get('product')
+        if product_id:
+            qs = qs.filter(product_id=product_id)
+
+        order_id = params.get('order')
+        if order_id:
+            qs = qs.filter(order_id=order_id)
+
+        rating = params.get('rating')
+        if rating:
+            qs = qs.filter(rating=rating)
+
+        date_from = params.get('date_from')
+        if date_from:
+            qs = qs.filter(created_at__date__gte=date_from)
+
+        date_to = params.get('date_to')
+        if date_to:
+            qs = qs.filter(created_at__date__lte=date_to)
+
+        return qs.order_by('-created_at')
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-    
+        from apps.sales.models import Order
+        from rest_framework.exceptions import PermissionDenied, ValidationError as DRFValidationError
+
+        order_id = self.request.data.get('order')
+        if not order_id:
+            raise DRFValidationError({'order': 'This field is required.'})
+
+        try:
+            order = Order.objects.get(id=order_id)
+        except Order.DoesNotExist:
+            raise DRFValidationError({'order': 'Order not found.'})
+
+        # Accept both the order_status CharField and the MetadataItem label
+        # so orders marked via the admin pipeline (MetadataItem-based) also qualify.
+        def _is_delivered(order):
+            if order.order_status == 'delivered':
+                return True
+            if order.status:
+                label = order.status.label.lower()
+                return any(k in label for k in ['deliver', 'complet'])
+            return False
+
+        if not _is_delivered(order):
+            raise PermissionDenied('You can only review delivered orders.')
+
+        if order.user != self.request.user:
+            raise PermissionDenied('You can only review your own orders.')
+
+        if Review.objects.filter(order=order, user=self.request.user).exists():
+            raise DRFValidationError({'non_field_errors': 'You have already submitted a review for this order.'})
+
+        rating = int(self.request.data.get('rating', 0))
+        if not (1 <= rating <= 5):
+            raise DRFValidationError({'rating': 'Rating must be between 1 and 5.'})
+
+        serializer.save(user=self.request.user, is_verified_purchase=True, is_approved=False)
+
+    def perform_update(self, serializer):
+        # Reset approval so admin can re-approve edited reviews
+        serializer.save(is_approved=False)
+
+    def get_object(self):
+        obj = super().get_object()
+        # Customers can only edit their own reviews
+        if not self.request.user.is_staff and obj.user != self.request.user:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('You do not have permission to edit this review.')
+        return obj
+
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
     def approve(self, request, pk=None):
-        """Admin action to approve a review"""
         review = self.get_object()
         review.is_approved = True
         review.save()
         return Response({'status': 'review approved'}, status=status.HTTP_200_OK)
-    
+
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
     def reject(self, request, pk=None):
-        """Admin action to reject a review"""
         review = self.get_object()
         review.is_approved = False
         review.save()

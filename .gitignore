@@ -33,6 +33,8 @@ db.sqlite3
 /media
 /staticfiles
 .env
+backend/media/
+backend/staticfiles/
 
 # IDE
 .vscode/
@@ -92,6 +94,14 @@ Daily Diary*.pdf
 # Cache
 .cache/
 *.cache
+
+# Claude Code AI session data
+.claude/
+
+# Temporary import-fix utility scripts (one-off tools)
+frontend/fix_imports*.py
+frontend/flatten_admin.py
+frontend/global_import_fix.py
 
 # Keep .gitkeep files to preserve directories
 !.gitkeep

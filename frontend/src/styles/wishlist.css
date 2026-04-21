@@ -1,0 +1,272 @@
+/* ============================================================
+   WISHLIST PAGE — matches Figma 401:14961
+   ============================================================ */
+
+.wishlist-page {
+  min-height: calc(100vh - 80px);
+  background: var(--eyenic-bg-white);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  padding: 100px 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 64px;
+}
+
+/* ── Page title ──────────────────────────────────────────── */
+.wishlist-title {
+  font-size: 48px;
+  font-weight: 700;
+  color: var(--eyenic-black);
+  letter-spacing: -1px;
+  line-height: 60px;
+  margin: 0;
+}
+
+.wishlist-title__count {
+  font-weight: 500;
+}
+
+/* ── Product grid ────────────────────────────────────────── */
+.wl-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 320px);
+  gap: 24px;
+  padding-bottom: 64px;
+}
+
+/* ── Card ────────────────────────────────────────────────── */
+.wl-card {
+  background: #FEFCFF;
+  border: 1px solid #EFEDF0;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  padding: 17px;
+  width: 312px;
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow 0.2s, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.wl-card:hover {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  transform: translateY(-2px);
+}
+
+/* Image area — matches NewArrivals .product-card__background */
+.wl-card__img-wrap {
+  position: relative;
+  width: 100%;
+  height: 221px;
+  background: #FEFCFF;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.wl-card__img-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 24px;
+}
+
+.wl-card__img-placeholder {
+  color: var(--eyenic-body-grey);
+}
+
+/* "1-2 Hour Delivery" badge — top-left */
+.wl-card__delivery-badge {
+  position: absolute;
+  top: 10px;
+  left: 16px;
+  background: rgba(254, 252, 255, 0.85);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid var(--eyenic-purple-light);
+  border-radius: 12px;
+  padding: 5.5px 13px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--eyenic-purple-primary);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  line-height: 15px;
+  white-space: nowrap;
+}
+
+/* Remove button — top-right X */
+.wl-card__remove-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  background: rgba(254, 252, 255, 0.85);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--eyenic-black);
+  transition: background 0.15s;
+}
+
+.wl-card__remove-btn:hover { background: rgba(239, 237, 240, 0.95); }
+
+/* Card body */
+.wl-card__body {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 0 0;
+}
+
+.wl-card__name {
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--eyenic-black);
+  letter-spacing: -0.5px;
+  line-height: 28px;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wl-card__variant {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--eyenic-body-grey);
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  line-height: 16px;
+  margin: 0 0 8px;
+}
+
+/* Price + Add to Cart row */
+.wl-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 16px;
+  padding-bottom: 8px;
+}
+
+.wl-card__price {
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--eyenic-purple-primary);
+  line-height: 28px;
+}
+
+.wl-card__atc-btn {
+  background: var(--eyenic-purple-primary);
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--eyenic-bg-white);
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  line-height: 16px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+}
+
+.wl-card__atc-btn:hover { opacity: 0.88; }
+.wl-card__atc-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Empty state ─────────────────────────────────────────── */
+.wl-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 80px 0;
+  text-align: center;
+}
+
+.wl-empty__icon {
+  width: 80px;
+  height: 80px;
+  background: var(--eyenic-light-grey);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--eyenic-body-grey);
+}
+
+.wl-empty__title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--eyenic-black);
+  margin: 0;
+}
+
+.wl-empty__sub {
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--eyenic-body-grey);
+  margin: 0;
+  max-width: 360px;
+}
+
+.wl-empty__btn {
+  display: inline-flex;
+  align-items: center;
+  background: var(--eyenic-purple-primary);
+  color: var(--eyenic-bg-white);
+  border: none;
+  border-radius: 8px;
+  padding: 14px 32px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  text-decoration: none;
+  margin-top: 8px;
+  transition: opacity 0.15s;
+}
+
+.wl-empty__btn:hover { opacity: 0.88; }
+
+/* ── Responsive ──────────────────────────────────────────── */
+@media (max-width: 1400px) {
+  .wl-grid {
+    grid-template-columns: repeat(3, minmax(280px, 320px));
+  }
+}
+
+@media (max-width: 1024px) {
+  .wishlist-page { padding: 64px 48px; gap: 40px; }
+  .wishlist-title { font-size: 36px; }
+  .wl-grid {
+    grid-template-columns: repeat(2, minmax(260px, 320px));
+    gap: 20px;
+  }
+}
+
+@media (max-width: 640px) {
+  .wishlist-page { padding: 40px 20px; }
+  .wishlist-title { font-size: 28px; }
+  .wl-grid {
+    grid-template-columns: 1fr;
+  }
+  .wl-card { width: 100%; }
+}

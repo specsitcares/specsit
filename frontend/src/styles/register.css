@@ -1,0 +1,548 @@
+/* ============================================================
+   REGISTER / SIGN-UP PAGE — Specsit Figma-Parity Styles
+   Everything fits in 100vh — no scroll on desktop
+   ============================================================ */
+
+/* ── Root Grid ────────────────────────────────────────────── */
+.rp-root {
+  display: grid;
+  grid-template-columns: 42% 58%;
+  grid-template-rows: 1fr auto;
+  grid-template-areas:
+    "hero auth"
+    "footer footer";
+  height: 100vh;
+  /* exact viewport — no overflow */
+  max-height: 100vh;
+  overflow: hidden;
+  background: #FEFCFF;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+}
+
+/* ── Hero Panel (Left) ───────────────────────────────────── */
+.rp-hero-panel {
+  grid-area: hero;
+  position: relative;
+  overflow: hidden;
+  background: #e8e8e8;
+  min-height: 0;
+}
+
+.rp-hero-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+}
+
+/* ── Auth Panel (Right) ──────────────────────────────────── */
+.rp-auth-panel {
+  grid-area: auth;
+  background: #FEFCFF;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px 40px 20px 52px;
+  /* tight — register has more fields */
+  overflow-y: auto;
+  min-height: 0;
+  animation: rpSlideIn 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+/* ── Auth Container ──────────────────────────────────────── */
+.rp-auth-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  /* was 32px */
+  width: 100%;
+  max-width: 440px;
+}
+
+/* ── Branding ─────────────────────────────────────────────── */
+.rp-branding {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  align-self: stretch;
+  gap: 3px;
+  text-align: center;
+}
+
+.rp-title {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  /* was 30px */
+  line-height: 1.2em;
+  letter-spacing: -0.025em;
+  text-align: center;
+  color: #040205;
+  margin: 0;
+}
+
+.rp-subtitle {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 400;
+  font-size: 13px;
+  /* was 16px */
+  line-height: 1.4em;
+  text-align: center;
+  color: #040205;
+  margin: 0;
+  opacity: 0.7;
+}
+
+/* ── Toggle Switch ────────────────────────────────────────── */
+.rp-toggle-wrapper {
+  display: flex;
+  justify-content: center;
+  align-self: stretch;
+  width: 100%;
+}
+
+.rp-toggle-track {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 4px;
+  padding: 4px;
+  background: #EFEDF0;
+  border: 1px solid rgba(205, 195, 209, 0.1);
+  border-radius: 12px;
+}
+
+.rp-toggle-btn {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 7px 24px;
+  /* was 10px 32px */
+  border-radius: 10px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.4em;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: #040205;
+  transition: background 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+  white-space: nowrap;
+}
+
+.rp-toggle-btn--active {
+  background: #FEFCFF;
+  box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
+  color: #68408D;
+}
+
+/* ── Error Banner ─────────────────────────────────────────── */
+.rp-error-banner {
+  width: 100%;
+  background: #fef2f2;
+  color: #b91c1c;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid #fee2e2;
+  animation: rpFadeIn 0.3s ease;
+  align-self: stretch;
+}
+
+/* ── Form ─────────────────────────────────────────────────── */
+.rp-form {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  align-self: stretch;
+  gap: 12px;
+  /* was 24px */
+  width: 100%;
+}
+
+/* ── Name Row (First + Last side-by-side) ─────────────────── */
+.rp-name-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  /* was 16px */
+  align-self: stretch;
+}
+
+/* ── Field ────────────────────────────────────────────────── */
+.rp-field {
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+  gap: 4px;
+  /* was 6px */
+}
+
+.rp-label {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 500;
+  font-size: 12px;
+  /* was 14px */
+  line-height: 1.4em;
+  color: #040205;
+  text-align: left;
+}
+
+/* ── Input ────────────────────────────────────────────────── */
+.rp-input {
+  width: 100%;
+  height: 40px;
+  /* was 48px */
+  padding: 9px 16px;
+  /* was 13.5px 20px */
+  background: #FEFCFF;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  /* was 16px */
+  line-height: 1.3em;
+  color: #040205;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box;
+}
+
+.rp-input::placeholder {
+  color: rgba(125, 116, 128, 0.5);
+}
+
+.rp-input:focus {
+  outline: none;
+  border-color: #68408D;
+  box-shadow: 0 0 0 3px rgba(104, 64, 141, 0.12);
+}
+
+.rp-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ── Password ─────────────────────────────────────────────── */
+.rp-password-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+}
+
+.rp-input--password {
+  padding-right: 44px;
+}
+
+.rp-eye-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: rgba(125, 116, 128, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: color 0.2s ease;
+}
+
+.rp-eye-toggle:hover {
+  color: #040205;
+}
+
+/* ── Submit Button ────────────────────────────────────────── */
+.rp-submit-btn {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  align-self: stretch;
+  height: 44px;
+  /* was 56px */
+  background: #68408D;
+  color: #FEFCFF;
+  border: none;
+  border-radius: 8px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  /* was 16px */
+  line-height: 1.4em;
+  text-align: center;
+  cursor: pointer;
+  box-shadow:
+    0px 4px 6px -4px rgba(79, 40, 116, 0.1),
+    0px 10px 15px -3px rgba(79, 40, 116, 0.1);
+  transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.rp-submit-btn:hover:not(:disabled) {
+  background: #7b4da8;
+  transform: translateY(-1px);
+  box-shadow:
+    0px 6px 10px -4px rgba(79, 40, 116, 0.18),
+    0px 14px 20px -3px rgba(79, 40, 116, 0.18);
+}
+
+.rp-submit-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.rp-submit-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* ── Divider ──────────────────────────────────────────────── */
+.rp-divider {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  align-self: stretch;
+  padding: 2px 0;
+  /* was 8px 0 */
+}
+
+.rp-divider-line {
+  flex: 1;
+  height: 1px;
+  background: rgba(205, 195, 209, 0.2);
+  display: block;
+}
+
+.rp-divider-text {
+  padding: 0 12px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 600;
+  font-size: 11px;
+  line-height: 1.3em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #71717A;
+  white-space: nowrap;
+}
+
+/* ── Social Row ───────────────────────────────────────────── */
+.rp-social-row {
+  display: flex;
+  flex-direction: row;
+  align-self: stretch;
+  gap: 8px;
+  /* was 12px */
+}
+
+.rp-social-btn {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+
+  width: 100%;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  /* was 48px */
+  padding: 0 48px;
+  border: 1px solid rgba(205, 195, 209, 0.3);
+  border-radius: 8px;
+  background: transparent;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.4em;
+  color: #040205;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+}
+
+.rp-social-btn:hover:not(:disabled) {
+  background: rgba(104, 64, 141, 0.04);
+  border-color: rgba(104, 64, 141, 0.3);
+  transform: translateY(-1px);
+}
+
+.rp-social-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.rp-social-icon-svg {
+  flex-shrink: 0;
+}
+
+/* ── Legal ────────────────────────────────────────────────── */
+.rp-legal {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 400;
+  font-size: 11px;
+  line-height: 1.4em;
+  color: #040205;
+  text-align: center;
+  align-self: stretch;
+  opacity: 0.6;
+}
+
+.rp-legal a {
+  color: #68408D;
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+/* ── Footer ───────────────────────────────────────────────── */
+.rp-footer {
+  grid-area: footer;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 40px;
+  /* was 24px 48px */
+  background: #FEFCFF;
+  border-top: 1px solid rgba(205, 195, 209, 0.12);
+  flex-shrink: 0;
+}
+
+.rp-footer-brand {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: #040205;
+}
+
+.rp-footer-copy {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 1.4em;
+  color: #71717A;
+}
+
+.rp-footer-links {
+  display: flex;
+  flex-direction: row;
+  gap: 24px;
+}
+
+.rp-footer-link {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  color: #71717A;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.rp-footer-link:hover {
+  color: #040205;
+}
+
+/* ── Animations ───────────────────────────────────────────── */
+@keyframes rpFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes rpSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 1200px) {
+  .rp-auth-panel {
+    padding: 16px 32px;
+  }
+
+  .rp-auth-container {
+    gap: 12px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .rp-root {
+    grid-template-columns: 40% 60%;
+  }
+
+  .rp-auth-panel {
+    padding: 16px 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .rp-root {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+    grid-template-columns: 1fr;
+    grid-template-rows: 180px 1fr auto;
+    grid-template-areas:
+      "hero"
+      "auth"
+      "footer";
+  }
+
+  .rp-hero-panel {
+    height: 180px;
+  }
+
+  .rp-auth-panel {
+    padding: 28px 24px;
+    align-items: flex-start;
+  }
+
+  .rp-name-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .rp-footer {
+    flex-direction: column;
+    gap: 8px;
+    text-align: center;
+    padding: 12px 24px;
+  }
+
+  .rp-footer-links {
+    gap: 16px;
+  }
+
+  .rp-social-btn {
+    padding: 0 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .rp-auth-panel {
+    padding: 20px 16px;
+  }
+
+  .rp-title {
+    font-size: 20px;
+  }
+}

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Address, Employee, CustomerQuery, EmployeeActionLog
+from .models import Address, Employee, CustomerQuery, EmployeeActionLog, NotificationPreference
 
 class AddressSerializer(serializers.ModelSerializer):
     class Meta:
@@ -28,3 +28,8 @@ class EmployeeActionLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = EmployeeActionLog
         fields = '__all__'
+
+class NotificationPreferenceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NotificationPreference
+        fields = ['whatsapp', 'sms', 'push', 'email']

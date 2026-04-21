@@ -1,0 +1,47 @@
+/* ============================================================
+   ANNOUNCEMENT BAR — TOP BANNER
+   ============================================================ */
+
+.announcement-bar {
+  background: #68408D;
+  padding: 6.75px 16px 7.75px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: auto;
+  position: relative;
+  z-index: 1001;
+  width: 100%;
+}
+
+.announcement-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.announcement-text {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  line-height: 1.5;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: #FEFCFF;
+  text-align: center;
+  margin: 0;
+  padding: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 768px) {
+  .announcement-text {
+    font-size: 10px;
+    letter-spacing: 0.8px;
+    white-space: normal;
+    overflow: visible;
+  }
+}

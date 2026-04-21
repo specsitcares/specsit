@@ -1,0 +1,314 @@
+/* ── Product Card ── */
+.product-card {
+  display: flex;
+  flex-direction: column;
+  padding: 17px;
+  width: 320px;
+  border: 1px solid #EFEDF0;
+  border-radius: 16px;
+  background: #FEFCFF;
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
+  cursor: pointer;
+  text-decoration: none;
+  flex-shrink: 0;
+  position: relative;
+  box-sizing: border-box;
+}
+
+.product-card:hover {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+  transform: translateY(-2px);
+}
+
+/* ── Image area ── */
+.product-card__background {
+  align-self: stretch;
+  border-radius: 8px;
+  height: 221px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  background: #FEFCFF;
+}
+
+.product-card__image-wrap {
+  width: 100%;
+  height: 100%;
+}
+
+.product-card__image-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.product-card__image-placeholder {
+  width: 100%;
+  height: 100%;
+  background: #f3f4f6;
+  border-radius: 8px;
+}
+
+/* ── Overlay row (badge + wishlist) ── */
+.product-card__overlay-row {
+  position: absolute;
+  top: 8px;
+  left: 2px;
+  right: 2px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Best Seller badge */
+.product-card__badge {
+  padding: 4px 12px;
+  background: #EBE3F2;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.product-card__badge-text {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  font-size: 10px;
+  line-height: 15px;
+  letter-spacing: 0.05em;
+  color: #68408D;
+  text-transform: uppercase;
+}
+
+/* Wishlist button */
+.product-card__wishlist-btn {
+  width: 32px;
+  height: 32px;
+  background: rgba(254, 252, 255, 0.85);
+  border: none;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  pointer-events: auto;
+  color: #71717A;
+  transition: color 0.2s ease, transform 0.2s ease;
+  padding: 0;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+.product-card__wishlist-btn:hover {
+  color: #68408D;
+  transform: scale(1.08);
+}
+
+.product-card__wishlist-btn--active {
+  color: #68408D;
+}
+
+.product-card__wishlist-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ── Info container ── */
+.product-card__container {
+  padding: 10px 0 0;
+  align-self: stretch;
+}
+
+.product-card__main-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+  gap: 8px;
+}
+
+/* Left column */
+.product-card__info-col {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.product-card__brand {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  font-size: 10px;
+  line-height: 15px;
+  letter-spacing: 0.05em;
+  color: #040205;
+  text-transform: uppercase;
+}
+
+.product-card__title {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 24px;
+  color: #040205;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.product-card__delivery {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.product-card__bolt {
+  font-size: 16px;
+  line-height: 1.25;
+  color: #040205;
+  flex-shrink: 0;
+}
+
+.product-card__delivery-text {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 500;
+  font-size: 10px;
+  line-height: 20px;
+  letter-spacing: 0.07em;
+  color: #68408D;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Price row */
+.product-card__price-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.product-card__price-old {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 16px;
+  color: #71717A;
+  text-decoration: line-through;
+  text-decoration-skip-ink: none;
+  white-space: nowrap;
+}
+
+.product-card__price-new {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 24px;
+  color: #040205;
+  white-space: nowrap;
+}
+
+.product-card__discount {
+  padding: 2px 6px;
+  background: #FEFCFF;
+  border-radius: 2px;
+}
+
+.product-card__discount-text {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  font-size: 10px;
+  line-height: 15px;
+  color: #68408D;
+  white-space: nowrap;
+}
+
+/* Right column */
+.product-card__meta-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+
+/* Rating pill */
+.product-card__rating-pill {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 9px;
+  height: 24px;
+  background: #FEFCFF;
+  border: 1px solid #EFEDF0;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.product-card__rating-star {
+  width: 13px;
+  height: 12px;
+  flex-shrink: 0;
+  color: #FBBF24;
+}
+
+.product-card__rating-val {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 16.5px;
+  color: #71717A;
+}
+
+.product-card__review-count {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 15px;
+  color: #71717A;
+}
+
+/* Color swatches */
+.product-card__colors {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+
+.product-card__color-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 12px;
+  border: 1px solid #EFEDF0;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+  pointer-events: auto;
+  flex-shrink: 0;
+}
+
+.product-card__color-dot.active {
+  box-shadow: 0 0 0 2px #fff, 0 0 0 3.5px #D4D4D8;
+}
+
+.product-card__color-dot:hover {
+  transform: scale(1.12);
+}
+
+.product-card__color-more {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  color: #71717A;
+  white-space: nowrap;
+  align-self: center;
+}

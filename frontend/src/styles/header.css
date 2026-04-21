@@ -1,0 +1,235 @@
+/* ============================================================
+   HEADER — MAIN NAVIGATION BAR (Logged-in)
+   ============================================================ */
+
+.header {
+  background: #FEFCFF;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 17px 61px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  box-shadow: 0px 20px 40px 0px rgba(104, 64, 141, 0.06);
+  backdrop-filter: blur(12px);
+  position: relative;
+  z-index: 999;
+  margin: 12px 100px;
+}
+
+/* Brand Logo */
+.header-brand {
+  flex-shrink: 0;
+}
+
+.brand-logo {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 28px;
+  letter-spacing: -1px;
+  color: #040205;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+}
+
+.brand-logo:hover {
+  opacity: 0.8;
+}
+
+/* Navigation Links */
+.header-nav-links {
+  display: flex;
+  gap: 40px;
+  align-items: center;
+  flex: 1;
+  justify-content: center;
+}
+
+.nav-link {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 20px;
+  letter-spacing: -0.35px;
+  color: #71717A;
+  text-decoration: none;
+  padding-bottom: 0;
+  border-bottom: 2px solid transparent;
+  transition: color 0.2s ease;
+  white-space: nowrap;
+}
+
+.nav-link:hover {
+  color: #040205;
+}
+
+.nav-link--active {
+  font-weight: 600;
+  color: #68408D;
+  border-bottom-color: #EBE3F2;
+  padding-bottom: 6px;
+}
+
+/* Header Actions */
+.header-actions {
+  display: flex;
+  gap: 28px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* Search Bar */
+.header-search {
+  width: 280px;
+  background: #FEFCFF;
+  border-radius: 12px;
+  padding: 8px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.header-search:focus-within {
+  border-color: #EBE3F2;
+  box-shadow: 0 0 0 2px rgba(104, 64, 141, 0.05);
+}
+
+.header-search-icon {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+
+.header-search-input {
+  border: none;
+  background: transparent;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: #040205;
+  width: 100%;
+  outline: none;
+}
+
+.header-search-input::placeholder {
+  color: #71717A;
+}
+
+.header-icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+  color: #68408D;
+}
+
+.header-icon-btn:hover {
+  transform: scale(1.1);
+}
+
+.header-icon-btn svg {
+  display: block;
+}
+
+/* Shopping Cart Button */
+.cart-button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 23px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.cart-button:hover {
+  transform: scale(1.1);
+}
+
+.cart-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cart-badge {
+  position: absolute;
+  top: -4px;
+  right: -4.01px;
+  background: #68408D;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px 1px 5px;
+}
+
+.badge-text {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  font-size: 10px;
+  line-height: 15px;
+  color: #FEFCFF;
+  text-align: center;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .header {
+    margin: 12px 40px;
+    padding: 17px 30px;
+  }
+
+  .header-search {
+    width: 200px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .header {
+    padding: 17px 24px;
+    gap: 16px;
+  }
+
+  .header-nav-links {
+    gap: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .header {
+    flex-wrap: wrap;
+    padding: 12px 20px;
+    gap: 12px;
+    margin: 12px 20px;
+  }
+
+  .header-nav-links {
+    order: 3;
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 16px;
+    justify-content: center;
+  }
+
+  .header-actions {
+    order: 4;
+  }
+
+  .header-search {
+    width: 100%;
+  }
+}

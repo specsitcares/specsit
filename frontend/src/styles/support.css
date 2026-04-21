@@ -1,0 +1,1415 @@
+/* ═══════════════════════════════════════════════════════════
+   SUPPORT PAGES — shared layout + sidebar + page components
+   ══════════════════════════════════════════════════════════ */
+
+/* ─── Page wrapper ─────────────────────────────────────────── */
+.support-layout {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    display: flex;
+    gap: 72px;
+    padding: 100px;
+    background: #FEFCFF;
+    min-height: 100vh;
+    align-items: flex-start;
+}
+
+/* ─── Sidebar ─────────────────────────────────────────────── */
+.support-sidebar {
+    width: 320px;
+    flex-shrink: 0;
+    background: #FEFCFF;
+    border: 1px solid #EFEDF0;
+    border-radius: 16px;
+    padding: 33px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    position: sticky;
+    top: 24px;
+}
+
+.support-sidebar__header {
+    padding-bottom: 17px;
+    border-bottom: 1px solid #EFEDF0;
+}
+
+.support-sidebar__header-title {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: #040205;
+    margin: 0 0 4px;
+}
+
+.support-sidebar__header-sub {
+    font-size: 12px;
+    font-weight: 500;
+    color: #71717A;
+    margin: 0;
+}
+
+.support-sidebar__nav {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+
+/* Each section group */
+.support-sidebar__group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-end;
+    width: 100%;
+}
+
+.support-sidebar__group-heading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.support-sidebar__group-icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #040205;
+}
+
+.support-sidebar__group-icon svg {
+    display: block;
+}
+
+.support-sidebar__group-label {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+    color: #040205;
+    margin: 0;
+    white-space: nowrap;
+}
+
+/* Sub-links container with vertical left border */
+.support-sidebar__sub {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-left: 29px;
+    border-left: 1px solid #EFEDF0;
+    width: 246px;
+}
+
+.support-sidebar__sub--active {
+    border-left: 2px solid #EBE3F2;
+}
+
+.support-sidebar__link {
+    font-size: 14px;
+    font-weight: 400;
+    color: #71717A;
+    text-decoration: none;
+    display: block;
+    line-height: 20px;
+    transition: color 0.15s;
+}
+
+.support-sidebar__link:hover {
+    color: #68408D;
+}
+
+.support-sidebar__link--active {
+    font-weight: 700;
+    color: #68408D;
+}
+
+/* Direct-link rows (Warranty, FAQ) */
+.support-sidebar__direct-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    width: 100%;
+}
+
+.support-sidebar__direct-link-label {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+    color: #040205;
+    margin: 0;
+}
+
+.support-sidebar__direct-link--active .support-sidebar__direct-link-label {
+    color: #68408D;
+}
+
+.support-sidebar__chevron {
+    width: 5px;
+    height: 7px;
+    color: #71717A;
+}
+
+/* ─── Main content area ────────────────────────────────────── */
+.support-content {
+    flex: 1;
+    min-width: 0;
+    padding-top: 48px;
+    display: flex;
+    flex-direction: column;
+    gap: 62px;
+}
+
+/* ─── Page header ──────────────────────────────────────────── */
+.support-page-header {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.support-page-meta {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #71717A;
+    margin: 0;
+}
+
+.support-page-heading {
+    font-size: 48px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    color: #040205;
+    line-height: 48px;
+    margin: 0;
+}
+
+.support-page-description {
+    font-size: 18px;
+    font-weight: 400;
+    line-height: 29.25px;
+    color: #71717A;
+    margin: 0;
+}
+
+.support-warning-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #ffdad6;
+    color: #93000a;
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 12px;
+    padding: 8px 16px;
+    align-self: flex-start;
+}
+
+/* ═══ DELIVERY TIMELINE PAGE ══════════════════════════════════ */
+
+/* Bento card — Hyderabad Priority Service */
+.dt-bento {
+    background: #EFEDF0;
+    border: 1px solid #EBE3F2;
+    border-radius: 24px;
+    padding: 49px;
+    display: flex;
+    flex-direction: column;
+    gap: 23px;
+}
+
+.dt-bento__chip {
+    display: inline-flex;
+    align-items: center;
+    background: #EBE3F2;
+    color: #040205;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border-radius: 12px;
+    padding: 4px 16px;
+    align-self: flex-start;
+}
+
+.dt-bento__heading {
+    font-size: 30px;
+    font-weight: 700;
+    color: #040205;
+    margin: 0;
+    line-height: 37.5px;
+}
+
+.dt-bento__description {
+    font-size: 16px;
+    font-weight: 400;
+    color: #71717A;
+    line-height: 26px;
+    margin: 0;
+    max-width: 960px;
+}
+
+.dt-bento__cards-row {
+    display: flex;
+    gap: 32px;
+    align-items: stretch;
+    padding-top: 9px;
+}
+
+.dt-bento__cards-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    flex-shrink: 0;
+}
+
+/* Standard/bifocal white service cards */
+.dt-service-card {
+    background: #FEFCFF;
+    border: 1px solid #EBE3F2;
+    border-radius: 8px;
+    padding: 25px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    width: 360px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.dt-service-card__label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: #68408D;
+    margin: 0;
+    line-height: 15px;
+}
+
+.dt-service-card__time {
+    font-size: 20px;
+    font-weight: 700;
+    color: #040205;
+    margin: 0;
+    line-height: 28px;
+}
+
+.dt-service-card__sub {
+    font-size: 10px;
+    font-weight: 400;
+    color: #71717A;
+    margin: 0;
+    line-height: 15px;
+}
+
+/* Purple portal card */
+.dt-portal-card {
+    background: #68408D;
+    border-radius: 16px;
+    padding: 32px;
+    width: 360px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    flex: 1;
+}
+
+.dt-portal-card__icon {
+    width: 50px;
+    height: 45px;
+    object-fit: contain;
+    margin-bottom: 16px;
+}
+
+.dt-portal-card__heading {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -1px;
+    text-transform: uppercase;
+    color: #EBE3F2;
+    text-align: center;
+    line-height: 28px;
+    margin: 0 0 8px;
+    white-space: pre;
+}
+
+.dt-portal-card__description {
+    font-size: 14px;
+    font-weight: 400;
+    color: #EBE3F2;
+    opacity: 0.8;
+    text-align: center;
+    line-height: 20px;
+    margin: 0;
+}
+
+/* ─── Split row (sections 2+3 and 4) ──────────────────────── */
+.dt-split {
+    display: flex;
+    gap: 40px;
+    align-items: stretch;
+    width: 100%;
+}
+
+/* Submit Power Later card */
+.dt-power-card {
+    flex: 1;
+    background: #FEFCFF;
+    border-radius: 24px;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+
+.dt-power-card__header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.dt-power-card__icon-wrap {
+    width: 48px;
+    height: 48px;
+    background: #FEFCFF;
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.dt-power-card__icon-wrap img {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+}
+
+.dt-power-card__heading {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.6px;
+    color: #040205;
+    margin: 0;
+    line-height: 32px;
+}
+
+.dt-power-card__body {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.dt-power-card__description {
+    font-size: 14px;
+    font-weight: 400;
+    color: #71717A;
+    line-height: 22.75px;
+    margin: 0;
+}
+
+.dt-grace-box {
+    background: #FEFCFF;
+    border: 1px solid #EBE3F2;
+    border-radius: 16px;
+    padding: 17px 25px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.dt-grace-box__label {
+    font-size: 14px;
+    font-weight: 700;
+    color: #040205;
+    margin: 0;
+    line-height: 20px;
+}
+
+.dt-grace-box__text {
+    font-size: 12px;
+    font-weight: 400;
+    color: #71717A;
+    line-height: 16px;
+    margin: 0;
+}
+
+.dt-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.dt-timeline__label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #68408D;
+    margin: 0;
+    line-height: 15px;
+}
+
+.dt-timeline__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 9px;
+    border-bottom: 1px solid #EBE3F2;
+}
+
+.dt-timeline__row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.dt-timeline__type {
+    font-size: 14px;
+    font-weight: 400;
+    color: #71717A;
+    margin: 0;
+    line-height: 20px;
+}
+
+.dt-timeline__duration {
+    font-size: 14px;
+    font-weight: 700;
+    color: #040205;
+    margin: 0;
+    line-height: 20px;
+}
+
+/* Service Area Status purple card */
+.dt-area-card {
+    flex: 1;
+    background: #68408D;
+    border-radius: 24px;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.dt-area-card__header {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.dt-area-card__top {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.dt-area-card__icon-wrap {
+    width: 48px;
+    height: 48px;
+    background: #EFEDF0;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    backdrop-filter: blur(4px);
+}
+
+.dt-area-card__icon-wrap img {
+    width: 16px;
+    height: 20px;
+    object-fit: contain;
+}
+
+.dt-area-card__heading {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.6px;
+    color: #FEFCFF;
+    margin: 0;
+    line-height: 32px;
+}
+
+.dt-area-card__description {
+    font-size: 16px;
+    font-weight: 400;
+    color: #FEFCFF;
+    line-height: 26px;
+    margin: 0;
+}
+
+.dt-area-zone {
+    background: #EFEDF0;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 16px;
+    padding: 17px 25px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    backdrop-filter: blur(4px);
+}
+
+.dt-area-zone__label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #EBE3F2;
+    margin: 0;
+    line-height: 15px;
+}
+
+.dt-area-zone__value {
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.6px;
+    text-transform: uppercase;
+    color: #FEFCFF;
+    margin: 0;
+    line-height: 32px;
+}
+
+.dt-area-zone__sub {
+    font-size: 10px;
+    font-weight: 400;
+    color: #FEFCFF;
+    margin: 0;
+    line-height: 15px;
+}
+
+.dt-area-fee {
+    background: #FEFCFF;
+    border-radius: 16px;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.dt-area-fee__left {}
+
+.dt-area-fee__label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #68408D;
+    margin: 0;
+    line-height: 15px;
+}
+
+.dt-area-fee__value {
+    font-size: 18px;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #68408D;
+    margin: 0;
+    line-height: 28px;
+}
+
+.dt-area-fee__icon {
+    width: 28px;
+    height: 20px;
+    object-fit: contain;
+}
+
+/* GPS + OTP row */
+.dt-gps-card {
+    flex: 1;
+    background: #FEFCFF;
+    border: 1px solid #EBE3F2;
+    border-radius: 24px;
+    padding: 41px;
+    display: flex;
+    align-items: center;
+    gap: 40px;
+}
+
+.dt-gps-card__text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.dt-gps-card__heading {
+    font-size: 24px;
+    font-weight: 700;
+    color: #040205;
+    margin: 0;
+    line-height: 32px;
+}
+
+.dt-gps-card__description {
+    font-size: 14px;
+    font-weight: 400;
+    color: #71717A;
+    line-height: 22.75px;
+    margin: 0;
+}
+
+.dt-gps-card__map {
+    width: 184px;
+    height: 138px;
+    background: #EBE3F2;
+    border-radius: 16px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+}
+
+.dt-gps-card__map-img {
+    width: 100%;
+    height: 133%;
+    object-fit: cover;
+    position: absolute;
+    top: -16.67%;
+    left: 0;
+}
+
+.dt-gps-card__map-badge {
+    position: absolute;
+    inset: 0;
+    background: #EBE3F2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.dt-gps-card__map-label {
+    background: #FEFCFF;
+    border-radius: 12px;
+    padding: 4px 12px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #68408D;
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
+    white-space: nowrap;
+}
+
+.dt-otp-card {
+    width: 400px;
+    flex-shrink: 0;
+    background: #EFEDF0;
+    border-radius: 24px;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 220px;
+    justify-content: center;
+}
+
+.dt-otp-card__icon {
+    width: 24px;
+    height: 30px;
+    object-fit: contain;
+    margin-bottom: 16px;
+}
+
+.dt-otp-card__heading {
+    font-size: 20px;
+    font-weight: 700;
+    color: #040205;
+    text-align: center;
+    margin: 0 0 8px;
+    line-height: 28px;
+}
+
+.dt-otp-card__description {
+    font-size: 14px;
+    font-weight: 400;
+    color: #71717A;
+    text-align: center;
+    line-height: 20px;
+    margin: 0;
+}
+
+/* Order Modifications banner */
+.dt-modifications {
+    background: #040205;
+    border-radius: 24px;
+    padding: 64px 48px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+}
+
+.dt-modifications__text {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    max-width: 512px;
+}
+
+.dt-modifications__heading {
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: -0.75px;
+    color: #FEFCFF;
+    margin: 0;
+    line-height: 36px;
+}
+
+.dt-modifications__description {
+    font-size: 14px;
+    font-weight: 400;
+    color: #71717A;
+    line-height: 22.75px;
+    margin: 0;
+}
+
+.dt-modifications__btn {
+    background: #EBE3F2;
+    color: #68408D;
+    font-size: 18px;
+    font-weight: 800;
+    text-transform: uppercase;
+    border: none;
+    border-radius: 16px;
+    padding: 16px 24px;
+    cursor: pointer;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    letter-spacing: 0;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* ═══ SHARED SECTION DIVIDERS (return, warranty, terms, etc.) ═══ */
+.support-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.support-section-divider {
+    width: 32px;
+    height: 1px;
+    background: #EBE3F2;
+}
+
+.support-section-label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: #68408D;
+    margin: 0;
+}
+
+.support-section-heading {
+    font-size: 22px;
+    font-weight: 700;
+    color: #040205;
+    margin: 0;
+}
+
+.support-section-text {
+    font-size: 15px;
+    font-weight: 400;
+    line-height: 1.8;
+    color: #71717A;
+    margin: 0;
+}
+
+/* ═══ RETURN POLICY ══════════════════════════════════════════ */
+.returns-callout {
+    border-left: 4px solid #EBE3F2;
+    padding-left: 20px;
+}
+
+.returns-callout__label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: #68408D;
+    margin: 0 0 6px;
+}
+
+.returns-callout__text {
+    font-size: 15px;
+    color: #71717A;
+    line-height: 1.75;
+    margin: 0;
+}
+
+.returns-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.returns-step {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.returns-step__number {
+    font-size: 36px;
+    font-weight: 800;
+    color: #EBE3F2;
+    line-height: 1;
+    min-width: 52px;
+}
+
+.returns-step__content h4 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #040205;
+    margin: 0 0 6px;
+}
+
+.returns-step__content p {
+    font-size: 14px;
+    color: #71717A;
+    line-height: 1.7;
+    margin: 0;
+}
+
+.returns-refund-row {
+    display: grid;
+    grid-template-columns: 3fr 2fr;
+    gap: 24px;
+}
+
+.returns-refund-col h4 {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #71717A;
+    margin: 0 0 16px;
+}
+
+.returns-refund-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.returns-refund-table th {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #71717A;
+    text-align: left;
+    padding: 8px 0;
+    border-bottom: 1px solid #EFEDF0;
+}
+
+.returns-refund-table td {
+    font-size: 14px;
+    color: #040205;
+    padding: 10px 0;
+    border-bottom: 1px solid #EFEDF0;
+}
+
+.returns-method-card {
+    border: 1px solid #EBE3F2;
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+}
+
+.returns-method-card__label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: #68408D;
+    margin: 0 0 4px;
+}
+
+.returns-method-card__text {
+    font-size: 13px;
+    color: #71717A;
+    margin: 0;
+    line-height: 1.6;
+}
+
+/* ═══ WARRANTY ═══════════════════════════════════════════════ */
+.warranty-exclusions {
+    border-left: 4px solid #68408D;
+    padding: 20px 24px;
+    border-radius: 0 12px 12px 0;
+}
+
+.warranty-exclusions__label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.6px;
+    text-transform: uppercase;
+    color: #68408D;
+    margin: 0 0 12px;
+}
+
+.warranty-exclusions__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.warranty-exclusions__list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 14px;
+    color: #040205;
+    line-height: 1.6;
+}
+
+.warranty-exclusions__list li img {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.warranty-requirements {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.warranty-req-item {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.warranty-req-item__number {
+    font-size: 32px;
+    font-weight: 800;
+    color: #EBE3F2;
+    line-height: 1;
+    min-width: 48px;
+}
+
+.warranty-req-item__content h4 {
+    font-size: 15px;
+    font-weight: 700;
+    color: #040205;
+    margin: 0 0 4px;
+}
+
+.warranty-req-item__content p {
+    font-size: 14px;
+    color: #71717A;
+    line-height: 1.7;
+    margin: 0;
+}
+
+.warranty-claim-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: #68408D;
+    color: #FEFCFF;
+    font-size: 14px;
+    font-weight: 700;
+    border: none;
+    border-radius: 10px;
+    padding: 14px 24px;
+    cursor: pointer;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    letter-spacing: 0.5px;
+}
+
+.warranty-claim-btn img {
+    width: 16px;
+    height: 16px;
+}
+
+/* ═══ FAQ ═══════════════════════════════════════════════════ */
+.faq-group {
+    margin-bottom: 36px;
+}
+
+.faq-group__header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.faq-group__icon {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+}
+
+.faq-group__title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #040205;
+    margin: 0;
+}
+
+.faq-accordion {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.faq-item {
+    background: #FEFCFF;
+    border: 1px solid #EBE3F2;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.faq-item__question {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 20px;
+    cursor: pointer;
+    gap: 16px;
+}
+
+.faq-item__question span {
+    font-size: 15px;
+    font-weight: 600;
+    color: #040205;
+    line-height: 1.4;
+}
+
+.faq-item__chevron {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.faq-item__answer {
+    padding: 0 20px 18px;
+    font-size: 14px;
+    color: #71717A;
+    line-height: 1.75;
+}
+
+.faq-callout {
+    background: #68408D;
+    border-radius: 16px;
+    padding: 40px;
+    text-align: center;
+    margin-top: 40px;
+}
+
+.faq-callout__heading {
+    font-size: 30px;
+    font-weight: 700;
+    color: #EBE3F2;
+    margin: 0 0 24px;
+}
+
+.faq-callout__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: #EBE3F2;
+    color: #68408D;
+    font-size: 14px;
+    font-weight: 700;
+    border: none;
+    border-radius: 10px;
+    padding: 14px 24px;
+    cursor: pointer;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+.faq-callout__btn img {
+    width: 16px;
+    height: 16px;
+}
+
+/* ═══ CONTACT ═══════════════════════════════════════════════ */
+.contact-label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 2.4px;
+    text-transform: uppercase;
+    color: #68408D;
+    margin: 0 0 12px;
+}
+
+.contact-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    margin-bottom: 40px;
+}
+
+.contact-block__section-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: #71717A;
+    margin: 0 0 12px;
+}
+
+.contact-block__value {
+    font-size: 20px;
+    font-weight: 500;
+    color: #040205;
+    margin: 0 0 4px;
+    line-height: 1.4;
+}
+
+.contact-block__whatsapp {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #68408D;
+    text-decoration: none;
+    margin-top: 8px;
+}
+
+.contact-block__whatsapp img {
+    width: 16px;
+    height: 16px;
+}
+
+.contact-hours-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    margin-bottom: 40px;
+}
+
+.contact-hours__days {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: #71717A;
+    margin: 0 0 8px;
+}
+
+.contact-hours__time {
+    font-size: 24px;
+    font-weight: 700;
+    color: #040205;
+    margin: 0;
+}
+
+.contact-store__address {
+    font-size: 15px;
+    color: #040205;
+    line-height: 1.7;
+    margin: 0 0 8px;
+}
+
+.contact-store__note {
+    font-size: 14px;
+    font-style: italic;
+    color: #71717A;
+    margin: 0;
+}
+
+/* ═══ TERMS & PRIVACY ═══════════════════════════════════════ */
+.policy-accent-bar {
+    width: 48px;
+    height: 4px;
+    background: #68408D;
+    border-radius: 2px;
+    margin-bottom: 20px;
+}
+
+.policy-heading-large {
+    font-size: 72px;
+    font-weight: 700;
+    letter-spacing: -3.6px;
+    color: #040205;
+    margin: 0 0 16px;
+    line-height: 1;
+}
+
+.policy-heading-medium {
+    font-size: 48px;
+    font-weight: 800;
+    color: #040205;
+    margin: 0 0 16px;
+    line-height: 1.1;
+}
+
+.policy-subtitle {
+    font-size: 20px;
+    font-weight: 500;
+    color: #71717A;
+    margin: 0 0 48px;
+    line-height: 1.6;
+}
+
+.policy-section {
+    margin-bottom: 40px;
+}
+
+.policy-section-divider {
+    width: 32px;
+    height: 1px;
+    background: #EBE3F2;
+    margin-bottom: 8px;
+}
+
+.policy-section-label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 2.4px;
+    text-transform: uppercase;
+    color: #68408D;
+    margin: 0 0 16px;
+}
+
+.policy-text {
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1.8;
+    color: #71717A;
+    margin: 0 0 12px;
+}
+
+.policy-list {
+    list-style: none;
+    padding: 0;
+    margin: 12px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.policy-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 15px;
+    color: #71717A;
+    line-height: 1.7;
+}
+
+.policy-list li::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background: #68408D;
+    border-radius: 50%;
+    margin-top: 8px;
+    flex-shrink: 0;
+}
+
+.policy-blockquote {
+    border-left: 4px solid #68408D;
+    padding: 16px 20px;
+    margin: 16px 0;
+    font-size: 15px;
+    font-style: italic;
+    color: #71717A;
+    line-height: 1.75;
+}
+
+.policy-confirmation {
+    background: #EFEDF0;
+    border-radius: 24px;
+    padding: 48px;
+    margin-top: 48px;
+}
+
+.policy-confirmation h3 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #040205;
+    margin: 0 0 12px;
+}
+
+.policy-confirmation p {
+    font-size: 15px;
+    color: #71717A;
+    line-height: 1.75;
+    margin: 0 0 24px;
+}
+
+.policy-confirmation__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #68408D;
+    color: #FEFCFF;
+    font-size: 14px;
+    font-weight: 700;
+    border: none;
+    border-radius: 10px;
+    padding: 14px 24px;
+    cursor: pointer;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+/* ─── Responsive ───────────────────────────────────────────── */
+@media (max-width: 1200px) {
+    .support-layout {
+        flex-direction: column;
+        padding: 40px 24px;
+        gap: 32px;
+    }
+    .support-sidebar {
+        width: 100%;
+        position: static;
+    }
+    .support-content {
+        padding-top: 0;
+    }
+    .dt-split,
+    .contact-row,
+    .contact-hours-row,
+    .returns-refund-row {
+        flex-direction: column;
+        grid-template-columns: 1fr;
+    }
+    .dt-bento__cards-row {
+        flex-direction: column;
+    }
+    .dt-service-card,
+    .dt-portal-card {
+        width: 100%;
+    }
+    .dt-otp-card {
+        width: 100%;
+    }
+    .dt-gps-card {
+        flex-direction: column;
+    }
+    .dt-gps-card__map {
+        width: 100%;
+    }
+    .dt-modifications {
+        flex-direction: column;
+        gap: 32px;
+        align-items: flex-start;
+    }
+    .support-page-heading {
+        font-size: 36px;
+        line-height: 1.1;
+    }
+}

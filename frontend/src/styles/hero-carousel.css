@@ -1,0 +1,270 @@
+/* ============================================================
+   HERO CAROUSEL — FULL-WIDTH HERO SECTION
+   ============================================================ */
+
+.hero-carousel {
+  position: relative;
+  width: 100%;
+  height: 720px;
+  overflow: hidden;
+  border-radius: 8px;
+  margin: 0 0 40px 0;
+}
+
+/* Background Image */
+.hero-carousel__background {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.hero-carousel__image {
+  position: absolute;
+  width: 100%;
+  height: 159.37%;
+  left: -0.02%;
+  top: -12.82%;
+  object-fit: cover;
+  object-position: center;
+}
+
+/* Dark Gradient Overlay */
+.hero-carousel__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0));
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Content Container */
+.hero-carousel__content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  padding-left: 96px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.hero-carousel__text-container {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  align-items: flex-start;
+  max-width: 672px;
+}
+
+/* Title */
+.hero-carousel__title {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 800;
+  font-size: 96px;
+  line-height: 96px;
+  letter-spacing: -1px;
+  color: #FEFCFF;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+
+/* Subtitle */
+.hero-carousel__subtitle {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 500;
+  font-size: 20px;
+  line-height: 28px;
+  color: #FEFCFF;
+  margin: 0;
+  padding: 0;
+  max-width: 500px;
+}
+
+/* CTA Button */
+.hero-carousel__cta {
+  background: #68408D;
+  color: #FEFCFF;
+  padding: 16px 40px;
+  border-radius: 6px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 24px;
+  text-decoration: none;
+  display: inline-block;
+  transition: all 0.2s ease;
+  pointer-events: auto;
+  text-align: center;
+}
+
+.hero-carousel__cta:hover {
+  background: #563070;
+  transform: translateY(-2px);
+  box-shadow: 0px 8px 16px rgba(104, 64, 141, 0.2);
+}
+
+/* Controls Section */
+.hero-carousel__controls {
+  position: absolute;
+  bottom: 32px;
+  left: 96px;
+  right: 96px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 3;
+}
+
+/* Slide Indicators */
+.hero-carousel__indicators {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.hero-carousel__indicator {
+  height: 6px;
+  width: 32px;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 60px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.hero-carousel__indicator--active {
+  width: 32px;
+  background: #FFFFFF;
+}
+
+/* Navigation Buttons */
+.hero-carousel__navigation {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.hero-carousel__button {
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 12px;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.hero-carousel__button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.8);
+}
+
+.hero-carousel__button img {
+  width: 7.4px;
+  height: 12px;
+  object-fit: contain;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .hero-carousel {
+    height: 500px;
+    margin: 32px;
+  }
+
+  .hero-carousel__content {
+    padding-left: 60px;
+  }
+
+  .hero-carousel__title {
+    font-size: 64px;
+    line-height: 64px;
+  }
+
+  .hero-carousel__subtitle {
+    font-size: 18px;
+    line-height: 24px;
+  }
+
+  .hero-carousel__controls {
+    left: 60px;
+    right: 60px;
+  }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .hero-carousel {
+    height: 400px;
+    margin: 24px;
+  }
+
+  .hero-carousel__content {
+    padding-left: 40px;
+  }
+
+  .hero-carousel__title {
+    font-size: 48px;
+    line-height: 48px;
+  }
+
+  .hero-carousel__controls {
+    left: 40px;
+    right: 40px;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero-carousel {
+    height: 350px;
+    margin: 0 4px;
+    border-radius: 4px;
+  }
+
+  .hero-carousel__content {
+    padding-left: 40px;
+  }
+
+  .hero-carousel__title {
+    font-size: 48px;
+    line-height: 48px;
+  }
+
+  .hero-carousel__subtitle {
+    font-size: 14px;
+    line-height: 20px;
+  }
+
+  .hero-carousel__cta {
+    padding: 12px 24px;
+    font-size: 14px;
+  }
+
+  .hero-carousel__controls {
+    left: 40px;
+    right: 40px;
+    height: 40px;
+  }
+
+  .hero-carousel__indicator {
+    width: 24px;
+    height: 4px;
+  }
+
+  .hero-carousel__button {
+    width: 40px;
+    height: 40px;
+  }
+
+  .hero-carousel__button img {
+    width: 5px;
+    height: 8px;
+  }
+}

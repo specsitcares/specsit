@@ -37,6 +37,7 @@ urlpatterns = [
     path('api/catalog/', include('apps.catalog.urls')),
     path('api/sales/', include('apps.sales.urls')),
     path('api/accounts/', include('apps.accounts.urls')),
+    path('api/cms/', include('apps.cms.urls')),
     path('api/core/', include('apps.catalog.core.urls')),
 
     # React Static Assets (Served via Django staticfiles now)

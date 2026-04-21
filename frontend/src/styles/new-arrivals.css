@@ -1,0 +1,367 @@
+/* ============================================================
+   NEW ARRIVALS SECTION — HORIZONTAL SCROLL PRODUCTS
+   ============================================================ */
+
+.new-arrivals {
+  width: 100%;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+  background: #FEFCFF;
+}
+
+/* Header */
+.new-arrivals__header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  width: 100%;
+}
+
+.new-arrivals__title-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.new-arrivals__title {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 800;
+  font-size: 36px;
+  line-height: 40px;
+  letter-spacing: -1px;
+  color: #040205;
+  margin: 0;
+  padding: 0;
+}
+
+.new-arrivals__subtitle {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 24px;
+  color: #71717A;
+  margin: 0;
+  padding: 0;
+}
+
+.new-arrivals__view-link {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 24px;
+  color: #68408D;
+  text-decoration: none;
+  border-bottom: 2px solid #EBE3F2;
+  padding-bottom: 6px;
+  transition: all 0.2s ease;
+}
+
+.new-arrivals__view-link:hover {
+  color: #563070;
+  border-bottom-color: #68408d;
+}
+
+/* Products Container */
+.new-arrivals__container {
+  display: flex;
+  gap: 28px;
+  overflow-x: auto;
+  padding: 10px 0;
+  width: 100%;
+  scroll-behavior: smooth;
+}
+
+.new-arrivals__container::-webkit-scrollbar {
+  height: 4px;
+}
+
+.new-arrivals__container::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 2px;
+}
+
+.new-arrivals__container::-webkit-scrollbar-thumb {
+  background: rgba(104, 64, 141, 0.2);
+  border-radius: 2px;
+}
+
+.new-arrivals__container::-webkit-scrollbar-thumb:hover {
+  background: rgba(104, 64, 141, 0.4);
+}
+
+/* Product Card */
+.product-card {
+  background: #FEFCFF;
+  border: 1px solid #EBE3F2;
+  border-radius: 16px;
+  overflow: hidden;
+  padding: 17px;
+  width: 320px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.product-card:hover {
+  box-shadow: 0px 8px 16px rgba(104, 64, 141, 0.12);
+  transform: translateY(-4px);
+}
+
+/* Image Section */
+.product-card__image-wrapper {
+  position: relative;
+  width: 100%;
+  height: 221px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f4f1ff;
+}
+
+.product-card__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.product-card__image-overlay {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 2;
+}
+
+.product-card__badge {
+  background: #EBE3F2;
+  color: #68408D;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  font-size: 10px;
+  line-height: 15px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-radius: 12px;
+}
+
+.product-card__heart {
+  backdrop-filter: blur(2px);
+  background: #FEFCFF;
+  border: 1px solid #EBE3F2;
+  border-radius: 12px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 18px;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.product-card__heart:hover {
+  background: #ff6b6b;
+  border-color: #ff6b6b;
+  transform: scale(1.1);
+}
+
+/* Content Section */
+.product-card__content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 0;
+}
+
+.product-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.product-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.product-card__brand {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  font-size: 10px;
+  line-height: 15px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #040205;
+  margin: 0;
+  padding: 0;
+}
+
+.product-card__title {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 24px;
+  color: #040205;
+  margin: 0;
+  padding: 0;
+}
+
+/* Delivery Info */
+.product-card__delivery {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 500;
+  font-size: 10px;
+  line-height: 20px;
+  color: #68408D;
+}
+
+.product-card__delivery-icon {
+  font-size: 16px;
+}
+
+.product-card__delivery-text {
+  font-size: 10px;
+  line-height: 20px;
+}
+
+/* Price Section */
+.product-card__price-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.product-card__prices {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.product-card__original-price {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 16px;
+  color: #71717A;
+  text-decoration: line-through;
+}
+
+.product-card__price {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 24px;
+  color: #040205;
+}
+
+.product-card__discount {
+  background: #FEFCFF;
+  border: 1px solid #EBE3F2;
+  border-radius: 2px;
+  padding: 2px 6px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  font-size: 10px;
+  line-height: 15px;
+  color: #68408D;
+}
+
+.product-card__rating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.product-card__rating-icon {
+  font-size: 12px;
+}
+
+.product-card__rating-value {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  font-size: 10px;
+  line-height: 15px;
+  color: #040205;
+}
+
+.product-card__rating-count {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 400;
+  font-size: 10px;
+  line-height: 15px;
+  color: #71717A;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .new-arrivals {
+    padding: 0 60px 40px 60px;
+    gap: 40px;
+  }
+
+  .new-arrivals__title {
+    font-size: 28px;
+    line-height: 32px;
+  }
+
+  .product-card {
+    width: 280px;
+  }
+}
+
+@media (max-width: 768px) {
+  .new-arrivals {
+    padding: 0 24px 32px 24px;
+    gap: 32px;
+  }
+
+  .new-arrivals__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .new-arrivals__title {
+    font-size: 24px;
+    line-height: 28px;
+  }
+
+  .new-arrivals__subtitle {
+    font-size: 14px;
+    line-height: 20px;
+  }
+
+  .product-card {
+    width: 240px;
+    padding: 12px;
+  }
+
+  .product-card__image-wrapper {
+    height: 160px;
+  }
+
+  .product-card__title {
+    font-size: 14px;
+  }
+
+  .product-card__price {
+    font-size: 14px;
+  }
+}

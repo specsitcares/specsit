@@ -1,0 +1,252 @@
+/* ============================================================
+   ADDRESS BOOK — matches Figma 401:11687
+   Horizontal card layout, selected/idle states
+   ============================================================ */
+
+/* Page title */
+.addr-page-title {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--eyenic-black);
+  letter-spacing: -0.9px;
+  line-height: 40px;
+  margin: 0 0 48px;
+}
+
+/* Card list — vertical stack */
+.addr-list {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/* ── Base card ─────────────────────────────────────────── */
+.addr-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 26px;
+  border-radius: 16px;
+  transition: box-shadow 0.15s;
+}
+
+/* Selected: 2px solid purple border, white bg, shadow */
+.addr-card--selected {
+  background: var(--eyenic-bg-white);
+  border: 2px solid var(--eyenic-purple-primary);
+  box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
+}
+
+/* Idle: 1px solid purple-light border, light-grey bg */
+.addr-card--idle {
+  background: var(--eyenic-light-grey);
+  border: 1px solid var(--eyenic-purple-light);
+  padding: 25px; /* 1px less padding to compensate for thinner border */
+}
+
+/* ── Card info (left) ──────────────────────────────────── */
+.addr-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.addr-card__name-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.addr-card__name {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--eyenic-black);
+  line-height: 28px;
+}
+
+/* Type badges */
+.addr-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 2px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  line-height: 15px;
+  white-space: nowrap;
+}
+
+/* Home on selected card: purple bg / white text */
+.addr-badge--home-selected {
+  background: var(--eyenic-purple-primary);
+  color: #fff;
+}
+
+/* Everything else: purple-light bg / purple text */
+.addr-badge--default {
+  background: var(--eyenic-purple-light);
+  color: var(--eyenic-purple-primary);
+}
+
+.addr-card__details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.addr-card__street {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--eyenic-black);
+  line-height: 22.75px;
+}
+
+.addr-card__phone {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--eyenic-black);
+  line-height: 20px;
+}
+
+.addr-card__phone-icon {
+  display: flex;
+  align-items: center;
+  color: var(--eyenic-black);
+  flex-shrink: 0;
+}
+
+/* ── Card actions (right) ──────────────────────────────── */
+.addr-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-shrink: 0;
+}
+
+/* Edit + Delete group */
+.addr-card__edit-delete {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Selected: vertical right border separating Edit/Delete from checkmark */
+.addr-card__edit-delete--bordered {
+  border-right: 1px solid var(--eyenic-light-grey);
+  padding-right: 25px;
+}
+
+.addr-action-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  padding: 0;
+  transition: opacity 0.15s;
+}
+
+.addr-action-btn:hover { opacity: 0.7; }
+
+.addr-action-btn--edit  { color: var(--eyenic-purple-primary); }
+.addr-action-btn--delete { color: #BA1A1A; }
+
+/* "Select" pill button on idle cards */
+.addr-select-btn {
+  background: var(--eyenic-light-grey);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--eyenic-black);
+  line-height: 16px;
+  padding: 8px 24px;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.addr-select-btn:hover { background: #e0dce4; }
+
+/* ── Add New Address card ──────────────────────────────── */
+.addr-add-card {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  width: 100%;
+  padding: 26px;
+  background: transparent;
+  border: 2px dashed var(--eyenic-light-grey);
+  border-radius: 16px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+.addr-add-card:hover {
+  border-color: var(--eyenic-purple-light);
+  background: var(--eyenic-bg-white);
+}
+
+.addr-add-card__icon {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  background: var(--eyenic-light-grey);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.addr-add-card__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.addr-add-card__title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--eyenic-black);
+  line-height: 24px;
+}
+
+.addr-add-card__sub {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--eyenic-black);
+  line-height: 16px;
+}
+
+/* ── Responsive ────────────────────────────────────────── */
+@media (max-width: 800px) {
+  .addr-page-title { font-size: 26px; margin-bottom: 28px; }
+
+  .addr-card,
+  .addr-card--idle { flex-direction: column; align-items: flex-start; }
+
+  .addr-card__actions {
+    width: 100%;
+    padding-top: 16px;
+    border-top: 1px solid var(--eyenic-light-grey);
+  }
+
+  .addr-card__edit-delete--bordered {
+    border-right: none;
+    padding-right: 0;
+    border-bottom: none;
+  }
+}

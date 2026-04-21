@@ -1,297 +1,584 @@
 /* ============================================================
-   PRODUCT CATALOG & DETAILS — PREMIUM EYEWEAR THEME
+   PRODUCT LISTING PAGE — FIGMA NODE 401:10765 + 401:10766
+   Card styles inherited from home.css (ProductCard component)
    ============================================================ */
 
-.product-detail-container {
-  width: 100%;
-  padding: 0 48px;
-  margin: 48px 0;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 64px;
-  animation: fadeIn 0.6s ease;
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import './ProductCard.css';
+
+:root {
+  --plp-text: #040205;              /* fill_YV8JXP */
+  --plp-accent: #68408D;            /* fill_GC7F9B */
+  --plp-card-bg: #FEFCFF;           /* fill_6THCM1 */
+  --plp-border: #EFEDF0;
+  --plp-muted: #71717A;
+  --plp-pill-bg: #EBE3F2;
+  --plp-filter-border: rgba(205, 195, 209, 0.2); /* fill_7U7TOY */
 }
 
-@media (max-width: 900px) {
-  .product-detail-container { grid-template-columns: 1fr; }
+/* ── Page Shell ─────────────────────────────────────────── */
+.product-listing-page {
+  background-color: var(--plp-card-bg);
+  min-height: 100vh;
+  margin: 0 100px !important; /* Precision header match */
+  padding: 0 32px 64px; 
+  animation: plpFadeIn 0.4s ease;
 }
 
-.product-images-section {
-  position: sticky;
-  top: 120px;
-  height: fit-content;
-}
-
-.product-image-main {
-  background: var(--bg-secondary, #f9fafb);
-  border-radius: 32px;
-  padding: 24px;
-  position: relative;
-  aspect-ratio: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-
-.product-image-main img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-  mix-blend-mode: multiply;
-}
-
-.vto-button {
-  position: absolute;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: white;
-  border: none;
-  padding: 14px 28px;
-  border-radius: 99px;
-  font-weight: 700;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
-  cursor: pointer;
-  transition: all 0.3s ease;
-  white-space: nowrap;
-}
-
-.vto-button:hover {
-  transform: translateX(-50%) translateY(-2px);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
-}
-
-.product-thumbnails {
-  display: flex;
-  gap: 16px;
-  margin-top: 24px;
-}
-
-.thumbnail-item {
-  width: 80px;
-  height: 80px;
-  border-radius: 12px;
-  background: var(--bg-secondary, #f9fafb);
-  padding: 10px;
-  cursor: pointer;
-  border: 2px solid transparent;
-}
-
-.thumbnail-item.active {
-  border-color: var(--primary-color, #0ea5e9);
-}
-
-.product-details-panel {
+/* ── Breadcrumbs & Header ───────────────────────────────── */
+.plp-header {
   padding: 24px 0;
-}
-
-.product-detail-title {
-  font-size: 2.5rem;
-  margin-bottom: 12px;
-  color: #040205;
-  font-weight: 500;
-}
-
-.product-detail-price {
-  font-size: 1.75rem;
-  font-weight: 800;
-  color: #06B217;
-}
-
-.divider {
-  margin: 32px 0;
-  border: none;
-  border-top: 1px solid #D9D9D9;
-}
-
-.flow-progress {
-  display: flex;
-  gap: 24px;
-  margin-bottom: 40px;
-}
-
-.progress-step {
-  font-size: 0.75rem;
-  font-weight: 800;
-  color: #D9D9D9;
-  letter-spacing: 0.1em;
-  transition: color 0.3s ease;
-}
-
-.progress-step.active {
-  color: #06B217;
-}
-
-.progress-step.completed {
-  color: #06B217;
-}
-
-.step-title {
-  font-size: 1.1rem;
-  margin-bottom: 16px;
-  color: #171D25;
-}
-
-.step-description {
-  color: #697177;
-  font-size: 1rem;
-  line-height: 1.5;
   margin-bottom: 24px;
 }
 
-.premium-btn {
-  background: #171D25;
-  color: white;
-  border: none;
-  padding: 18px 32px;
-  border-radius: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.25s ease;
-}
-
-.premium-btn.full-width {
-  width: 100%;
-}
-
-.premium-btn:hover {
-  background: #040205;
-  transform: translateY(-1px);
-}
-
-.premium-btn:disabled {
-  background: #D9D9D9;
-  color: #697177;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.lens-options {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
-  margin-bottom: 32px;
-}
-
-.lens-option {
-  background: white;
-  border: 2px solid #D9D9D9;
-  border-radius: 16px;
-  padding: 20px;
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.lens-option.selected {
-  border-color: #06B217;
-  background: rgba(6, 178, 23, 0.04);
-}
-
-.lens-option-header {
+.breadcrumbs {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.breadcrumb-item {
+  color: var(--plp-text);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.breadcrumb-separator {
+  color: var(--plp-text);
+  letter-spacing: 1.2px;
+}
+
+.breadcrumb-item.active {
+  font-weight: 700;
+}
+
+.plp-title-section h1 {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 800;
+  font-size: 60px;
+  line-height: 60px;
+  letter-spacing: -3px;
+  color: var(--plp-text);
   margin-bottom: 8px;
 }
 
-.lens-badge {
-  font-size: 0.65rem;
-  background: #06B217;
-  color: white;
-  padding: 2px 8px;
-  border-radius: 4px;
+.plp-subtitle {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--plp-text);
 }
 
-/* Prescription options */
-.rx-option {
-  border: 2px solid #D9D9D9;
-  color: #171D25;
-  transition: all 0.2s ease;
-}
-
-.rx-option.selected {
-  border-color: #06B217;
-  color: #06B217;
-}
-
-.btn-back {
-  color: #697177;
-  border: 1px solid #D9D9D9;
-  transition: all 0.2s ease;
-}
-
-.btn-back:hover {
-  border-color: #171D25;
-  color: #171D25;
-}
-
-.thumbnail-item.active {
-  border-color: #06B217;
-}
-
-/* Product Listing Page Styles */
-.search-and-sort {
+/* ── Layout Grid ──────────────────────────────────────── */
+/* Figma layout_NPHJGH: row, gap 64px, alignItems center */
+.plp-layout {
   display: flex;
-  gap: 20px;
+  gap: 64px;
+  align-items: flex-start;
+}
+
+/* ══════════════════════════════════════════════════════════
+   SIDEBAR FILTERS — Figma Node 401:10766
+   layout_8OE2VM: column, padding 24px 28px, width 440,
+   fill_6THCM1: #FEFCFF, border-radius 12px,
+   effect_NSDOT4: boxShadow 1px 4px 20px rgba(0,0,0,0.1)
+   ══════════════════════════════════════════════════════════ */
+.filters-sidebar {
+  flex: 0 0 25%;
+  min-width: 0;
+  background: var(--plp-card-bg);
+  padding: 24px 28px;
+  border-radius: 12px;
+  box-shadow: 1px 4px 20px 0px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  align-self: flex-start;
+}
+
+/* ── Sidebar Header ──────────────────────────────────── */
+/* Figma layout_OTBQ95: column, gap 8px, padding-bottom 24px */
+.filters-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 24px;
+}
+
+/* Figma style_ZKR89L: 18px/700 */
+.filters-header h2 {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  line-height: 28px;
+  color: var(--plp-text);
+  margin: 0;
+}
+
+/* Figma style_LVKS4F: 12px/700, UPPER, tracking 1.2px */
+.filters-subtitle {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--plp-accent);
+}
+
+/* ── Filter Groups Container ─────────────────────────── */
+/* Figma layout_6JTOV3: padding-top 32px */
+.filter-groups-container {
+  padding-top: 32px;
+}
+
+/* Figma layout_1Y0TC1: gap 24px, padding-bottom 40px */
+.filter-groups-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding-bottom: 40px;
+  padding-right: 16px;
+}
+
+/* ── Individual Filter Group ─────────────────────────── */
+/* Figma layout_I1BEL9: padding-bottom 40px, bottom stroke */
+/* Figma fill_7U7TOY: rgba(205, 195, 209, 0.2) */
+.filter-group {
+  padding: 0 0 41px 0;
+  border-bottom: 1px solid var(--plp-filter-border);
+}
+
+.filter-group:last-child {
+  border-bottom: none;
+  padding-bottom: 40px;
+}
+
+/* ── Filter Group Header ─────────────────────────────── */
+/* Figma layout_QQYEU9: row, space-between, center — no extra padding */
+.filter-group-header {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
+  cursor: pointer;
+  padding: 0 0 12px 0;
+  user-select: none;
+}
+
+/* Figma style_OYISEF: 14px/700, h-[20px], lh-[20px] */
+.filter-group-header h3 {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 20px;
+  height: 20px;
+  color: var(--plp-text);
+  margin: 0;
+}
+
+/* Chevron SVG icon — Figma layout_B4NYJT: 12x7.4 */
+.toggle-chevron {
+  flex-shrink: 0;
+}
+
+/* ── Filter Options ──────────────────────────────────── */
+.filter-options {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+/* ── Pill Grid (Updated Figma Node 401:10256) ── */
+.filter-options-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 16px 0;
+}
+
+.filter-grid-pill {
+  width: 100%;
+  height: 48px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 1px solid #EFEDF0;
+  background: transparent;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--plp-text);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.filter-grid-pill:hover {
+  border-color: var(--plp-accent);
+  color: var(--plp-accent);
+}
+
+.filter-grid-pill.active {
+  background: var(--plp-pill-bg); /* #EBE3F2 */
+  border-color: var(--plp-accent);  /* #68408D */
+  color: var(--plp-accent);
+  font-weight: 700;
+}
+
+/* ── Color Swatches (Updated Node 401:10339) ── */
+.filter-swatch-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px 0;
+}
+
+.filter-color-swatch {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid #EFEDF0;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  padding: 0;
+}
+
+.filter-color-swatch:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.filter-color-swatch.active {
+  border: 2px solid var(--plp-accent);
+  box-shadow: 0 0 0 2px white;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+/* ── Rating Filter ── */
+.rating-filter-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rating-stars-row {
+  display: flex;
+  gap: 2px;
+}
+
+.filter-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 14px;
+  color: var(--plp-text);
+  line-height: 1.43;
+}
+
+.filter-checkbox-item input[type="checkbox"],
+.filter-checkbox-item input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--plp-accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.filter-checkbox-item span {
+  transition: color 0.15s;
+}
+
+.filter-checkbox-item:hover span {
+  color: var(--plp-accent);
+}
+
+/* ══════════════════════════════════════════════════════════
+   MAIN CONTENT AREA
+   Figma layout_TE9W66: column, gap 48px
+   ══════════════════════════════════════════════════════════ */
+.plp-main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+  min-width: 0;
+}
+
+/* ── Sorting & Actions Row ───────────────────────────── */
+.sorting-actions-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* Figma layout_P5KXV3: row, justify flex-end */
+.sort-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.sort-by-section {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+/* Figma style_6D832T: 14px/700/UPPER/letter-spacing 8.57% */
+.sort-label {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1.14;
+  letter-spacing: 0.086em;
+  text-transform: uppercase;
+  color: var(--plp-text);
+  white-space: nowrap;
+}
+
+/* Figma layout_B9XTMG: padding-left 16px */
+.sort-select-wrapper {
+  padding-left: 16px;
+}
+
+/* Figma layout_S5ZYXA: 196x44, padding 12px 16px 12px 20px */
+/* Figma: radius 8px, bg #EFEDF0, style_UOG7RQ: 16px/700 */
+.sort-select {
+  width: 196px;
+  height: 44px;
+  padding: 12px 16px 12px 20px;
+  border-radius: 8px;
+  background: var(--plp-border);
+  border: none;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--plp-text);
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%23040205' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+}
+
+/* ── Applied Filters Row ─────────────────────────────── */
+/* Figma layout_EQAUPY: padding-top 24px */
+.applied-filters-row {
+  padding-top: 24px;
+}
+
+/* Figma layout_Z39ZY5: row, center, gap 12px */
+.applied-filters-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
-.search-bar {
-  flex: 1;
-  min-width: 250px;
+/* Figma style_2NBNIG: 16px/700/UPPER/letter-spacing 7.5% */
+.applied-label {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 1;
+  letter-spacing: 0.075em;
+  text-transform: uppercase;
+  color: var(--plp-text);
+  padding-right: 8px;
+  white-space: nowrap;
 }
 
-.search-input {
-  width: 100%;
-  padding: 12px 16px;
-  border: 1px solid #D1D5DB;
-  border-radius: 8px;
+/* Figma layout_ECV5HQ: padding 4px 16px 6px 12px, height 36px */
+/* Figma: radius 12px, fill #EBE3F2, style_17TTUT: 16px/700 */
+.filter-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--plp-pill-bg);
+  color: var(--plp-accent);
+  padding: 4px 16px 6px 12px;
+  height: 36px;
+  border-radius: 12px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.filter-pill .remove-btn {
+  background: none;
+  border: none;
+  color: var(--plp-accent);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  line-height: 1;
+  transition: transform 0.15s;
+}
+
+.filter-pill .remove-btn:hover {
+  transform: scale(1.2);
+}
+
+/* Figma style_7RK7PE: 14px/700 */
+.clear-all-link {
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 14px;
-  background: white;
+  font-weight: 700;
+  line-height: 1.14;
+  color: var(--plp-accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 0 0 8px;
+  text-decoration: none;
+  transition: opacity 0.15s;
 }
 
-.search-input:focus {
-  outline: none;
-  border-color: #3B82F6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+.clear-all-link:hover {
+  text-decoration: underline;
+  opacity: 0.8;
 }
 
+/* ══════════════════════════════════════════════════════════
+   PRODUCT GRID
+   Figma layout_Z4MKST: 3 Column Grid, gap 64px (vertical) 32px (horizontal)
+   ══════════════════════════════════════════════════════════ */
+.plp-product-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 64px 32px;
+  width: 100%;
+}
+
+/* Cards fill their grid cell in PLP context */
+.plp-product-grid .product-card {
+  width: 100%;
+}
+
+
+/* ── Loading & Empty States ──────────────────────────── */
+.loading-state,
+.empty-state {
+  text-align: center;
+  padding: 80px 0;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  color: var(--plp-muted);
+}
+
+.empty-state h2 {
+  font-weight: 700;
+  color: var(--plp-text);
+  margin-bottom: 8px;
+}
+
+.reset-btn {
+  margin-top: 20px;
+  background: var(--plp-accent);
+  color: white;
+  border: none;
+  padding: 12px 28px;
+  border-radius: 10px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.reset-btn:hover { opacity: 0.9; }
+
+/* ── Pagination ──────────────────────────────────────── */
 .pagination {
   display: flex;
   justify-content: center;
-  align-items: center;
   gap: 8px;
-  margin-top: 40px;
-  padding: 20px 0;
+  padding-top: 24px;
 }
 
 .pagination-btn {
-  padding: 8px 12px;
-  border: 1px solid #D1D5DB;
+  padding: 8px 16px;
+  border: 1px solid var(--plp-border);
+  border-radius: 8px;
   background: white;
-  color: #374151;
-  border-radius: 6px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 600;
   cursor: pointer;
-  font-size: 14px;
-  transition: all 0.2s ease;
-}
-
-.pagination-btn:hover:not(:disabled) {
-  background: #F3F4F6;
-  border-color: #9CA3AF;
+  transition: all 0.2s;
 }
 
 .pagination-btn.active {
-  background: #3B82F6;
+  background: var(--plp-accent);
   color: white;
-  border-color: #3B82F6;
+  border-color: var(--plp-accent);
 }
 
 .pagination-btn:disabled {
-  background: #F9FAFB;
-  color: #D1D5DB;
+  opacity: 0.4;
   cursor: not-allowed;
+}
+
+/* ── Animations ───────────────────────────────────────── */
+@keyframes plpFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ══════════════════════════════════════════════════════════
+   RESPONSIVE
+   ══════════════════════════════════════════════════════════ */
+@media (max-width: 1600px) {
+  .plp-product-grid .product-card { min-width: 280px; }
+}
+
+@media (max-width: 1400px) {
+  .product-listing-page { padding: 0 60px 60px; }
+  .plp-layout { gap: 40px; }
+}
+
+@media (max-width: 1200px) {
+  .product-listing-page { padding: 0 40px 40px; }
+  .plp-layout { gap: 32px; }
+  .plp-product-grid { grid-template-columns: repeat(2, 1fr); }
+  .plp-title-section h1 { font-size: 48px; letter-spacing: -2px; line-height: 52px; }
+}
+
+@media (max-width: 1024px) {
+  .plp-layout { flex-direction: column; }
+  .filters-sidebar { display: none; }
+  .filters-sidebar { flex: none; width: 100%; }
+}
+
+@media (max-width: 768px) {
+  .product-listing-page { padding: 0 20px 40px; }
+  .plp-title-section h1 { font-size: 36px; letter-spacing: -1px; line-height: 40px; }
+  .plp-product-grid { 
+    grid-template-columns: 1fr;
+    gap: 32px 16px;
+  }
 }

@@ -1,0 +1,112 @@
+/* ============================================================
+   END NAV BAR — SIMPLIFIED FOOTER NAVIGATION
+   ============================================================ */
+
+.end-nav-bar {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 17px 61px;
+  border-radius: 12px;
+  box-shadow: 0px 20px 40px 0px rgba(104, 64, 141, 0.06);
+  gap: 28px;
+}
+
+/* Brand */
+.end-nav-brand {
+  flex-shrink: 0;
+}
+
+.brand-text {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 28px;
+  letter-spacing: -1px;
+  color: #040205;
+}
+
+/* Trailing Actions */
+.end-nav-trailing {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.help-section {
+  display: flex;
+  align-items: center;
+}
+
+.help-item {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.help-icon {
+  font-size: 10.5px;
+  flex-shrink: 0;
+}
+
+.help-text {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: -0.35px;
+  color: #040205;
+  white-space: nowrap;
+}
+
+/* Phone Section */
+.phone-section {
+  display: flex;
+  align-items: center;
+}
+
+.phone-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.phone-text {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: -0.35px;
+  color: #68408d;
+  white-space: nowrap;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .end-nav-bar {
+    padding: 14px 40px;
+    gap: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .end-nav-bar {
+    flex-direction: column;
+    padding: 12px 24px;
+    gap: 12px;
+  }
+
+  .end-nav-trailing {
+    width: 100%;
+    justify-content: space-around;
+  }
+
+  .help-text,
+  .phone-text {
+    font-size: 12px;
+  }
+}

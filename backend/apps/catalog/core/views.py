@@ -36,30 +36,47 @@ def register_view(request):
 @permission_classes([AllowAny])
 def login_view(request):
     """
-    Custom login endpoint with enhanced security.
-    Validates user credentials and returns token with user metadata.
+    Custom login endpoint. Accepts username or email + password.
     """
-    username = request.data.get('username')
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+
+    identifier = request.data.get('username') or request.data.get('email')
     password = request.data.get('password')
-    
-    if not username or not password:
+
+    if not identifier or not password:
         return Response(
-            {'error': 'Username and password are required.'},
+            {'error': 'Username/email and password are required.'},
             status=status.HTTP_400_BAD_REQUEST
         )
-    
+
+    # Support login via email address
+    username = identifier
+    if '@' in identifier:
+        try:
+            user_obj = User.objects.get(email__iexact=identifier)
+            username = user_obj.username
+        except User.DoesNotExist:
+            pass
+
     # Authenticate user
     user = authenticate(username=username, password=password)
-    
+
     if user is None:
         return Response(
-            {'error': 'Invalid username or password.'},
+            {'error': 'Invalid credentials. Please check your username/email and password.'},
             status=status.HTTP_401_UNAUTHORIZED
         )
-    
+
+    if not user.is_active:
+        return Response(
+            {'error': 'This account has been deactivated.'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
     # Get or create token for user
     token, created = Token.objects.get_or_create(user=user)
-    
+
     return Response({
         'token': token.key,
         'user_id': user.id,
