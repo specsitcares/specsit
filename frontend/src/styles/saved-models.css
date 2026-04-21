@@ -1,0 +1,133 @@
+/* ============================================================
+   SAVED MODELS PAGE
+   ============================================================ */
+
+.face-model-card {
+  display: flex;
+  gap: 32px;
+  background: #fff;
+  border: 1.5px solid var(--eyenic-light-grey);
+  border-radius: 16px;
+  padding: 32px;
+  align-items: flex-start;
+}
+
+.face-model-card__preview {
+  flex-shrink: 0;
+  width: 200px;
+  height: 200px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--eyenic-light-grey);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.face-model-card__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.face-model-card__placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.face-model-card__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.face-model-card__title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--eyenic-black);
+  letter-spacing: -0.5px;
+}
+
+.face-model-card__meta {
+  font-size: 13px;
+  color: var(--eyenic-body-grey);
+  font-weight: 500;
+}
+
+/* PD block */
+.face-model-card__pd {
+  background: var(--eyenic-purple-light);
+  border-radius: 10px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.face-model-pd__block {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.face-model-pd__label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--eyenic-purple-primary);
+}
+
+.face-model-pd__value {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--eyenic-purple-primary);
+  letter-spacing: -0.5px;
+}
+
+.face-model-pd__note {
+  font-size: 12px;
+  color: var(--eyenic-purple-primary);
+  opacity: 0.8;
+  font-weight: 500;
+}
+
+/* Benefits */
+.face-model-card__benefits {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.face-model-benefit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--eyenic-black);
+}
+
+.face-model-card__actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+@media (max-width: 700px) {
+  .face-model-card {
+    flex-direction: column;
+    padding: 20px;
+    gap: 20px;
+  }
+  .face-model-card__preview {
+    width: 100%;
+    height: 200px;
+  }
+}

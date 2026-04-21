@@ -1,0 +1,1622 @@
+/* ================================================================
+   LENS SELECTION ASIDE — Figma 401:15948
+   ================================================================ */
+
+/* ── Backdrop ────────────────────────────────────────────── */
+.lsa-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(4, 2, 5, 0.45);
+    z-index: 900;
+    animation: lsaFadeIn 0.22s ease;
+}
+
+@keyframes lsaFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* ── Panel ───────────────────────────────────────────────── */
+.lsa-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100vh;
+    width: 480px;
+    max-width: 100vw;
+    background: #FEFCFF;
+    border-left: 1px solid #EFEDF0;
+    box-shadow: 0px 0px 80px 0px rgba(0, 0, 0, 0.15);
+    z-index: 901;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.lsa-panel--open {
+    transform: translateX(0);
+}
+
+/* ── Header ──────────────────────────────────────────────── */
+.lsa-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    flex-shrink: 0;
+    border-bottom: 1px solid #EFEDF0;
+}
+
+.lsa-header__back {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 0;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: #040205;
+    transition: opacity 0.15s;
+}
+
+.lsa-header__back:hover { opacity: 0.65; }
+
+.lsa-header__close {
+    width: 32px;
+    height: 32px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: background 0.15s;
+    color: #040205;
+}
+
+.lsa-header__close:hover { background: #F5F3F7; }
+
+/* ── Stepper ─────────────────────────────────────────────── */
+.lsa-stepper-wrap {
+    padding: 24px 24px 0;
+    flex-shrink: 0;
+}
+
+.lsa-stepper {
+    display: flex;
+    align-items: flex-start;
+    width: 100%;
+    margin-bottom: 24px;
+}
+
+.lsa-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.lsa-step__circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 12px;
+    background: #EFEDF0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    color: #71717A;
+    transition: background 0.2s, color 0.2s;
+}
+
+.lsa-step__circle--active {
+    background: #68408D;
+    color: #FEFCFF;
+}
+
+.lsa-step__circle--done {
+    background: #68408D;
+    color: #FEFCFF;
+}
+
+.lsa-step__label {
+    margin-top: 4px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: #71717A;
+    white-space: nowrap;
+}
+
+.lsa-step__label--active { color: #68408D; }
+.lsa-step__label--done   { color: #68408D; }
+
+.lsa-step__divider {
+    flex: 1;
+    height: 2px;
+    background: #EFEDF0;
+    margin: 15px 8px 0;
+    transition: background 0.2s;
+}
+
+.lsa-step__divider--done { background: #68408D; }
+
+/* ── Scrollable body ─────────────────────────────────────── */
+.lsa-content {
+    flex: 1;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.lsa-content::-webkit-scrollbar { width: 4px; }
+.lsa-content::-webkit-scrollbar-track { background: transparent; }
+.lsa-content::-webkit-scrollbar-thumb { background: #EFEDF0; border-radius: 2px; }
+
+.lsa-body {
+    padding: 0 24px 24px;
+}
+
+/* Lens step uses tighter padding — brands go edge-to-edge inside */
+.lsa-body--lenses {
+    padding: 0 0 24px;
+}
+
+.lsa-body--lenses .lsa-heading {
+    padding: 0 24px;
+    margin-bottom: 16px;
+}
+
+.lsa-heading {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: #040205;
+    letter-spacing: -0.6px;
+    line-height: 32px;
+    margin: 0 0 4px;
+}
+
+.lsa-subheading {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+    color: #71717A;
+    margin: 0 0 20px;
+    line-height: 1.5;
+}
+
+/* ── Option cards ────────────────────────────────────────── */
+.lsa-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.lsa-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 20px;
+    background: #FEFCFF;
+    border: 1.5px solid transparent;
+    border-radius: 8px;
+    box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.lsa-option:hover {
+    border-color: #EBE3F2;
+    box-shadow: 0px 4px 12px 0px rgba(104, 64, 141, 0.1);
+}
+
+.lsa-option--selected {
+    border-color: #68408D;
+    box-shadow: 0px 4px 12px 0px rgba(104, 64, 141, 0.15);
+}
+
+.lsa-option__left {
+    display: flex;
+    align-items: center;
+    gap: 0;
+}
+
+.lsa-option__icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.lsa-option__icon--purple { background: #EBE3F2; }
+.lsa-option__icon--grey   { background: #EFEDF0; }
+
+.lsa-option__text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-left: 20px;
+}
+
+.lsa-option__title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.lsa-option__title {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: #040205;
+    line-height: 24px;
+}
+
+.lsa-option__subtitle {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    color: #71717A;
+    line-height: 16px;
+}
+
+.lsa-option__badge {
+    background: #EBE3F2;
+    color: #68408D;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 12px;
+    line-height: 15px;
+}
+
+.lsa-option__price {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: #68408D;
+    white-space: nowrap;
+}
+
+.lsa-option__chevron {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    opacity: 0.35;
+    transition: opacity 0.15s;
+}
+
+.lsa-option__chevron--selected { opacity: 1; }
+.lsa-option:hover .lsa-option__chevron { opacity: 0.7; }
+
+/* ── Prescription form (Step 3) ──────────────────────────── */
+.lsa-rx-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-top: 4px;
+}
+
+.lsa-rx-eye {
+    background: #FEFCFF;
+    border: 1px solid #EFEDF0;
+    border-radius: 12px;
+    padding: 16px;
+}
+
+.lsa-rx-eye__label {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: #68408D;
+    margin-bottom: 12px;
+}
+
+.lsa-rx-eye__fields {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.lsa-rx-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.lsa-rx-field__label {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: #71717A;
+}
+
+.lsa-rx-field__input {
+    border: 1px solid #EFEDF0;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: #040205;
+    background: #FAFAFA;
+    outline: none;
+    transition: border-color 0.15s;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.lsa-rx-field__input:focus { border-color: #68408D; background: #FEFCFF; }
+
+.lsa-rx-add-row {
+    display: flex;
+    gap: 12px;
+}
+
+.lsa-rx-skip-link {
+    display: block;
+    margin-top: 20px;
+    background: none;
+    border: none;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: #71717A;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    padding: 0;
+}
+
+.lsa-rx-skip-link:hover { color: #68408D; }
+
+/* No prescription needed card */
+.lsa-rx-skip-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 32px;
+    background: #F9F6FC;
+    border-radius: 16px;
+    border: 1px solid #EBE3F2;
+    text-align: center;
+}
+
+.lsa-rx-skip-card p {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 14px;
+    color: #71717A;
+    margin: 0;
+}
+
+/* ── Sticky Footer CTA ───────────────────────────────────── */
+.lsa-footer {
+    border-top: 1px solid #EFEDF0;
+    padding: 20px 24px 28px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: #FEFCFF;
+}
+
+.lsa-footer__cta {
+    width: 100%;
+    background: #68408D;
+    color: #FEFCFF;
+    border: none;
+    border-radius: 4px;
+    padding: 16px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    text-align: center;
+    cursor: pointer;
+    box-shadow: 0px 10px 15px -3px rgba(0,0,0,0.1), 0px 4px 6px -4px rgba(0,0,0,0.1);
+    transition: opacity 0.15s;
+}
+
+.lsa-footer__cta:hover:not(:disabled) { opacity: 0.88; }
+
+.lsa-footer__cta:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.lsa-footer__sub {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #71717A;
+    text-align: center;
+    margin: 0;
+}
+
+/* ── Responsive ──────────────────────────────────────────── */
+@media (max-width: 520px) {
+    .lsa-panel {
+        width: 100vw;
+    }
+}
+
+/* ════════════════════════════════════════════════════════
+   STEP 2 — BRAND ACCORDION (Figma 401:16140)
+   ════════════════════════════════════════════════════════ */
+
+.lsa-brands {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 0 24px;
+}
+
+/* ── Brand accordion card ─────────────────────────────── */
+.lsa-brand {
+    background: #FEFCFF;
+    border: 1px solid #EFEDF0;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+/* Header row */
+.lsa-brand__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 18px 20px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s;
+}
+
+.lsa-brand--open .lsa-brand__header {
+    background: #EFEDF0;
+}
+
+.lsa-brand__header-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+/* Brand logo badge */
+.lsa-brand__logo {
+    width: 40px;
+    height: 40px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    flex-shrink: 0;
+    box-sizing: border-box;
+}
+
+.lsa-brand__meta {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.lsa-brand__name {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 800;
+    color: #040205;
+    letter-spacing: -0.4px;
+    line-height: 22px;
+}
+
+.lsa-brand__tagline {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: #040205;
+    line-height: 15px;
+}
+
+.lsa-brand__toggle-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+/* Expanded body */
+.lsa-brand__body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px 14px 16px;
+    animation: lsaSlideDown 0.2s ease;
+}
+
+@keyframes lsaSlideDown {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* "More Lens" link */
+.lsa-more-lens {
+    background: none;
+    border: none;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: #68408D;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+    padding: 4px 0;
+    align-self: center;
+}
+
+.lsa-more-lens:hover { opacity: 0.75; }
+
+/* ── Lens package card ────────────────────────────────── */
+.lsa-pkg-card {
+    position: relative;
+    background: #FEFCFF;
+    border: 1.5px solid #EFEDF0;
+    border-radius: 14px;
+    overflow: hidden;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    padding: 0;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
+}
+
+.lsa-pkg-card:hover {
+    border-color: #D4C4E3;
+    box-shadow: 0 4px 12px rgba(104, 64, 141, 0.1);
+}
+
+.lsa-pkg-card--selected {
+    border-color: #68408D;
+    box-shadow: 0 4px 16px rgba(104, 64, 141, 0.18);
+}
+
+/* TOP RATED / BEST VALUE badge — top-left chip */
+.lsa-pkg-card__badge {
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: #EBE3F2;
+    color: #68408D;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 0 0 8px 0;
+    z-index: 2;
+    line-height: 15px;
+}
+
+.lsa-pkg-card__inner {
+    display: flex;
+    gap: 14px;
+    padding: 12px 14px 14px;
+    padding-top: 28px; /* space for badge */
+    align-items: flex-start;
+}
+
+/* No badge — reset top padding */
+.lsa-pkg-card:not(:has(.lsa-pkg-card__badge)) .lsa-pkg-card__inner {
+    padding-top: 14px;
+}
+
+/* ── Lens preview (left square) ──────────────────────── */
+.lsa-lens-preview {
+    width: 96px;
+    height: 96px;
+    flex-shrink: 0;
+    background: #FEFCFF;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid #EFEDF0;
+}
+
+.lsa-lens-preview--selected {
+    border-color: #EBE3F2;
+    background: #F9F5FC;
+}
+
+.lsa-lens-preview__warranty {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(254, 252, 255, 0.88);
+    backdrop-filter: blur(2px);
+    border-top: 1px solid #FEFCFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 4px 0;
+}
+
+.lsa-lens-preview__warranty span {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 7.5px;
+    font-weight: 700;
+    color: #71717A;
+}
+
+/* ── Card info (right side) ──────────────────────────── */
+.lsa-pkg-card__info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.lsa-pkg-card__name {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: #040205;
+    line-height: 17px;
+    margin: 0 0 8px;
+}
+
+.lsa-pkg-card__features {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.lsa-pkg-card__features li {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    color: #040205;
+    line-height: 15px;
+}
+
+.lsa-pkg-card__price-row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+}
+
+.lsa-pkg-card__price-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.lsa-pkg-card__label {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 9px;
+    font-weight: 500;
+    color: #71717A;
+    line-height: 1;
+}
+
+.lsa-pkg-card__prices {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.lsa-pkg-card__price {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: #68408D;
+    line-height: 20px;
+}
+
+.lsa-pkg-card__original {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 400;
+    color: #71717A;
+    text-decoration: line-through;
+    text-decoration-skip-ink: none;
+    line-height: 13px;
+}
+
+.lsa-pkg-card__chevron {
+    flex-shrink: 0;
+    opacity: 0.3;
+    transition: opacity 0.15s;
+    padding-bottom: 2px;
+}
+
+.lsa-pkg-card__chevron--selected { opacity: 1; }
+.lsa-pkg-card:hover .lsa-pkg-card__chevron { opacity: 0.6; }
+
+/* ════════════════════════════════════════════════════════
+   STEP 3 — EYE POWER (Figma 401:16280)
+   ════════════════════════════════════════════════════════ */
+
+/* Help banner */
+.lsa-rx-help-banner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: #EFEDF0;
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin: 16px 0 20px;
+}
+
+.lsa-rx-help-banner__icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: #dcfce7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.lsa-rx-help-banner__text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.lsa-rx-help-banner__text span {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: #040205;
+}
+
+.lsa-rx-help-banner__link {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    color: #68408D;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+/* Option cards */
+.lsa-rx-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.lsa-rx-option-card {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: #FEFCFF;
+    border: 1px solid #EFEDF0;
+    border-radius: 16px;
+    padding: 20px;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.lsa-rx-option-card:hover {
+    border-color: #D4C4E3;
+    box-shadow: 0 4px 12px rgba(104, 64, 141, 0.1);
+}
+
+.lsa-rx-option-card__icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 8px;
+    background: #EBE3F2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.lsa-rx-option-card__text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.lsa-rx-option-card__title {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: #040205;
+}
+
+.lsa-rx-option-card__subtitle {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    color: #71717A;
+}
+
+/* Back link for sub-views */
+.lsa-rx-back-link {
+    display: inline-block;
+    margin-bottom: 16px;
+    background: none;
+    border: none;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: #68408D;
+    cursor: pointer;
+    padding: 0;
+    text-align: left;
+    transition: opacity 0.15s;
+}
+
+.lsa-rx-back-link:hover { opacity: 0.7; }
+
+/* Manual entry sub-view */
+.lsa-rx-manual {
+    margin-top: 4px;
+}
+
+/* Upload sub-view */
+.lsa-rx-upload {
+    margin-top: 4px;
+}
+
+.lsa-rx-upload-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 40px 24px;
+    background: #F9F5FC;
+    border: 2px dashed #D4C4E3;
+    border-radius: 16px;
+    cursor: pointer;
+    text-align: center;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.lsa-rx-upload-area:hover {
+    background: #F2ECFA;
+    border-color: #B4A0C9;
+}
+
+.lsa-rx-upload-area__title {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: #68408D;
+}
+
+.lsa-rx-upload-area__sub {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 12px;
+    color: #71717A;
+}
+
+/* ════════════════════════════════════════════════════════
+   MANUAL POWER FORM — Figma 401:16362
+   ════════════════════════════════════════════════════════ */
+
+.lsa-manual-form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+/* Sub-heading */
+.lsa-manual-header {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.lsa-manual-title {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: #040205;
+    margin: 0;
+    line-height: 28px;
+}
+
+.lsa-manual-sub {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    color: #71717A;
+    margin: 0;
+    line-height: 20px;
+}
+
+/* Checkboxes */
+.lsa-manual-toggles {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.lsa-manual-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+}
+
+.lsa-manual-checkbox__native {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    width: 0;
+    height: 0;
+}
+
+.lsa-manual-checkbox__box {
+    width: 20px;
+    height: 20px;
+    border-radius: 2px;
+    border: 1px solid #EFEDF0;
+    background: #FEFCFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.lsa-manual-checkbox__box--checked {
+    background: #68408D;
+    border-color: #68408D;
+}
+
+.lsa-manual-checkbox__label {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: #71717A;
+    line-height: 20px;
+}
+
+/* ── Power Grid (table) ──────────────────────────────── */
+.lsa-power-grid {
+    background: #FEFCFF;
+    border: 1px solid #EFEDF0;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.lsa-power-grid__header {
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid #EFEDF0;
+    background: #FEFCFF;
+}
+
+.lsa-power-grid__hcell {
+    flex: 1;
+    padding: 12px 16px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: #71717A;
+}
+
+.lsa-power-grid__hcell--eye {
+    flex: 0 0 72px;
+}
+
+.lsa-power-grid__hcell--axis {
+    flex: 1.6;
+}
+
+.lsa-power-grid__row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 8px 10px 0;
+}
+
+.lsa-power-grid__row--border {
+    border-top: 1px solid #FEFCFF;
+}
+
+.lsa-power-grid__eye {
+    flex: 0 0 68px;
+    display: flex;
+    flex-direction: column;
+    padding: 0 16px;
+    gap: 0;
+}
+
+.lsa-power-grid__eye-main {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: #71717A;
+    text-transform: uppercase;
+    line-height: 16px;
+}
+
+.lsa-power-grid__eye-sub {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    color: #71717A;
+    line-height: 14px;
+}
+
+.lsa-power-grid__cell {
+    flex: 1;
+}
+
+.lsa-power-grid__cell--axis {
+    flex: 1.6;
+}
+
+.lsa-power-grid__select {
+    width: 100%;
+    height: 36px;
+    background: #EFEDF0;
+    border: none;
+    border-radius: 4px;
+    padding: 0 28px 0 12px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    color: #040205;
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%2371717A' stroke-width='1.3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    transition: background-color 0.15s;
+}
+
+.lsa-power-grid__select:focus {
+    background-color: #E5E0EC;
+    outline: 2px solid #68408D;
+    outline-offset: -2px;
+}
+
+.lsa-power-grid__axis-input {
+    width: 100%;
+    height: 36px;
+    background: #EFEDF0;
+    border: none;
+    border-radius: 4px;
+    padding: 0 12px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    color: #040205;
+    outline: none;
+    box-sizing: border-box;
+    transition: background-color 0.15s;
+}
+
+.lsa-power-grid__axis-input:focus {
+    background-color: #E5E0EC;
+    outline: 2px solid #68408D;
+    outline-offset: -2px;
+}
+
+/* Hide number spinners */
+.lsa-power-grid__axis-input::-webkit-inner-spin-button,
+.lsa-power-grid__axis-input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+}
+
+/* ADD power row for progressive */
+.lsa-power-grid__add-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    border-top: 1px solid #EFEDF0;
+}
+
+.lsa-power-grid__add-label {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: #71717A;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    flex-shrink: 0;
+}
+
+/* ── Identity fields ─────────────────────────────────── */
+.lsa-manual-identity {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.lsa-manual-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.lsa-manual-field__label {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #71717A;
+}
+
+.lsa-manual-field__input {
+    border: none;
+    border-bottom: 2px solid #EFEDF0;
+    background: transparent;
+    padding: 13px 0 15px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    color: #040205;
+    outline: none;
+    width: 100%;
+    transition: border-color 0.15s;
+}
+
+.lsa-manual-field__input::placeholder {
+    color: #71717A;
+}
+
+.lsa-manual-field__input:focus {
+    border-bottom-color: #68408D;
+}
+
+/* ── Help / call link ────────────────────────────────── */
+.lsa-manual-help {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding-bottom: 8px;
+}
+
+.lsa-manual-help__text {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    color: #71717A;
+}
+
+.lsa-manual-help__call {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: #71717A;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-skip-ink: none;
+}
+
+.lsa-manual-help__call:hover {
+    color: #68408D;
+}
+
+/* ── Footer secondary actions (Help + Save Draft) ────── */
+.lsa-footer__secondary-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 8px;
+}
+
+.lsa-footer__sec-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: none;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    color: #71717A;
+    cursor: pointer;
+    padding: 0;
+    transition: color 0.15s;
+}
+
+.lsa-footer__sec-btn:hover {
+    color: #040205;
+}
+
+/* ── PD (Pupillary Distance) row ──────────────────────────── */
+.lsa-power-grid__pd-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 0 4px;
+    border-top: 1px solid #EFEDF0;
+    margin-top: 4px;
+    flex-wrap: wrap;
+}
+
+.lsa-power-grid__pd-left {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 60px;
+}
+
+.lsa-power-grid__pd-label {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: #040205;
+}
+
+.lsa-power-grid__pd-hint {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 400;
+    color: #71717A;
+}
+
+.lsa-power-grid__pd-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: #F4F3F5;
+    border: 1px solid #EFEDF0;
+    border-radius: 6px;
+    padding: 0 8px 0 4px;
+}
+
+.lsa-power-grid__pd-input {
+    width: 64px !important;
+    border: none !important;
+    background: transparent !important;
+    padding: 7px 4px !important;
+    font-size: 13px !important;
+}
+
+.lsa-power-grid__pd-unit {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    color: #71717A;
+}
+
+.lsa-power-grid__pd-measure-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: #F7F3FB;
+    border: 1px solid #D4BAE8;
+    border-radius: 6px;
+    padding: 7px 11px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: #68408D;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    white-space: nowrap;
+    margin-left: auto;
+}
+
+.lsa-power-grid__pd-measure-btn:hover {
+    background: #EBE3F2;
+    border-color: #68408D;
+}
+
+/* ── PD Measure Modal ─────────────────────────────────────── */
+.lsa-pd-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(4, 2, 5, 0.6);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 2100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: vtoFadeIn 0.18s ease;
+}
+
+.lsa-pd-modal {
+    background: #FEFCFF;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 32px 64px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(104, 64, 141, 0.08);
+    overflow: hidden;
+    animation: vtoPanelIn 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.lsa-pd-modal__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 20px 16px;
+    border-bottom: 1px solid #EFEDF0;
+}
+
+.lsa-pd-modal__header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.lsa-pd-modal__icon {
+    width: 36px;
+    height: 36px;
+    background: #EBE3F2;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.lsa-pd-modal__label {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #68408D;
+    margin: 0 0 2px;
+}
+
+.lsa-pd-modal__title {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: #040205;
+    margin: 0;
+}
+
+.lsa-pd-modal__close {
+    width: 32px;
+    height: 32px;
+    background: #F4F3F5;
+    border: none;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s;
+}
+
+.lsa-pd-modal__close:hover { background: #EFEDF0; }
+
+.lsa-pd-modal__tip {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 12px;
+    color: #71717A;
+    margin: 12px 20px 0;
+    line-height: 1.5;
+}
+
+/* Camera / preview area */
+.lsa-pd-modal__preview {
+    position: relative;
+    margin: 12px 20px 0;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #040205;
+    aspect-ratio: 4 / 3;
+}
+
+.lsa-pd-modal__video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* Face guide oval */
+.lsa-pd-modal__oval {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 55%;
+    height: 75%;
+    border: 2px dashed rgba(254, 252, 255, 0.5);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+/* Camera loading / measuring overlay */
+.lsa-pd-modal__cam-loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: rgba(4, 2, 5, 0.55);
+    color: #FEFCFF;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.lsa-pd-modal__spinner {
+    width: 28px;
+    height: 28px;
+    border: 2.5px solid rgba(254, 252, 255, 0.25);
+    border-top-color: #FEFCFF;
+    border-radius: 50%;
+    animation: vtoSpin 0.7s linear infinite;
+}
+
+/* Result card */
+.lsa-pd-modal__result {
+    margin: 12px 20px 0;
+    border: 2px solid;
+    border-radius: 12px;
+    padding: 14px 16px;
+    background: #F9FFF9;
+    text-align: center;
+}
+
+.lsa-pd-modal__result-pd {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 32px;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 6px;
+}
+
+.lsa-pd-modal__result-pd span {
+    font-size: 16px;
+    font-weight: 600;
+    opacity: 0.7;
+}
+
+.lsa-pd-modal__result-meta {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 12px;
+    color: #71717A;
+    margin-top: 2px;
+}
+
+.lsa-pd-modal__result-warn {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 11px;
+    color: #dc2626;
+    margin: 8px 0 0;
+}
+
+/* Error */
+.lsa-pd-modal__error {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 12px;
+    color: #dc2626;
+    margin: 10px 20px 0;
+    background: #FFF5F5;
+    border: 1px solid #FECACA;
+    border-radius: 8px;
+    padding: 8px 12px;
+}
+
+/* Action row */
+.lsa-pd-modal__actions {
+    display: flex;
+    gap: 10px;
+    padding: 16px 20px 20px;
+}
+
+.lsa-pd-modal__btn {
+    flex: 1;
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    transition: opacity 0.15s, background 0.15s;
+}
+
+.lsa-pd-modal__btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.lsa-pd-modal__btn--primary {
+    background: #68408D;
+    color: #FEFCFF;
+    border: none;
+}
+
+.lsa-pd-modal__btn--primary:not(:disabled):hover {
+    background: #7B4FA5;
+}
+
+.lsa-pd-modal__btn--ghost {
+    background: #F4F3F5;
+    color: #040205;
+    border: 1px solid #EFEDF0;
+}
+
+.lsa-pd-modal__btn--ghost:hover {
+    background: #EFEDF0;
+}
+
+/* ── Upload area done state ───────────────────────────────── */
+.lsa-rx-upload-area--done {
+    border-color: #68408D;
+    background: #F7F3FB;
+}
+
+.lsa-rx-upload-area__title--done {
+    color: #68408D;
+    font-weight: 700;
+    font-size: 13px;
+    word-break: break-all;
+    max-width: 200px;
+    text-align: center;
+}

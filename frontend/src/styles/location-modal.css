@@ -1,0 +1,342 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
+
+.location-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    padding: 16px;
+}
+
+.location-modal-content {
+    background: #FEFCFF;
+    width: 100%;
+    max-width: 512px;
+    border-radius: 24px;
+    box-shadow: 0px 25px 50px -12px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.location-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 32px 32px 16px;
+    border-bottom: 1px solid #EBE3F2;
+}
+
+.location-modal-header h2 {
+    color: #68408D;
+    font-weight: 800;
+    font-size: 20px;
+    line-height: 1.4;
+    letter-spacing: -0.025em;
+    margin: 0;
+}
+
+.close-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 12px;
+    transition: background-color 0.2s;
+}
+
+.close-button:hover {
+    background-color: #f3f4f6;
+}
+
+.location-modal-body {
+    padding: 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+
+.pincode-search-container {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+}
+
+.pincode-input-wrapper {
+    flex: 1;
+    position: relative;
+}
+
+.pincode-input {
+    width: 100%;
+    padding: 17px 20px;
+    background: #FEFCFF;
+    border: 1px solid #EBE3F2;
+    border-radius: 16px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    color: #040205;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.pincode-input::placeholder {
+    color: #71717A;
+}
+
+.pincode-input:focus {
+    border-color: #68408D;
+}
+
+.check-button {
+    padding: 17px 33px;
+    background: #FEFCFF;
+    border: 1px solid #EBE3F2;
+    border-radius: 16px;
+    color: #71717A;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.check-button:hover {
+    background: #f9fafb;
+    border-color: #68408D;
+    color: #68408D;
+}
+
+.current-location-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    color: #0F766E;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: -0.025em;
+    transition: opacity 0.2s;
+}
+
+.current-location-btn:hover {
+    opacity: 0.8;
+}
+
+.saved-addresses-section {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.section-title {
+    color: #040205;
+    font-weight: 800;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin: 0;
+}
+
+.address-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.address-card {
+    padding: 20px;
+    background: #FEFCFF;
+    border: 1px solid #EBE3F2;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.address-card:hover {
+    border-color: #68408D;
+    background: #fafafa;
+}
+
+.address-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.tags-container {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.tag {
+    padding: 2px 8px;
+    border-radius: 2px;
+    font-weight: 900;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.tag-home {
+    background: #EBE3F2;
+    color: #68408D;
+}
+
+.tag-work {
+    background: #FEFCFF;
+    border: 1px solid #EBE3F2;
+    color: #71717A;
+}
+
+.delivery-badge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: #E0F2FE;
+    color: #0EA5E9;
+    padding: 2px 8px;
+    border-radius: 2px;
+    font-weight: 700;
+    font-size: 10px;
+}
+
+.address-text {
+    color: #040205;
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 1.375;
+    margin: 7px 0 0;
+}
+
+.address-subtext {
+    color: #040205;
+    font-weight: 500;
+    font-size: 12px;
+    margin: 0 0 12px;
+}
+
+.address-footer {
+    padding-top: 16px;
+    border-top: 1px solid #EBE3F2;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.contact-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.contact-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #040205;
+    font-weight: 700;
+    font-size: 12px;
+}
+
+.contact-divider {
+    color: #EBE3F2;
+}
+
+.modal-promotion-footer {
+    padding: 25px 24px 24px;
+    background: #EBE3F2;
+    border-top: 1px solid #EBE3F2;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.promotion-text {
+    color: #040205;
+    font-weight: 500;
+    font-size: 12px;
+    line-height: 1.33;
+    margin: 0;
+}
+
+.promotion-highlight {
+    font-weight: 700;
+    color: #68408D;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.location-modal-overlay {
+    animation: fadeIn 0.3s ease-out;
+}
+
+.location-modal-content {
+    animation: slideUp 0.3s ease-out;
+}
+
+/* Geolocation states */
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.spin-animation {
+    animation: spin 1s linear infinite;
+}
+
+.current-location-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.location-error-msg {
+    color: #dc2626;
+    font-size: 12px;
+    font-weight: 500;
+    margin: -20px 0 0;
+    padding: 0;
+    line-height: 1.4;
+}
+
+.pincode-input-error {
+    border-color: #dc2626 !important;
+}
+
+.check-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+

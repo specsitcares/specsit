@@ -3,12 +3,14 @@ from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from django.db.models import Sum, Count, Q
 from django.utils import timezone
-from datetime import timedelta
-from .models import Order, OrderItem, Cart, Wishlist, Coupon, Shipment, LiveSession
+import time
+from datetime import timedelta, datetime
+from .models import Order, OrderItem, Cart, Wishlist, Coupon, Shipment, LiveSession, OrderTracking, Payment
 from apps.catalog.models import Prescription, Variant
 from .serializers import (
-    OrderSerializer, OrderItemSerializer, CartSerializer, 
-    WishlistSerializer, CouponSerializer, ShipmentSerializer
+    OrderSerializer, OrderItemSerializer, CartSerializer,
+    WishlistSerializer, CouponSerializer, ShipmentSerializer,
+    OrderTrackingSerializer, PaymentSerializer,
 )
 
 import csv
@@ -190,29 +192,81 @@ class OrderViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         from django.db import transaction
+        from rest_framework.exceptions import ValidationError
         from apps.catalog.core.models import MetadataItem
-        from apps.catalog.models import Variant
-        
+        from apps.catalog.models import Variant, Lens
+
         with transaction.atomic():
-            # 1. Set Initial Status
+            items_data = self.request.data.get('items', [])
+
+            # 1. PD validation for progressive lenses (before any DB writes)
+            for item_data in items_data:
+                lens_id = item_data.get('lens_id')
+                lens_pd = item_data.get('lens_pd')
+                if lens_id:
+                    try:
+                        try:
+                            lens_obj = Lens.objects.get(id=int(lens_id))
+                        except (ValueError, TypeError):
+                            lens_obj = (
+                                Lens.objects.filter(name__iexact=lens_id).first() or
+                                Lens.objects.filter(package__name__iexact=lens_id).first()
+                            )
+                            if not lens_obj:
+                                continue
+                        if lens_obj.vision_type == 'Progressive' and not lens_pd:
+                            raise ValidationError('PD (Pupillary Distance) is required for Progressive lenses.')
+                    except Lens.DoesNotExist:
+                        pass
+
+            # 2. Pre-validate stock BEFORE creating the order
+            #    Aggregate quantities in case the same variant appears in multiple items
+            variant_qty_map = {}
+            for item_data in items_data:
+                vid = item_data.get('variant')
+                qty = int(item_data.get('quantity', 1))
+                if vid:
+                    vid = int(vid)
+                    variant_qty_map[vid] = variant_qty_map.get(vid, 0) + qty
+
+            # Lock rows for the duration of the transaction (prevents race conditions)
+            locked_variants = {}
+            if variant_qty_map:
+                locked_variants = {
+                    v.id: v
+                    for v in Variant.objects.select_for_update().select_related('product').filter(
+                        id__in=variant_qty_map.keys()
+                    )
+                }
+                for vid, qty in variant_qty_map.items():
+                    variant = locked_variants.get(vid)
+                    if variant and variant.stock < qty:
+                        raise ValidationError(
+                            f'Insufficient stock for "{variant.product.title}". '
+                            f'Requested: {qty}, available: {variant.stock}.'
+                        )
+
+            # 3. All checks passed — create the order
             status_obj = MetadataItem.objects.filter(group__name='Order Status', label='Pending').first()
-            order = serializer.save(user=self.request.user, status=status_obj)
-            
-            # 2. Extract items data from the validated data (provided during POST)
-            # The serializer usually handles item creation via create(), 
-            # but we need to decrement stock for the created items.
+            order = serializer.save(
+                user=self.request.user,
+                status=status_obj,
+                order_status='pending',
+                payment_status='pending',
+            )
+
+            # 4. Deduct stock using already-locked variant objects (no re-query needed)
             for item in order.items.all():
-                variant = item.variant
-                # Real-time Stock Sync: Reduce available inventory
-                if variant.stock >= item.quantity:
-                    variant.stock -= item.quantity
-                    variant.save()
-                else:
-                    # In a real senior scenario, we might raise an error here
-                    # but for now we'll just allow it and log it for operational review
-                    print(f"Warning: Stock undershoot for Variant {variant.id} in Order {order.id}")
-            
-            # 3. Create initial shipment record for tracking workflow
+                variant = locked_variants.get(item.variant_id) if item.variant_id else None
+                if not variant:
+                    continue
+                variant.stock = max(0, variant.stock - item.quantity)
+                variant.save(update_fields=['stock'])
+                product = variant.product
+                product.stock_quantity = max(0, product.stock_quantity - item.quantity)
+                product.save(update_fields=['stock_quantity'])
+
+            # 5. Create initial shipment record
             from .models import Shipment
             shipment_status = MetadataItem.objects.filter(group__name='Shipment Status', label='Processing').first()
             Shipment.objects.get_or_create(
@@ -220,28 +274,135 @@ class OrderViewSet(viewsets.ModelViewSet):
                 defaults={
                     'carrier': 'Pending',
                     'method': 'Standard',
-                    'status': shipment_status
+                    'status': shipment_status,
                 }
             )
 
     def perform_update(self, serializer):
         from apps.catalog.core.models import MetadataItem
         from .models import Shipment
-        
+
         instance = serializer.save()
-        
+
+        # Sync order_status CharField from MetadataItem status label using fuzzy
+        # keyword matching so any label wording in the DB resolves correctly.
+        if instance.status:
+            label = instance.status.label.lower()
+            if any(k in label for k in ['deliver', 'complet']):
+                mapped = 'delivered'
+            elif any(k in label for k in ['transit', 'ship', 'dispatch']):
+                mapped = 'in_transit'
+            elif any(k in label for k in ['ready', 'pack']):
+                mapped = 'ready_to_dispatch'
+            elif any(k in label for k in ['confirm', 'accept', 'prepar', 'quality', 'process']):
+                mapped = 'confirmed'
+            elif any(k in label for k in ['cancel', 'reject']):
+                mapped = 'cancelled'
+            elif 'pending' in label or 'receiv' in label:
+                mapped = 'pending'
+            else:
+                mapped = None
+            if mapped and mapped != instance.order_status:
+                Order.objects.filter(pk=instance.pk).update(order_status=mapped)
+                instance.order_status = mapped
+                if mapped == 'delivered' and not instance.delivery_date:
+                    Order.objects.filter(pk=instance.pk).update(delivery_date=timezone.now())
+                if mapped == 'cancelled' and instance.order_status != 'cancelled':
+                    # Only restore stock if transitioning INTO cancelled (prevent double-restore)
+                    from django.db import transaction
+                    with transaction.atomic():
+                        for item in instance.items.select_related('variant__product').all():
+                            if item.variant:
+                                item.variant.stock += item.quantity
+                                item.variant.save(update_fields=['stock'])
+                                product = item.variant.product
+                                product.stock_quantity += item.quantity
+                                product.save(update_fields=['stock_quantity'])
+
         # PIPELINE SYNC: Update Shipment Status based on Order Status
         if instance.status:
             label = instance.status.label.lower()
             shipment_status = None
-            
-            if 'shipped' in label:
+            if 'shipped' in label or 'transit' in label:
                 shipment_status = MetadataItem.objects.filter(group__name='Shipment Status', label='Shipped').first()
-            elif any(s in label for s in ['preparing', 'received', 'quality', 'ready']):
+            elif any(s in label for s in ['preparing', 'received', 'quality', 'ready', 'confirmed']):
                 shipment_status = MetadataItem.objects.filter(group__name='Shipment Status', label='Processing').first()
-            
             if shipment_status:
                 Shipment.objects.filter(order=instance).update(status=shipment_status)
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
+    def mark_delivered(self, request, pk=None):
+        """
+        Mark order as delivered. Auto-pays COD orders, records delivery date,
+        updates tracking, and returns review links for each product.
+        """
+        from .models import OrderTracking, Payment
+        order = self.get_object()
+
+        if order.order_status == 'delivered':
+            return Response({'detail': 'Order is already delivered.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        now = timezone.now()
+
+        # Update order — sync both status fields
+        from apps.catalog.core.models import MetadataItem
+        from django.db.models import Q
+        delivered_meta = MetadataItem.objects.filter(
+            Q(label__icontains='deliver') | Q(label__icontains='complet')
+        ).first()
+
+        order.order_status = 'delivered'
+        order.delivery_date = now
+        if delivered_meta:
+            order.status = delivered_meta
+        if order.payment_method in ('complete_cod', 'COD'):
+            order.payment_status = 'paid'
+        order.save()
+
+        # Update tracking record
+        tracking, _ = OrderTracking.objects.get_or_create(order=order)
+        tracking.actual_delivery_date = now
+        tracking.current_status = 'delivered'
+        tracking.save()
+
+        # Auto-create payment record for COD orders
+        if order.payment_method in ('complete_cod', 'COD') and not order.payments.filter(payment_status='completed').exists():
+            Payment.objects.create(
+                order=order,
+                payment_method='cod',
+                amount_paid=order.total_amount,
+                payment_status='completed',
+            )
+
+        # Build review links
+        review_links = []
+        for item in order.items.all():
+            if item.variant:
+                product_id = item.variant.product_id
+                review_links.append({
+                    'product_id': product_id,
+                    'product_name': item.variant.product.title,
+                    'review_url': f'/review/create/{product_id}/{order.id}',
+                })
+
+        return Response({
+            'detail': 'Order marked as delivered. Customer notification sent.',
+            'order_id': order.id,
+            'delivered_at': now.isoformat(),
+            'review_links': review_links,
+            'thank_you_url': f'/thank-you/{order.id}',
+        })
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
+    def update_tracking(self, request, pk=None):
+        """Upsert tracking info for an order."""
+        from .models import OrderTracking
+        order = self.get_object()
+        tracking, _ = OrderTracking.objects.get_or_create(order=order)
+        serializer = OrderTrackingSerializer(tracking, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(order=order)
+        return Response(serializer.data)
 
 class CartViewSet(viewsets.ModelViewSet):
     serializer_class = CartSerializer
@@ -262,12 +423,83 @@ class WishlistViewSet(viewsets.ModelViewSet):
 class CouponViewSet(viewsets.ModelViewSet):
     queryset = Coupon.objects.all()
     serializer_class = CouponSerializer
+
+    @action(detail=False, methods=['post'], url_path='validate',
+            permission_classes=[permissions.AllowAny])
+    def validate_coupon(self, request):
+        code = request.data.get('code', '').strip().upper()
+        cart_value = float(request.data.get('cartValue', 0) or 0)
+
+        if not code:
+            return Response({'valid': False, 'message': 'Please enter a coupon code.'})
+
+        try:
+            coupon = Coupon.objects.get(code=code, is_active=True)
+        except Coupon.DoesNotExist:
+            return Response({'valid': False, 'message': 'Invalid coupon code. Please try again.'})
+
+        # Expiry check
+        if coupon.valid_until and timezone.now() > coupon.valid_until:
+            return Response({'valid': False, 'message': 'This coupon has expired.'})
+
+        # Minimum cart value check
+        if cart_value and float(coupon.min_cart_value) > cart_value:
+            return Response({
+                'valid': False,
+                'message': f'Minimum cart value ₹{int(coupon.min_cart_value)} required for this coupon.',
+            })
+
+        savings = round(cart_value * coupon.discount_percentage / 100, 2) if cart_value else 0
+
+        return Response({
+            'valid': True,
+            'code': coupon.code,
+            'discountPercentage': coupon.discount_percentage,
+            'savings': savings,
+            'message': f"Coupon '{coupon.code}' applied! You saved ₹{savings}" if savings else f"Coupon '{coupon.code}' applied!",
+        })
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
 class ShipmentViewSet(viewsets.ModelViewSet):
     queryset = Shipment.objects.select_related('order', 'status').all()
     serializer_class = ShipmentSerializer
     permission_classes = [permissions.IsAdminUser]
+
+class OrderTrackingViewSet(viewsets.ModelViewSet):
+    serializer_class = OrderTrackingSerializer
+    permission_classes = [permissions.IsAdminUser]
+
+    def get_queryset(self):
+        return OrderTracking.objects.select_related('order').all()
+
+    def get_or_create_tracking(self, order_id):
+        order = Order.objects.get(id=order_id)
+        tracking, _ = OrderTracking.objects.get_or_create(order=order)
+        return tracking
+
+    def create(self, request, *args, **kwargs):
+        order_id = request.data.get('order')
+        try:
+            order = Order.objects.get(id=order_id)
+        except Order.DoesNotExist:
+            return Response({'error': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
+        tracking, created = OrderTracking.objects.get_or_create(order=order)
+        serializer = self.get_serializer(tracking, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(order=order)
+        code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
+        return Response(serializer.data, status=code)
+
+class PaymentViewSet(viewsets.ModelViewSet):
+    serializer_class = PaymentSerializer
+    permission_classes = [permissions.IsAdminUser]
+
+    def get_queryset(self):
+        qs = Payment.objects.select_related('order').all()
+        order_id = self.request.query_params.get('order')
+        if order_id:
+            qs = qs.filter(order_id=order_id)
+        return qs
 
 class AdminDashboardStatsView(views.APIView):
     permission_classes = [permissions.IsAdminUser]
@@ -312,9 +544,12 @@ class AdminDashboardStatsView(views.APIView):
             status__label__icontains='Pending'
         ).count() if Prescription.objects.filter(status__isnull=False).exists() else 0
         
-        # 4. Stock Analysis
-        low_stock_products = Variant.objects.filter(stock__lt=10, stock__gt=0).count()
-        out_of_stock = Variant.objects.filter(stock=0).count()
+        # 4. Stock Analysis — use each product's own low_stock_threshold
+        from django.db.models import F
+        low_stock_products = Variant.objects.filter(
+            stock__gt=0, stock__lt=F('product__low_stock_threshold')
+        ).count()
+        out_of_stock = Variant.objects.filter(stock__lte=0).count()
         
         # 5. Today's Orders
         today_orders = Order.objects.filter(created_at__date=today).count()
@@ -440,22 +675,22 @@ class AdminDashboardStatsView(views.APIView):
             ],
             "attention": [
                 {
-                    "label": "Prescriptions need review",
+                    "label": "Prescriptions need review before fulfillment can continue.",
                     "count": pending_pres_count,
                     "icon": "FileText"
                 },
                 {
-                    "label": "Products running low",
+                    "label": "Products are running low and should be replenished soon.",
                     "count": low_stock_products,
                     "icon": "AlertTriangle"
                 },
                 {
-                    "label": "Products out of stock",
+                    "label": "Items are out of stock and blocking active customer orders.",
                     "count": out_of_stock,
                     "icon": "AlertCircle"
                 },
                 {
-                    "label": "Shipments in transit",
+                    "label": "Shipments are in transit and require status follow-up.",
                     "count": active_shipments,
                     "icon": "Truck"
                 },
@@ -475,14 +710,15 @@ class RecentOrdersView(views.APIView):
     permission_classes = [permissions.IsAdminUser]
     
     def get(self, request):
-        limit = int(request.query_params.get('limit', 10))
+        limit = int(request.query_params.get('limit', 50))
+        today = timezone.localdate()
         recent_orders = Order.objects.select_related(
             'status', 'user'
         ).prefetch_related(
-            'items', 'items__variant', 'items__variant__images', 'items__variant__product', 
+            'items', 'items__variant', 'items__variant__images', 'items__variant__product',
             'items__prescription', 'items__prescription__status'
-        ).order_by('-created_at')[:limit]
-        
+        ).filter(created_at__date=today).order_by('-created_at')[:limit]
+
         serializer = OrderSerializer(recent_orders, many=True)
         return Response(serializer.data)
 
@@ -496,15 +732,95 @@ class RecordLiveActivityView(views.APIView):
         if not sid:
             return Response({'error': 'Missing session_id'}, status=400)
             
-        try:
-            LiveSession.objects.update_or_create(
-                session_id=sid,
-                defaults={'current_page': page, 'last_activity': timezone.now()}
-            )
-        except Exception as e:
-            # SQLite might lock under high concurrency. 
-            # Since this is non-critical activity tracking, we can fail silently.
-            print(f"Live activity record failed (likely DB lock): {e}")
-            
+        from django.db.utils import OperationalError
+        for attempt in range(3):
+            try:
+                LiveSession.objects.update_or_create(
+                    session_id=sid,
+                    defaults={'current_page': page, 'last_activity': timezone.now()}
+                )
+                break
+            except OperationalError:
+                # SQLite DB lock — wait briefly and retry (non-critical tracking)
+                if attempt < 2:
+                    time.sleep(0.05 * (2 ** attempt))  # 50ms, 100ms
+            except Exception:
+                break  # Non-lock errors: fail silently, don't spam logs
+
         return Response({'status': 'ok'})
 
+
+class DeliveryCheckView(views.APIView):
+    """
+    POST /api/sales/delivery/check/
+    Body: { productId, sellerId, pincode }
+    Returns delivery estimate based on pincode serviceability.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    # Pincodes served by local express hubs (1-2 hour delivery)
+    EXPRESS_PREFIXES = {'500', '501', '502', '503'}
+
+    # Pincodes served via standard network (next-day)
+    STANDARD_PREFIXES = {
+        '400', '401', '411',   # Mumbai / Pune
+        '560', '562', '563',   # Bengaluru
+        '600', '601', '602',   # Chennai
+        '700', '711',          # Kolkata
+        '110', '111',          # Delhi
+        '530', '531', '532', '533', '534',  # Andhra / Vizag
+        '110', '122', '124',   # NCR
+        '226',                  # Lucknow
+    }
+
+    def post(self, request):
+        pincode = request.data.get('pincode', '').strip()
+
+        # Validate
+        if not pincode or not pincode.isdigit() or len(pincode) != 6:
+            return Response(
+                {'error': 'invalid_pincode', 'message': 'Please enter a valid 6-digit pincode.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        prefix = pincode[:3]
+        now = timezone.localtime(timezone.now())
+
+        if prefix in self.EXPRESS_PREFIXES:
+            # 1-2 hour express delivery
+            deliver_by = now + timedelta(hours=2)
+            return Response({
+                'canDeliverIn1or2Hours': True,
+                'estimatedDeliveryDate': deliver_by.strftime('%Y-%m-%d'),
+                'estimatedDeliveryTime': deliver_by.strftime('%I:%M %p').lstrip('0'),
+                'deliveryCharge': 0,
+                'message': f"Get it by {deliver_by.strftime('%I:%M %p').lstrip('0')}",
+            })
+
+        elif prefix in self.STANDARD_PREFIXES:
+            # Next-day delivery
+            deliver_by = now + timedelta(days=1)
+            return Response({
+                'canDeliverIn1or2Hours': False,
+                'estimatedDeliveryDate': deliver_by.strftime('%Y-%m-%d'),
+                'estimatedDeliveryTime': '6:00 PM – 8:00 PM',
+                'deliveryCharge': 0,
+                'message': f"Expected by {deliver_by.strftime('%A, %d %b')}",
+            })
+
+        elif pincode[0].isdigit():
+            # Serviceable but slower (3-5 days)
+            deliver_by = now + timedelta(days=5)
+            return Response({
+                'canDeliverIn1or2Hours': False,
+                'estimatedDeliveryDate': deliver_by.strftime('%Y-%m-%d'),
+                'estimatedDeliveryTime': '6:00 PM – 8:00 PM',
+                'deliveryCharge': 0,
+                'message': f"Expected by {deliver_by.strftime('%A, %d %b')}",
+            })
+
+        else:
+            return Response({
+                'error': 'not_serviceable',
+                'message': "We don't deliver to this area yet.",
+            })

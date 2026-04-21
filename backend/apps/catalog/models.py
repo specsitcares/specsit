@@ -1,13 +1,18 @@
 from django.db import models  # type: ignore
 from django.contrib.auth.models import User  # type: ignore
 from .core.models import MetadataItem  # type: ignore
+from decimal import Decimal
 
 class Category(models.Model):
+    CATEGORY_TYPE_CHOICES = [('Lens', 'Lens'), ('Frame', 'Frame')]
     name = models.CharField(max_length=100, unique=True)
+    category_type = models.CharField(max_length=10, choices=CATEGORY_TYPE_CHOICES, default='Frame')
     description = models.TextField(blank=True)
     image = models.ImageField(upload_to='categories/', blank=True, null=True)
     parent = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='subcategories')
     is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True)
     def __str__(self): return self.name
 
 class Brand(models.Model):
@@ -27,33 +32,68 @@ class Manufacturer(models.Model):
 
 class Product(models.Model):
     """
-    Main Product model, aligned with Figma design specs.
+    Main Product model — supports both lens and frame products.
     """
+    PRODUCT_TYPE_CHOICES = [('lens', 'Lens'), ('frame', 'Frame')]
+    LENS_TYPE_CHOICES = [
+        ('Single Vision', 'Single Vision'),
+        ('Bifocal', 'Bifocal'),
+        ('Progressive', 'Progressive'),
+    ]
+
     title = models.CharField(max_length=255)
-    description = models.TextField() # Long description/Meta Description
+    product_type = models.CharField(max_length=10, choices=PRODUCT_TYPE_CHOICES, default='frame')
+    sku = models.CharField(max_length=100, unique=True, null=True, blank=True)
+    description = models.TextField(blank=True)
     short_description = models.TextField(blank=True)
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='products')
     brand = models.ForeignKey(Brand, on_delete=models.SET_NULL, null=True, blank=True)
+    brand_name = models.CharField(max_length=100, null=True, blank=True)
     manufacturer = models.ForeignKey(Manufacturer, on_delete=models.SET_NULL, null=True, blank=True)
-    
+    product_image = models.ImageField(upload_to='products/', null=True, blank=True)
+
     # SEO Fields
     meta_title = models.CharField(max_length=255, blank=True)
     meta_description = models.TextField(blank=True)
-    
-    # Frame Specs from Figma
+
+    # Frame Specs
     frame_type = models.CharField(max_length=100, blank=True, default='')
-    frame_shape = models.CharField(max_length=100, blank=True, default='') # Pilot / Aviator, Round, etc.
-    frame_width = models.CharField(max_length=100, blank=True, default='') # e.g. "Large (140mm)"
+    frame_shape = models.CharField(max_length=100, blank=True, default='')
+    frame_width = models.CharField(max_length=100, blank=True, default='')
+    frame_style = models.CharField(max_length=100, null=True, blank=True)
+    frame_material = models.CharField(max_length=100, null=True, blank=True)
+    frame_size = models.CharField(max_length=100, null=True, blank=True)
+    frame_color = models.CharField(max_length=100, null=True, blank=True)
     gender = models.CharField(max_length=20, choices=[('Men', 'Men'), ('Women', 'Women'), ('Unisex', 'Unisex'), ('Kids', 'Kids')], default='Unisex')
-    
+
+    # Lens Specs
+    lens_type = models.CharField(max_length=20, choices=LENS_TYPE_CHOICES, null=True, blank=True)
+    requires_pd = models.BooleanField(default=False)
+
+    # Pricing
     base_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    selling_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    discount_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
+    final_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+
+    # Inventory
+    stock_quantity = models.IntegerField(default=0)
+    low_stock_threshold = models.IntegerField(default=10)
     frame_only_mode = models.BooleanField(default=False)
-    
+
     is_featured = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
+    def save(self, *args, **kwargs):
+        if self.lens_type == 'Progressive':
+            self.requires_pd = True
+        sp = Decimal(str(self.selling_price or 0))
+        dp = Decimal(str(self.discount_percentage or 0))
+        self.final_price = (sp - (sp * dp / Decimal('100'))).quantize(Decimal('0.01'))
+        super().save(*args, **kwargs)
+
     def __str__(self): return self.title
 
 class Variant(models.Model):
@@ -181,8 +221,21 @@ class UserFace(models.Model):
 class Review(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews')
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='reviews')
+    order = models.ForeignKey('sales.Order', on_delete=models.SET_NULL, null=True, blank=True, related_name='reviews')
     rating = models.IntegerField(default=5)
-    comment = models.TextField()
+    review_title = models.CharField(max_length=255, blank=True)
+    review_text = models.TextField(blank=True)
+    comment = models.TextField(blank=True)  # kept for backward compat
+    reviewer_display_name = models.CharField(max_length=100, blank=True)
+    review_images = models.JSONField(default=list)
+    is_verified_purchase = models.BooleanField(default=True)
     is_approved = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['order', 'user'], name='unique_review_per_order_user')
+        ]
+
     def __str__(self): return f"Review for {self.product.title} by {self.user.username}"

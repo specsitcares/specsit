@@ -6,7 +6,7 @@ Description: System-wide shared models, utilities, and core dashboards. Defines 
 from django.db import models
 from django.contrib.auth.models import User
 
-# --- SYSTEM CORE (MetaData & Analytics) ---
+# --- SYSTEM CORE (MetaData & Analytics) --- #
 class MetadataGroup(models.Model):
     name = models.CharField(max_length=50, unique=True) # e.g. "Frame Type", "Lens Type"
     def __str__(self): return self.name

@@ -4,6 +4,23 @@ from decimal import Decimal
 from apps.catalog.models import Variant, Lens, Prescription
 from apps.catalog.core.models import MetadataItem
 
+class PaymentGatewayConfig(models.Model):
+    GATEWAY_CHOICES = [
+        ('razorpay', 'Razorpay'),
+        ('stripe', 'Stripe (Future)'),
+    ]
+    name = models.CharField(max_length=50, choices=GATEWAY_CHOICES, default='razorpay', unique=True)
+    key_id = models.CharField(max_length=255, blank=True, help_text="Razorpay Key ID")
+    key_secret = models.CharField(max_length=255, blank=True, help_text="Razorpay Key Secret")
+    is_sandbox = models.BooleanField(default=True, help_text="Toggle between Test and Live mode")
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name_plural = "Payment Gateway Settings"
+
+    def __str__(self):
+        return f"{self.get_name_display()} Configuration"
+
 class Coupon(models.Model):
     code = models.CharField(max_length=50, unique=True)
     discount_percentage = models.IntegerField(default=0)
@@ -16,31 +33,85 @@ class Coupon(models.Model):
     def __str__(self): return self.code
 
 class Order(models.Model):
+    ORDER_STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('confirmed', 'Confirmed'),
+        ('ready_to_dispatch', 'Ready to Dispatch'),
+        ('in_transit', 'In Transit'),
+        ('delivered', 'Delivered'),
+        ('cancelled', 'Cancelled'),
+    ]
+    PAYMENT_STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('partial_paid', 'Partial Paid'),
+        ('paid', 'Paid'),
+        ('failed', 'Failed'),
+        ('refunded', 'Refunded'),
+    ]
+    PAYMENT_METHOD_CHOICES = [
+        ('complete_cod', 'Complete COD'),
+        ('complete_online', 'Complete Online'),
+        ('partial_payment', 'Partial Payment'),
+        # Legacy values kept for backward compat
+        ('COD', 'Cash on Delivery'),
+        ('ONLINE', 'Full Online Payment'),
+        ('PARTIAL', 'Partial (Online + COD)'),
+    ]
+
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders', null=True, blank=True)
     total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     paid_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
-    
-    payment_method = models.CharField(max_length=50, default='COD')
+    balance_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+
+    payment_method = models.CharField(max_length=50, choices=PAYMENT_METHOD_CHOICES, default='complete_cod')
+    order_status = models.CharField(max_length=30, choices=ORDER_STATUS_CHOICES, default='pending')
+    payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='pending')
+
+    # Razorpay Specifics
+    razorpay_order_id = models.CharField(max_length=255, blank=True, null=True)
+    razorpay_payment_id = models.CharField(max_length=255, blank=True, null=True)
+    razorpay_signature = models.CharField(max_length=255, blank=True, null=True)
+
+    # Legacy MetadataItem status (kept for backward compat)
     status = models.ForeignKey(MetadataItem, on_delete=models.SET_NULL, null=True, blank=True, related_name='order_status')
-    
+
     coupon = models.ForeignKey(Coupon, on_delete=models.SET_NULL, null=True, blank=True)
-    
-    # Billing & Shipping Address (ForeignKeys to Address moved to accounts)
+
     shipping_address = models.ForeignKey('accounts.Address', on_delete=models.SET_NULL, null=True, blank=True, related_name='shipping_orders')
     billing_address = models.ForeignKey('accounts.Address', on_delete=models.SET_NULL, null=True, blank=True, related_name='billing_orders')
-    
+
+    # Inline address fields (for orders without saved address FK)
+    shipping_address_line = models.TextField(blank=True)
+    shipping_city = models.CharField(max_length=100, blank=True)
+    shipping_state = models.CharField(max_length=100, blank=True)
+    shipping_postal_code = models.CharField(max_length=20, blank=True)
+
+    order_date = models.DateTimeField(auto_now_add=True, null=True)
+    delivery_date = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    # Pricing breakdown
+    subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    discount_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    tax_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    shipping_cost = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+
     def __str__(self): return f"Order #{self.id}"
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
-    variant = models.ForeignKey(Variant, on_delete=models.CASCADE)
+    variant = models.ForeignKey(Variant, on_delete=models.CASCADE, null=True, blank=True)
     lens = models.ForeignKey(Lens, on_delete=models.SET_NULL, null=True, blank=True)
     prescription = models.ForeignKey(Prescription, on_delete=models.SET_NULL, null=True, blank=True)
     patient_name = models.CharField(max_length=100, blank=True, null=True)
     quantity = models.IntegerField(default=1)
+    unit_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    item_total = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     price_at_purchase = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    lens_prescription_text = models.TextField(null=True, blank=True)
+    lens_pd = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True)
     def __str__(self): return f"Item for Order #{self.order.id}"
 
 class Cart(models.Model):
@@ -62,6 +133,42 @@ class Shipment(models.Model):
     tracking_id = models.CharField(max_length=100, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     def __str__(self): return f"Shipment for Order #{self.order.id}"
+
+class OrderTracking(models.Model):
+    order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name='tracking')
+    tracking_number = models.CharField(max_length=100, unique=True, null=True, blank=True)
+    courier_company = models.CharField(max_length=100, null=True, blank=True)
+    current_status = models.CharField(max_length=50, default='pending')
+    shipped_date = models.DateTimeField(null=True, blank=True)
+    estimated_delivery_date = models.DateField(null=True, blank=True)
+    actual_delivery_date = models.DateTimeField(null=True, blank=True)
+    delivery_agent_name = models.CharField(max_length=100, blank=True)
+    delivery_agent_phone = models.CharField(max_length=20, blank=True)
+    last_updated = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    def __str__(self): return f"Tracking for Order #{self.order.id}"
+
+class Payment(models.Model):
+    PAYMENT_STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('processing', 'Processing'),
+        ('completed', 'Completed'),
+        ('failed', 'Failed'),
+        ('refunded', 'Refunded'),
+    ]
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='payments')
+    payment_method = models.CharField(max_length=50)
+    amount_paid = models.DecimalField(max_digits=12, decimal_places=2)
+    transaction_id = models.CharField(max_length=255, null=True, blank=True, unique=True)
+    payment_gateway = models.CharField(max_length=50, null=True, blank=True)
+    payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='pending')
+    failure_reason = models.TextField(null=True, blank=True)
+    payment_date = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    def __str__(self): return f"Payment #{self.id} for Order #{self.order.id}"
+
 class LiveSession(models.Model):
     session_id = models.CharField(max_length=255, unique=True)
     current_page = models.CharField(max_length=255, default='Home Page')

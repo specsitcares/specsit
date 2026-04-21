@@ -1,93 +1,266 @@
-.vto-modal-overlay {
+/* ================================================================
+   VTO MODAL — dark purple panel (Figma 401:13488)
+   ================================================================ */
+
+/* Backdrop */
+.vto-overlay {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.85);
+    inset: 0;
+    background: rgba(4, 2, 5, 0.75);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     display: flex;
-    justify-content: center;
     align-items: center;
+    justify-content: center;
     z-index: 2000;
+    padding: 20px;
+    animation: vtoFadeIn 0.2s ease;
 }
 
-.vto-modal-content {
-    background: white;
-    padding: 2.5rem;
+@keyframes vtoFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* Panel — dark purple gradient matching Figma 401:13488 */
+.vto-panel {
+    background: linear-gradient(135deg, #4B1D82 0%, #311060 45%, #1C0840 100%);
+    border-radius: 24px;
+    width: 100%;
+    max-width: 560px;
+    overflow: hidden;
+    box-shadow: 0 40px 80px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(254, 252, 255, 0.08);
+    animation: vtoPanelIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes vtoPanelIn {
+    from { opacity: 0; transform: scale(0.94) translateY(16px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ── Header ── */
+.vto-panel__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px 24px 20px;
+}
+
+.vto-panel__header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.vto-panel__icon-wrap {
+    width: 40px;
+    height: 40px;
+    background: rgba(254, 252, 255, 0.12);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.vto-panel__label {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: rgba(254, 252, 255, 0.55);
+    margin: 0 0 2px;
+}
+
+.vto-panel__product-name {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: #FEFCFF;
+    margin: 0;
+    max-width: 340px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.vto-panel__close {
+    width: 36px;
+    height: 36px;
+    background: rgba(254, 252, 255, 0.1);
+    border: none;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s;
+}
+
+.vto-panel__close:hover {
+    background: rgba(254, 252, 255, 0.18);
+}
+
+/* ── Preview area ── */
+.vto-panel__preview {
+    margin: 0 20px;
     border-radius: 16px;
-    max-width: 550px;
-    width: 90%;
+    background: rgba(0, 0, 0, 0.25);
+    overflow: hidden;
     position: relative;
+    aspect-ratio: 4 / 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* No face state */
+.vto-panel__no-face {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 40px 32px;
     text-align: center;
 }
 
-.vto-close {
-    position: absolute;
-    top: 1rem;
-    right: 1.5rem;
-    font-size: 2rem;
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: #333;
-}
-
-.vto-product-name {
-    font-weight: 600;
-    color: #666;
-    margin-bottom: 1.5rem;
-}
-
-.vto-preview-container {
-    width: 100%;
-    aspect-ratio: 4 / 3;
-    background: #f9f9f9;
-    border-radius: 12px;
-    overflow: hidden;
-    position: relative;
+.vto-panel__no-face-icon {
+    width: 72px;
+    height: 72px;
+    background: rgba(254, 252, 255, 0.06);
+    border-radius: 20px;
     display: flex;
-    justify-content: center;
     align-items: center;
-    border: 1px solid #eee;
+    justify-content: center;
+    margin-bottom: 4px;
 }
 
-.vto-image {
+.vto-panel__no-face-title {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: #FEFCFF;
+    margin: 0;
+}
+
+.vto-panel__no-face-sub {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+    color: rgba(254, 252, 255, 0.6);
+    margin: 0;
+    max-width: 280px;
+    line-height: 1.6;
+}
+
+.vto-panel__setup-btn {
+    margin-top: 8px;
+    background: #FEFCFF;
+    color: #68408D;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 24px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+
+.vto-panel__setup-btn:hover {
+    opacity: 0.88;
+}
+
+/* Result / image */
+.vto-panel__result {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+.vto-panel__result-img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    display: block;
     transition: opacity 0.3s;
 }
 
-.vto-image.loading {
-    opacity: 0.5;
+.vto-panel__result-img--loading {
+    opacity: 0.4;
 }
 
-.vto-loader {
+/* Loading overlay */
+.vto-panel__loading {
     position: absolute;
-    z-index: 10;
-    background: rgba(255, 255, 255, 0.9);
-    padding: 1rem 2rem;
-    border-radius: 30px;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    z-index: 5;
+}
+
+.vto-panel__spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid rgba(254, 252, 255, 0.2);
+    border-top-color: #FEFCFF;
+    border-radius: 50%;
+    animation: vtoSpin 0.7s linear infinite;
+}
+
+@keyframes vtoSpin {
+    to { transform: rotate(360deg); }
+}
+
+.vto-panel__loading span {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 13px;
     font-weight: 600;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    color: rgba(254, 252, 255, 0.8);
+    letter-spacing: 0.3px;
 }
 
-.vto-no-face {
-    padding: 2rem;
+/* ── Footer ── */
+.vto-panel__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px 24px;
 }
 
-.btn-setup {
-    margin-top: 1rem;
-    background: #1a1a1a;
-    color: white;
-    border: none;
-    padding: 0.8rem 1.5rem;
-    border-radius: 6px;
+.vto-panel__footer-note {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 12px;
+    color: rgba(254, 252, 255, 0.5);
+    margin: 0;
+}
+
+.vto-panel__retake-btn {
+    background: transparent;
+    border: 1px solid rgba(254, 252, 255, 0.25);
+    border-radius: 8px;
+    padding: 7px 16px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(254, 252, 255, 0.8);
     cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
 }
 
-.vto-info {
-    margin-top: 1.5rem;
-    font-size: 0.9rem;
-    color: #888;
+.vto-panel__retake-btn:hover {
+    border-color: rgba(254, 252, 255, 0.5);
+    color: #FEFCFF;
 }

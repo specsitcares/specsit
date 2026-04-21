@@ -1,9 +1,10 @@
+from datetime import date, datetime
 from rest_framework import viewsets, permissions, status
-from .models import Address, Employee, CustomerQuery, EmployeeActionLog
+from .models import Address, Employee, CustomerQuery, EmployeeActionLog, UserProfile, NotificationPreference
 from .serializers import (
-    AddressSerializer, EmployeeSerializer, 
+    AddressSerializer, EmployeeSerializer,
     CustomerQuerySerializer, EmployeeActionLogSerializer,
-    UserSerializer
+    UserSerializer, NotificationPreferenceSerializer
 )
 import requests
 from django.conf import settings
@@ -13,14 +14,103 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 
+
+def _serialize_birthday(value):
+    """Return an ISO date string regardless of whether value is a date, datetime, or string."""
+    if not value:
+        return ''
+    if isinstance(value, (date, datetime)):
+        return value.isoformat() if isinstance(value, datetime) else str(value)
+    # Already a string (e.g. from SQLite cache before ORM converts it)
+    return str(value)
+
+
+def _parse_birthday(raw):
+    """
+    Parse a birthday from the request into a Python date object.
+    Accepts 'YYYY-MM-DD' strings. Returns None for blank/invalid input.
+    """
+    if not raw:
+        return None
+    if isinstance(raw, (date, datetime)):
+        return raw if isinstance(raw, date) else raw.date()
+    try:
+        return datetime.strptime(str(raw).strip(), '%Y-%m-%d').date()
+    except ValueError:
+        return None
+
+
+class MeView(APIView):
+    """Return and update the authenticated user's own profile."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def _profile_data(self, user):
+        # Always re-fetch the profile from the DB to avoid the Django
+        # related-object cache returning the pre-save in-memory string.
+        try:
+            profile = UserProfile.objects.get(user=user)
+        except UserProfile.DoesNotExist:
+            profile = None
+
+        return {
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'date_joined': user.date_joined,
+            'phone': profile.phone if profile else '',
+            'birthday': _serialize_birthday(profile.birthday) if profile else '',
+            'gender': profile.gender if profile else '',
+        }
+
+    def get(self, request):
+        return Response(self._profile_data(request.user))
+
+    def put(self, request):
+        u = request.user
+        u.first_name = request.data.get('first_name', u.first_name)
+        u.last_name = request.data.get('last_name', u.last_name)
+        u.email = request.data.get('email', u.email)
+        u.save()
+
+        profile, _ = UserProfile.objects.get_or_create(user=u)
+        if 'phone' in request.data:
+            profile.phone = request.data['phone'] or ''
+        if 'birthday' in request.data:
+            # Convert to a proper date object so Django stores it correctly
+            profile.birthday = _parse_birthday(request.data['birthday'])
+        if 'gender' in request.data:
+            profile.gender = request.data['gender'] or ''
+        profile.save()
+
+        # Re-fetch user from DB to ensure all fields are current
+        u.refresh_from_db()
+        return Response(self._profile_data(u))
+
+    def patch(self, request):
+        return self.put(request)
+
+
+class NotificationPreferenceView(APIView):
+    """GET and PATCH the authenticated user's notification preferences."""
+    permission_classes = [permissions.IsAuthenticated]
+    def get(self, request):
+        prefs, _ = NotificationPreference.objects.get_or_create(user=request.user)
+        return Response(NotificationPreferenceSerializer(prefs).data)
+    def patch(self, request):
+        prefs, _ = NotificationPreference.objects.get_or_create(user=request.user)
+        serializer = NotificationPreferenceSerializer(prefs, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
 class AddressViewSet(viewsets.ModelViewSet):
     serializer_class = AddressSerializer
     permission_classes = [permissions.IsAuthenticated]
     
     def get_queryset(self):
-        if self.request.user.is_staff:
-            return Address.objects.all()
-        return Address.objects.filter(user=self.request.user)
+        return Address.objects.filter(user=self.request.user).order_by('id')
     
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)

@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'apps.sales',        # Orders, Coupons, Shipments, Cart
     'apps.accounts',     # Users, Employees, Addresses, Queries
     'apps.catalog.core', # Metadata, Analytics, Config
+    'apps.cms',          # Home Page CMS, Banners, Editorial
 ]
 
 MIDDLEWARE = [

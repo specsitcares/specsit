@@ -3,19 +3,45 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { ThemeProvider } from './context/ThemeContext';
-import ProtectedRoute from './components/ProtectedRoute';
-import Layout from './components/Layout';
-import HomePage from './pages/HomePage';
-import ProductListingPage from './pages/ProductListingPage';
-import ProductDetailPage from './pages/ProductDetailPage';
-import CartPage from './pages/CartPage';
-import CheckoutPage from './pages/CheckoutPage';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import OrderConfirmationPage from './pages/OrderConfirmationPage';
-import AdminDashboard from './pages/AdminDashboard';
+import { WishlistProvider } from './context/WishlistContext';
+import ProtectedRoute from './components/pages/auth/ProtectedRoute';
+import Layout from './components/pages/layout/Layout';
+import HomePage from './components/pages/home/HomePage';
+import ProductListingPage from './components/pages/products/ProductListingPage';
+import ProductDetailPage from './components/pages/products/ProductDetailPage';
+import CartPage from './components/pages/cart/CartPage';
+import CheckoutPage from './components/pages/checkout/CheckoutPage';
+import LoginPage from './components/pages/auth/LoginPage';
+import RegisterPage from './components/pages/auth/RegisterPage';
+import OrderConfirmationPage from './components/pages/checkout/OrderConfirmationPage';
+import ConfirmationErrorBoundary from './components/pages/checkout/ConfirmationErrorBoundary';
+import AdminDashboard from './components/pages/admin/AdminDashboard';
 import FaceCapture from './components/FaceCapture/FaceCapture';
-import AuthCallbackPage from './pages/AuthCallbackPage';
+import AuthCallbackPage from './components/pages/auth/AuthCallbackPage';
+import MyOrdersPage from './components/pages/account/MyOrdersPage';
+import AddressBookPage from './components/pages/account/AddressBookPage';
+import AccountInfoPage from './components/pages/account/AccountInfoPage';
+import PrescriptionPage from './components/pages/account/PrescriptionPage';
+import SavedModelsPage from './components/pages/account/SavedModelsPage';
+import NotificationsPage from './components/pages/account/NotificationsPage';
+import WishlistPage from './components/pages/account/WishlistPage';
+import CustomerOrderDetailPage from './components/pages/account/CustomerOrderDetailPage';
+import ThankYouPage from './components/pages/checkout/ThankYouPage';
+import OrderConfirmedPage from './components/pages/checkout/OrderConfirmedPage';
+import SubmitPrescriptionPage from './components/pages/checkout/SubmitPrescriptionPage';
+import OrderTrackingPage from './components/pages/account/OrderTrackingPage';
+import ReviewCreatePage from './components/pages/account/ReviewCreatePage';
+import ReviewPage from './components/pages/account/ReviewPage';
+import OrderReviewPage from './components/pages/account/OrderReviewPage';
+import WriteReviewPage from './components/pages/account/WriteReviewPage';
+import AboutPage from './components/pages/about/AboutPage';
+import DeliveryTimelinePage from './components/pages/support/DeliveryTimelinePage';
+import ReturnPolicyPage from './components/pages/support/ReturnPolicyPage';
+import WarrantyPage from './components/pages/support/WarrantyPage';
+import FAQPage from './components/pages/support/FAQPage';
+import ContactPage from './components/pages/support/ContactPage';
+import TermsPage from './components/pages/support/TermsPage';
+import PrivacyPolicyPage from './components/pages/support/PrivacyPolicyPage';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 
 import { useLocation } from 'react-router-dom';
@@ -66,6 +92,7 @@ const App = () => {
             <ThemeProvider>
                 <AuthProvider>
                     <CartProvider>
+                    <WishlistProvider>
                         <Router>
                             <LiveTracker />
                             <Routes>
@@ -75,11 +102,36 @@ const App = () => {
                                     <Route path="product/:id" element={<ProductDetailPage />} />
                                     <Route path="cart" element={<CartPage />} />
                                     <Route path="checkout" element={<CheckoutPage />} />
-                                    <Route path="order-confirmation" element={<OrderConfirmationPage />} />
+                                    <Route path="order-confirmation" element={<ConfirmationErrorBoundary><OrderConfirmationPage /></ConfirmationErrorBoundary>} />
                                     <Route path="login" element={<LoginPage />} />
                                     <Route path="register" element={<RegisterPage />} />
                                     <Route path="auth/callback" element={<AuthCallbackPage />} />
                                     <Route path="capture-face" element={<FaceCapture />} />
+                                    <Route path="orders" element={<ProtectedRoute><MyOrdersPage /></ProtectedRoute>} />
+                                    <Route path="orders/:orderId" element={<ProtectedRoute><CustomerOrderDetailPage /></ProtectedRoute>} />
+                                    <Route path="orders/:orderId/review" element={<ProtectedRoute><OrderReviewPage /></ProtectedRoute>} />
+                                    <Route path="orders/:orderId/write-review" element={<ProtectedRoute><WriteReviewPage /></ProtectedRoute>} />
+                                    <Route path="customer/order/:orderId" element={<ProtectedRoute><CustomerOrderDetailPage /></ProtectedRoute>} />
+                                    <Route path="order-confirmed/:orderId" element={<ProtectedRoute><OrderConfirmedPage /></ProtectedRoute>} />
+                                    <Route path="thank-you/:orderId" element={<ProtectedRoute><ThankYouPage /></ProtectedRoute>} />
+                                    <Route path="prescription/submit/:orderId" element={<ProtectedRoute><SubmitPrescriptionPage /></ProtectedRoute>} />
+                                    <Route path="order-tracking/:orderId" element={<ProtectedRoute><OrderTrackingPage /></ProtectedRoute>} />
+                                    <Route path="review/create/:productId/:orderId" element={<ProtectedRoute><ReviewCreatePage /></ProtectedRoute>} />
+                                    <Route path="review/:orderId" element={<ProtectedRoute><ReviewPage /></ProtectedRoute>} />
+                                    <Route path="address-book" element={<ProtectedRoute><AddressBookPage /></ProtectedRoute>} />
+                                    <Route path="account-info" element={<ProtectedRoute><AccountInfoPage /></ProtectedRoute>} />
+                                    <Route path="prescription" element={<ProtectedRoute><PrescriptionPage /></ProtectedRoute>} />
+                                    <Route path="saved-models" element={<ProtectedRoute><SavedModelsPage /></ProtectedRoute>} />
+                                    <Route path="notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
+                                    <Route path="wishlist" element={<ProtectedRoute><WishlistPage /></ProtectedRoute>} />
+                                    <Route path="about" element={<AboutPage />} />
+                                    <Route path="support/delivery-timeline" element={<DeliveryTimelinePage />} />
+                                    <Route path="support/returns" element={<ReturnPolicyPage />} />
+                                    <Route path="support/warranty" element={<WarrantyPage />} />
+                                    <Route path="support/faq" element={<FAQPage />} />
+                                    <Route path="support/contact" element={<ContactPage />} />
+                                    <Route path="support/terms" element={<TermsPage />} />
+                                    <Route path="support/privacy" element={<PrivacyPolicyPage />} />
                                 </Route>
                                 
                                 <Route 
@@ -92,6 +144,7 @@ const App = () => {
                                 />
                             </Routes>
                         </Router>
+                    </WishlistProvider>
                     </CartProvider>
                 </AuthProvider>
             </ThemeProvider>

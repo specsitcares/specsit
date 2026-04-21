@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Address, Employee, CustomerQuery, EmployeeActionLog
+from .models import Address, Employee, CustomerQuery, EmployeeActionLog, UserProfile, NotificationPreference
 
 @admin.register(Address)
 class AddressAdmin(admin.ModelAdmin):
@@ -21,3 +21,13 @@ class CustomerQueryAdmin(admin.ModelAdmin):
 class EmployeeActionLogAdmin(admin.ModelAdmin):
     list_display = ('employee', 'action', 'target_object_type', 'timestamp')
     list_filter = ('action', 'target_object_type')
+
+@admin.register(UserProfile)
+class UserProfileAdmin(admin.ModelAdmin):
+    list_display = ('user', 'phone', 'birthday', 'gender')
+    search_fields = ('user__username', 'phone')
+
+@admin.register(NotificationPreference)
+class NotificationPreferenceAdmin(admin.ModelAdmin):
+    list_display = ('user', 'whatsapp', 'sms', 'push', 'email')
+    list_filter = ('whatsapp', 'sms', 'push', 'email')
