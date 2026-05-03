@@ -85,6 +85,7 @@ CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:5175',
     'http://127.0.0.1:3000',
     'http://127.0.0.1:8000',
+    'https://specsit1.onrender.com',
 ]
 
 # Session/Cookie settings for cross-origin admin access (development)
