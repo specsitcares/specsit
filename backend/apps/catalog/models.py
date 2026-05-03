@@ -75,11 +75,13 @@ class Product(models.Model):
     selling_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     discount_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
     final_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    cost_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True)
 
     # Inventory
     stock_quantity = models.IntegerField(default=0)
     low_stock_threshold = models.IntegerField(default=10)
     frame_only_mode = models.BooleanField(default=False)
+    use_meta_template = models.BooleanField(default=True)
 
     is_featured = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
@@ -116,6 +118,10 @@ class Variant(models.Model):
     frame_size = models.CharField(max_length=100, blank=True, default='')
     frame_weight = models.CharField(max_length=100, blank=True, default='')
     
+    # Per-variant pricing
+    base_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True)
+    selling_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True)
+
     # Marketing and Tax
     stock = models.IntegerField(default=0)
     price_adjustment = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
@@ -198,7 +204,9 @@ class Prescription(models.Model):
     prism_base_os = models.CharField(max_length=20, blank=True)
     
     vision_type = models.CharField(max_length=50, blank=True) # Single Vision, Progressive, Bifocal
-    
+    prescription_file = models.FileField(upload_to='prescriptions/', null=True, blank=True)
+    review_notes = models.TextField(blank=True)
+
     status = models.ForeignKey(MetadataItem, on_delete=models.SET_NULL, null=True, blank=True, limit_choices_to={'group__name': 'Prescription Status'})
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -235,7 +243,7 @@ class Review(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=['order', 'user'], name='unique_review_per_order_user')
+            models.UniqueConstraint(fields=['product', 'user'], name='unique_review_per_product_user')
         ]
 
     def __str__(self): return f"Review for {self.product.title} by {self.user.username}"

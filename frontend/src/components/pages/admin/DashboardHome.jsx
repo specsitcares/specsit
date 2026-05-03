@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import {
    DollarSign, ShoppingCart, ShoppingBag, Users, Package, Microscope, Truck,
    TrendingUp, TrendingDown, MoreVertical, Search, Filter,
@@ -13,14 +13,28 @@ import apiClient from '../../../services/api';
 import FormModal from './FormModal';
 import BaseAdminTable from './BaseAdminTable';
 
-const DashboardHome = ({ statsData, recentOrders: recentOrdersProp, onOrderClick }) => {
+const DashboardHome = ({ recentOrders: recentOrdersProp, onOrderClick, onNavigate }) => {
    const [isMounted, setIsMounted] = useState(false);
    const [fetchedOrders, setFetchedOrders] = useState([]);
    const [serverTotal, setServerTotal] = useState(0);
    const [goToInputVal, setGoToInputVal] = useState('1');
+   const [statsData, setStatsData] = useState(null);
    useEffect(() => {
       setIsMounted(true);
    }, []);
+
+   const fetchStats = useCallback(async () => {
+      try {
+         const res = await apiClient.get('/sales/admin/stats/');
+         setStatsData(res.data);
+      } catch { /* silent */ }
+   }, []);
+
+   useEffect(() => {
+      fetchStats();
+      const interval = setInterval(fetchStats, 5000);
+      return () => clearInterval(interval);
+   }, [fetchStats]);
 
    const [localDonut, setLocalDonut] = useState(null);
    const [isRefreshingDonut, setIsRefreshingDonut] = useState(false);
@@ -97,7 +111,12 @@ const DashboardHome = ({ statsData, recentOrders: recentOrdersProp, onOrderClick
    };
 
    const deleteOrder = async (id) => {
-      try { await apiClient.delete(`/sales/orders/${id}/`); alert('Order deleted successfully'); } catch { /* silent */ }
+      try {
+         await apiClient.delete(`/sales/orders/${id}/`);
+         alert('Order deleted successfully');
+         fetchOrders();
+         fetchStats();
+      } catch { /* silent */ }
    };
 
    const handleFormSubmit = async (formData) => {
@@ -186,48 +205,50 @@ const DashboardHome = ({ statsData, recentOrders: recentOrdersProp, onOrderClick
    };
 
    const isFiltering = !!(searchQuery || statusFilter || dateFilter.from || dateFilter.to);
-   useEffect(() => {
-      const fetchOrders = async () => {
-         const todayISO = new Date().toISOString().slice(0, 10);
-         try {
-            const res = await apiClient.get('/sales/orders/', {
-               params: {
-                  page,
-                  page_size: perPage,
-                  limit: perPage,
-                  ordering: '-created_at',
-                  search: searchQuery,
-                  status: statusFilter,
-                  date_from: dateFilter.from || todayISO,
-                  date_to: dateFilter.to || todayISO
-               }
-            });
-            const data = res.data;
-            const results = data.results || data.data || data;
-            if (Array.isArray(results)) {
-               if (data.count !== undefined) {
-                  setFetchedOrders(results);
-                  setServerTotal(data.count);
-               } else {
-                  setFetchedOrders(results);
-                  setServerTotal(results.length);
-               }
+
+   const fetchOrders = useCallback(async () => {
+      const todayISO = new Date().toISOString().slice(0, 10);
+      try {
+         const res = await apiClient.get('/sales/orders/', {
+            params: {
+               page,
+               page_size: perPage,
+               limit: perPage,
+               ordering: '-created_at',
+               search: searchQuery,
+               status: statusFilter,
+               date_from: dateFilter.from || todayISO,
+               date_to: dateFilter.to || todayISO
+            }
+         });
+         const data = res.data;
+         const results = data.results || data.data || data;
+         if (Array.isArray(results)) {
+            if (data.count !== undefined) {
+               setFetchedOrders(results);
+               setServerTotal(data.count);
             } else {
-               setFetchedOrders([]);
-               setServerTotal(0);
+               setFetchedOrders(results);
+               setServerTotal(results.length);
             }
-         } catch (err) {
-            console.error('DashboardHome: fetch orders failed', err);
-            if (recentOrdersProp?.length) {
-               setFetchedOrders(recentOrdersProp);
-               setServerTotal(recentOrdersProp.length);
-            }
+         } else {
+            setFetchedOrders([]);
+            setServerTotal(0);
          }
-      };
+      } catch (err) {
+         console.error('DashboardHome: fetch orders failed', err);
+         if (recentOrdersProp?.length) {
+            setFetchedOrders(recentOrdersProp);
+            setServerTotal(recentOrdersProp.length);
+         }
+      }
+   }, [page, perPage, searchQuery, statusFilter, dateFilter, recentOrdersProp]);
+
+   useEffect(() => {
       fetchOrders();
       const interval = setInterval(fetchOrders, 5000);
       return () => clearInterval(interval);
-   }, [page, perPage, searchQuery, statusFilter, dateFilter]);
+   }, [fetchOrders]);
 
    useEffect(() => {
       setPage(1);
@@ -276,6 +297,14 @@ const DashboardHome = ({ statsData, recentOrders: recentOrdersProp, onOrderClick
       return 'View All Shipments';
    };
 
+   const getAttentionTarget = (label) => {
+      const l = label.toLowerCase();
+      if (l.includes('prescription'))                               return { view: 'Prescriptions', filter: null };
+      if (l.includes('running low') || l.includes('replenished'))  return { view: 'Inventory',     filter: 'low' };
+      if (l.includes('out of stock') || l.includes('blocking'))    return { view: 'Inventory',     filter: 'out' };
+      return { view: 'Shipments', filter: null };
+   };
+
    const getPrescriptionBadgeStyle = (statuses) => {
       const all = statuses.map(s => (s || 'n/a').toLowerCase());
       const allApproved = all.length > 0 && all.every(s => s === 'approved');
@@ -315,9 +344,6 @@ const DashboardHome = ({ statsData, recentOrders: recentOrdersProp, onOrderClick
                            </div>
                            <p className="dh-stat-card__label">{s.title}</p>
                         </div>
-                        <button className="dh-stat-card__dots">
-                           <MoreVertical size={16} />
-                        </button>
                      </div>
                      <div className="dh-stat-card__bottom">
                         <p className="dh-stat-card__value">{s.value}</p>
@@ -345,6 +371,7 @@ const DashboardHome = ({ statsData, recentOrders: recentOrdersProp, onOrderClick
                      const Icon = getAttentionIcon(item.label);
                      const iconColor = getAttentionColor(item.label);
                      const ctaText = getAttentionCTA(item.label);
+                     const target = getAttentionTarget(item.label);
                      return (
                         <div key={idx} className="dh-attention-card">
                            <div className="dh-attention-card__top">
@@ -355,7 +382,12 @@ const DashboardHome = ({ statsData, recentOrders: recentOrdersProp, onOrderClick
                            </div>
                            <div className="dh-attention-card__body">
                               <p className="dh-attention-card__message">{item.label}</p>
-                              <button className="dh-attention-card__cta">{ctaText}</button>
+                              <button
+                                 className="dh-attention-card__cta"
+                                 onClick={() => onNavigate?.(target)}
+                              >
+                                 {ctaText}
+                              </button>
                            </div>
                         </div>
                      );
@@ -545,7 +577,7 @@ const DashboardHome = ({ statsData, recentOrders: recentOrdersProp, onOrderClick
                               {expandedRows.includes(o.id) ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                            </span>
                            <input type="checkbox" onClick={(e) => e.stopPropagation()} className="dh-table-checkbox" />
-                           <span className="dh-order-id">{o.id.toString().startsWith('ORD-') ? o.id : `ORD-${o.id}`}</span>
+                           <span className="dh-order-id">#LO-{String(o.id).padStart(7, '0')}</span>
                            {o.item_count > 1 && <span className="dh-order-badge">{o.item_count}</span>}
                         </div>
                      </td>

@@ -5,6 +5,34 @@ import {
   ArrowUpDown, Package
 } from 'lucide-react';
 
+const BulkBar = ({ count, actions, onClear }) => (
+  <div style={{
+    display: 'flex', alignItems: 'center', gap: 12,
+    padding: '10px 24px', background: '#F4EBFF',
+    borderBottom: '1px solid #D6BBFB',
+  }}>
+    <span style={{ fontSize: 13, fontWeight: 700, color: '#6941C6', minWidth: 90 }}>
+      {count} selected
+    </span>
+    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      {actions.map((a, i) => (
+        <button key={i} onClick={a.onClick} style={{
+          padding: '6px 14px', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+          border: a.variant === 'danger' ? '1px solid #FDA29B' : a.variant === 'success' ? '1px solid #ABEFC6' : a.variant === 'warning' ? '1px solid #FEDF89' : '1px solid #D6BBFB',
+          background: a.variant === 'danger' ? '#FEF3F2' : a.variant === 'success' ? '#ECFDF3' : a.variant === 'warning' ? '#FFFAEB' : '#fff',
+          color: a.variant === 'danger' ? '#B42318' : a.variant === 'success' ? '#027A48' : a.variant === 'warning' ? '#B54708' : '#6941C6',
+          display: 'flex', alignItems: 'center', gap: 5,
+        }}>
+          {a.icon && <a.icon size={13} />} {a.label}
+        </button>
+      ))}
+    </div>
+    <button onClick={onClear} style={{ marginLeft: 'auto', fontSize: 12, color: '#667085', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
+      Clear selection
+    </button>
+  </div>
+);
+
 const BaseAdminTable = ({
   title,
   subtitle,
@@ -18,7 +46,7 @@ const BaseAdminTable = ({
   onAdd,
   addLabel = 'Add New',
   filterContent,
-  columns, // [{ label: 'Name', key: 'name', sortable: true, width: 200, align: 'left', textTransform: 'capitalize' }]
+  columns,
   data = [],
   loading,
   renderRow,
@@ -31,7 +59,10 @@ const BaseAdminTable = ({
   },
   emptyMessage = "No records yet",
   emptyDescription = "Records will appear here once they are added.",
-  analyticsCards = null
+  analyticsCards = null,
+  selectedIds = null,
+  onSelectIds = null,
+  bulkActions = [],
 }) => {
   const searchInputRef = useRef(null);
   const [goToInputVal, setGoToInputVal] = useState(String(pagination.page));
@@ -154,6 +185,15 @@ const BaseAdminTable = ({
           </div>
         </div>
 
+        {/* Bulk Action Bar */}
+        {selectedIds && selectedIds.size > 0 && (
+          <BulkBar
+            count={selectedIds.size}
+            actions={bulkActions}
+            onClear={() => onSelectIds(new Set())}
+          />
+        )}
+
         {/* Integrated Filter Bar */}
         {showFilters && filterContent && (
           <div style={{
@@ -172,7 +212,22 @@ const BaseAdminTable = ({
             <thead>
               <tr style={{ background: '#F9FAFB', borderBottom: '1px solid #e0e0e0' }}>
                 <th style={{ padding: '12px 16px', width: 40, textAlign: 'left' }}>
-                  <input type="checkbox" style={{ cursor: 'pointer', borderRadius: '4px', accentColor: '#7F56D9' }} />
+                  {selectedIds ? (
+                    <input
+                      type="checkbox"
+                      style={{ cursor: 'pointer', borderRadius: '4px', accentColor: '#7F56D9' }}
+                      checked={data.length > 0 && data.every(item => selectedIds.has(item.id))}
+                      ref={el => { if (el) el.indeterminate = data.some(item => selectedIds.has(item.id)) && !data.every(item => selectedIds.has(item.id)); }}
+                      onChange={e => {
+                        const next = new Set(selectedIds);
+                        if (e.target.checked) data.forEach(item => next.add(item.id));
+                        else data.forEach(item => next.delete(item.id));
+                        onSelectIds(next);
+                      }}
+                    />
+                  ) : (
+                    <input type="checkbox" style={{ cursor: 'pointer', borderRadius: '4px', accentColor: '#7F56D9' }} />
+                  )}
                 </th>
                 {columns.map((col, idx) => (
                   <th
@@ -211,7 +266,14 @@ const BaseAdminTable = ({
                     </div>
                   </td>
                 </tr>
-              ) : data.map((item, idx) => renderRow(item, idx))}
+              ) : data.map((item, idx) => renderRow(item, idx, selectedIds ? {
+                  isSelected: selectedIds.has(item.id),
+                  onToggle: () => {
+                    const next = new Set(selectedIds);
+                    if (next.has(item.id)) next.delete(item.id); else next.add(item.id);
+                    onSelectIds(next);
+                  },
+                } : {}))}
             </tbody>
           </table>
         </div>

@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import '../../../styles/layout.css';
 
@@ -13,7 +13,7 @@ const Footer = () => {
                 <div className="footer-content">
                     {/* Brand Section (Node 401:8806) */}
                     <div className="footer-section footer-brand">
-                        <h2 className="footer-brand-name">Eyenic</h2>
+                        <h2 className="footer-brand-name">Specsit</h2>
                         <p className="footer-tagline">
                             Elevating your vision with curated international brands and bespoke craftsmanship. Hyderabad's premium eyewear atelier.
                         </p>
@@ -67,7 +67,7 @@ const Footer = () => {
                 {/* Footer Bottom (Node 401:8852) */}
                 <div className="footer-bottom">
                     <p className="footer-copyright">
-                        © 2026 Eyenic. Premium Eyewear.
+                        © 2026 Specsit. Premium Eyewear.
                     </p>
                     <div className="footer-policies">
                         <Link to="/support/privacy" className="policy-link">Privacy Policy</Link>

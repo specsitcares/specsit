@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { useGoogleLogin } from '@react-oauth/google';
@@ -52,7 +52,7 @@ const RegisterPage = () => {
             <div className="rp-hero-panel">
                 <img
                     src="/assets/images/signup-hero.png"
-                    alt="Eyenic eyewear collection"
+                    alt="Specsit eyewear collection"
                     className="rp-hero-img"
                 />
             </div>

@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import SupportSidebar from './SupportSidebar';
 import '../../../styles/support.css';
 
@@ -102,7 +102,7 @@ const ReturnPolicyPage = () => {
                                         <td>5–7 business days</td>
                                     </tr>
                                     <tr>
-                                        <td>Eyenic Store Credit</td>
+                                        <td>Specsit Store Credit</td>
                                         <td>Instant</td>
                                     </tr>
                                     <tr>
@@ -120,7 +120,7 @@ const ReturnPolicyPage = () => {
                                 <p className="returns-method-card__text">Refunded to the exact source — card, UPI, or wallet — used at checkout.</p>
                             </div>
                             <div className="returns-method-card">
-                                <p className="returns-method-card__label">Eyenic Store Credit</p>
+                                <p className="returns-method-card__label">Specsit Store Credit</p>
                                 <p className="returns-method-card__text">Opt for instant store credit with an additional 5% bonus on the refund value.</p>
                             </div>
                         </div>

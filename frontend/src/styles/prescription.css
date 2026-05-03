@@ -10,14 +10,14 @@
 
 .rx-card {
   background: #fff;
-  border: 1.5px solid var(--eyenic-light-grey);
+  border: 1.5px solid var(--specsit-light-grey);
   border-radius: 12px;
   padding: 24px;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .rx-card:hover {
-  border-color: var(--eyenic-purple-light);
+  border-color: var(--specsit-purple-light);
   box-shadow: 0 2px 12px rgba(104, 64, 141, 0.08);
 }
 
@@ -33,15 +33,15 @@
 .rx-card__patient {
   font-size: 16px;
   font-weight: 700;
-  color: var(--eyenic-black);
+  color: var(--specsit-black);
   margin-right: 10px;
 }
 
 .rx-card__badge {
   display: inline-flex;
   padding: 3px 10px;
-  background: var(--eyenic-purple-light);
-  color: var(--eyenic-purple-primary);
+  background: var(--specsit-purple-light);
+  color: var(--specsit-purple-primary);
   border-radius: 20px;
   font-size: 12px;
   font-weight: 600;
@@ -49,7 +49,7 @@
 
 .rx-card__date {
   font-size: 13px;
-  color: var(--eyenic-body-grey);
+  color: var(--specsit-body-grey);
   font-weight: 500;
   flex-shrink: 0;
 }
@@ -69,10 +69,10 @@
 
 .rx-table th {
   padding: 8px 16px;
-  background: var(--eyenic-light-grey);
+  background: var(--specsit-light-grey);
   font-size: 11px;
   font-weight: 700;
-  color: var(--eyenic-body-grey);
+  color: var(--specsit-body-grey);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   text-align: center;
@@ -83,10 +83,10 @@
 
 .rx-table td {
   padding: 12px 16px;
-  color: var(--eyenic-black);
+  color: var(--specsit-black);
   font-weight: 500;
   text-align: center;
-  border-bottom: 1px solid var(--eyenic-light-grey);
+  border-bottom: 1px solid var(--specsit-light-grey);
 }
 
 .rx-table tr:last-child td { border-bottom: none; }
@@ -94,7 +94,7 @@
 .rx-table__eye-label {
   font-size: 13px;
   font-weight: 700;
-  color: var(--eyenic-purple-primary);
+  color: var(--specsit-purple-primary);
   text-align: left !important;
   white-space: nowrap;
 }
@@ -112,18 +112,18 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--eyenic-body-grey);
+  color: var(--specsit-body-grey);
 }
 
 .rx-pd-value {
   font-size: 14px;
   font-weight: 700;
-  color: var(--eyenic-black);
+  color: var(--specsit-black);
 }
 
 .rx-pd-type {
   font-size: 13px;
-  color: var(--eyenic-body-grey);
+  color: var(--specsit-body-grey);
   font-weight: 500;
 }
 
@@ -131,7 +131,7 @@
   display: flex;
   gap: 8px;
   padding-top: 16px;
-  border-top: 1px solid var(--eyenic-light-grey);
+  border-top: 1px solid var(--specsit-light-grey);
 }
 
 /* Form panel */
@@ -154,7 +154,7 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--eyenic-body-grey);
+  color: var(--specsit-body-grey);
   margin-bottom: 12px;
 }
 

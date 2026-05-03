@@ -41,6 +41,7 @@ const ReviewTable = () => {
   const [page, setPage] = useState(1);
   const [expandedId, setExpandedId] = useState(null);
   const [toast, setToast] = useState(null);
+  const [selectedIds, setSelectedIds] = useState(new Set());
 
   const showToast = (msg, ok = true) => {
     setToast({ msg, ok });
@@ -83,6 +84,38 @@ const ReviewTable = () => {
     } finally {
       setActionLoading(p => ({ ...p, [id]: null }));
     }
+  };
+
+  const toggleSelectReview = (id) => {
+    setSelectedIds(prev => {
+      const s = new Set(prev);
+      s.has(id) ? s.delete(id) : s.add(id);
+      return s;
+    });
+  };
+
+  const bulkDelete = async () => {
+    if (!window.confirm(`Delete ${selectedIds.size} review(s)?`)) return;
+    await Promise.all([...selectedIds].map(id => apiClient.delete(`/catalog/reviews/${id}/`).catch(() => {})));
+    setSelectedIds(new Set());
+    fetchReviews();
+    showToast('Selected reviews deleted');
+  };
+
+  const bulkApprove = async () => {
+    if (!window.confirm(`Approve ${selectedIds.size} review(s)?`)) return;
+    await Promise.all([...selectedIds].map(id => apiClient.post(`/catalog/reviews/${id}/approve/`).catch(() => {})));
+    setSelectedIds(new Set());
+    fetchReviews();
+    showToast('Selected reviews approved');
+  };
+
+  const bulkReject = async () => {
+    if (!window.confirm(`Reject ${selectedIds.size} review(s)?`)) return;
+    await Promise.all([...selectedIds].map(id => apiClient.post(`/catalog/reviews/${id}/reject/`).catch(() => {})));
+    setSelectedIds(new Set());
+    fetchReviews();
+    showToast('Selected reviews rejected');
   };
 
   const handleDelete = async (id) => {
@@ -182,6 +215,25 @@ const ReviewTable = () => {
         </select>
       </div>
 
+      {/* Bulk Action Bar */}
+      {selectedIds.size > 0 && (
+        <div style={{ marginBottom: 12, padding: '10px 16px', background: '#7F56D9', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ color: '#fff', fontWeight: 600, fontSize: 14 }}>{selectedIds.size} selected</span>
+          <button onClick={bulkApprove} style={{ padding: '5px 12px', borderRadius: 7, border: 'none', background: '#12B76A', color: '#fff', fontWeight: 600, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+            <CheckCircle size={13} /> Approve
+          </button>
+          <button onClick={bulkReject} style={{ padding: '5px 12px', borderRadius: 7, border: 'none', background: '#FFFAEB', color: '#B54708', fontWeight: 600, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+            <XCircle size={13} /> Reject
+          </button>
+          <button onClick={bulkDelete} style={{ padding: '5px 12px', borderRadius: 7, border: 'none', background: '#FEF3F2', color: '#B42318', fontWeight: 600, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+            <Trash2 size={13} /> Delete
+          </button>
+          <button onClick={() => setSelectedIds(new Set())} style={{ marginLeft: 'auto', padding: '5px 10px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.4)', background: 'transparent', color: '#fff', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>
+            Clear
+          </button>
+        </div>
+      )}
+
       {/* Table */}
       <div style={{ background: '#fff', border: '1px solid #EAECF0', borderRadius: 12, overflow: 'hidden' }}>
         {loading ? (
@@ -194,6 +246,14 @@ const ReviewTable = () => {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#F9FAFB', borderBottom: '1px solid #EAECF0' }}>
+                <th style={{ padding: '12px 16px', width: 40 }}>
+                  <input type="checkbox"
+                    checked={paginated.length > 0 && paginated.every(r => selectedIds.has(r.id))}
+                    ref={el => { if (el) el.indeterminate = paginated.some(r => selectedIds.has(r.id)) && !paginated.every(r => selectedIds.has(r.id)); }}
+                    onChange={e => e.target.checked ? setSelectedIds(new Set(paginated.map(r => r.id))) : setSelectedIds(new Set())}
+                    style={{ cursor: 'pointer', accentColor: '#7F56D9' }}
+                  />
+                </th>
                 {['Customer', 'Product', 'Rating', 'Review', 'Status', 'Date', 'Actions'].map(col => (
                   <th key={col} style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#667085', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>
                     {col}
@@ -207,7 +267,10 @@ const ReviewTable = () => {
                 const isExpanded = expandedId === r.id;
                 const reviewText = r.review_text || r.comment || '';
                 return (
-                  <tr key={r.id} style={{ borderBottom: '1px solid #F2F4F7', background: isExpanded ? '#FAFAF9' : '#fff', transition: 'background 0.1s' }}>
+                  <tr key={r.id} style={{ borderBottom: '1px solid #F2F4F7', background: selectedIds.has(r.id) ? '#F9F5FF' : isExpanded ? '#FAFAF9' : '#fff', transition: 'background 0.1s' }}>
+                    <td style={{ padding: '14px 16px' }}>
+                      <input type="checkbox" checked={selectedIds.has(r.id)} onChange={() => toggleSelectReview(r.id)} style={{ cursor: 'pointer', accentColor: '#7F56D9' }} />
+                    </td>
 
                     {/* Customer */}
                     <td style={{ padding: '14px 16px', minWidth: 140 }}>

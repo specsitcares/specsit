@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import SupportSidebar from './SupportSidebar';
 import '../../../styles/support.css';
 
@@ -15,7 +15,7 @@ const WarrantyPage = () => {
                     <p className="support-page-meta">LEGAL DOCUMENT / QUALITY ASSURANCE</p>
                     <h1 className="support-page-heading">Warranty Policy</h1>
                     <p className="support-page-description">
-                        Eyenic stands behind the quality of every product that leaves our atelier. Please read the following warranty terms carefully to understand your coverage.
+                        Specsit stands behind the quality of every product that leaves our atelier. Please read the following warranty terms carefully to understand your coverage.
                     </p>
                 </div>
 
@@ -25,10 +25,10 @@ const WarrantyPage = () => {
                     <p className="support-section-label">LIMITED WARRANTY AGAINST BREAKAGE</p>
 
                     <p className="support-section-text">
-                        Eyenic provides a limited warranty covering manufacturing defects in frames and lenses for a period of <strong>two years</strong> from the date of delivery. This warranty is non-transferable and applies solely to the original purchaser.
+                        Specsit provides a limited warranty covering manufacturing defects in frames and lenses for a period of <strong>two years</strong> from the date of delivery. This warranty is non-transferable and applies solely to the original purchaser.
                     </p>
                     <p className="support-section-text">
-                        Under this warranty, Eyenic will, at its sole discretion, repair or replace the defective product at no charge. Replacement products may be new or reconditioned to a like-new standard and carry the remainder of the original warranty term or 90 days, whichever is longer.
+                        Under this warranty, Specsit will, at its sole discretion, repair or replace the defective product at no charge. Replacement products may be new or reconditioned to a like-new standard and carry the remainder of the original warranty term or 90 days, whichever is longer.
                     </p>
 
                     {/* Exclusions */}
@@ -45,7 +45,7 @@ const WarrantyPage = () => {
                             </li>
                             <li>
                                 <img src={crossIcon} alt="not covered" />
-                                Damage caused by exposure to extreme heat, chemicals, or solvents not recommended by Eyenic care guidelines.
+                                Damage caused by exposure to extreme heat, chemicals, or solvents not recommended by Specsit care guidelines.
                             </li>
                         </ul>
                     </div>
@@ -75,7 +75,7 @@ const WarrantyPage = () => {
                             <span className="warranty-req-item__number">03</span>
                             <div className="warranty-req-item__content">
                                 <h4>Return of Defective Product</h4>
-                                <p>The defective product must be returned to Eyenic before a replacement is dispatched. We will arrange a prepaid reverse pickup from your registered address.</p>
+                                <p>The defective product must be returned to Specsit before a replacement is dispatched. We will arrange a prepaid reverse pickup from your registered address.</p>
                             </div>
                         </div>
                     </div>

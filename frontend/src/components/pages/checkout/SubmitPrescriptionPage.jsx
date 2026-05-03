@@ -114,6 +114,11 @@ const OrderSummaryPanel = ({ order, showBadge }) => {
 const ManualPowerForm = ({ rx, setRx, rxMeta, setRxMeta }) => {
     const { samePower, hasCyl, name, phone } = rxMeta;
 
+    const sanitizeInput = (value) => {
+        if (!value) return '';
+        return String(value).replace(/[<>\"']/g, '');
+    };
+
     const handlePowerChange = (eye, field, value) => {
         setRx(prev => {
             const updated = { ...prev, [eye]: { ...prev[eye], [field]: value } };
@@ -206,12 +211,12 @@ const ManualPowerForm = ({ rx, setRx, rxMeta, setRxMeta }) => {
                 <div className="spp-field">
                     <label className="spp-field__label">Whose prescription is this? Name*</label>
                     <input type="text" placeholder="e.g. John Doe" className="spp-field__input"
-                        value={name} onChange={e => setRxMeta(p => ({ ...p, name: e.target.value }))} />
+                        value={name} onChange={e => setRxMeta(p => ({ ...p, name: sanitizeInput(e.target.value) }))} />
                 </div>
                 <div className="spp-field">
                     <label className="spp-field__label">Phone Number*</label>
                     <input type="tel" placeholder="+91 00000 00000" className="spp-field__input"
-                        value={phone} onChange={e => setRxMeta(p => ({ ...p, phone: e.target.value }))} />
+                        value={phone} onChange={e => setRxMeta(p => ({ ...p, phone: sanitizeInput(e.target.value.replace(/\D/g, '').slice(0, 10)) }))} />
                 </div>
             </div>
 
@@ -229,37 +234,75 @@ const ManualPowerForm = ({ rx, setRx, rxMeta, setRxMeta }) => {
 };
 
 /* ── Upload View ────────────────────────────────────────── */
-const UploadView = ({ uploadedFile, onUpload }) => (
-    <div className="spp-upload-section">
-        <h2 className="spp-manual-title">Upload Prescription PDF</h2>
-        <p className="spp-manual-sub">Upload a photo or PDF of your prescription from your doctor.</p>
-        <label className={`spp-upload-area${uploadedFile ? ' spp-upload-area--done' : ''}`}>
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                <path d="M16 22V12M16 12L12 16M16 12L20 16" stroke="#68408D" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M8 24H24" stroke="#68408D" strokeWidth="1.5" strokeLinecap="round"/>
-                <rect x="2" y="2" width="28" height="28" rx="6" stroke="#68408D" strokeWidth="1.4"/>
-            </svg>
-            {uploadedFile ? (
-                <>
-                    <span className="spp-upload-area__name">{uploadedFile.name}</span>
-                    <span className="spp-upload-area__sub">Tap to replace</span>
-                </>
-            ) : (
-                <>
-                    <span className="spp-upload-area__title">Tap or drag to upload prescription</span>
-                    <span className="spp-upload-area__sub">PDF, JPG or PNG · up to 5 MB</span>
-                </>
+const UploadView = ({ uploadedFile, onUpload, uploadError, onUploadError }) => {
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Bug #12: Validate file size (5 MB max)
+        const maxSizeBytes = 5 * 1024 * 1024;
+        if (file.size > maxSizeBytes) {
+            onUploadError(`File is too large. Maximum size is 5 MB (your file: ${(file.size / 1024 / 1024).toFixed(2)} MB)`);
+            return;
+        }
+
+        // Bug #12: Validate MIME type
+        const allowedMimes = ['application/pdf', 'image/jpeg', 'image/png'];
+        if (!allowedMimes.includes(file.type)) {
+            onUploadError('Invalid file type. Only PDF, JPG, and PNG are allowed.');
+            return;
+        }
+
+        onUploadError('');
+        onUpload(file);
+    };
+
+    return (
+        <div className="spp-upload-section">
+            <h2 className="spp-manual-title">Upload Prescription PDF</h2>
+            <p className="spp-manual-sub">Upload a photo or PDF of your prescription from your doctor.</p>
+            {uploadError && (
+                <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 8, background: '#FEF3F2', border: '1px solid #FDA29B', color: '#B42318', fontSize: 13 }}>
+                    {uploadError}
+                </div>
             )}
-            <input type="file" accept=".pdf,.jpg,.jpeg,.png"
-                onChange={e => onUpload(e.target.files[0])}
-                style={{ display: 'none' }} />
-        </label>
-    </div>
-);
+            <label className={`spp-upload-area${uploadedFile ? ' spp-upload-area--done' : ''}`}>
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <path d="M16 22V12M16 12L12 16M16 12L20 16" stroke="#68408D" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M8 24H24" stroke="#68408D" strokeWidth="1.5" strokeLinecap="round"/>
+                    <rect x="2" y="2" width="28" height="28" rx="6" stroke="#68408D" strokeWidth="1.4"/>
+                </svg>
+                {uploadedFile ? (
+                    <>
+                        <span className="spp-upload-area__name">{uploadedFile.name}</span>
+                        <span className="spp-upload-area__sub">Tap to replace</span>
+                    </>
+                ) : (
+                    <>
+                        <span className="spp-upload-area__title">Tap or drag to upload prescription</span>
+                        <span className="spp-upload-area__sub">PDF, JPG or PNG · up to 5 MB</span>
+                    </>
+                )}
+                <input type="file" accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={handleFileChange}
+                    style={{ display: 'none' }} />
+            </label>
+        </div>
+    );
+};
 
 /* ════════════════════════════════════════════════════════
    MAIN PAGE
    ════════════════════════════════════════════════════════ */
+/* ── Helper to extract numeric order ID ── */
+const extractNumericOrderId = (displayId) => {
+    if (typeof displayId === 'number') return displayId;
+    if (!displayId) return null;
+    const str = String(displayId);
+    const match = str.match(/\d+/);
+    return match ? parseInt(match[0], 10) : null;
+};
+
 const SubmitPrescriptionPage = () => {
     const navigate  = useNavigate();
     const location  = useLocation();
@@ -269,15 +312,16 @@ const SubmitPrescriptionPage = () => {
     const [orderLoading, setOrderLoading] = useState(true);
 
     const orderId = urlOrderId || location.state?.orderId || '#LO-0000000';
+    const numericOrderId = extractNumericOrderId(orderId);
 
     useEffect(() => {
         const fetchOrder = async () => {
-            if (!urlOrderId) {
+            if (!numericOrderId) {
                 setOrderLoading(false);
                 return;
             }
             try {
-                const res = await apiClient.get(`/sales/orders/${urlOrderId}/`);
+                const res = await apiClient.get(`/sales/orders/${numericOrderId}/`);
                 setOrder(res.data);
             } catch (e) {
                 console.error('Failed to load order', e);
@@ -286,45 +330,88 @@ const SubmitPrescriptionPage = () => {
             }
         };
         fetchOrder();
-    }, [urlOrderId]);
+    }, [numericOrderId]);
 
     const [view, setView]         = useState('action');
     const [rx, setRx]             = useState({ od: { sph: '', cyl: '', axis: '' }, os: { sph: '', cyl: '', axis: '' } });
     const [rxMeta, setRxMeta]     = useState({ samePower: false, hasCyl: true, name: '', phone: '' });
     const [uploadedFile, setUploadedFile] = useState(null);
+    const [uploadError, setUploadError]   = useState('');
     const [submitting, setSubmitting]     = useState(false);
+    const [submitError, setSubmitError]   = useState('');
+
+    const getDeadlineStatus = () => {
+        if (!order?.created_at) return { daysLeft: 15, isUrgent: false, isPassed: false };
+        const createdDate = new Date(order.created_at);
+        const deadlineDate = new Date(createdDate.getTime() + 15 * 24 * 60 * 60 * 1000);
+        const today = new Date();
+        const daysLeft = Math.ceil((deadlineDate - today) / (24 * 60 * 60 * 1000));
+        return { daysLeft: Math.max(0, daysLeft), isUrgent: daysLeft <= 3 && daysLeft > 0, isPassed: daysLeft <= 0 };
+    };
 
     const isSuccess = view === 'success';
     const pageTitle = isSuccess ? 'Vision Details Received' : 'Thank You';
     const pageTitleSize = isSuccess ? 'spp-page-title--received' : 'spp-page-title--thankyou';
+    const deadlineStatus = getDeadlineStatus();
 
     const handleSubmit = async () => {
         setSubmitting(true);
+        setSubmitError('');
+
+        // Bug #2: Validate numeric order ID exists
+        if (!numericOrderId) {
+            setSubmitError('Invalid order ID. Please go back and try again.');
+            setSubmitting(false);
+            return;
+        }
+
         try {
             if (view === 'upload' && uploadedFile) {
                 const formData = new FormData();
                 formData.append('prescription_file', uploadedFile);
-                formData.append('order_id', orderId);
+                formData.append('order_id', numericOrderId);
                 await apiClient.post('/sales/prescriptions/upload/', formData, {
                     headers: { 'Content-Type': 'multipart/form-data' },
                 });
             } else if (view === 'manual') {
                 await apiClient.post('/sales/prescriptions/manual/', {
-                    order_id: orderId,
+                    order_id: numericOrderId,
                     rx,
                     name: rxMeta.name,
                     phone: rxMeta.phone,
                 });
             }
-        } catch (_) { /* non-blocking — show success anyway */ }
-        setSubmitting(false);
-        setView('success');
+            setView('success');
+        } catch (err) {
+            // Bug #5: Improved error messages
+            const errorData = err?.response?.data;
+            let msg = 'Something went wrong. Please try again.';
+
+            if (errorData?.error) {
+                msg = errorData.error;
+            } else if (errorData?.detail) {
+                msg = errorData.detail;
+            } else if (err?.response?.status === 404) {
+                msg = `Order #${numericOrderId} not found. Please check the order ID and try again.`;
+            } else if (err?.response?.status === 400) {
+                msg = 'Invalid request. Please check your input and try again.';
+            } else if (err?.message === 'Network Error') {
+                msg = 'Network error. Please check your connection and try again.';
+            }
+
+            setSubmitError(msg);
+            console.error('Prescription submission failed:', err);
+        } finally {
+            setSubmitting(false);
+        }
     };
 
-    const canSubmitManual = rxMeta.name.trim() && (rx.od?.sph || rx.os?.sph);
+    const canSubmitManual = rxMeta.name.trim() && rxMeta.phone.trim() && (rx.od?.sph || rx.os?.sph);
     const canSubmitUpload = !!uploadedFile;
 
-    const displayOrderId = order ? `#LO-${String(order.id).padStart(7, '0')}` : `#${orderId}`;
+    const displayOrderId = order
+        ? `#LO-${String(order.id).padStart(7, '0')}`
+        : (numericOrderId ? `#LO-${String(numericOrderId).padStart(7, '0')}` : `#${orderId}`);
 
     if (orderLoading) {
         return <div style={{ textAlign: 'center', padding: 80, color: '#9ca3af' }}>Loading...</div>;
@@ -353,6 +440,17 @@ const SubmitPrescriptionPage = () => {
                     {/* ════ VIEW: ACTION REQUIRED ════ */}
                     {view === 'action' && (
                         <div className="spp-action-card">
+                            {/* Bug #7: Deadline warning */}
+                            {deadlineStatus.isPassed && (
+                                <div style={{ marginBottom: 16, padding: '12px 14px', borderRadius: 8, background: '#FEF3F2', border: '1px solid #FDA29B', color: '#B42318', fontSize: 13 }}>
+                                    ⚠️ Deadline has passed. Your order may be automatically cancelled. Please submit your prescription immediately.
+                                </div>
+                            )}
+                            {deadlineStatus.isUrgent && (
+                                <div style={{ marginBottom: 16, padding: '12px 14px', borderRadius: 8, background: '#FFFBEB', border: '1px solid #FDE68A', color: '#92400E', fontSize: 13 }}>
+                                    ⏰ Only {deadlineStatus.daysLeft} day{deadlineStatus.daysLeft !== 1 ? 's' : ''} left to submit your prescription.
+                                </div>
+                            )}
                             <div className="spp-action-badge">ACTION REQUIRED</div>
                             <h2 className="spp-action-title">Submit Your Lens Power</h2>
                             <p className="spp-action-body">
@@ -468,6 +566,11 @@ const SubmitPrescriptionPage = () => {
                                 <ChevronLeft /> Back
                             </button>
                             <ManualPowerForm rx={rx} setRx={setRx} rxMeta={rxMeta} setRxMeta={setRxMeta} />
+                            {submitError && (
+                                <div style={{ margin: '8px 0', padding: '10px 14px', borderRadius: 8, background: '#FEF3F2', border: '1px solid #FDA29B', color: '#B42318', fontSize: 13 }}>
+                                    {submitError}
+                                </div>
+                            )}
                             <div className="spp-submit-row">
                                 <button
                                     className="spp-btn spp-btn--primary spp-btn--full"
@@ -487,7 +590,12 @@ const SubmitPrescriptionPage = () => {
                             <button className="spp-back-btn" onClick={() => setView('choose')}>
                                 <ChevronLeft /> Back
                             </button>
-                            <UploadView uploadedFile={uploadedFile} onUpload={setUploadedFile} />
+                            <UploadView uploadedFile={uploadedFile} onUpload={setUploadedFile} uploadError={uploadError} onUploadError={setUploadError} />
+                            {submitError && (
+                                <div style={{ margin: '8px 0', padding: '10px 14px', borderRadius: 8, background: '#FEF3F2', border: '1px solid #FDA29B', color: '#B42318', fontSize: 13 }}>
+                                    {submitError}
+                                </div>
+                            )}
                             <div className="spp-submit-row">
                                 <button
                                     className="spp-btn spp-btn--primary spp-btn--full"

@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import '../../../styles/about.css';
 
 const heroImg = 'https://www.figma.com/api/mcp/asset/ef90809d-7138-4bff-86d0-75df618faabb';
@@ -12,7 +12,7 @@ const AboutPage = () => {
             {/* Hero */}
             <section className="about-hero">
                 <div className="about-hero__content">
-                    <p className="about-hero__label">EYENIC</p>
+                    <p className="about-hero__label">SPECSIT</p>
                     <h1 className="about-hero__heading">Precision Vision, Curated Style.</h1>
                     <div className="about-hero__description">
                         <p style={{ marginBottom: '0' }}>
@@ -24,7 +24,7 @@ const AboutPage = () => {
                     </div>
                 </div>
                 <div className="about-hero__image-wrap">
-                    <img src={heroImg} alt="Eyenic premium glasses" className="about-hero__image" />
+                    <img src={heroImg} alt="Specsit premium glasses" className="about-hero__image" />
                 </div>
             </section>
 

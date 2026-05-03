@@ -14,6 +14,7 @@ const CategoryTable = () => {
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
 
   useEffect(() => { fetchCategories(); }, []);
 
@@ -24,6 +25,17 @@ const CategoryTable = () => {
       setCategories(Array.isArray(data) ? data : (data.results || []));
     } catch { /* silent */ } finally { setLoading(false); }
   };
+
+  const bulkDelete = async () => {
+    if (!window.confirm(`Delete ${selectedIds.size} categor${selectedIds.size === 1 ? 'y' : 'ies'}?`)) return;
+    await Promise.all([...selectedIds].map(id => apiClient.delete(`/catalog/categories/${id}/`).catch(() => {})));
+    setSelectedIds(new Set());
+    fetchCategories();
+  };
+
+  const bulkActions = [
+    { label: 'Delete Selected', variant: 'danger', icon: Trash2, onClick: bulkDelete },
+  ];
 
   const handleCreateClick = () => { setFormMode('create'); setSelectedCategory(null); setShowForm(true); };
   const handleEditClick   = (c) => { setFormMode('edit');   setSelectedCategory(c);    setShowForm(true); };
@@ -71,10 +83,10 @@ const CategoryTable = () => {
     { label: 'Action', key: 'action', align: 'right' }
   ];
 
-  const renderRow = (c, idx) => (
-    <tr key={c.id || idx} style={{ borderBottom: '1px solid #EAECF0', backgroundColor: '#fff' }}>
+  const renderRow = (c, idx, { isSelected, onToggle } = {}) => (
+    <tr key={c.id || idx} style={{ borderBottom: '1px solid #EAECF0', backgroundColor: isSelected ? '#F9F5FF' : '#fff' }}>
       <td style={{ padding: '16px 24px' }}>
-        <input type="checkbox" style={{ cursor: 'pointer', borderRadius: '4px', accentColor: '#7F56D9' }} />
+        <input type="checkbox" checked={!!isSelected} onChange={onToggle} style={{ cursor: 'pointer', borderRadius: '4px', accentColor: '#7F56D9' }} />
       </td>
       <td style={{ padding: '16px 24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -146,6 +158,9 @@ const CategoryTable = () => {
         data={paginated}
         loading={loading}
         renderRow={renderRow}
+        selectedIds={selectedIds}
+        onSelectIds={setSelectedIds}
+        bulkActions={bulkActions}
         pagination={{
           page,
           perPage,

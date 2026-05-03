@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import '../../../styles/end-nav-bar.css';
 
 const EndNavBar = () => {
@@ -6,7 +6,7 @@ const EndNavBar = () => {
     <div className="end-nav-bar" data-name="End nav bar">
       {/* Brand Logo */}
       <div className="end-nav-brand" data-name="Brand Logo">
-        <div className="brand-text">EYENIC</div>
+        <div className="brand-text">SPECSIT</div>
       </div>
 
       {/* Trailing Actions (Right) */}

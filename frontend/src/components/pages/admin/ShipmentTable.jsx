@@ -14,8 +14,13 @@ const ShipmentTable = () => {
   const [page, setPage]           = useState(1);
   const [perPage, setPerPage]     = useState(10);
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
 
-  useEffect(() => { fetchShipments(); }, []);
+  useEffect(() => {
+    fetchShipments();
+    const interval = setInterval(fetchShipments, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   const fetchShipments = async () => {
     try {
@@ -23,6 +28,31 @@ const ShipmentTable = () => {
       setShipments(Array.isArray(res.data) ? res.data : (res.data.results || []));
     } catch { /* silent */ } finally { setLoading(false); }
   };
+
+  const bulkDelete = async () => {
+    if (!window.confirm(`Delete ${selectedIds.size} shipment(s)?`)) return;
+    await Promise.all([...selectedIds].map(id => apiClient.delete(`/sales/shipments/${id}/`).catch(() => {})));
+    setSelectedIds(new Set());
+    fetchShipments();
+  };
+
+  const bulkMarkDelivered = async () => {
+    if (!window.confirm(`Mark ${selectedIds.size} shipment(s) as Delivered?`)) return;
+    const shipmentMap = new Map(shipments.map(s => [s.id, s.order_id]));
+    await Promise.all([...selectedIds].map(id => {
+      const orderId = shipmentMap.get(id);
+      return orderId
+        ? apiClient.post(`/sales/orders/${orderId}/mark_delivered/`).catch(() => {})
+        : apiClient.patch(`/sales/shipments/${id}/`, { status: 'Delivered' }).catch(() => {});
+    }));
+    setSelectedIds(new Set());
+    fetchShipments();
+  };
+
+  const bulkActions = [
+    { label: 'Mark Delivered', variant: 'success', icon: Truck, onClick: bulkMarkDelivered },
+    { label: 'Delete Selected', variant: 'danger', icon: Trash2, onClick: bulkDelete },
+  ];
 
   const handleCreateClick = () => { setFormMode('create'); setSelectedShipment(null); setShowForm(true); };
   const handleEditClick   = (s) => { setFormMode('edit');   setSelectedShipment(s);    setShowForm(true); };
@@ -71,17 +101,17 @@ const ShipmentTable = () => {
     { label: 'Action', key: 'action', align: 'right' }
   ];
 
-  const renderRow = (s, idx) => {
+  const renderRow = (s, idx, { isSelected, onToggle } = {}) => {
     const style = getStatusStyle(s.status_label);
     return (
-      <tr key={s.id || idx} style={{ borderBottom: '1px solid #EAECF0', backgroundColor: '#fff' }}>
+      <tr key={s.id || idx} style={{ borderBottom: '1px solid #EAECF0', backgroundColor: isSelected ? '#F9F5FF' : '#fff' }}>
         <td style={{ padding: '16px 24px' }}>
-          <input type="checkbox" style={{ cursor: 'pointer', borderRadius: '4px', accentColor: '#7F56D9' }} />
+          <input type="checkbox" checked={!!isSelected} onChange={onToggle} style={{ cursor: 'pointer', borderRadius: '4px', accentColor: '#7F56D9' }} />
         </td>
         <td style={{ padding: '16px 24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <Package size={14} color="#667085" />
-            <span style={{ fontWeight: 600, color: '#344054' }}>ORD-{s.order_id}</span>
+            <span style={{ fontWeight: 600, color: '#344054' }}>#LO-{String(s.order_id).padStart(7, '0')}</span>
           </div>
         </td>
         <td style={{ padding: '16px 24px' }}>
@@ -156,6 +186,9 @@ const ShipmentTable = () => {
         data={paginated}
         loading={loading}
         renderRow={renderRow}
+        selectedIds={selectedIds}
+        onSelectIds={setSelectedIds}
+        bulkActions={bulkActions}
         pagination={{
           page,
           perPage,

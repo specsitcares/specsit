@@ -17,8 +17,8 @@
   --gray-700: #414651;
   --gray-900: #181D27;
 
-  --sidebar-w: 260px;
-  --topbar-h: 64px;
+  --sidebar-w: 220px;
+  --topbar-h: 56px;
 }
 
 body {
@@ -242,12 +242,12 @@ body {
   overflow-x: hidden;
   max-width: 100vw;
   /* Standard Page Padding for Admin */
-  padding: 32px;
+  padding: 24px;
 }
 
-/* Specific Override for Order Detail to ensure 40px padding as requested */
+/* Specific Override for Order Detail to ensure 30px padding as requested */
 .admin-main-container:has(.order-detail-container) {
-  padding: 40px;
+  padding: 30px;
 }
 
 /* ── DASHBOARD Polish ────────────────────────────────────────── */
@@ -260,7 +260,7 @@ body {
 
 .dash-title {
   font-family: 'Space Grotesk', sans-serif;
-  font-size: 24px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--gray-900);
 }
@@ -363,7 +363,7 @@ body {
   gap: 4px;
 }
 
-.info-count { font-size: 24px; font-weight: 700; color: var(--gray-900); line-height: 1; }
+.info-count { font-size: 18px; font-weight: 700; color: var(--gray-900); line-height: 1; }
 .info-text  { font-size: 13px; font-weight: 500; color: var(--gray-600); }
 .info-link  { font-size: 12px; font-weight: 700; color: #7F56D9; cursor: pointer; text-decoration: underline; background: none; border: none; padding: 0; text-align: left; }
 
@@ -621,8 +621,8 @@ tr.expanded-parent {
 @media (max-width: 1200px) {
   .admin-sidebar-v3 {
     position: fixed !important;
-    top: 72px;
-    left: -280px;
+    top: 56px;
+    left: -220px;
     z-index: 999;
     transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 10px 0 30px rgba(0,0,0,0.1);
@@ -756,10 +756,10 @@ tr.expanded-parent {
 }
 
 .dh-page-title {
-  font-size: 24px;
+  font-size: 18px;
   font-weight: 500;
   color: #040205;
-  letter-spacing: -0.12px;
+  letter-spacing: -0.09px;
   margin: 0;
 }
 
@@ -808,11 +808,9 @@ tr.expanded-parent {
   min-width: 0;
 }
 
-/* Top section: icon+label on left, three-dots on right */
 .dh-stat-card__top {
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
   width: 100%;
 }
 
@@ -843,18 +841,6 @@ tr.expanded-parent {
   overflow-wrap: break-word;
 }
 
-.dh-stat-card__dots {
-  background: none;
-  border: none;
-  color: #697177;
-  cursor: pointer;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-.dh-stat-card__dots:hover { color: #040205; }
 
 /* Bottom section: value + trend */
 .dh-stat-card__bottom {
@@ -865,11 +851,11 @@ tr.expanded-parent {
 }
 
 .dh-stat-card__value {
-  font-size: 28px;
+  font-size: 22px;
   font-weight: 500;
   color: #040205;
-  letter-spacing: -0.14px;
-  line-height: 28px;
+  letter-spacing: -0.11px;
+  line-height: 22px;
   margin: 0;
 }
 
@@ -901,11 +887,11 @@ tr.expanded-parent {
 
 /* ── Section Heading (Figma 402:7266) ────────────────────── */
 .dh-section-heading {
-  font-size: 24px;
+  font-size: 18px;
   font-weight: 500;
   color: #040205;
-  letter-spacing: -0.12px;
-  margin: 0 0 20px;
+  letter-spacing: -0.09px;
+  margin: 0 0 16px;
 }
 
 /* ── Attention Row (Figma 402:7266) ──────────────────────── */
@@ -948,11 +934,11 @@ tr.expanded-parent {
 }
 
 .dh-attention-card__count {
-  font-size: 24px;
+  font-size: 18px;
   font-weight: 500;
   color: #040205;
-  letter-spacing: -0.12px;
-  line-height: 28px;
+  letter-spacing: -0.09px;
+  line-height: 22px;
 }
 
 .dh-attention-card__body {
@@ -962,25 +948,25 @@ tr.expanded-parent {
 }
 
 .dh-attention-card__message {
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 500;
   color: #697177;
   margin: 0;
   line-height: 1.5;
-  letter-spacing: 0.08px;
+  letter-spacing: 0.06px;
 }
 
 .dh-attention-card__cta {
   background: none;
   border: none;
   padding: 0;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 500;
   color: #68408d;
   cursor: pointer;
   text-align: left;
   text-decoration: underline;
-  letter-spacing: 0.09px;
+  letter-spacing: 0.07px;
   line-height: 1.5;
 }
 
@@ -1009,7 +995,7 @@ tr.expanded-parent {
 }
 
 .dh-chart-card__title {
-  font-size: 20px;
+  font-size: 15px;
   font-weight: 500;
   color: #040205;
   margin: 0;
@@ -1133,7 +1119,7 @@ tr.expanded-parent {
 }
 
 .dh-donut-legend__label {
-  font-size: 18px;
+  font-size: 13px;
   color: #040205;
   font-weight: 400;
   white-space: nowrap;
@@ -1255,8 +1241,8 @@ tr.expanded-parent {
 .dh-order-id {
   font-weight: 400;
   color: #040205;
-  font-size: 16px;
-  letter-spacing: -0.08px;
+  font-size: 13px;
+  letter-spacing: -0.06px;
   flex: 1;
 }
 
@@ -1264,10 +1250,10 @@ tr.expanded-parent {
   background: #f9f5ff;
   color: #040205;
   border: 1px solid #68408d;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 500;
-  padding: 2px 8px;
-  border-radius: 6px;
+  padding: 1px 6px;
+  border-radius: 5px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1315,9 +1301,9 @@ tr.expanded-parent {
 .dh-rx-badge {
   display: inline-flex;
   align-items: center;
-  padding: 8px 14px;
+  padding: 5px 10px;
   border-radius: 4px;
-  font-size: 16px;
+  font-size: 12px;
   font-weight: 500;
   border: none;
   white-space: nowrap;
@@ -1444,10 +1430,10 @@ tr.expanded-parent {
 
 /* 400px customer name column (matches Figma w-[400px]) */
 .dh-sub-row__customer {
-  width: 400px;
+  width: 300px;
   flex-shrink: 0;
-  padding: 12px;
-  font-size: 16px;
+  padding: 10px;
+  font-size: 13px;
   font-weight: 400;
   color: #040205;
   white-space: nowrap;
@@ -1481,8 +1467,8 @@ tr.expanded-parent {
 
 .dh-sub-row__total {
   flex: 1;
-  padding: 14px 12px;
-  font-size: 16px;
+  padding: 10px 12px;
+  font-size: 13px;
   font-weight: 400;
   color: #040205;
   display: flex;

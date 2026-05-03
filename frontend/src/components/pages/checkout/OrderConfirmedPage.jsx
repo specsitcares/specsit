@@ -140,14 +140,25 @@ const OrderConfirmedPage = () => {
   const navigate = useNavigate();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const fetchOrder = async () => {
       try {
         const res = await apiClient.get(`/sales/orders/${orderId}/`);
         setOrder(res.data);
+        setError('');
       } catch (e) {
         console.error(e);
+        let errorMsg = 'Unable to load order details';
+        if (e.response?.status === 404) {
+          errorMsg = `Order #${orderId} not found`;
+        } else if (e.response?.status === 400) {
+          errorMsg = 'Invalid order ID format';
+        } else if (e.message === 'Network Error') {
+          errorMsg = 'Network error. Please check your connection.';
+        }
+        setError(errorMsg);
       } finally {
         setLoading(false);
       }
@@ -158,6 +169,17 @@ const OrderConfirmedPage = () => {
   if (loading) return (
     <div style={{ textAlign: 'center', padding: 80, color: '#9ca3af', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       Loading...
+    </div>
+  );
+  if (error) return (
+    <div style={{ textAlign: 'center', padding: 80, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      <div style={{ fontSize: 18, color: '#B42318', marginBottom: 16 }}>{error}</div>
+      <button onClick={() => navigate('/products')} style={{
+        background: '#68408d', color: '#fefcff', border: 'none', borderRadius: 6,
+        padding: '12px 24px', fontSize: 14, fontWeight: 700, cursor: 'pointer'
+      }}>
+        Back to Shop
+      </button>
     </div>
   );
   if (!order) return null;

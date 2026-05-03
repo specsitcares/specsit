@@ -24,6 +24,13 @@ class VariantImageSerializer(serializers.ModelSerializer):
 
 class VariantSerializer(serializers.ModelSerializer):
     images = VariantImageSerializer(many=True, read_only=True)
+    product_name = serializers.ReadOnlyField(source='product.title')
+    brand_name   = serializers.SerializerMethodField()
+
+    def get_brand_name(self, obj):
+        if obj.product.brand:
+            return obj.product.brand.name
+        return obj.product.brand_name or ''
 
     class Meta:
         model = Variant
@@ -158,10 +165,48 @@ class LensSerializer(serializers.ModelSerializer):
         return instance
 
 class PrescriptionSerializer(serializers.ModelSerializer):
+    user_name = serializers.SerializerMethodField()
+    status_label = serializers.SerializerMethodField()
+    order_id = serializers.SerializerMethodField()
+    order_display_id = serializers.SerializerMethodField()
+    prescription_file = serializers.SerializerMethodField()
+
+    def get_user_name(self, obj):
+        return obj.user.get_full_name() or obj.user.username
+
+    def get_status_label(self, obj):
+        return obj.status.label if obj.status else 'Pending'
+
+    def get_order_id(self, obj):
+        item = obj.order_items.select_related('order').first()
+        return item.order_id if item else None
+
+    def get_order_display_id(self, obj):
+        item = obj.order_items.select_related('order').first()
+        return f'#LO-{str(item.order_id).zfill(7)}' if item else None
+
+    def get_prescription_file(self, obj):
+        if obj.prescription_file:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.prescription_file.url)
+            return obj.prescription_file.url
+        return None
+
     class Meta:
         model = Prescription
-        fields = '__all__'
-        read_only_fields = ['user']
+        fields = [
+            'id', 'user', 'user_name', 'patient_name',
+            'od_sphere', 'od_cylinder', 'od_axis', 'od_add',
+            'os_sphere', 'os_cylinder', 'os_axis', 'os_add',
+            'pd_distance', 'pd_type',
+            'prism_od', 'prism_base_od', 'prism_os', 'prism_base_os',
+            'vision_type', 'prescription_file', 'review_notes',
+            'status', 'status_label',
+            'order_id', 'order_display_id',
+            'created_at', 'updated_at',
+        ]
+        read_only_fields = ['user', 'user_name', 'status_label', 'order_id', 'order_display_id', 'prescription_file']
 
 class UserFaceSerializer(serializers.ModelSerializer):
     class Meta:
@@ -177,7 +222,7 @@ class ReviewSerializer(serializers.ModelSerializer):
         model = Review
         fields = [
             'id', 'username', 'product', 'product_name', 'order',
-            'rating', 'review_title', 'review_text', 'comment',
+            'rating', 'review_title', 'review_text',
             'reviewer_display_name', 'review_images', 'is_verified_purchase',
             'is_approved', 'created_at', 'updated_at'
         ]
