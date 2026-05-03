@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+﻿import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import {
     Zap, ShoppingBag, Check, ChevronRight,
     Star, Truck, ShieldCheck, RefreshCw, Box,
@@ -18,6 +18,7 @@ import '../../../styles/ProductDetailPage.css';
 const ProductDetailPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const { addToCart } = useCart();
     const { user } = useAuth();
     const { isWishlisted, toggleWishlist } = useWishlist();
@@ -68,11 +69,14 @@ const ProductDetailPage = () => {
                 const p = productRes.data;
                 setProduct(p);
 
-                // Init selected color/size from first variant
+                // Init selected color/size — honour ?variant=id when coming from listing
                 if (p.variants?.length > 0) {
-                    const first = p.variants[0];
-                    setSelectedColor(first.color || first.frame_color || 'Default');
-                    setSelectedSize(first.frame_size || '');
+                    const variantParam = searchParams.get('variant');
+                    const target = variantParam
+                        ? (p.variants.find(v => String(v.id) === variantParam) || p.variants[0])
+                        : p.variants[0];
+                    setSelectedColor(target.color || target.frame_color || 'Default');
+                    setSelectedSize(target.frame_size || '');
                 }
 
                 // Recommended lenses
@@ -293,7 +297,7 @@ const ProductDetailPage = () => {
                                 <div className="pd-feature-icon"><Truck size={24} /></div>
                                 <div className="pd-feature-info">
                                     <h4>Free shipping</h4>
-                                    <p>On every single order at Eyenic Optics</p>
+                                    <p>On every single order at Specsit Optics</p>
                                 </div>
                             </div>
                             <div className="pd-feature-card">
@@ -439,6 +443,47 @@ const ProductDetailPage = () => {
                                             title={v.name}
                                         />
                                     ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ── Variant thumbnail cards ── */}
+                        {(product.variants || []).length > 1 && (
+                            <div className="pd-selector-item">
+                                <label className="pd-coupon-label" style={{ marginBottom: 10 }}>All Color Options</label>
+                                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                                    {(product.variants || []).map(v => {
+                                        const vColor = v.color || v.frame_color || v.lens_color || 'Default';
+                                        const vImg = v.images?.[0]?.image || v.images?.[0] || '';
+                                        const isActive = selectedColor === vColor;
+                                        return (
+                                            <div
+                                                key={v.id}
+                                                onClick={() => { setSelectedColor(vColor); setActiveImage(0); }}
+                                                title={vColor}
+                                                style={{
+                                                    width: 72,
+                                                    cursor: 'pointer',
+                                                    borderRadius: 10,
+                                                    border: `2px solid ${isActive ? '#68408D' : '#e5e7eb'}`,
+                                                    overflow: 'hidden',
+                                                    transition: 'border-color 0.15s, box-shadow 0.15s',
+                                                    boxShadow: isActive ? '0 0 0 3px rgba(104,64,141,0.18)' : 'none',
+                                                    flexShrink: 0,
+                                                }}
+                                            >
+                                                <div style={{ width: '100%', aspectRatio: '1', background: '#f3f4f6', overflow: 'hidden' }}>
+                                                    {vImg
+                                                        ? <img src={vImg} alt={vColor} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.style.display = 'none'; }} />
+                                                        : <div style={{ width: '100%', height: '100%', background: v.color_code || '#e5e7eb' }} />
+                                                    }
+                                                </div>
+                                                <div style={{ padding: '4px 5px', fontSize: 10, fontWeight: isActive ? 700 : 500, color: isActive ? '#68408D' : '#374151', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                    {vColor}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         )}

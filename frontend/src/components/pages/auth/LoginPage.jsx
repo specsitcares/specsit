@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { useGoogleLogin } from '@react-oauth/google';
@@ -44,7 +44,7 @@ const LoginPage = () => {
             <div className="lp-hero-panel">
                 <img
                     src="/assets/images/login-hero.svg"
-                    alt="Eyenic eyewear showcase"
+                    alt="Specsit eyewear showcase"
                     className="lp-hero-img"
                 />
             </div>
@@ -108,7 +108,7 @@ const LoginPage = () => {
                                 <button
                                     type="button"
                                     className="lp-forgot-link"
-                                    onClick={() => navigate('/forgot-password')}
+                                    onClick={() => navigate('/contact')}
                                 >
                                     Forgot Password?
                                 </button>

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+﻿import React, { useState, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useCart } from '../../../context/CartContext';
 import UserAccountMenu from '../common/UserAccountMenu';
@@ -71,7 +71,7 @@ const Header = ({ showUserProfile = false, user = null, onLogout = null }) => {
     >
       {/* Brand Logo */}
       <div className="header-brand" data-name="Brand Logo">
-        <Link to="/" className="brand-logo">EYENIC</Link>
+        <Link to="/" className="brand-logo">SPECSIT</Link>
       </div>
 
       {/* Navigation Links (Center) */}

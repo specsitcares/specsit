@@ -21,8 +21,8 @@ const ReviewStarSelector = ({ value, onChange }) => {
                         onMouseLeave={() => setHover(0)}
                         onClick={() => onChange(n)}>
                         <svg width="32" height="32" viewBox="0 0 24 24"
-                            fill={active >= n ? 'var(--eyenic-purple-primary)' : 'none'}
-                            stroke="var(--eyenic-purple-primary)" strokeWidth="1.5"
+                            fill={active >= n ? 'var(--specsit-purple-primary)' : 'none'}
+                            stroke="var(--specsit-purple-primary)" strokeWidth="1.5"
                             strokeLinecap="round" strokeLinejoin="round">
                             <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
                         </svg>
@@ -225,7 +225,7 @@ const OrderReviewPage = () => {
                                     <polyline points="20 6 9 17 4 12"/>
                                 </svg>
                             </div>
-                            <p style={{ fontSize: 20, fontWeight: 700, color: 'var(--eyenic-black)', margin: '0 0 8px' }}>
+                            <p style={{ fontSize: 20, fontWeight: 700, color: 'var(--specsit-black)', margin: '0 0 8px' }}>
                                 {existingReview ? 'Review updated!' : 'Review submitted!'}
                             </p>
                             <p className="ord-card__variant-info">Redirecting to your orders…</p>
@@ -237,8 +237,8 @@ const OrderReviewPage = () => {
                             </h1>
 
                             {/* Order / product context */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 32, padding: '16px 20px', background: 'var(--eyenic-bg-white)', border: '1px solid var(--eyenic-light-grey)', borderRadius: 12 }}>
-                                <div style={{ flexShrink: 0, width: 64, height: 64, borderRadius: 8, border: '1px solid var(--eyenic-light-grey)', overflow: 'hidden', background: 'var(--eyenic-light-grey)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 32, padding: '16px 20px', background: 'var(--specsit-bg-white)', border: '1px solid var(--specsit-light-grey)', borderRadius: 12 }}>
+                                <div style={{ flexShrink: 0, width: 64, height: 64, borderRadius: 8, border: '1px solid var(--specsit-light-grey)', overflow: 'hidden', background: 'var(--specsit-light-grey)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                     {firstItem?.variant_image
                                         ? <img src={firstItem.variant_image} alt={firstItem.variant_name || 'Product'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                         : <span style={{ fontSize: 28 }}>👓</span>
@@ -249,7 +249,7 @@ const OrderReviewPage = () => {
                                         {firstItem?.variant_name || 'Product'}
                                     </div>
                                     <div className="ord-card__variant-info">
-                                        Order #{order.order_number || order.id}
+                                        Order #LO-{String(order.id).padStart(7, '0')}
                                         {deliveryDate && ` · Delivered ${deliveryDate}`}
                                     </div>
                                 </div>
@@ -289,9 +289,9 @@ const OrderReviewPage = () => {
                                     <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-start' }}>
                                         {images.map((img, i) => (
                                             <div key={i} style={{ position: 'relative', width: 60, height: 60 }}>
-                                                <img src={img.preview} alt="" style={{ width: 60, height: 60, borderRadius: 8, objectFit: 'cover', border: '1px solid var(--eyenic-light-grey)' }} />
+                                                <img src={img.preview} alt="" style={{ width: 60, height: 60, borderRadius: 8, objectFit: 'cover', border: '1px solid var(--specsit-light-grey)' }} />
                                                 <button type="button" onClick={() => setImages(prev => prev.filter((_, j) => j !== i))}
-                                                    style={{ position: 'absolute', top: -6, right: -6, width: 18, height: 18, borderRadius: '50%', background: 'var(--eyenic-black)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
+                                                    style={{ position: 'absolute', top: -6, right: -6, width: 18, height: 18, borderRadius: '50%', background: 'var(--specsit-black)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
                                                     ×
                                                 </button>
                                             </div>
@@ -339,7 +339,7 @@ const OrderReviewPage = () => {
                                 {/* Actions */}
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 8 }}>
                                     <button type="button" onClick={handleCancel}
-                                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 500, color: 'var(--eyenic-body-grey)', padding: 0, fontFamily: 'inherit' }}>
+                                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 500, color: 'var(--specsit-body-grey)', padding: 0, fontFamily: 'inherit' }}>
                                         Cancel
                                     </button>
                                     <button type="submit" disabled={submitting} className="account-btn-primary">

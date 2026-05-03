@@ -1,8 +1,8 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, serializers
-from rest_framework.permissions import AllowAny
-from .models import Announcement, HeroSlide, EditorialSection, Benefit, HomeSectionTitle
+from rest_framework.permissions import AllowAny, IsAdminUser
+from .models import Announcement, HeroSlide, EditorialSection, Benefit, HomeSectionTitle, SiteSettings
 
 class AnnouncementSerializer(serializers.ModelSerializer):
     class Meta:
@@ -40,6 +40,24 @@ class HomeSectionTitleSerializer(serializers.ModelSerializer):
     class Meta:
         model = HomeSectionTitle
         fields = ['key', 'title', 'subtitle']
+
+class SiteSettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SiteSettings
+        fields = ['store_name', 'meta_title_template', 'meta_description_template']
+
+class SiteSettingsView(APIView):
+    def get(self, request):
+        return Response(SiteSettingsSerializer(SiteSettings.get()).data)
+
+    def put(self, request):
+        if not request.user.is_staff:
+            return Response({'detail': 'Admin access required.'}, status=status.HTTP_403_FORBIDDEN)
+        s = SiteSettingsSerializer(SiteSettings.get(), data=request.data, partial=True)
+        if s.is_valid():
+            s.save()
+            return Response(s.data)
+        return Response(s.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class HomePageCMSView(APIView):
     permission_classes = [AllowAny]

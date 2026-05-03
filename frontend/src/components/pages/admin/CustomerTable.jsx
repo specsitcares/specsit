@@ -18,6 +18,7 @@ const CustomerTable = () => {
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
 
   const customerFormFields = [
     { name: 'username',   label: 'Username',     type: 'text',     required: true, placeholder: 'username' },
@@ -45,6 +46,17 @@ const CustomerTable = () => {
     const interval = setInterval(fetchCustomers, 5000); // Real-time poll
     return () => clearInterval(interval);
   }, []);
+
+  const bulkDelete = async () => {
+    if (!window.confirm(`Delete ${selectedIds.size} customer(s)?`)) return;
+    await Promise.all([...selectedIds].map(id => apiClient.delete(`/accounts/users/${id}/`).catch(() => {})));
+    setSelectedIds(new Set());
+    fetchCustomers();
+  };
+
+  const bulkActions = [
+    { label: 'Delete Selected', variant: 'danger', icon: Trash2, onClick: bulkDelete },
+  ];
 
   const handleCreateClick = () => { setFormMode('create'); setSelectedCustomer(null); setShowForm(true); };
   const handleEditClick   = (c)  => { setFormMode('edit');   setSelectedCustomer(c);    setShowForm(true); };
@@ -91,10 +103,10 @@ const CustomerTable = () => {
     { label: 'Action', key: 'action', align: 'right' }
   ];
 
-  const renderRow = (u, idx) => (
-    <tr key={u.id || idx} style={{ borderBottom: '1px solid #EAECF0', backgroundColor: '#fff' }}>
+  const renderRow = (u, idx, { isSelected, onToggle } = {}) => (
+    <tr key={u.id || idx} style={{ borderBottom: '1px solid #EAECF0', backgroundColor: isSelected ? '#F9F5FF' : '#fff' }}>
       <td style={{ padding: '16px 24px' }}>
-        <input type="checkbox" style={{ cursor: 'pointer', borderRadius: '4px', accentColor: '#7F56D9' }} />
+        <input type="checkbox" checked={!!isSelected} onChange={onToggle} style={{ cursor: 'pointer', borderRadius: '4px', accentColor: '#7F56D9' }} />
       </td>
       <td style={{ padding: '16px 24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -179,6 +191,9 @@ const CustomerTable = () => {
         data={paginated}
         loading={loading}
         renderRow={renderRow}
+        selectedIds={selectedIds}
+        onSelectIds={setSelectedIds}
+        bulkActions={bulkActions}
         pagination={{
           page,
           perPage,

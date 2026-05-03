@@ -19,90 +19,72 @@ const TopBar = ({
   );
 
   return (
-    <nav className="top-nav-main-purple" style={{ height: '72px', background: '#68408D', padding: '0 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#FEFCFF' }}>
+    <nav className="top-nav-main-purple" style={{ height: '56px', background: '#68408D', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#FEFCFF' }}>
 
       {/* BRANDING and NAV TABS */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
         <button
           className="mobile-sidebar-trigger"
           onClick={toggleSidebar}
           style={{ display: 'none', background: 'transparent', border: 'none', color: '#FEFCFF', cursor: 'pointer', outline: 'none' }}
         >
-          <Menu size={24} />
+          <Menu size={20} />
         </button>
         <div className="brand">{SpecsitLogo}</div>
 
-        <div className="nav-pill-container" style={{ display: 'flex', alignItems: 'center', background: '#2D1B3D', padding: '4px', borderRadius: '12px', gap: '8px' }}>
-          <button
-            onClick={() => setActiveView('Dashboards')}
-            style={{
-              padding: '8px 20px',
-              borderRadius: '10px',
-              border: 'none',
-              cursor: 'pointer',
-              background: activeView === 'Dashboards' ? '#68408D' : 'transparent',
-              color: '#FEFCFF',
-              fontWeight: 600,
-              fontSize: '14px'
-            }}
-          >
-            Dashboard
-          </button>
-          <button
-            onClick={() => setActiveView('Orders')}
-            style={{
-              padding: '8px 20px',
-              borderRadius: '10px',
-              border: 'none',
-              cursor: 'pointer',
-              background: activeView === 'Orders' ? '#68408D' : 'transparent',
-              color: 'rgba(254, 252, 255, 0.7)',
-              fontWeight: 600,
-              fontSize: '14px'
-            }}
-          >
-            Order
-          </button>
-          <button
-            onClick={() => setActiveView('Analytics')}
-            style={{
-              padding: '8px 20px',
-              borderRadius: '10px',
-              border: 'none',
-              cursor: 'pointer',
-              background: activeView === 'Analytics' ? '#68408D' : 'transparent',
-              color: 'rgba(254, 252, 255, 0.7)',
-              fontWeight: 600,
-              fontSize: '14px'
-            }}
-          >
-            Analytics
-          </button>
+        <div className="nav-pill-container" style={{ display: 'flex', alignItems: 'center', background: '#2D1B3D', padding: '4px', borderRadius: '8px', gap: '2px' }}>
+          {[
+            { label: 'Dashboard', view: 'Dashboards' },
+            { label: 'Order',     view: 'Orders'     },
+            { label: 'Analytics', view: 'Analytics'  },
+          ].map(({ label, view }) => (
+            <button
+              key={view}
+              onClick={() => setActiveView(view)}
+              style={{
+                padding: '6px 10px',
+                borderRadius: '5px',
+                border: 'none',
+                cursor: 'pointer',
+                background: activeView === view ? '#68408D' : 'transparent',
+                color: '#FEFCFF',
+                fontWeight: 500,
+                fontSize: '14px',
+                lineHeight: 1.5,
+              }}
+            >
+              {label}
+            </button>
+          ))}
         </div>
       </div>
 
       {/* ACTIONS and USER PROFILE */}
-      <div className="desktop-only" style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '24px', opacity: 0.9 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', color: '#FEFCFF' }}>
-            <span style={{ fontSize: '14px', fontWeight: 600 }}>Settings</span>
-            <ChevronDown size={16} />
+      <div className="desktop-only" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '14px', fontWeight: 500, color: '#FEFCFF', cursor: 'pointer', lineHeight: 1.5 }}>Settings</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+            <span style={{ fontSize: '14px', fontWeight: 500, color: '#FEFCFF', lineHeight: 1.5 }}>Settings</span>
+            <ChevronDown size={16} color="#FEFCFF" />
           </div>
         </div>
 
-        <div className="profile-group" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <img
-            src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&h=80&fit=crop&crop=face"
-            alt="User"
-            style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid rgba(254, 252, 255, 0.2)' }}
-          />
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '14px', fontWeight: 700, color: '#FEFCFF' }}>{userName}</span>
-            <span style={{ fontSize: '11px', opacity: 0.7, color: '#FEFCFF' }}>{userRole}</span>
+        <div className="profile-group" style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#e0e0e0', overflow: 'hidden', flexShrink: 0 }}>
+              <img
+                src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&h=80&fit=crop&crop=face"
+                alt="User"
+                style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+              />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '16px' }}>
+              <span style={{ fontSize: '14px', fontWeight: 500, color: '#FEFCFF' }}>{userName}</span>
+              <span style={{ fontSize: '12px', fontWeight: 400, color: '#FEFCFF' }}>{userRole}</span>
+            </div>
           </div>
+          <LogOut size={20} onClick={onLogout} style={{ cursor: 'pointer', color: '#FEFCFF' }} />
         </div>
-
-        <LogOut size={20} onClick={onLogout} style={{ cursor: 'pointer', marginLeft: '12px', opacity: 0.8, color: '#FEFCFF' }} />
       </div>
     </nav>
   );

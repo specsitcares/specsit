@@ -57,6 +57,16 @@ class OrderItemSerializer(serializers.ModelSerializer):
         ]
 
 class OrderTrackingSerializer(serializers.ModelSerializer):
+    qc_image_url = serializers.SerializerMethodField(read_only=True)
+
+    def get_qc_image_url(self, obj):
+        if not obj.qc_image:
+            return None
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri(obj.qc_image.url)
+        return obj.qc_image.url
+
     class Meta:
         model = OrderTracking
         fields = '__all__'
@@ -116,12 +126,19 @@ class OrderSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        # Only fix order_status when it is still the default 'pending' value but
-        # the MetadataItem label clearly indicates a different state. Never
-        # override an already-meaningful order_status (e.g. 'delivered').
-        if instance.status and data.get('order_status') == 'pending':
+        # Sync order_status from MetadataItem label only when the MetadataItem is
+        # equally or more progressed than the DB field — prevents reverting a
+        # correctly-set 'delivered' back to a stale 'in_transit' MetadataItem.
+        if instance.status:
             mapped = self._label_to_order_status(instance.status.label)
-            if mapped and mapped != 'pending':
+            STATUS_RANK = {
+                'pending': 0, 'confirmed': 1,
+                'ready_to_dispatch': 2, 'in_transit': 3,
+                'delivered': 4, 'cancelled': 4,
+            }
+            db_rank = STATUS_RANK.get(instance.order_status or '', 0)
+            meta_rank = STATUS_RANK.get(mapped or '', 0)
+            if mapped and meta_rank >= db_rank:
                 data['order_status'] = mapped
         return data
 
@@ -182,7 +199,7 @@ class OrderSerializer(serializers.ModelSerializer):
             addr_id = addr_data.get('id')
             if addr_id:
                 try:
-                    shipping_address = Address.objects.get(id=int(addr_id))
+                    shipping_address = Address.objects.get(id=int(addr_id), user=request.user)
                 except (Address.DoesNotExist, ValueError, TypeError):
                     pass
 
@@ -225,7 +242,7 @@ class OrderSerializer(serializers.ModelSerializer):
             unit_p = _d(item_data.get('price_at_purchase', 0))
             OrderItem.objects.create(
                 order=order,
-                variant_id=safe_int(item_data.get('variant_id')),
+                variant_id=safe_int(item_data.get('variant') or item_data.get('variant_id')),
                 lens_id=safe_int(item_data.get('lens_id')),
                 prescription_id=safe_int(item_data.get('prescription_id')),
                 patient_name=item_data.get('patient_name'),
@@ -299,6 +316,12 @@ class WishlistSerializer(serializers.ModelSerializer):
         read_only_fields = ['user', 'added_at']
 
 class ShipmentSerializer(serializers.ModelSerializer):
+    status_label = serializers.SerializerMethodField()
+    order_id = serializers.IntegerField(source='order.id', read_only=True)
+
+    def get_status_label(self, obj):
+        return obj.status.label if obj.status else None
+
     class Meta:
         model = Shipment
-        fields = '__all__'
+        fields = ['id', 'order', 'order_id', 'carrier', 'method', 'tracking_id', 'status', 'status_label', 'created_at']

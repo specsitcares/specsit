@@ -27,6 +27,7 @@ def register_view(request):
             'user_id': user.id,
             'username': user.username,
             'email': user.email,
+            'is_staff': user.is_staff,
         }, status=status.HTTP_201_CREATED)
     
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

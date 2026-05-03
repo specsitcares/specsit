@@ -19,7 +19,6 @@ const AuthCallbackPage = () => {
         const code = params.get('code');
 
         if (code) {
-            console.log("GOOGLE CODE RECEIVED:", code);
             hasFetched.current = true;
             handleGoogleAuth(code);
         } else {
@@ -29,14 +28,7 @@ const AuthCallbackPage = () => {
 
     const handleGoogleAuth = async (code) => {
         try {
-            console.log("SENDING CODE TO BACKEND...");
-            const apiUrl = `${window.location.origin}/api/accounts/google-oauth/`;
-            console.log("FULL API URL:", apiUrl);
-            
-            const response = await apiClient.post(apiUrl, {
-                code: code
-            });
-            console.log("BACKEND RESPONSE:", response.data);
+            const response = await apiClient.post('accounts/google-oauth/', { code });
 
             if (response.data.token) {
                 const { token, user } = response.data;
@@ -53,7 +45,6 @@ const AuthCallbackPage = () => {
                 }, 1500);
             }
         } catch (err) {
-            console.error('Google Auth Error:', err);
             setError(err.response?.data?.error || 'Failed to authenticate with Google.');
         }
     };

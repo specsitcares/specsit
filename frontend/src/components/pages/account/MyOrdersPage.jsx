@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
+import { useCart } from '../../../context/CartContext';
 import apiClient from '../../../services/api';
 import AccountSidebar from './AccountSidebar';
 import '../../../styles/account.css';
@@ -73,6 +74,7 @@ const StatusBadge = ({ status, label }) => {
 const CARD_WIDTH = 280 + 20;
 
 const RecoSection = () => {
+    const { addToCart } = useCart();
     const [products, setProducts] = useState([]);
     const [offset, setOffset] = useState(0);
     const visibleCount = 4;
@@ -124,7 +126,7 @@ const RecoSection = () => {
                                         </span>
                                     )}
                                 </div>
-                                <button className="reco-card__atb">Add to Bag</button>
+                                <button className="reco-card__atb" onClick={() => variant && addToCart(p, variant)}>Add to Bag</button>
                             </div>
                         );
                     })}
@@ -146,8 +148,8 @@ const InteractiveStars = ({ orderId, navigate }) => {
                     onMouseLeave={() => setHover(0)}
                     onClick={() => navigate(`/orders/${orderId}/write-review?rating=${n}`)}>
                     <svg width="18" height="18" viewBox="0 0 24 24"
-                        fill={n <= hover ? 'var(--eyenic-purple-primary)' : 'none'}
-                        stroke="var(--eyenic-purple-primary)" strokeWidth="1.5"
+                        fill={n <= hover ? 'var(--specsit-purple-primary)' : 'none'}
+                        stroke="var(--specsit-purple-primary)" strokeWidth="1.5"
                         strokeLinecap="round" strokeLinejoin="round">
                         <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
                     </svg>
@@ -162,8 +164,8 @@ const StaticStars = ({ rating }) => (
     <div style={{ display: 'flex', gap: 3 }}>
         {[1, 2, 3, 4, 5].map(n => (
             <svg key={n} width="18" height="18" viewBox="0 0 24 24"
-                fill={n <= (rating || 0) ? 'var(--eyenic-purple-primary)' : 'none'}
-                stroke="var(--eyenic-purple-primary)" strokeWidth="1.5"
+                fill={n <= (rating || 0) ? 'var(--specsit-purple-primary)' : 'none'}
+                stroke="var(--specsit-purple-primary)" strokeWidth="1.5"
                 strokeLinecap="round" strokeLinejoin="round">
                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
             </svg>
@@ -177,9 +179,7 @@ const OrderCard = ({ order }) => {
     const isDelivered = order.order_status === 'delivered' || (order.status_label || '').toLowerCase() === 'delivered';
     const items = order.items || [];
 
-    const orderLabel = order.order_number
-        ? `#${order.order_number}`
-        : `#${String(order.id).slice(0, 8).toUpperCase()}`;
+    const orderLabel = `#LO-${String(order.id).padStart(7, '0')}`;
 
     const dateStr = order.created_at
         ? new Date(order.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -204,7 +204,7 @@ const OrderCard = ({ order }) => {
             {/* Row 1 — Order ID + Status badge */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                 <div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--eyenic-black)' }}>{orderLabel}</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--specsit-black)' }}>{orderLabel}</div>
                     <div className="ord-card__variant-info" style={{ marginTop: 2 }}>{dateStr}</div>
                 </div>
                 <StatusBadge status={order.order_status} label={order.status_label} />
@@ -295,10 +295,12 @@ const MyOrdersPage = () => {
         const onVisible = () => {
             if (document.visibilityState === 'visible') fetchOrders(true);
         };
+        const onFocus = () => fetchOrders(true);
         document.addEventListener('visibilitychange', onVisible);
-        window.addEventListener('focus', () => fetchOrders(true));
+        window.addEventListener('focus', onFocus);
         return () => {
             document.removeEventListener('visibilitychange', onVisible);
+            window.removeEventListener('focus', onFocus);
         };
     }, []);
 

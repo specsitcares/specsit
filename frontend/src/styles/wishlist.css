@@ -4,7 +4,7 @@
 
 .wishlist-page {
   min-height: calc(100vh - 80px);
-  background: var(--eyenic-bg-white);
+  background: var(--specsit-bg-white);
   font-family: 'Plus Jakarta Sans', sans-serif;
   padding: 100px 120px;
   display: flex;
@@ -16,7 +16,7 @@
 .wishlist-title {
   font-size: 48px;
   font-weight: 700;
-  color: var(--eyenic-black);
+  color: var(--specsit-black);
   letter-spacing: -1px;
   line-height: 60px;
   margin: 0;
@@ -77,7 +77,7 @@
 }
 
 .wl-card__img-placeholder {
-  color: var(--eyenic-body-grey);
+  color: var(--specsit-body-grey);
 }
 
 /* "1-2 Hour Delivery" badge — top-left */
@@ -88,12 +88,12 @@
   background: rgba(254, 252, 255, 0.85);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-  border: 1px solid var(--eyenic-purple-light);
+  border: 1px solid var(--specsit-purple-light);
   border-radius: 12px;
   padding: 5.5px 13px;
   font-size: 10px;
   font-weight: 700;
-  color: var(--eyenic-purple-primary);
+  color: var(--specsit-purple-primary);
   letter-spacing: 1px;
   text-transform: uppercase;
   line-height: 15px;
@@ -117,7 +117,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--eyenic-black);
+  color: var(--specsit-black);
   transition: background 0.15s;
 }
 
@@ -135,7 +135,7 @@
 .wl-card__name {
   font-size: 20px;
   font-weight: 400;
-  color: var(--eyenic-black);
+  color: var(--specsit-black);
   letter-spacing: -0.5px;
   line-height: 28px;
   margin: 0;
@@ -147,7 +147,7 @@
 .wl-card__variant {
   font-size: 12px;
   font-weight: 400;
-  color: var(--eyenic-body-grey);
+  color: var(--specsit-body-grey);
   letter-spacing: 0.6px;
   text-transform: uppercase;
   line-height: 16px;
@@ -166,19 +166,19 @@
 .wl-card__price {
   font-size: 18px;
   font-weight: 400;
-  color: var(--eyenic-purple-primary);
+  color: var(--specsit-purple-primary);
   line-height: 28px;
 }
 
 .wl-card__atc-btn {
-  background: var(--eyenic-purple-primary);
+  background: var(--specsit-purple-primary);
   border: none;
   border-radius: 8px;
   padding: 12px 24px;
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 12px;
   font-weight: 600;
-  color: var(--eyenic-bg-white);
+  color: var(--specsit-bg-white);
   letter-spacing: 1.2px;
   text-transform: uppercase;
   line-height: 16px;
@@ -203,25 +203,25 @@
 .wl-empty__icon {
   width: 80px;
   height: 80px;
-  background: var(--eyenic-light-grey);
+  background: var(--specsit-light-grey);
   border-radius: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--eyenic-body-grey);
+  color: var(--specsit-body-grey);
 }
 
 .wl-empty__title {
   font-size: 24px;
   font-weight: 700;
-  color: var(--eyenic-black);
+  color: var(--specsit-black);
   margin: 0;
 }
 
 .wl-empty__sub {
   font-size: 16px;
   font-weight: 400;
-  color: var(--eyenic-body-grey);
+  color: var(--specsit-body-grey);
   margin: 0;
   max-width: 360px;
 }
@@ -229,8 +229,8 @@
 .wl-empty__btn {
   display: inline-flex;
   align-items: center;
-  background: var(--eyenic-purple-primary);
-  color: var(--eyenic-bg-white);
+  background: var(--specsit-purple-primary);
+  color: var(--specsit-bg-white);
   border: none;
   border-radius: 8px;
   padding: 14px 32px;

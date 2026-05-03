@@ -38,6 +38,7 @@ const CheckoutPage = () => {
         full_name: '', mobile: '', pincode: '', locality: '',
         address_line: '', city: '', state: '', landmark: ''
     });
+    const [addressErrors, setAddressErrors] = useState({});
 
     // PD values for progressive lenses (keyed by cart item id)
     const [pdValues, setPdValues] = useState({});
@@ -57,10 +58,25 @@ const CheckoutPage = () => {
     const [error, setError] = useState(null);
     const [paymentFailed, setPaymentFailed] = useState(false);
     const [paymentErrorCode, setPaymentErrorCode] = useState('');
+    const [showConfirmation, setShowConfirmation] = useState(false);
+    const [pendingOrderId, setPendingOrderId] = useState(null);
 
-    // Breakdown based on method
-    const phase1Amount = parseFloat((cartTotal / 2).toFixed(2));
-    const phase2Amount = parseFloat((cartTotal - phase1Amount).toFixed(2));
+    const PAYMENT_ERROR_MESSAGES = {
+        '#LO-VAL-400': 'There was a problem with your order details. Please review and try again.',
+        '#LO-NOT-404': 'Order could not be found. Please refresh and try again.',
+        '#LO-NET-000': 'No internet connection. Please check your network and retry.',
+        '#LO-PAY-402': 'Payment could not be processed. Please try again.',
+        '#LO-PAY-VFY': 'Payment verification failed. If money was deducted, please contact support.',
+        '#LO-INIT-400': 'Could not initiate the payment gateway. Please try a different method.',
+        '#LO-PAY-GW':  'Payment gateway error. Please try again in a moment.',
+        '#LO-PAY-CXL': 'Payment was cancelled. You can retry or choose a different method.',
+    };
+
+    // Breakdown based on method (using integer paise to avoid rounding errors)
+    const phase1PaiseAmount = Math.round((cartTotal * 100) / 2);
+    const phase1Amount = phase1PaiseAmount / 100;
+    const phase2PaiseAmount = Math.round(cartTotal * 100) - phase1PaiseAmount;
+    const phase2Amount = phase2PaiseAmount / 100;
     const amountDueNow = paymentMethod === 'complete_cod' ? 0
         : paymentMethod === 'partial_payment' ? phase1Amount
         : cartTotal;
@@ -98,7 +114,10 @@ const CheckoutPage = () => {
     };
 
     const handleShippingContinue = () => {
-        if (currentStep === 3) setCurrentStep(4);
+        if (currentStep === 3) {
+            if (subStep === 'FORM' && !validateAddress()) return;
+            setCurrentStep(4);
+        }
     };
 
     const validatePd = () => {
@@ -111,6 +130,26 @@ const CheckoutPage = () => {
             }
         });
         setPdErrors(errs);
+        return Object.keys(errs).length === 0;
+    };
+
+    const validateAddress = () => {
+        const errs = {};
+        const trim = (s) => (s || '').trim();
+
+        if (!trim(formData.full_name)) errs.full_name = 'Full name is required.';
+        if (!trim(formData.mobile)) errs.mobile = 'Mobile number is required.';
+        else if (!/^\d{10}$/.test(formData.mobile.replace(/\D/g, ''))) errs.mobile = 'Mobile must be 10 digits.';
+
+        if (!trim(formData.pincode)) errs.pincode = 'Pincode is required.';
+        else if (!/^\d{6}$/.test(formData.pincode)) errs.pincode = 'Pincode must be exactly 6 digits.';
+
+        if (!trim(formData.locality)) errs.locality = 'Locality is required.';
+        if (!trim(formData.address_line)) errs.address_line = 'Address is required.';
+        if (!trim(formData.city)) errs.city = 'City is required.';
+        if (!trim(formData.state)) errs.state = 'State is required.';
+
+        setAddressErrors(errs);
         return Object.keys(errs).length === 0;
     };
 
@@ -169,7 +208,7 @@ const CheckoutPage = () => {
             pin: formData.pincode,
         },
         items: cart.map(item => ({
-            variant_id: item.variant?.id || item.product?.variants?.[0]?.id,
+            variant: item.variant?.id || item.product?.variants?.[0]?.id,
             lens_id: item.lens?.id,
             prescription_id: prescriptionIds[item.id] ?? item.prescription?.id ?? null,
             quantity: item.quantity,
@@ -187,12 +226,11 @@ const CheckoutPage = () => {
        "Submit Power Later in 15 days". Manual entry and upload → order confirmed. */
     const getPostOrderRoute = (orderId) => {
         const needsPrescription = cart.some(item => item.lens && item.rxMode === 'later');
-        return needsPrescription ? `/prescription/submit/${orderId}` : `/order-confirmed/${orderId}`;
+        return needsPrescription ? `/order-confirmation/${orderId}?has_deferred_rx=true` : `/order-confirmation/${orderId}`;
     };
 
-    const handlePlaceOrder = async (e) => {
-        if (e) e.preventDefault();
-        if (!validatePd()) return;
+    const handleConfirmOrder = async () => {
+        setShowConfirmation(false);
         setLoading(true);
         setError(null);
 
@@ -200,21 +238,66 @@ const CheckoutPage = () => {
             const prescriptionIds = await savePrescriptionsForCart();
             const orderResponse = await apiClient.post('/sales/orders/', buildOrderPayload(prescriptionIds));
             const localOrder = orderResponse.data;
+            setPendingOrderId(localOrder.id);
 
             if (paymentMethod === 'complete_cod') {
-                // COD — no payment gateway, show order confirmation
                 clearCart();
                 navigate(getPostOrderRoute(localOrder.id), { replace: true });
                 return;
             }
 
-            // Online or Partial — initiate Razorpay
             initiateRazorpay(localOrder.id, amountDueNow);
         } catch (err) {
             setPaymentFailed(true);
-            setPaymentErrorCode('#LO-PAY-402');
+            if (err.response?.status === 400) {
+                const errMsg = err.response?.data?.error || err.response?.data?.detail || 'Invalid request';
+                setError(errMsg);
+                setPaymentErrorCode('#LO-VAL-400');
+            } else if (err.response?.status === 404) {
+                setPaymentErrorCode('#LO-NOT-404');
+            } else if (err.message === 'Network Error') {
+                setPaymentErrorCode('#LO-NET-000');
+            } else {
+                setPaymentErrorCode('#LO-PAY-402');
+            }
             setLoading(false);
         }
+    };
+
+    const handlePlaceOrder = async (e) => {
+        if (e) e.preventDefault();
+        if (!validatePd()) return;
+
+        // Bug #9: Prevent double-click submission
+        if (loading || showConfirmation) return;
+
+        setShowConfirmation(true);
+    };
+
+    // Retry without re-creating the order if one already exists for this session
+    const handleRetryPayment = () => {
+        if (loading) return;
+        setPaymentFailed(false);
+        setError(null);
+        if (pendingOrderId) {
+            setLoading(true);
+            initiateRazorpay(pendingOrderId, amountDueNow);
+        } else {
+            handlePlaceOrder();
+        }
+    };
+
+    // Cancel the pending order (restores stock) then return to payment method selection
+    const handleChangePaymentMethod = async () => {
+        if (pendingOrderId) {
+            try {
+                await apiClient.post('/sales/payments/cancel/', { order_id: pendingOrderId });
+            } catch {
+                // Best-effort — don't block the user if cancel fails
+            }
+            setPendingOrderId(null);
+        }
+        setPaymentFailed(false);
     };
 
     const initiateRazorpay = async (localOrderId, amount) => {
@@ -250,7 +333,7 @@ const CheckoutPage = () => {
                         setLoading(false);
                     }
                 },
-                modal: { ondismiss: () => setLoading(false) },
+                modal: { ondismiss: () => { setLoading(false); setPaymentFailed(true); setPaymentErrorCode('#LO-PAY-CXL'); } },
                 theme: { color: '#68408D' },
             };
             if (res.data.is_mock) {
@@ -264,12 +347,27 @@ const CheckoutPage = () => {
             }
         } catch (err) {
             setPaymentFailed(true);
-            setPaymentErrorCode('#LO-PAY-GW');
+            if (err.response?.status === 400) {
+                setPaymentErrorCode('#LO-INIT-400');
+            } else if (err.message === 'Network Error') {
+                setPaymentErrorCode('#LO-NET-000');
+            } else {
+                setPaymentErrorCode('#LO-PAY-GW');
+            }
             setLoading(false);
         }
     };
 
-    const handleField = (field) => (e) => setFormData(prev => ({ ...prev, [field]: e.target.value }));
+    const sanitizeInput = (value) => {
+        if (!value) return '';
+        return String(value).replace(/[<>\"']/g, '');
+    };
+
+    const handleField = (field) => (e) => {
+        const sanitized = sanitizeInput(e.target.value);
+        setFormData(prev => ({ ...prev, [field]: sanitized }));
+        setAddressErrors(prev => ({ ...prev, [field]: undefined }));
+    };
 
     // ── Order Summary Sidebar (shared across all steps) ──────────────
     const OrderSummary = () => (
@@ -284,17 +382,17 @@ const CheckoutPage = () => {
                 {/* Item List */}
                 <div className="summary-items-list">
                     {cart.map((item, idx) => {
-                        const price = parseFloat(item.product.final_price || item.product.selling_price || item.product.base_price || 0) + (item.lens ? parseFloat(item.lens.price || 0) : 0);
+                        const price = resolveProductPrice(item.product) + (item.lens ? parseFloat(item.lens.price || 0) : 0);
                         const variantLabel = item.variant ? `${item.variant.color || ''} / ${item.variant.size || 'One Size'}`.trim().replace(/^\/ |\/\s*$/, '') : 'One Size';
                         return (
                             <div key={idx} className="summary-item-row">
                                 <div className="summary-item-thumb">
                                     {item.product.images?.[0] && (
-                                        <img src={item.product.images[0].image} alt={item.product.name} />
+                                        <img src={item.product.images[0].image} alt={item.product.title || item.product.name} />
                                     )}
                                 </div>
                                 <div className="summary-item-details">
-                                    <div className="summary-item-name">{item.product.name}</div>
+                                    <div className="summary-item-name">{item.product.title || item.product.name}</div>
                                     <div className="summary-item-variant">{variantLabel}</div>
                                 </div>
                                 <div className="summary-item-price">₹{(price * item.quantity).toLocaleString()}</div>
@@ -311,7 +409,7 @@ const CheckoutPage = () => {
                     <span className="summary-calc-value">₹{cartTotal.toLocaleString()}</span>
                 </div>
                 <div className="summary-calc-row" style={{ marginTop: '8px' }}>
-                    <span className="summary-calc-value" style={{ fontWeight: '400', fontSize: '14px', color: 'var(--eyenic-black)' }}>Shipping</span>
+                    <span className="summary-calc-value" style={{ fontWeight: '400', fontSize: '14px', color: 'var(--specsit-black)' }}>Shipping</span>
                     <span className="summary-calc-value free">Free</span>
                 </div>
 
@@ -352,7 +450,7 @@ const CheckoutPage = () => {
                             <div className="breakdown-divider" style={{ opacity: 1 }} />
                             <div className="breakdown-row" style={{ opacity: 0.7 }}>
                                 <div className="breakdown-label-stack">
-                                    <span className="breakdown-main-label" style={{ color: 'var(--eyenic-body-grey)', textTransform: 'uppercase', fontSize: '12px', letterSpacing: '0.6px' }}>Remaining Balance</span>
+                                    <span className="breakdown-main-label" style={{ color: 'var(--specsit-body-grey)', textTransform: 'uppercase', fontSize: '12px', letterSpacing: '0.6px' }}>Remaining Balance</span>
                                     <span className="breakdown-sub-label">Due before dispatch</span>
                                 </div>
                                 <div className="breakdown-value-medium" style={{ fontSize: '18px' }}>₹{phase2Amount.toLocaleString()}</div>
@@ -364,20 +462,49 @@ const CheckoutPage = () => {
                 {/* CTA */}
                 {currentStep === 3 && (
                     <button className="summary-cta-btn" style={{ marginTop: '24px', borderRadius: '6px', fontSize: '18px', padding: '20px 24px', letterSpacing: '-0.025em' }}
-                        onClick={handleShippingContinue}>
+                        onClick={handleShippingContinue}
+                        disabled={subStep === 'FORM' && Object.keys(addressErrors).length > 0}
+                        title={subStep === 'FORM' && Object.keys(addressErrors).length > 0 ? 'Please fix address errors' : ''}>
                         Save Address and Proceed
                         <ArrowRight />
                     </button>
                 )}
                 {currentStep === 4 && !paymentFailed && (
-                    <button className="summary-cta-btn" style={{ marginTop: '24px', borderRadius: '6px', fontSize: '18px', padding: '20px 24px', letterSpacing: '-0.025em' }}
-                        onClick={handlePlaceOrder} disabled={loading}>
-                        {loading ? 'Processing…'
-                            : paymentMethod === 'complete_cod' ? 'Place Order (COD)'
-                            : paymentMethod === 'partial_payment' ? `Pay ₹${phase1Amount.toLocaleString()} Now`
-                            : `Pay ₹${cartTotal.toLocaleString()}`}
-                        <ArrowRight />
-                    </button>
+                    <>
+                        <button className="summary-cta-btn" style={{ marginTop: '24px', borderRadius: '6px', fontSize: '18px', padding: '20px 24px', letterSpacing: '-0.025em' }}
+                            onClick={handlePlaceOrder} disabled={loading || cart.length === 0 || showConfirmation} title={cart.length === 0 ? 'Please add items to your cart' : ''}>
+                            {loading ? 'Processing…'
+                                : cart.length === 0 ? 'Add items to continue'
+                                : paymentMethod === 'complete_cod' ? 'Place Order (COD)'
+                                : paymentMethod === 'partial_payment' ? `Pay ₹${phase1Amount.toLocaleString()} Now`
+                                : `Pay ₹${cartTotal.toLocaleString()}`}
+                            <ArrowRight />
+                        </button>
+
+                        {showConfirmation && (
+                            <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <div style={{ background: '#fff', borderRadius: '12px', padding: '32px', maxWidth: '400px', boxShadow: '0 10px 40px rgba(0,0,0,0.15)' }}>
+                                    <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '12px', color: '#0f172a' }}>Confirm Order</h3>
+                                    <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '24px', lineHeight: '1.5' }}>
+                                        You're about to place an order for ₹{cartTotal.toLocaleString()}. This action cannot be undone immediately.
+                                    </p>
+                                    <div style={{ display: 'flex', gap: '12px' }}>
+                                        <button
+                                            onClick={() => setShowConfirmation(false)}
+                                            style={{ flex: 1, padding: '10px 16px', borderRadius: '6px', border: '1px solid #d1d5db', background: '#fff', color: '#0f172a', fontSize: '14px', fontWeight: '500', cursor: 'pointer' }}>
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={handleConfirmOrder}
+                                            disabled={loading}
+                                            style={{ flex: 1, padding: '10px 16px', borderRadius: '6px', border: 'none', background: '#68408d', color: '#fff', fontSize: '14px', fontWeight: '500', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
+                                            {loading ? 'Processing…' : 'Confirm Order'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </>
                 )}
 
             </div>
@@ -455,9 +582,19 @@ const CheckoutPage = () => {
                                                     <div className="addr-card__actions">
                                                         <div className="addr-card__edit-delete">
                                                             <button className="addr-action-btn addr-action-btn--edit"
-                                                                onClick={(e) => { e.stopPropagation(); }}>Edit</button>
+                                                                onClick={(e) => { e.stopPropagation(); setSubStep('FORM'); setFormData(addr); }}>Edit</button>
                                                             <button className="addr-action-btn addr-action-btn--delete"
-                                                                onClick={(e) => { e.stopPropagation(); }}>Delete</button>
+                                                                onClick={async (e) => {
+                                                                    e.stopPropagation();
+                                                                    if (window.confirm('Delete this address?')) {
+                                                                        try {
+                                                                            await apiClient.delete(`/accounts/addresses/${addr.id}/`);
+                                                                            setAddresses(prev => prev.filter(a => a.id !== addr.id));
+                                                                        } catch {
+                                                                            alert('Failed to delete address');
+                                                                        }
+                                                                    }
+                                                                }}>Delete</button>
                                                         </div>
                                                         {isSelected ? (
                                                             <div className="addr-card__check">
@@ -515,11 +652,13 @@ const CheckoutPage = () => {
                                         <div className="underline-form-grid-2">
                                             <div className="underline-field-group">
                                                 <label className="underline-label">Full Name</label>
-                                                <input className="underline-input" value={formData.full_name} onChange={handleField('full_name')} />
+                                                <input className="underline-input" style={{ borderColor: addressErrors.full_name ? '#DC2626' : undefined }} value={formData.full_name} onChange={handleField('full_name')} />
+                                                {addressErrors.full_name && <p style={{ fontSize: 12, color: '#DC2626', marginTop: 4 }}>{addressErrors.full_name}</p>}
                                             </div>
                                             <div className="underline-field-group">
                                                 <label className="underline-label">Mobile Number</label>
-                                                <input className="underline-input" value={formData.mobile} onChange={handleField('mobile')} />
+                                                <input className="underline-input" style={{ borderColor: addressErrors.mobile ? '#DC2626' : undefined }} value={formData.mobile} onChange={handleField('mobile')} />
+                                                {addressErrors.mobile && <p style={{ fontSize: 12, color: '#DC2626', marginTop: 4 }}>{addressErrors.mobile}</p>}
                                             </div>
                                         </div>
 
@@ -527,29 +666,34 @@ const CheckoutPage = () => {
                                         <div className="underline-form-grid-3">
                                             <div className="underline-field-group">
                                                 <label className="underline-label">Pincode</label>
-                                                <input className="underline-input" value={formData.pincode} onChange={handleField('pincode')} />
+                                                <input className="underline-input" style={{ borderColor: addressErrors.pincode ? '#DC2626' : undefined }} value={formData.pincode} onChange={handleField('pincode')} />
+                                                {addressErrors.pincode && <p style={{ fontSize: 12, color: '#DC2626', marginTop: 4 }}>{addressErrors.pincode}</p>}
                                             </div>
                                             <div className="underline-field-group underline-col-span-2">
                                                 <label className="underline-label">Locality / Town</label>
-                                                <input className="underline-input" value={formData.locality} onChange={handleField('locality')} />
+                                                <input className="underline-input" style={{ borderColor: addressErrors.locality ? '#DC2626' : undefined }} value={formData.locality} onChange={handleField('locality')} />
+                                                {addressErrors.locality && <p style={{ fontSize: 12, color: '#DC2626', marginTop: 4 }}>{addressErrors.locality}</p>}
                                             </div>
                                         </div>
 
                                         {/* Row 3: Full address */}
                                         <div className="underline-field-group">
                                             <label className="underline-label">Address (House No, Building, Street)</label>
-                                            <input className="underline-input" value={formData.address_line} onChange={handleField('address_line')} />
+                                            <input className="underline-input" style={{ borderColor: addressErrors.address_line ? '#DC2626' : undefined }} value={formData.address_line} onChange={handleField('address_line')} />
+                                            {addressErrors.address_line && <p style={{ fontSize: 12, color: '#DC2626', marginTop: 4 }}>{addressErrors.address_line}</p>}
                                         </div>
 
                                         {/* Row 4: City + State */}
                                         <div className="underline-form-grid-2">
                                             <div className="underline-field-group">
                                                 <label className="underline-label">City</label>
-                                                <input className="underline-input" value={formData.city} onChange={handleField('city')} />
+                                                <input className="underline-input" style={{ borderColor: addressErrors.city ? '#DC2626' : undefined }} value={formData.city} onChange={handleField('city')} />
+                                                {addressErrors.city && <p style={{ fontSize: 12, color: '#DC2626', marginTop: 4 }}>{addressErrors.city}</p>}
                                             </div>
                                             <div className="underline-field-group">
                                                 <label className="underline-label">State</label>
-                                                <input className="underline-input" value={formData.state} onChange={handleField('state')} />
+                                                <input className="underline-input" style={{ borderColor: addressErrors.state ? '#DC2626' : undefined }} value={formData.state} onChange={handleField('state')} />
+                                                {addressErrors.state && <p style={{ fontSize: 12, color: '#DC2626', marginTop: 4 }}>{addressErrors.state}</p>}
                                             </div>
                                         </div>
 
@@ -695,8 +839,7 @@ const CheckoutPage = () => {
                                     <div className="pay-failed__body">
                                         <h1 className="pay-failed__title">Payment Failed</h1>
                                         <p className="pay-failed__desc">
-                                            We encountered an issue while processing your payment.<br />
-                                            Please try again or choose a different payment method.
+                                            {PAYMENT_ERROR_MESSAGES[paymentErrorCode] || (error || 'We encountered an issue while processing your payment. Please try again or choose a different method.')}
                                         </p>
                                     </div>
 
@@ -709,7 +852,7 @@ const CheckoutPage = () => {
                                     {/* Action buttons */}
                                     <div className="pay-failed__actions">
                                         <button className="pay-failed__retry-btn"
-                                            onClick={() => { setPaymentFailed(false); handlePlaceOrder(); }}
+                                            onClick={handleRetryPayment}
                                             disabled={loading}>
                                             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                 <path d="M1.5 7C1.5 4 4 1.5 7 1.5C8.8 1.5 10.4 2.4 11.4 3.8M12.5 7C12.5 10 10 12.5 7 12.5C5.2 12.5 3.6 11.6 2.6 10.2" stroke="white" strokeWidth="1.4" strokeLinecap="round"/>
@@ -718,7 +861,7 @@ const CheckoutPage = () => {
                                             {loading ? 'Retrying…' : 'Retry Payment'}
                                         </button>
                                         <button className="pay-failed__change-btn"
-                                            onClick={() => setPaymentFailed(false)}>
+                                            onClick={handleChangePaymentMethod}>
                                             <svg width="16" height="13" viewBox="0 0 16 13" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                 <rect x="0.75" y="0.75" width="14.5" height="11.5" rx="1.25" stroke="#040205" strokeWidth="1.5"/>
                                                 <path d="M0.75 4.5H15.25" stroke="#040205" strokeWidth="1.5"/>
@@ -872,9 +1015,11 @@ const CheckoutPage = () => {
                                 </div>
                             </div>
 
-                            <button className="back-to-list-btn" onClick={() => setCurrentStep(3)}>
-                                ← Back to Shipping
-                            </button>
+                            {paymentMethod !== 'complete_cod' && (
+                                <button className="back-to-list-btn" onClick={() => setCurrentStep(3)}>
+                                    ← Back to Shipping
+                                </button>
+                            )}
                             </>}
                             </>
                             )}

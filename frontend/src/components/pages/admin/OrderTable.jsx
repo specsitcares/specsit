@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Search, Filter, Download,
   ChevronDown, ChevronRight, ChevronLeft,
-  Edit, Trash2, FileText, MoreVertical,
+  Edit, Trash2, FileText,
   Clock, Package, ArrowUpDown, FileDown, Glasses, Edit2, Briefcase, Check,
   RefreshCw, CircleDollarSign, Truck, ShieldCheck
 } from 'lucide-react';
@@ -41,6 +41,8 @@ const OrderTable = ({ category = null, onViewDetails }) => {
   const [orderAnalytics, setOrderAnalytics] = useState(null);
   const [activeReturnTab, setActiveReturnTab] = useState('window'); // 'window', 'requests', 'refund', 'replacement'
   const [activeWarrantyTab, setActiveWarrantyTab] = useState('window'); // 'window', 'claimed', 'not_claimed'
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [qcLightbox, setQcLightbox] = useState(null);
 
   const fetchAnalytics = async () => {
     try {
@@ -143,12 +145,12 @@ const OrderTable = ({ category = null, onViewDetails }) => {
 
   const handleEdit = (o) => {
     if (category === 'returns') {
-      alert(`Opening Return Management for Order #${o.id}`);
+      alert(`Opening Return Management for Order #LO-${String(o.id).padStart(7, '0')}`);
       // Place for return specialized logic
       return;
     }
     if (category === 'warranty') {
-      alert(`Opening Warranty Verification for Order #${o.id}`);
+      alert(`Opening Warranty Verification for Order #LO-${String(o.id).padStart(7, '0')}`);
       // Place for warranty specialized logic
       return;
     }
@@ -159,7 +161,7 @@ const OrderTable = ({ category = null, onViewDetails }) => {
 
   const handleDelete = (o) => {
     console.log('Delete clicked for order:', o.id);
-    if (window.confirm(`Are you sure you want to delete Order #${o.id}?`)) {
+    if (window.confirm(`Are you sure you want to delete Order #LO-${String(o.id).padStart(7, '0')}?`)) {
       deleteOrder(o.id);
     }
   };
@@ -204,15 +206,40 @@ const OrderTable = ({ category = null, onViewDetails }) => {
     }
   };
 
+  const refreshData = () => { fetchOrders(); fetchAnalytics(); };
+
   const deleteOrder = async (id) => {
     try {
       await apiClient.delete(`/sales/orders/${id}/`);
       alert('Order deleted successfully');
-      fetchOrders();
+      refreshData();
     } catch (err) {
       console.error('Delete failed:', err);
       alert('Failed to delete order. Please check permissions.');
     }
+  };
+
+  const bulkDelete = async () => {
+    if (!window.confirm(`Delete ${selectedIds.size} order(s)?`)) return;
+    await Promise.all([...selectedIds].map(id => apiClient.delete(`/sales/orders/${id}/`).catch(() => {})));
+    setSelectedIds(new Set());
+    refreshData();
+  };
+
+  const bulkMarkDelivered = async () => {
+    if (!window.confirm(`Mark ${selectedIds.size} order(s) as Delivered?`)) return;
+    await Promise.all([...selectedIds].map(id => apiClient.post(`/sales/orders/${id}/mark_delivered/`).catch(() => {})));
+    setSelectedIds(new Set());
+    refreshData();
+  };
+
+  const toggleSelectOrder = (id, e) => {
+    e.stopPropagation();
+    setSelectedIds(prev => {
+      const s = new Set(prev);
+      s.has(id) ? s.delete(id) : s.add(id);
+      return s;
+    });
   };
 
   const handleFormSubmit = async (formData) => {
@@ -220,7 +247,7 @@ const OrderTable = ({ category = null, onViewDetails }) => {
       await apiClient.patch(`/sales/orders/${selectedOrder.id}/`, formData);
       setShowForm(false);
       alert('Order updated successfully');
-      fetchOrders();
+      refreshData();
     } catch (err) {
       console.error('Update failed:', err);
       alert('Failed to update order. Please try again.');
@@ -273,11 +300,10 @@ const OrderTable = ({ category = null, onViewDetails }) => {
           { title: 'Shipped', value: orderAnalytics?.shipped ?? 0, trendValue: Math.abs(orderAnalytics?.trends?.shipped || 0), trend: (orderAnalytics?.trends?.shipped >= 0) ? 'up' : 'down', icon: <Truck size={20} /> }
         ]).map((c, i) => (
           <div key={i} style={{ backgroundColor: '#fff', border: '1px solid #EAECF0', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)', position: 'relative' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start' }}>
               <div style={{ width: '40px', height: '40px', backgroundColor: '#F9F5FF', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7F56D9' }}>
                 {c.icon || <Briefcase size={20} />}
               </div>
-              <MoreVertical size={18} color="#98A2B3" style={{ cursor: 'pointer' }} />
             </div>
             <div style={{ marginTop: '16px' }}>
               <div style={{ color: '#667085', fontSize: '14px', fontWeight: 600 }}>{c.title}</div>
@@ -466,14 +492,37 @@ const OrderTable = ({ category = null, onViewDetails }) => {
           </div>
         )}
 
+        {/* Bulk Action Bar */}
+        {selectedIds.size > 0 && (
+          <div style={{ padding: '12px 24px', background: '#7F56D9', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ color: '#fff', fontWeight: 600, fontSize: 14 }}>{selectedIds.size} selected</span>
+            <button onClick={bulkMarkDelivered} style={{ padding: '6px 14px', borderRadius: 7, border: 'none', background: '#12B76A', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Truck size={14} /> Mark Delivered
+            </button>
+            <button onClick={bulkDelete} style={{ padding: '6px 14px', borderRadius: 7, border: 'none', background: '#FEF3F2', color: '#B42318', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Trash2 size={14} /> Delete
+            </button>
+            <button onClick={() => setSelectedIds(new Set())} style={{ marginLeft: 'auto', padding: '6px 12px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.4)', background: 'transparent', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+              Clear selection
+            </button>
+          </div>
+        )}
+
         {/* Table Content */}
         <div className="overflow-x-auto scrollbar-hide">
           <table className="figma-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#fff', borderBottom: '1px solid #EAECF0' }}>
-                <th style={{ padding: '12px 24px', width: 40, textAlign: 'left' }}><input type="checkbox" style={{ cursor: 'pointer', borderRadius: '4px', accentColor: '#7F56D9' }} /></th>
+                <th style={{ padding: '12px 24px', width: 40, textAlign: 'left' }}>
+                  <input type="checkbox"
+                    checked={orders.length > 0 && orders.every(o => selectedIds.has(o.id))}
+                    ref={el => { if (el) el.indeterminate = orders.some(o => selectedIds.has(o.id)) && !orders.every(o => selectedIds.has(o.id)); }}
+                    onChange={e => e.target.checked ? setSelectedIds(new Set(orders.map(o => o.id))) : setSelectedIds(new Set())}
+                    style={{ cursor: 'pointer', borderRadius: '4px', accentColor: '#7F56D9' }}
+                  />
+                </th>
                 <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'left', textTransform: 'capitalize' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>Order ID <ArrowUpDown size={12} /></div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>Order <ArrowUpDown size={12} /></div>
                 </th>
                 <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'left', textTransform: 'capitalize' }}>Customer Name</th>
                 <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'left', textTransform: 'capitalize' }}>Items</th>
@@ -521,6 +570,7 @@ const OrderTable = ({ category = null, onViewDetails }) => {
                     <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Date</th>
                     <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Prescription</th>
                     <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Total</th>
+                    <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>QC</th>
                   </>
                 )}
 
@@ -553,13 +603,22 @@ const OrderTable = ({ category = null, onViewDetails }) => {
                         <div onClick={(e) => { e.stopPropagation(); toggleRow(o.id); }} style={{ color: '#667085', cursor: 'pointer' }}>
                           {expandedRows.includes(o.id) ? <ChevronDown size={14} strokeWidth={3} /> : <ChevronRight size={14} strokeWidth={3} />}
                         </div>
-                        <input type="checkbox" onClick={(e) => e.stopPropagation()} style={{ cursor: 'pointer', borderRadius: '4px', accentColor: '#7F56D9' }} />
+                        <input type="checkbox"
+                          checked={selectedIds.has(o.id)}
+                          onChange={(e) => toggleSelectOrder(o.id, e)}
+                          onClick={(e) => e.stopPropagation()}
+                          style={{ cursor: 'pointer', borderRadius: '4px', accentColor: '#7F56D9' }}
+                        />
                       </div>
                     </td>
                     <td style={{ padding: '16px 24px', backgroundColor: expandedRows.includes(o.id) ? '#F9F5FF' : 'inherit' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontWeight: 600, color: '#344054' }}>{o.id.toString().startsWith('ORD-') ? o.id : `ORD-${o.id}`}</span>
-                        {o.items?.length > 1 && <span style={{ backgroundColor: '#F4EBFF', color: '#7F56D9', fontSize: '11px', padding: '1px 6px', borderRadius: '16px', fontWeight: 700 }}>{o.items.length}</span>}
+                        <div>
+                          <div style={{ fontWeight: 700, color: '#344054', fontSize: '14px' }}>
+                            #LO-{String(o.id).padStart(7, '0')}
+                            {o.items?.length > 1 && <span style={{ marginLeft: 6, backgroundColor: '#F4EBFF', color: '#7F56D9', fontSize: '11px', padding: '1px 6px', borderRadius: '16px', fontWeight: 700 }}>{o.items.length}</span>}
+                          </div>
+                        </div>
                       </div>
                     </td>
                     <td style={{ padding: '16px 24px', fontWeight: 600, color: '#101828', backgroundColor: expandedRows.includes(o.id) ? '#F9F5FF' : 'inherit' }}>
@@ -636,6 +695,19 @@ const OrderTable = ({ category = null, onViewDetails }) => {
                           </span>
                         </td>
                         <td style={{ padding: '16px 24px', fontWeight: 700 }}>₹{Number(o.total_amount).toLocaleString('en-IN')}</td>
+                        <td style={{ padding: '16px 24px' }}>
+                          {o.tracking?.qc_image_url ? (
+                            <img
+                              src={o.tracking.qc_image_url}
+                              alt="QC"
+                              onClick={(e) => { e.stopPropagation(); setQcLightbox(o.tracking.qc_image_url); }}
+                              style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 6, border: '1px solid #D0D5DD', cursor: 'pointer' }}
+                              title="View QC image"
+                            />
+                          ) : (
+                            <span style={{ backgroundColor: '#FFFAEB', color: '#B54708', padding: '4px 10px', borderRadius: '4px', fontSize: '12px', fontWeight: 600 }}>Pending</span>
+                          )}
+                        </td>
                       </>
                     )}
                     <td style={{ padding: '16px 24px', backgroundColor: expandedRows.includes(o.id) ? '#F9F5FF' : 'inherit' }}>
@@ -853,6 +925,25 @@ const OrderTable = ({ category = null, onViewDetails }) => {
           initialData={selectedOrder ? { ...selectedOrder, status: selectedOrder.status } : {}}
         />
       </div>
+
+      {/* QC Image Lightbox */}
+      {qcLightbox && (
+        <div
+          onClick={() => setQcLightbox(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <img
+            src={qcLightbox}
+            alt="QC"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 12, boxShadow: '0 25px 50px rgba(0,0,0,0.5)' }}
+          />
+          <button
+            onClick={() => setQcLightbox(null)}
+            style={{ position: 'absolute', top: 24, right: 24, background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%', width: 40, height: 40, color: '#fff', fontSize: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >×</button>
+        </div>
+      )}
     </div>
   );
 };

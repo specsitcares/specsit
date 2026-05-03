@@ -2,13 +2,13 @@ import React from 'react';
 import SupportSidebar from './SupportSidebar';
 import '../../../styles/support.css';
 
-/* Fresh Figma assets (valid 7 days from session) */
-const portalIcon   = 'https://www.figma.com/api/mcp/asset/4638bba1-a4e0-43e3-b2e3-179f2270467a';
-const powerIcon    = 'https://www.figma.com/api/mcp/asset/d61ca283-4860-4eac-ba63-15ca3c38f5d2';
-const locationIcon = 'https://www.figma.com/api/mcp/asset/1dbf967f-900c-45b5-92a8-e2a89b9ec855';
-const freeIcon     = 'https://www.figma.com/api/mcp/asset/94e87b94-e6be-465d-b72d-1b2e2a17373a';
-const otpIcon      = 'https://www.figma.com/api/mcp/asset/ebe51501-0d99-4ee2-b151-dc53557914ba';
-const warningIcon  = 'https://www.figma.com/api/mcp/asset/6c14fb3d-0bbe-4064-be2f-4f9d647384f7';
+/* TODO: Replace with permanent CDN assets before production */
+const portalIcon   = '';
+const powerIcon    = '';
+const locationIcon = '';
+const freeIcon     = '';
+const otpIcon      = '';
+const warningIcon  = '';
 
 const DeliveryTimelinePage = () => {
     return (

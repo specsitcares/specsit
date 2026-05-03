@@ -7,7 +7,7 @@
 .addr-page-title {
   font-size: 36px;
   font-weight: 700;
-  color: var(--eyenic-black);
+  color: var(--specsit-black);
   letter-spacing: -0.9px;
   line-height: 40px;
   margin: 0 0 48px;
@@ -33,15 +33,15 @@
 
 /* Selected: 2px solid purple border, white bg, shadow */
 .addr-card--selected {
-  background: var(--eyenic-bg-white);
-  border: 2px solid var(--eyenic-purple-primary);
+  background: var(--specsit-bg-white);
+  border: 2px solid var(--specsit-purple-primary);
   box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
 }
 
 /* Idle: 1px solid purple-light border, light-grey bg */
 .addr-card--idle {
-  background: var(--eyenic-light-grey);
-  border: 1px solid var(--eyenic-purple-light);
+  background: var(--specsit-light-grey);
+  border: 1px solid var(--specsit-purple-light);
   padding: 25px; /* 1px less padding to compensate for thinner border */
 }
 
@@ -63,7 +63,7 @@
 .addr-card__name {
   font-size: 18px;
   font-weight: 700;
-  color: var(--eyenic-black);
+  color: var(--specsit-black);
   line-height: 28px;
 }
 
@@ -83,14 +83,14 @@
 
 /* Home on selected card: purple bg / white text */
 .addr-badge--home-selected {
-  background: var(--eyenic-purple-primary);
+  background: var(--specsit-purple-primary);
   color: #fff;
 }
 
 /* Everything else: purple-light bg / purple text */
 .addr-badge--default {
-  background: var(--eyenic-purple-light);
-  color: var(--eyenic-purple-primary);
+  background: var(--specsit-purple-light);
+  color: var(--specsit-purple-primary);
 }
 
 .addr-card__details {
@@ -102,7 +102,7 @@
 .addr-card__street {
   font-size: 14px;
   font-weight: 400;
-  color: var(--eyenic-black);
+  color: var(--specsit-black);
   line-height: 22.75px;
 }
 
@@ -112,14 +112,14 @@
   gap: 6px;
   font-size: 14px;
   font-weight: 500;
-  color: var(--eyenic-black);
+  color: var(--specsit-black);
   line-height: 20px;
 }
 
 .addr-card__phone-icon {
   display: flex;
   align-items: center;
-  color: var(--eyenic-black);
+  color: var(--specsit-black);
   flex-shrink: 0;
 }
 
@@ -140,7 +140,7 @@
 
 /* Selected: vertical right border separating Edit/Delete from checkmark */
 .addr-card__edit-delete--bordered {
-  border-right: 1px solid var(--eyenic-light-grey);
+  border-right: 1px solid var(--specsit-light-grey);
   padding-right: 25px;
 }
 
@@ -158,19 +158,19 @@
 
 .addr-action-btn:hover { opacity: 0.7; }
 
-.addr-action-btn--edit  { color: var(--eyenic-purple-primary); }
+.addr-action-btn--edit  { color: var(--specsit-purple-primary); }
 .addr-action-btn--delete { color: #BA1A1A; }
 
 /* "Select" pill button on idle cards */
 .addr-select-btn {
-  background: var(--eyenic-light-grey);
+  background: var(--specsit-light-grey);
   border: none;
   border-radius: 12px;
   cursor: pointer;
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 12px;
   font-weight: 700;
-  color: var(--eyenic-black);
+  color: var(--specsit-black);
   line-height: 16px;
   padding: 8px 24px;
   transition: background 0.15s;
@@ -187,7 +187,7 @@
   width: 100%;
   padding: 26px;
   background: transparent;
-  border: 2px dashed var(--eyenic-light-grey);
+  border: 2px dashed var(--specsit-light-grey);
   border-radius: 16px;
   cursor: pointer;
   text-align: left;
@@ -196,15 +196,15 @@
 }
 
 .addr-add-card:hover {
-  border-color: var(--eyenic-purple-light);
-  background: var(--eyenic-bg-white);
+  border-color: var(--specsit-purple-light);
+  background: var(--specsit-bg-white);
 }
 
 .addr-add-card__icon {
   flex-shrink: 0;
   width: 48px;
   height: 48px;
-  background: var(--eyenic-light-grey);
+  background: var(--specsit-light-grey);
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -220,14 +220,14 @@
 .addr-add-card__title {
   font-size: 16px;
   font-weight: 700;
-  color: var(--eyenic-black);
+  color: var(--specsit-black);
   line-height: 24px;
 }
 
 .addr-add-card__sub {
   font-size: 12px;
   font-weight: 400;
-  color: var(--eyenic-black);
+  color: var(--specsit-black);
   line-height: 16px;
 }
 
@@ -241,7 +241,7 @@
   .addr-card__actions {
     width: 100%;
     padding-top: 16px;
-    border-top: 1px solid var(--eyenic-light-grey);
+    border-top: 1px solid var(--specsit-light-grey);
   }
 
   .addr-card__edit-delete--bordered {

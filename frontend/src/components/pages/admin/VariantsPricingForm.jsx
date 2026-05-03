@@ -18,7 +18,9 @@ const EMPTY_VARIANT = () => ({
   colorMethod: 'code',
   colorCode: '#000000',
   paletteImage: null,
-  variantPrice: '',
+  base_price: '',
+  selling_price: '',
+  discount_percentage: '',
   images: [],
 });
 
@@ -67,6 +69,27 @@ const VariantsPricingForm = ({ formData, onFormDataChange, saving, errors = {}, 
     const updated = (formData.variants || []).map(v =>
       v.id === variantId ? { ...v, [field]: value } : v
     );
+    updateVariants(updated);
+  };
+
+  const updateVariantPricing = (variantId, field, value) => {
+    const variant = (formData.variants || []).find(v => v.id === variantId);
+    if (!variant) return;
+    const next = { ...variant, [field]: value };
+    const base = parseFloat(field === 'base_price' ? value : next.base_price) || 0;
+    const disc = parseFloat(field === 'discount_percentage' ? value : next.discount_percentage) || 0;
+    if (field === 'base_price' || field === 'discount_percentage') {
+      next.selling_price = base > 0 ? (base - (base * disc / 100)).toFixed(2) : next.selling_price;
+    }
+    if (field === 'selling_price') {
+      const sp = parseFloat(value) || 0;
+      if (base > 0 && sp > 0 && sp < base) {
+        next.discount_percentage = (((base - sp) / base) * 100).toFixed(2);
+      } else {
+        next.discount_percentage = '0';
+      }
+    }
+    const updated = (formData.variants || []).map(v => v.id === variantId ? next : v);
     updateVariants(updated);
   };
 
@@ -260,18 +283,60 @@ const VariantsPricingForm = ({ formData, onFormDataChange, saving, errors = {}, 
                     )}
                   </div>
 
+                  <div className="vp-pricing-section-title" style={{ marginTop: '8px', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: '600', color: '#344054' }}>Pricing</span>
+                    <hr style={{ border: 'none', borderTop: '1px solid #EAECF0', marginTop: '6px' }} />
+                  </div>
+
+                  <div className="vp-row">
+                    <div className="form-field">
+                      <label className="form-field-label">Base Price (MRP) <span className="required-star">*</span></label>
+                      <div className="form-field-input-wrapper">
+                        <span className="input-prefix">₹</span>
+                        <input
+                          type="number"
+                          className="form-field-input has-prefix"
+                          placeholder="0.00"
+                          value={v.base_price}
+                          onChange={(e) => updateVariantPricing(v.id, 'base_price', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div className="form-field">
+                      <label className="form-field-label">Discount %</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        className="form-field-input"
+                        placeholder="0"
+                        value={v.discount_percentage}
+                        onChange={(e) => updateVariantPricing(v.id, 'discount_percentage', e.target.value)}
+                      />
+                    </div>
+                  </div>
+
                   <div className="form-field">
-                    <label className="form-field-label">Variant Price (optional, overrides base price)</label>
+                    <label className="form-field-label">
+                      Selling Price
+                      <span style={{ fontWeight: 400, fontSize: 11, color: '#9ca3af', marginLeft: 6 }}>(auto-calculated)</span>
+                    </label>
                     <div className="form-field-input-wrapper">
                       <span className="input-prefix">₹</span>
                       <input
                         type="number"
                         className="form-field-input has-prefix"
-                        placeholder="e.g. 15000"
-                        value={v.variantPrice}
-                        onChange={(e) => updateVariant(v.id, 'variantPrice', e.target.value)}
+                        placeholder="0.00"
+                        value={v.selling_price}
+                        onChange={(e) => updateVariantPricing(v.id, 'selling_price', e.target.value)}
                       />
                     </div>
+                    {v.base_price && v.selling_price && (
+                      <span style={{ fontSize: 11, color: '#16a34a', marginTop: 4, display: 'block' }}>
+                        Customer pays ₹{parseFloat(v.selling_price).toLocaleString('en-IN')}
+                        {parseFloat(v.discount_percentage) > 0 && ` (${parseFloat(v.discount_percentage).toFixed(0)}% off ₹${parseFloat(v.base_price).toLocaleString('en-IN')})`}
+                      </span>
+                    )}
                   </div>
 
                   <div className="vp-images-section">

@@ -163,7 +163,7 @@ const ThankYouPage = () => {
         const res = await apiClient.get(`/sales/orders/${orderId}/`);
         const o = res.data;
         if (o.user && user && String(o.user) !== String(user.id) && !user.is_staff) {
-          navigate('/customer/orders');
+          navigate('/orders');
           return;
         }
         if (o.order_status !== 'delivered') {
@@ -186,7 +186,7 @@ const ThankYouPage = () => {
         setReviews(reviewMap);
       } catch (e) {
         console.error(e);
-        navigate('/customer/orders');
+        navigate('/orders');
       } finally {
         setLoading(false);
       }
@@ -339,7 +339,7 @@ const ThankYouPage = () => {
               <button style={S.btnPrimary} onClick={() => navigate('/products')}>
                 Continue Shopping
               </button>
-              <button style={S.btnSecondary} onClick={() => navigate('/customer/orders')}>
+              <button style={S.btnSecondary} onClick={() => navigate('/orders')}>
                 My Orders
               </button>
             </div>

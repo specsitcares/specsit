@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../../../context/CartContext';
 import apiClient from '../../../services/api';
@@ -58,9 +58,16 @@ const CartPage = () => {
     // BUG 6 FIX — validate coupon via backend API instead of hardcoded client-side map
     const [promoLoading, setPromoLoading] = useState(false);
 
+    const sanitizePromoCode = (code) => {
+        return String(code || '').replace(/[^A-Z0-9\-]/g, '').slice(0, 50);
+    };
+
     const handleApplyPromo = async () => {
-        const code = promoCode.trim().toUpperCase();
-        if (!code) return;
+        const code = sanitizePromoCode(promoCode);
+        if (!code) {
+            setPromoError('Please enter a valid promo code');
+            return;
+        }
         setPromoLoading(true);
         setPromoError('');
         try {
@@ -69,7 +76,10 @@ const CartPage = () => {
                 cartValue: cartTotal,
             });
             if (res.data.valid) {
-                const discount = parseFloat(res.data.discount_amount || (cartTotal * (res.data.discount_percentage || 0) / 100) || 0);
+                // Bug fix: Use integer paise for discount calculation
+                const discountPercentage = parseFloat(res.data.discountPercentage || res.data.discount_percentage || 0);
+                const discountPaise = Math.round(cartTotal * 100 * discountPercentage / 100);
+                const discount = discountPaise / 100;
                 setAppliedCoupon({ code, discount, message: res.data.message });
                 setPromoError('');
             } else {
@@ -86,6 +96,12 @@ const CartPage = () => {
         setAppliedCoupon(null);
         setPromoCode('');
         setPromoError('');
+    };
+
+    const handleUpdateQuantity = (itemId, newQty) => {
+        // Bug fix: Enforce quantity limits (min 1, max 999)
+        const qty = Math.max(1, Math.min(999, newQty));
+        updateQuantity(itemId, qty);
     };
 
     const savings    = appliedCoupon?.discount || 0;
@@ -136,7 +152,7 @@ const CartPage = () => {
                     {cart.map(item => {
                         const lensPrice  = item.lens ? parseFloat(item.lens.price || 0) : 0;
                         const itemPrice  = resolveProductPrice(item.product) + lensPrice;
-                        const brandName  = item.product?.brand?.name || 'EYENIC';
+                        const brandName  = item.product?.brand?.name || 'SPECSIT';
 
                         return (
                             <div key={item.id} className="product-card-figma">
@@ -226,11 +242,11 @@ const CartPage = () => {
                                     {/* Qty + Remove */}
                                     <div className="action-row-figma">
                                         <div className="qty-selector-figma">
-                                            <button className="qty-btn-figma" onClick={() => updateQuantity(item.id, item.quantity - 1)}>
+                                            <button className="qty-btn-figma" onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}>
                                                 <svg width="8" height="2" viewBox="0 0 8 2" fill="none"><path d="M1 1H7" stroke="#040205" strokeWidth="1.5" strokeLinecap="round"/></svg>
                                             </button>
                                             <span className="qty-val-figma">{item.quantity}</span>
-                                            <button className="qty-btn-figma" onClick={() => updateQuantity(item.id, item.quantity + 1)}>
+                                            <button className="qty-btn-figma" onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}>
                                                 <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M4 1V7M1 4H7" stroke="#040205" strokeWidth="1.5" strokeLinecap="round"/></svg>
                                             </button>
                                         </div>
@@ -396,14 +412,14 @@ const CartPage = () => {
 
             {/* ── FOOTER ── */}
             <div className="cart-mini-footer">
-                <span className="cart-mini-footer-brand">Eyenic</span>
+                <span className="cart-mini-footer-brand">Specsit</span>
                 <div className="cart-mini-footer-links">
                     <Link to="/privacy-policy" className="cart-mini-footer-link">Privacy Policy</Link>
                     <Link to="/terms" className="cart-mini-footer-link">Terms of Service</Link>
                     <Link to="/sustainability" className="cart-mini-footer-link">Sustainability</Link>
                     <Link to="/shipping" className="cart-mini-footer-link">Shipping &amp; Returns</Link>
                 </div>
-                <span className="cart-mini-footer-copy">© 2026 Eyenic. Crafted for Clarity.</span>
+                <span className="cart-mini-footer-copy">© 2026 Specsit. Crafted for Clarity.</span>
             </div>
 
         </div>

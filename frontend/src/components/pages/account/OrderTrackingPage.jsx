@@ -4,9 +4,9 @@ import apiClient from '../../../services/api';
 
 const formatPrice = (v) => `₹${parseFloat(v || 0).toLocaleString('en-IN')}`;
 
-/* Figma asset URLs — replace with permanent CDN assets before production */
-const MAP_IMG     = 'https://www.figma.com/api/mcp/asset/5a95d9fe-a63c-49c8-bc3b-faa90d62ce75';
-const COURIER_IMG = 'https://www.figma.com/api/mcp/asset/d4220f09-8fb4-4262-94e1-7a6fec663392';
+/* TODO: Replace with permanent CDN assets before production */
+const MAP_IMG     = '';
+const COURIER_IMG = '';
 
 const STATUS_TO_STEP = {
   pending: -1,
@@ -97,7 +97,7 @@ const OrderTrackingPage = () => {
 
   const activeStep  = STATUS_TO_STEP[order.order_status] ?? -1;
   const tracking    = order.tracking || {};
-  const displayId   = `#LX-${String(order.id).padStart(5, '0')}`;
+  const displayId   = `#LO-${String(order.id).padStart(7, '0')}`;
   const paidAmount  = parseFloat(order.paid_amount || 0);
   const balanceAmount = parseFloat(order.balance_amount || 0);
   const isPartial   = order.payment_status === 'partial_paid';

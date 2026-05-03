@@ -55,7 +55,9 @@ const DEFAULT_VARIANT = () => ({
   colorMethod: 'code',
   colorCode: '#000000',
   paletteImage: null,
-  variantPrice: '',
+  base_price: '',
+  selling_price: '',
+  discount_percentage: '',
   images: [],
 });
 
@@ -68,6 +70,8 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [errors, setErrors] = useState({});
   const [confirmed, setConfirmed] = useState(false);
+  const [useMetaTemplate, setUseMetaTemplate] = useState(true);
+  const [globalTemplates, setGlobalTemplates] = useState(null);
 
   // Track DB-side items removed in edit mode so we can DELETE them on submit
   const [deletedVariantIds, setDeletedVariantIds] = useState([]);
@@ -81,9 +85,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
     short_description: '',
     meta_title: '',
     meta_description: '',
-    base_price: '',
-    selling_price: '',
-    discount_percentage: '',
+    cost_price: '',
     frame_width: '',
     frame_type: '',
     frame_shape: '',
@@ -109,45 +111,55 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
         const requests = [
           apiClient.get('/catalog/categories/'),
           apiClient.get('/catalog/brands/'),
+          apiClient.get('/cms/site-settings/'),
         ];
         if (editProduct?.id) {
           requests.push(apiClient.get(`/catalog/products/${editProduct.id}/`));
         }
 
         const results = await Promise.all(requests);
-        const [catRes, brandRes] = results;
+        const [catRes, brandRes, settingsRes] = results;
 
         setCategories(Array.isArray(catRes.data) ? catRes.data : (catRes.data.results || []));
         setBrands(Array.isArray(brandRes.data) ? brandRes.data : (brandRes.data.results || []));
+        setGlobalTemplates(settingsRes.data);
 
-        if (editProduct?.id && results[2]) {
-          const p = results[2].data;
+        if (editProduct?.id && results[3]) {
+          const p = results[3].data;
 
-          // BUG 3 FIX — wrap palette_image URL string in object so VariantsPricingForm
-          // can safely use .preview without crashing URL.createObjectURL().
-          const mapVariant = v => ({
-            id: v.id,
-            sku: v.sku,
-            colorName: v.color || '',
-            quantity: v.stock || 0,
-            colorMethod: v.color_selection_method || 'code',
-            colorCode: v.color_code || '#000000',
-            paletteImage: v.palette_image
-              ? { preview: v.palette_image, file: null, name: 'Existing image' }
-              : null,
-            variantPrice: v.price_adjustment || '',
-            images: (v.images || []).map(img => ({
-              id: img.id,
-              preview: img.image,
-              file: null,
-            })),
-            expanded: true,
-          });
+          const mapVariant = v => {
+            const bp = parseFloat(v.base_price) || 0;
+            const sp = parseFloat(v.selling_price) || 0;
+            const discPct = bp > 0 && sp > 0 && sp < bp
+              ? (((bp - sp) / bp) * 100).toFixed(2)
+              : '0';
+            return {
+              id: v.id,
+              sku: v.sku,
+              colorName: v.color || '',
+              quantity: v.stock || 0,
+              colorMethod: v.color_selection_method || 'code',
+              colorCode: v.color_code || '#000000',
+              paletteImage: v.palette_image
+                ? { preview: v.palette_image, file: null, name: 'Existing image' }
+                : null,
+              base_price: v.base_price || '',
+              selling_price: v.selling_price || '',
+              discount_percentage: discPct,
+              images: (v.images || []).map(img => ({
+                id: img.id,
+                preview: img.image,
+                file: null,
+              })),
+              expanded: true,
+            };
+          };
 
           // BUG 1 & 7 FIX — read product-level variant fields from first variant so the
           // Step 2 form is pre-filled with the values that were saved last time.
           const firstVariant = (p.variants || [])[0] || {};
 
+          setUseMetaTemplate(p.use_meta_template !== false);
           setFormData({
             title: p.title || '',
             description: p.description || '',
@@ -156,9 +168,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
             short_description: p.short_description || '',
             meta_title: p.meta_title || '',
             meta_description: p.meta_description || '',
-            base_price: p.base_price || '',
-            selling_price: p.selling_price || '',
-            discount_percentage: p.discount_percentage || '',
+            cost_price: p.cost_price || '',
             frame_width: p.frame_width || '',
             frame_type: p.frame_type || '',
             frame_shape: p.frame_shape || '',
@@ -186,31 +196,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
   }, [editProduct?.id]);
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => {
-      const next = { ...prev, [field]: value };
-
-      // Auto-calculate selling_price when base_price or discount_percentage changes
-      const base     = parseFloat(field === 'base_price'     ? value : next.base_price)     || 0;
-      const disc     = parseFloat(field === 'discount_percentage' ? value : next.discount_percentage) || 0;
-
-      if (field === 'base_price' || field === 'discount_percentage') {
-        next.selling_price = base > 0
-          ? (base - (base * disc / 100)).toFixed(2)
-          : next.selling_price;
-      }
-
-      // Auto-calculate discount_percentage when selling_price is typed manually
-      if (field === 'selling_price') {
-        const sp = parseFloat(value) || 0;
-        if (base > 0 && sp > 0 && sp < base) {
-          next.discount_percentage = (((base - sp) / base) * 100).toFixed(2);
-        } else {
-          next.discount_percentage = '0';
-        }
-      }
-
-      return next;
-    });
+    setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors(prev => {
         const updated = { ...prev };
@@ -220,20 +206,10 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
     }
   };
 
-  // BUG 8 FIX — validateStep1 actually validates required fields
   const validateStep1 = () => {
     const newErrors = {};
     if (!formData.title?.trim()) newErrors.title = 'Product title is required.';
     if (!formData.category) newErrors.category = 'Please select a category.';
-    if (!formData.base_price || parseFloat(formData.base_price) <= 0)
-      newErrors.base_price = 'A valid base price (MRP) is required.';
-    if (!formData.selling_price || parseFloat(formData.selling_price) <= 0)
-      newErrors.selling_price = 'Selling price is required. Enter a discount % or type it manually.';
-    if (parseFloat(formData.selling_price) > parseFloat(formData.base_price))
-      newErrors.selling_price = 'Selling price cannot exceed the base price (MRP).';
-    const disc = parseFloat(formData.discount_percentage);
-    if (disc < 0 || disc > 100)
-      newErrors.discount_percentage = 'Discount must be between 0 and 100.';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -256,26 +232,46 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
     setDeletedImageIds(prev => [...prev, id]);
   };
 
-  // BUG 5 & 6 FIX — product_type included; description uses its own field
-  const buildProductPayload = (isActive = true) => ({
-    title: formData.title,
-    description: formData.description || formData.short_description || '',
-    short_description: formData.short_description,
-    category: parseInt(formData.category) || formData.category,
-    brand: formData.brand ? parseInt(formData.brand) : null,
-    product_type: 'frame',
-    frame_type: formData.frame_type,
-    frame_shape: formData.frame_shape,
-    frame_width: formData.frame_width,
-    gender: formData.gender,
-    base_price: parseFloat(formData.base_price) || 0,
-    selling_price: parseFloat(formData.selling_price) || parseFloat(formData.base_price) || 0,
-    discount_percentage: parseFloat(formData.discount_percentage) || 0,
-    frame_only_mode: !!formData.frame_only_mode,
-    meta_title: formData.meta_title,
-    meta_description: formData.meta_description,
-    is_active: isActive,
-  });
+  const resolveMetaTemplate = (template) => {
+    const brandName = brands.find(b => b.id?.toString() === formData.brand?.toString())?.name || '';
+    const catName = categories.find(c => c.id?.toString() === formData.category?.toString())?.name || '';
+    return (template || '')
+      .replace(/{product_name}/g, formData.title || '')
+      .replace(/{brand}/g, brandName)
+      .replace(/{category}/g, catName)
+      .replace(/{store_name}/g, globalTemplates?.store_name || '');
+  };
+
+  const buildProductPayload = (isActive = true) => {
+    const firstVariant = formData.variants?.[0];
+    const metaTitle = useMetaTemplate
+      ? resolveMetaTemplate(globalTemplates?.meta_title_template || '')
+      : (formData.meta_title || '');
+    const metaDescription = useMetaTemplate
+      ? resolveMetaTemplate(globalTemplates?.meta_description_template || '')
+      : (formData.meta_description || '');
+    return {
+      title: formData.title,
+      description: formData.description || formData.short_description || '',
+      short_description: formData.short_description,
+      category: parseInt(formData.category) || formData.category,
+      brand: formData.brand ? parseInt(formData.brand) : null,
+      product_type: 'frame',
+      frame_type: formData.frame_type,
+      frame_shape: formData.frame_shape,
+      frame_width: formData.frame_width,
+      gender: formData.gender,
+      base_price: parseFloat(firstVariant?.base_price) || 0,
+      selling_price: parseFloat(firstVariant?.selling_price) || parseFloat(firstVariant?.base_price) || 0,
+      discount_percentage: 0,
+      cost_price: parseFloat(formData.cost_price) || 0,
+      frame_only_mode: !!formData.frame_only_mode,
+      use_meta_template: useMetaTemplate,
+      meta_title: metaTitle,
+      meta_description: metaDescription,
+      is_active: isActive,
+    };
+  };
 
   const handleFinalSubmit = async () => {
     setSaving(true);
@@ -340,7 +336,8 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
         variantPayload.append('frame_size', formData.frameSize || '');
         variantPayload.append('frame_weight', formData.frameWeight || '');
         variantPayload.append('stock', parseInt(v.quantity) || 0);
-        variantPayload.append('price_adjustment', parseFloat(v.variantPrice) || 0);
+        variantPayload.append('base_price', parseFloat(v.base_price) || 0);
+        variantPayload.append('selling_price', parseFloat(v.selling_price) || parseFloat(v.base_price) || 0);
         variantPayload.append('tax_percent', parseFloat(formData.taxPercent) || 0);
         variantPayload.append('discount_percent', parseFloat(formData.discountPercent) || 0);
         variantPayload.append('is_bogo', formData.isBogo ? 'true' : 'false');
@@ -593,24 +590,81 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
                   </div>
 
                   <div className="form-field">
-                    <label className="form-field-label">Meta Title</label>
-                    <input
-                      type="text"
-                      className="form-field-input"
-                      placeholder="e.g. Ray-Ban Aviator Classic | Buy Online"
-                      value={formData.meta_title}
-                      onChange={(e) => handleInputChange('meta_title', e.target.value)}
-                    />
-                  </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                      <label className="form-field-label" style={{ margin: 0 }}>Meta Tags (SEO)</label>
+                      <div style={{ display: 'flex', gap: '3px', background: '#F2F4F7', borderRadius: '8px', padding: '3px' }}>
+                        <button
+                          type="button"
+                          onClick={() => setUseMetaTemplate(true)}
+                          style={{
+                            padding: '5px 12px', borderRadius: '6px', border: 'none', fontSize: '12px',
+                            fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
+                            background: useMetaTemplate ? '#fff' : 'transparent',
+                            color: useMetaTemplate ? '#344054' : '#667085',
+                            boxShadow: useMetaTemplate ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                          }}
+                        >
+                          Use global template
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setUseMetaTemplate(false)}
+                          style={{
+                            padding: '5px 12px', borderRadius: '6px', border: 'none', fontSize: '12px',
+                            fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
+                            background: !useMetaTemplate ? '#fff' : 'transparent',
+                            color: !useMetaTemplate ? '#344054' : '#667085',
+                            boxShadow: !useMetaTemplate ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                          }}
+                        >
+                          Custom
+                        </button>
+                      </div>
+                    </div>
 
-                  <div className="form-field">
-                    <label className="form-field-label">Meta Description</label>
-                    <textarea
-                      className="form-field-textarea"
-                      placeholder="A timeless model that combines great aviator styling with exceptional quality, performance and comfort."
-                      value={formData.meta_description}
-                      onChange={(e) => handleInputChange('meta_description', e.target.value)}
-                    />
+                    {useMetaTemplate ? (
+                      globalTemplates ? (
+                        <>
+                          <div className="form-field">
+                            <label className="form-field-label">Meta Title</label>
+                            <input
+                              readOnly
+                              className="form-field-input"
+                              style={{ color: '#697177', cursor: 'default' }}
+                              value={resolveMetaTemplate(globalTemplates.meta_title_template)}
+                              placeholder="Enter product title above to preview"
+                            />
+                          </div>
+                          <div className="form-field">
+                            <label className="form-field-label">Meta Description</label>
+                            <textarea
+                              readOnly
+                              className="form-field-textarea"
+                              style={{ color: '#697177', cursor: 'default' }}
+                              value={resolveMetaTemplate(globalTemplates.meta_description_template)}
+                              placeholder="—"
+                            />
+                          </div>
+                        </>
+                      ) : null
+                    ) : (
+                      <>
+                        <input
+                          type="text"
+                          className="form-field-input"
+                          placeholder="e.g. Ray-Ban Aviator Classic | Buy Online"
+                          value={formData.meta_title}
+                          onChange={(e) => handleInputChange('meta_title', e.target.value)}
+                          style={{ marginBottom: '10px' }}
+                        />
+                        <textarea
+                          className="form-field-textarea"
+                          placeholder="A timeless model that combines great aviator styling with exceptional quality and comfort."
+                          value={formData.meta_description}
+                          onChange={(e) => handleInputChange('meta_description', e.target.value)}
+                        />
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -622,15 +676,17 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
 
                   <div className="form-field-row">
                     <div className="form-field">
-                      <label className="form-field-label">Base Price (MRP) <span className="required-star">*</span></label>
+                      <label className="form-field-label">Cost Price</label>
                       <input
                         type="number"
-                        className={`form-field-input ${errors.base_price ? 'has-error' : ''}`}
+                        className="form-field-input"
                         placeholder="0.00"
-                        value={formData.base_price}
-                        onChange={(e) => handleInputChange('base_price', e.target.value)}
+                        value={formData.cost_price}
+                        onChange={(e) => handleInputChange('cost_price', e.target.value)}
                       />
-                      {errors.base_price && <span className="form-field-error"><AlertCircle size={12} /> {errors.base_price}</span>}
+                      <span style={{ fontSize: 11, color: '#9ca3af', marginTop: 2, display: 'block' }}>
+                        Your procurement / purchase cost — used for profit analytics
+                      </span>
                     </div>
                     <div className="form-field">
                       <label className="form-field-label">Frame Width</label>
@@ -640,43 +696,6 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
                         </select>
                         <span className="select-chevron"><ChevronDown size={16} /></span>
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Discount % + Selling Price (auto-calculated) */}
-                  <div className="form-field-row">
-                    <div className="form-field">
-                      <label className="form-field-label">Discount % <span className="required-star">*</span></label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        className={`form-field-input ${errors.discount_percentage ? 'has-error' : ''}`}
-                        placeholder="0"
-                        value={formData.discount_percentage}
-                        onChange={(e) => handleInputChange('discount_percentage', e.target.value)}
-                      />
-                      {errors.discount_percentage && <span className="form-field-error"><AlertCircle size={12} /> {errors.discount_percentage}</span>}
-                    </div>
-                    <div className="form-field">
-                      <label className="form-field-label">
-                        Selling Price
-                        <span style={{ fontWeight: 400, fontSize: 11, color: '#9ca3af', marginLeft: 6 }}>(auto-calculated)</span>
-                      </label>
-                      <input
-                        type="number"
-                        className={`form-field-input ${errors.selling_price ? 'has-error' : ''}`}
-                        placeholder="0.00"
-                        value={formData.selling_price}
-                        onChange={(e) => handleInputChange('selling_price', e.target.value)}
-                      />
-                      {errors.selling_price && <span className="form-field-error"><AlertCircle size={12} /> {errors.selling_price}</span>}
-                      {formData.base_price && formData.selling_price && (
-                        <span style={{ fontSize: 11, color: '#16a34a', marginTop: 2 }}>
-                          Customer pays ₹{parseFloat(formData.selling_price).toLocaleString('en-IN')}
-                          {parseFloat(formData.discount_percentage) > 0 && ` (${parseFloat(formData.discount_percentage).toFixed(0)}% off ₹${parseFloat(formData.base_price).toLocaleString('en-IN')})`}
-                        </span>
-                      )}
                     </div>
                   </div>
 
@@ -746,6 +765,9 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
                 confirmed={confirmed}
                 setConfirmed={setConfirmed}
                 errors={errors}
+                useMetaTemplate={useMetaTemplate}
+                globalTemplates={globalTemplates}
+                resolveMetaTemplate={resolveMetaTemplate}
               />
             )}
           </div>

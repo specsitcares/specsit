@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import apiClient from '../../../services/api';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
@@ -23,6 +23,7 @@ import CollectionTable from './CollectionTable';
 import VariantTable from './VariantTable';
 import LensManagement from './LensManagement';
 import CmsManagement from './CmsManagement';
+import StoreSettings from './StoreSettings';
 import { useAuth } from '../../../context/AuthContext';
 import OrderDetail from './OrderDetail';
 import '../../../styles/admin.css';
@@ -36,16 +37,23 @@ const AdminDashboard = () => {
   const [recentOrders, setRecentOrders] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [viewingOrderId, setViewingOrderId] = useState(null);
+  const [inventoryFilter, setInventoryFilter] = useState('all');
   // Product form navigation state
   const [productFormType, setProductFormType] = useState(null); // 'lens' | 'frame'
   const [productFormId, setProductFormId] = useState(null); // null = create, id = edit
+
+  // Browser back-button intercept
+  const navHistoryRef = useRef([]);
+  const isGoingBackRef = useRef(false);
+  const isInitializedRef = useRef(false);
+  const prevNavRef = useRef(null);
+  const settleTimerRef = useRef(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const statsRes = await apiClient.get('/sales/admin/stats/');
         setStatsData(statsRes.data);
-
         const ordersRes = await apiClient.get('/sales/admin/recent-orders/');
         setRecentOrders(ordersRes.data);
       } catch (err) {
@@ -53,7 +61,7 @@ const AdminDashboard = () => {
       }
     };
     fetchData();
-    const interval = setInterval(fetchData, 5000); // 5s for real-time feel
+    const interval = setInterval(fetchData, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -66,6 +74,67 @@ const AdminDashboard = () => {
     else if (activeApp === 'Analytics') setPrimaryView('Analytics');
     else setPrimaryView(activeApp);
   }, [activeApp]);
+
+  // Track navigation — debounced with setTimeout(0) so cascading React effects
+  // (e.g. [activeApp] effect → setPrimaryView) all settle before we snapshot.
+  // Watches every nav variable so sub-view changes are also captured.
+  useEffect(() => {
+    const current = { primaryView, activeApp, subView, viewingOrderId, productFormType, productFormId, inventoryFilter };
+
+    if (!isInitializedRef.current) {
+      isInitializedRef.current = true;
+      prevNavRef.current = current;
+      window.history.pushState({ adminPanel: true }, '');
+      return;
+    }
+
+    if (settleTimerRef.current) clearTimeout(settleTimerRef.current);
+
+    settleTimerRef.current = setTimeout(() => {
+      settleTimerRef.current = null;
+
+      if (isGoingBackRef.current) {
+        isGoingBackRef.current = false;
+        prevNavRef.current = current;
+        return;
+      }
+
+      const prev = prevNavRef.current;
+      const changed = prev && (
+        prev.primaryView !== current.primaryView ||
+        prev.subView !== current.subView ||
+        prev.viewingOrderId !== current.viewingOrderId ||
+        prev.productFormType !== current.productFormType
+      );
+
+      if (changed) {
+        navHistoryRef.current.push({ ...prev });
+        window.history.pushState({ adminPanel: true }, '');
+      }
+
+      prevNavRef.current = current;
+    }, 0);
+  }, [primaryView, activeApp, subView, viewingOrderId, productFormType, productFormId, inventoryFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Intercept browser back button — restore internal nav state instead of leaving
+  useEffect(() => {
+    const handlePopState = () => {
+      window.history.pushState({ adminPanel: true }, ''); // keep admin reachable
+      const prev = navHistoryRef.current.pop();
+      if (prev) {
+        isGoingBackRef.current = true;
+        setPrimaryView(prev.primaryView);
+        setActiveApp(prev.activeApp);
+        setSubView(prev.subView);
+        setViewingOrderId(prev.viewingOrderId);
+        setProductFormType(prev.productFormType);
+        setProductFormId(prev.productFormId);
+        setInventoryFilter(prev.inventoryFilter);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   useEffect(() => {
     const map = {
@@ -92,6 +161,7 @@ const AdminDashboard = () => {
       'Employees': 'Staff',
       'Active Coupons': 'Coupons',
       'CMS Management': 'CMS',
+      'Store Settings': 'StoreSettings',
     };
     if (map[subView]) setPrimaryView(map[subView]);
   }, [subView]);
@@ -104,7 +174,8 @@ const AdminDashboard = () => {
     switch (primaryView) {
       case 'Dashboard':
       case 'Dashboards':
-        return <DashboardHome statsData={statsData} recentOrders={recentOrders} onOrderClick={id => setViewingOrderId(id)} />;
+      case 'Analytics':
+        return <DashboardHome recentOrders={recentOrders} onOrderClick={id => setViewingOrderId(id)} onNavigate={({ view, filter }) => { setInventoryFilter(filter || 'all'); setPrimaryView(view); }} />;
       case 'Order':
       case 'Orders': {
         const cat = subView === 'Return Window' ? 'returns' : subView === 'Warranty Window' ? 'warranty' : null;
@@ -136,7 +207,7 @@ const AdminDashboard = () => {
       case 'Variants':
         return <VariantTable />;
       case 'Inventory':
-        return <InventoryTable />;
+        return <InventoryTable initialFilter={inventoryFilter} />;
       case 'Lenses':
         return <LensManagement />;
       case 'Shipments':
@@ -149,8 +220,10 @@ const AdminDashboard = () => {
         return <CouponTable />;
       case 'CMS':
         return <CmsManagement />;
+      case 'StoreSettings':
+        return <StoreSettings />;
       default:
-        return <DashboardHome statsData={statsData} recentOrders={recentOrders} />;
+        return <DashboardHome recentOrders={recentOrders} />;
     }
   };
 

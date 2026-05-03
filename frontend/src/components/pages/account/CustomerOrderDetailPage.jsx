@@ -164,9 +164,7 @@ const CustomerOrderDetailPage = () => {
   const items         = order.items || [];
   const showPartial   = order.payment_method === 'partial_payment' && order.payment_status === 'partial_paid';
 
-  const orderLabel = order.order_number
-    ? `#${order.order_number}`
-    : `#${String(order.id).slice(0, 8).toUpperCase()}`;
+  const orderLabel = `#LO-${String(order.id).padStart(7, '0')}`;
 
   /* ── render ───────────────────────────────────────────────── */
   return (

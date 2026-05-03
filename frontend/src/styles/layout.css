@@ -175,7 +175,7 @@
   position: absolute;
   top: calc(100% + 10px);
   right: 0;
-  background: var(--eyenic-bg-white, #fff);
+  background: var(--specsit-bg-white, #fff);
   border: 1px solid #EBE3F2;
   border-radius: 12px;
   padding: 14px 16px;
@@ -193,7 +193,7 @@
 .navbar-cart-dropdown__count {
   font-size: 13px;
   font-weight: 600;
-  color: var(--eyenic-black, #111);
+  color: var(--specsit-black, #111);
   margin: 0 0 12px;
   font-family: 'Plus Jakarta Sans', sans-serif;
 }

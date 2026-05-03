@@ -1,5 +1,40 @@
 from django.db import models
 
+class SiteSettings(models.Model):
+    store_name = models.CharField(max_length=100, default='SpecsIt')
+    meta_title_template = models.CharField(
+        max_length=255,
+        default='{product_name} | SpecsIt',
+        help_text='Placeholders: {product_name}, {brand}, {category}, {store_name}'
+    )
+    meta_description_template = models.TextField(
+        default='Buy {product_name} online at SpecsIt. Premium eyewear with fast delivery and best prices.',
+        help_text='Placeholders: {product_name}, {brand}, {category}, {store_name}'
+    )
+
+    class Meta:
+        verbose_name = 'Site Settings'
+
+    @classmethod
+    def get(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+    def resolve(self, product_name='', brand='', category=''):
+        ctx = {
+            'product_name': product_name,
+            'brand': brand,
+            'category': category,
+            'store_name': self.store_name,
+        }
+        return {
+            'meta_title': self.meta_title_template.format(**ctx),
+            'meta_description': self.meta_description_template.format(**ctx),
+        }
+
+    def __str__(self):
+        return 'Site Settings'
+
 class Announcement(models.Model):
     text = models.CharField(max_length=255, help_text="Text shown in the top announcement bar.")
     is_active = models.BooleanField(default=True)

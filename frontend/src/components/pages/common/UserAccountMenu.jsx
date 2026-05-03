@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Link } from 'react-router-dom';
 import '../../../styles/user-account-menu.css';
 
@@ -93,7 +93,7 @@ const UserAccountMenu = ({ user = null, onLogout = () => {}, onClose = () => {} 
             <div className="menu-welcome" data-name="Welcome Section">
                 <p className="welcome-header">WELCOME BACK</p>
                 <h3 className="user-name">{user.first_name || user.username}</h3>
-                <p className="user-phone">{user.phone || user.email || 'Eyenic Member'}</p>
+                <p className="user-phone">{user.phone || user.email || 'Specsit Member'}</p>
             </div>
 
             <div className="menu-items">

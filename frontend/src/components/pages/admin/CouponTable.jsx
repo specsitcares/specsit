@@ -14,6 +14,7 @@ const CouponTable = () => {
   const [page, setPage]         = useState(1);
   const [perPage, setPerPage]   = useState(10);
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
 
   const couponFormFields = [
     { name: 'code',                label: 'Coupon Code',         type: 'text',     required: true, placeholder: 'e.g. SAVE20' },
@@ -33,6 +34,25 @@ const CouponTable = () => {
       setCoupons(Array.isArray(res.data) ? res.data : (res.data.results || []));
     } catch { /* silent */ } finally { setLoading(false); }
   };
+
+  const bulkDelete = async () => {
+    if (!window.confirm(`Delete ${selectedIds.size} coupon(s)?`)) return;
+    await Promise.all([...selectedIds].map(id => apiClient.delete(`/sales/coupons/${id}/`).catch(() => {})));
+    setSelectedIds(new Set());
+    fetchCoupons();
+  };
+
+  const bulkDeactivate = async () => {
+    if (!window.confirm(`Deactivate ${selectedIds.size} coupon(s)?`)) return;
+    await Promise.all([...selectedIds].map(id => apiClient.patch(`/sales/coupons/${id}/`, { is_active: false }).catch(() => {})));
+    setSelectedIds(new Set());
+    fetchCoupons();
+  };
+
+  const bulkActions = [
+    { label: 'Deactivate Selected', variant: 'warning', icon: Tag, onClick: bulkDeactivate },
+    { label: 'Delete Selected', variant: 'danger', icon: Trash2, onClick: bulkDelete },
+  ];
 
   const handleCreateClick = () => { setFormMode('create'); setSelectedCoupon(null); setShowForm(true); };
   const handleEditClick   = (c) => { setFormMode('edit'); setSelectedCoupon(c); setShowForm(true); };
@@ -76,10 +96,10 @@ const CouponTable = () => {
     { label: 'Action', key: 'action', align: 'right' }
   ];
 
-  const renderRow = (c, idx) => (
-    <tr key={c.id || idx} style={{ borderBottom: '1px solid #EAECF0', backgroundColor: '#fff' }}>
+  const renderRow = (c, idx, { isSelected, onToggle } = {}) => (
+    <tr key={c.id || idx} style={{ borderBottom: '1px solid #EAECF0', backgroundColor: isSelected ? '#F9F5FF' : '#fff' }}>
       <td style={{ padding: '16px 24px' }}>
-        <input type="checkbox" style={{ cursor: 'pointer', borderRadius: '4px', accentColor: '#7F56D9' }} />
+        <input type="checkbox" checked={!!isSelected} onChange={onToggle} style={{ cursor: 'pointer', borderRadius: '4px', accentColor: '#7F56D9' }} />
       </td>
       <td style={{ padding: '16px 24px' }}>
         <code style={{
@@ -164,6 +184,9 @@ const CouponTable = () => {
         data={paginated}
         loading={loading}
         renderRow={renderRow}
+        selectedIds={selectedIds}
+        onSelectIds={setSelectedIds}
+        bulkActions={bulkActions}
         pagination={{
           page,
           perPage,

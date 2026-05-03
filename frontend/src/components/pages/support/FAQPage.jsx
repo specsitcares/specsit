@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import SupportSidebar from './SupportSidebar';
 import '../../../styles/support.css';
 
@@ -68,7 +68,7 @@ const faqGroups = [
             },
             {
                 q: 'Can I adjust my frames if they feel uncomfortable?',
-                a: 'Most metal and acetate frames can be gently adjusted by a professional optician. Visit any local optician for a complimentary adjustment. Eyenic frames are covered under our 2-year warranty for manufacturing defects.'
+                a: 'Most metal and acetate frames can be gently adjusted by a professional optician. Visit any local optician for a complimentary adjustment. Specsit frames are covered under our 2-year warranty for manufacturing defects.'
             }
         ]
     },
@@ -79,7 +79,7 @@ const faqGroups = [
         items: [
             {
                 q: 'Do you sell contact lenses?',
-                a: 'Currently, Eyenic specialises exclusively in prescription eyeglasses and sunglasses. Contact lens availability is planned for a future launch. Sign up for our newsletter to be notified.'
+                a: 'Currently, Specsit specialises exclusively in prescription eyeglasses and sunglasses. Contact lens availability is planned for a future launch. Sign up for our newsletter to be notified.'
             },
             {
                 q: 'Can I use my glasses prescription for contact lenses?',

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { useCart } from '../../../context/CartContext';
@@ -34,7 +34,7 @@ const Navbar = () => {
             <div className="navbar-container">
                 {/* Logo */}
                 <Link to="/" className="navbar-logo">
-                    <span className="logo-text">Eyenic</span>
+                    <span className="logo-text">Specsit</span>
                 </Link>
 
                 {/* Desktop Menu */}

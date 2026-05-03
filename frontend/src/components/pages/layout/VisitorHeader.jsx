@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+﻿import React, { useState, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useCart } from '../../../context/CartContext';
 import '../../../styles/visitor-header.css';
@@ -63,7 +63,7 @@ const VisitorHeader = () => {
         >
             {/* Brand Logo */}
             <div className="visitor-brand">
-                <Link to="/" className="brand-logo">EYENIC</Link>
+                <Link to="/" className="brand-logo">SPECSIT</Link>
             </div>
 
             {/* Navigation Links (Center) */}
