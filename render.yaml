@@ -3,7 +3,7 @@ services:
     name: specsit-backend
     runtime: python
     buildCommand: bash build.sh
-    startCommand: cd backend && python manage.py migrate && python manage.py shell -c "import os; from django.contrib.auth import get_user_model; U=get_user_model(); u=os.environ.get('SUPERUSER_USERNAME','admin'); p=os.environ.get('SUPERUSER_PASSWORD'); e=os.environ.get('SUPERUSER_EMAIL',''); U.objects.create_superuser(u,e,p) if p and not U.objects.filter(username=u).exists() else None" && python manage.py collectstatic --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2
+    startCommand: cd backend && python manage.py migrate && python manage.py create_default_superuser && python manage.py collectstatic --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.0
