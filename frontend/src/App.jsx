@@ -101,8 +101,8 @@ const App = () => {
                                     <Route path="products" element={<ProductListingPage />} />
                                     <Route path="product/:id" element={<ProductDetailPage />} />
                                     <Route path="cart" element={<CartPage />} />
-                                    <Route path="checkout" element={<CheckoutPage />} />
-                                    <Route path="order-confirmation" element={<ConfirmationErrorBoundary><OrderConfirmationPage /></ConfirmationErrorBoundary>} />
+                                    <Route path="checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
+                                    <Route path="order-confirmation/:orderId" element={<ConfirmationErrorBoundary><OrderConfirmationPage /></ConfirmationErrorBoundary>} />
                                     <Route path="login" element={<LoginPage />} />
                                     <Route path="register" element={<RegisterPage />} />
                                     <Route path="auth/callback" element={<AuthCallbackPage />} />

@@ -1,3 +1,4 @@
+import logging
 from datetime import date, datetime
 from rest_framework import viewsets, permissions, status
 from .models import Address, Employee, CustomerQuery, EmployeeActionLog, UserProfile, NotificationPreference
@@ -13,6 +14,8 @@ from django.contrib.auth import login
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
+
+logger = logging.getLogger(__name__)
 
 
 def _serialize_birthday(value):
@@ -143,9 +146,11 @@ class EmployeeActionLogViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.IsAdminUser]
 
 class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAdminUser]
+
+    def get_queryset(self):
+        return User.objects.filter(is_superuser=False)
 
 class GoogleOAuthView(APIView):
     permission_classes = [permissions.AllowAny]
@@ -184,10 +189,7 @@ class GoogleOAuthView(APIView):
             if 'access_token' in token_data:
                 break
             
-            # Log the failure for debugging
-            print(f"FAILED OAuth with URI {uri}: {token_data.get('error')}")
-
-        print(f"FINAL GOOGLE TOKEN DATA: {token_data}") # SERVER LOG FOR DEBUGGING
+            logger.debug("OAuth code exchange failed with URI %s: %s", uri, token_data.get('error'))
 
         if 'error' in token_data:
             return Response({
@@ -240,7 +242,8 @@ class GoogleOAuthView(APIView):
                 'email': user.email,
                 'first_name': user.first_name,
                 'last_name': user.last_name,
-                'username': user.username
+                'username': user.username,
+                'is_staff': user.is_staff,
             },
             'created': created
         }, status=status.HTTP_200_OK)

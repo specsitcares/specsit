@@ -1,3 +1,4 @@
+import uuid
 from rest_framework import viewsets, permissions, status, views, filters
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
@@ -32,12 +33,30 @@ class OrderViewSet(viewsets.ModelViewSet):
     ]
     
     def get_queryset(self):
+        from django.db.models import Prefetch
+        from apps.catalog.models import Review
+
+        user_reviews = Review.objects.filter(user_id=self.request.user.id) if self.request.user.is_authenticated else Review.objects.none()
+
         qs = Order.objects.select_related(
             'status', 'coupon', 'shipping_address', 'billing_address', 'user'
-        ).prefetch_related('items', 'items__variant', 'items__variant__product')
+        ).prefetch_related(
+            'items', 'items__variant', 'items__variant__product',
+            'tracking', 'payments',
+            Prefetch('items__order__review_set', queryset=user_reviews)
+        )
         
         if not self.request.user.is_staff:
             return qs.filter(user=self.request.user).order_by('-created_at')
+
+        # Hide online-payment orders that haven't been paid yet — admin should
+        # never see or process an order before money is confirmed received.
+        # COD orders are excluded from this filter since their payment is always
+        # pending until delivery.
+        qs = qs.exclude(
+            payment_method__in=['complete_online', 'partial_payment'],
+            payment_status='pending',
+        )
 
         # View Presets (Return/Warranty Window) - Auto applied from sidebar
         view_preset = self.request.query_params.get('view_preset')
@@ -107,10 +126,17 @@ class OrderViewSet(viewsets.ModelViewSet):
         from django.utils import timezone
         from datetime import timedelta
         from django.db.models import Count, Q
-        
-        # 1. Base Queryset (Apply same filters as standard list)
+
+        # 1. Base Queryset — mirrors get_queryset() so analytics match the table exactly
         qs = Order.objects.all()
-        
+        if request.user.is_staff:
+            qs = qs.exclude(
+                payment_method__in=['complete_online', 'partial_payment'],
+                payment_status='pending',
+            )
+        else:
+            qs = qs.filter(user=request.user)
+
         # View Presets
         view_preset = request.query_params.get('view_preset')
         if view_preset == 'returns':
@@ -196,8 +222,13 @@ class OrderViewSet(viewsets.ModelViewSet):
         from apps.catalog.core.models import MetadataItem
         from apps.catalog.models import Variant, Lens
 
+        items_data = self.request.data.get('items', [])
+
+        # Prevent empty orders — cart must have at least one item
+        if not items_data or len(items_data) == 0:
+            raise ValidationError('Order must contain at least one item.')
+
         with transaction.atomic():
-            items_data = self.request.data.get('items', [])
 
             # 1. PD validation for progressive lenses (before any DB writes)
             for item_data in items_data:
@@ -214,7 +245,7 @@ class OrderViewSet(viewsets.ModelViewSet):
                             )
                             if not lens_obj:
                                 continue
-                        if lens_obj.vision_type == 'Progressive' and not lens_pd:
+                        if (lens_obj.type and lens_obj.type.label == 'Progressive') and not lens_pd:
                             raise ValidationError('PD (Pupillary Distance) is required for Progressive lenses.')
                     except Lens.DoesNotExist:
                         pass
@@ -238,9 +269,12 @@ class OrderViewSet(viewsets.ModelViewSet):
                         id__in=variant_qty_map.keys()
                     )
                 }
+                # Bug #10: Validate all variants exist and have adequate stock
                 for vid, qty in variant_qty_map.items():
                     variant = locked_variants.get(vid)
-                    if variant and variant.stock < qty:
+                    if not variant:
+                        raise ValidationError(f'Variant ID {vid} not found.')
+                    if variant.stock < qty:
                         raise ValidationError(
                             f'Insufficient stock for "{variant.product.title}". '
                             f'Requested: {qty}, available: {variant.stock}.'
@@ -282,6 +316,7 @@ class OrderViewSet(viewsets.ModelViewSet):
         from apps.catalog.core.models import MetadataItem
         from .models import Shipment
 
+        old_order_status = serializer.instance.order_status  # capture before save
         instance = serializer.save()
 
         # Sync order_status CharField from MetadataItem status label using fuzzy
@@ -307,8 +342,9 @@ class OrderViewSet(viewsets.ModelViewSet):
                 instance.order_status = mapped
                 if mapped == 'delivered' and not instance.delivery_date:
                     Order.objects.filter(pk=instance.pk).update(delivery_date=timezone.now())
-                if mapped == 'cancelled' and instance.order_status != 'cancelled':
-                    # Only restore stock if transitioning INTO cancelled (prevent double-restore)
+                if mapped == 'cancelled' and old_order_status != 'cancelled':
+                    # Only restore stock when transitioning INTO cancelled (old_order_status checked
+                    # before save to prevent the always-false guard that was here previously)
                     from django.db import transaction
                     with transaction.atomic():
                         for item in instance.items.select_related('variant__product').all():
@@ -321,9 +357,16 @@ class OrderViewSet(viewsets.ModelViewSet):
 
         # PIPELINE SYNC: Update Shipment Status based on Order Status
         if instance.status:
+            from apps.catalog.core.models import MetadataGroup, MetadataItem as MI
             label = instance.status.label.lower()
             shipment_status = None
-            if 'shipped' in label or 'transit' in label:
+            if any(k in label for k in ['deliver', 'complet']):
+                group, _ = MetadataGroup.objects.get_or_create(name='Shipment Status')
+                shipment_status, _ = MI.objects.get_or_create(
+                    group=group, label='Delivered',
+                    defaults={'value': 'delivered', 'is_active': True},
+                )
+            elif 'shipped' in label or 'transit' in label:
                 shipment_status = MetadataItem.objects.filter(group__name='Shipment Status', label='Shipped').first()
             elif any(s in label for s in ['preparing', 'received', 'quality', 'ready', 'confirmed']):
                 shipment_status = MetadataItem.objects.filter(group__name='Shipment Status', label='Processing').first()
@@ -346,9 +389,9 @@ class OrderViewSet(viewsets.ModelViewSet):
 
         # Update order — sync both status fields
         from apps.catalog.core.models import MetadataItem
-        from django.db.models import Q
         delivered_meta = MetadataItem.objects.filter(
-            Q(label__icontains='deliver') | Q(label__icontains='complet')
+            group__name='Order Status',
+            label__icontains='deliver',
         ).first()
 
         order.order_status = 'delivered'
@@ -372,7 +415,17 @@ class OrderViewSet(viewsets.ModelViewSet):
                 payment_method='cod',
                 amount_paid=order.total_amount,
                 payment_status='completed',
+                transaction_id=f"cod_{order.id}_{uuid.uuid4().hex[:8]}",
             )
+
+        # Mark the shipment as delivered
+        from apps.catalog.core.models import MetadataGroup, MetadataItem as MI
+        ship_group, _ = MetadataGroup.objects.get_or_create(name='Shipment Status')
+        delivered_ship_status, _ = MI.objects.get_or_create(
+            group=ship_group, label='Delivered',
+            defaults={'value': 'delivered', 'is_active': True},
+        )
+        Shipment.objects.filter(order=order).update(status=delivered_ship_status)
 
         # Build review links
         review_links = []
@@ -395,14 +448,28 @@ class OrderViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
     def update_tracking(self, request, pk=None):
-        """Upsert tracking info for an order."""
+        """Upsert tracking info for an order. Accepts multipart (for qc_image) or JSON."""
         from .models import OrderTracking
         order = self.get_object()
         tracking, _ = OrderTracking.objects.get_or_create(order=order)
+
+        # Fix unique constraint: clear the same tracking_number from any other order
+        new_tracking_number = request.data.get('tracking_number')
+        if new_tracking_number and new_tracking_number != tracking.tracking_number:
+            OrderTracking.objects.filter(
+                tracking_number=new_tracking_number
+            ).exclude(pk=tracking.pk).update(tracking_number=None)
+
         serializer = OrderTrackingSerializer(tracking, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        serializer.save(order=order)
-        return Response(serializer.data)
+        instance = serializer.save(order=order)
+
+        qc_image = request.FILES.get('qc_image')
+        if qc_image:
+            instance.qc_image = qc_image
+            instance.save(update_fields=['qc_image'])
+
+        return Response(OrderTrackingSerializer(instance, context={'request': request}).data)
 
 class CartViewSet(viewsets.ModelViewSet):
     serializer_class = CartSerializer
@@ -465,6 +532,66 @@ class ShipmentViewSet(viewsets.ModelViewSet):
     serializer_class = ShipmentSerializer
     permission_classes = [permissions.IsAdminUser]
 
+    def _resolve_status(self, data):
+        """Convert a string status label to its MetadataItem PK before validation."""
+        from apps.catalog.core.models import MetadataGroup, MetadataItem as MI
+        status_val = data.get('status')
+        if status_val and isinstance(status_val, str) and not str(status_val).isdigit():
+            group, _ = MetadataGroup.objects.get_or_create(name='Shipment Status')
+            slug = status_val.lower().replace(' ', '_')
+            obj, _ = MI.objects.get_or_create(
+                group=group, label=status_val,
+                defaults={'value': slug, 'is_active': True},
+            )
+            data = data.copy()
+            data['status'] = obj.id
+        return data
+
+    def create(self, request, *args, **kwargs):
+        request._full_data = self._resolve_status(request.data)
+        return super().create(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        request._full_data = self._resolve_status(request.data)
+        return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        request._full_data = self._resolve_status(request.data)
+        return super().partial_update(request, *args, **kwargs)
+
+    def perform_update(self, serializer):
+        from apps.catalog.core.models import MetadataGroup, MetadataItem as MI
+        from .models import Order
+        instance = serializer.save()
+
+        if not instance.status:
+            return
+
+        label = instance.status.label.lower()
+        if any(k in label for k in ['deliver', 'complet']):
+            order_status, meta_label = 'delivered', 'Delivered'
+        elif any(k in label for k in ['transit', 'ship', 'dispatch']):
+            order_status, meta_label = 'in_transit', 'In Transit'
+        elif any(k in label for k in ['ready', 'pack']):
+            order_status, meta_label = 'ready_to_dispatch', 'Ready to Dispatch'
+        elif any(k in label for k in ['confirm', 'accept', 'prepar', 'quality', 'process']):
+            order_status, meta_label = 'confirmed', 'Confirmed'
+        else:
+            return  # pending/unknown shipment statuses don't imply an order status change
+
+        order = instance.order
+        update_kwargs = {'order_status': order_status}
+        if order_status == 'delivered' and not order.delivery_date:
+            update_kwargs['delivery_date'] = timezone.now()
+
+        group, _ = MetadataGroup.objects.get_or_create(name='Order Status')
+        order_meta, _ = MI.objects.get_or_create(
+            group=group, label=meta_label,
+            defaults={'value': order_status, 'is_active': True},
+        )
+        update_kwargs['status'] = order_meta
+        Order.objects.filter(pk=order.pk).update(**update_kwargs)
+
 class OrderTrackingViewSet(viewsets.ModelViewSet):
     serializer_class = OrderTrackingSerializer
     permission_classes = [permissions.IsAdminUser]
@@ -507,60 +634,71 @@ class AdminDashboardStatsView(views.APIView):
     def get(self, request):
         today = timezone.now().date()
         now = timezone.now()
-        
+
+        from django.db.models import Q, F
+
+        # Base queryset — same exclusion as OrderViewSet.get_queryset() so KPI
+        # numbers always match what the admin table shows.
+        base_qs = Order.objects.exclude(
+            payment_method__in=['complete_online', 'partial_payment'],
+            payment_status='pending',
+        )
+
         # ===== REAL-TIME METRICS CALCULATIONS =====
         # 1. Total Orders & Revenue
-        total_orders = Order.objects.count()
-        revenue_agg = Order.objects.aggregate(total=Sum('total_amount'))
+        total_orders = base_qs.count()
+        revenue_agg = base_qs.aggregate(total=Sum('total_amount'))
         total_revenue = float(revenue_agg.get('total') or 0)
-        
+
         # 2. Calculate Trends (Last 30 days vs Previous 30 days)
         last_30_start = today - timedelta(days=30)
         prev_30_start = today - timedelta(days=60)
-        
-        curr_30_orders = Order.objects.filter(created_at__date__gte=last_30_start).count()
-        prev_30_orders = Order.objects.filter(
+
+        curr_30_orders = base_qs.filter(created_at__date__gte=last_30_start).count()
+        prev_30_orders = base_qs.filter(
             created_at__date__gte=prev_30_start,
             created_at__date__lt=last_30_start
         ).count()
         order_trend = round(
             ((curr_30_orders - prev_30_orders) / max(prev_30_orders, 1)) * 100, 1
         ) if prev_30_orders > 0 else 0
-        
+
         # Revenue trend calculation
-        curr_30_revenue = Order.objects.filter(created_at__date__gte=last_30_start).aggregate(
+        curr_30_revenue = base_qs.filter(created_at__date__gte=last_30_start).aggregate(
             total=Sum('total_amount')
         ).get('total') or 0
-        prev_30_revenue = Order.objects.filter(
+        prev_30_revenue = base_qs.filter(
             created_at__date__gte=prev_30_start,
             created_at__date__lt=last_30_start
         ).aggregate(total=Sum('total_amount')).get('total') or 0
         revenue_trend = round(
             ((curr_30_revenue - prev_30_revenue) / max(prev_30_revenue, 1)) * 100, 1
         ) if prev_30_revenue > 0 else 0
-        
-        # 3. Prescriptions (Pending Status)
+
+        # 3. Prescriptions needing review — only ones linked to an order (matches PrescriptionTable)
         pending_pres_count = Prescription.objects.filter(
-            status__label__icontains='Pending'
-        ).count() if Prescription.objects.filter(status__isnull=False).exists() else 0
-        
-        # 4. Stock Analysis — use each product's own low_stock_threshold
-        from django.db.models import F
-        low_stock_products = Variant.objects.filter(
-            stock__gt=0, stock__lt=F('product__low_stock_threshold')
-        ).count()
+            Q(status__isnull=True) | Q(status__label__icontains='Pending')
+        ).filter(order_items__isnull=False).distinct().count()
+
+        # 4. Stock Analysis — consistent with InventoryTable (low = 0 < stock <= 20)
+        low_stock_products = Variant.objects.filter(stock__gt=0, stock__lte=20).count()
         out_of_stock = Variant.objects.filter(stock__lte=0).count()
-        
+
         # 5. Today's Orders
-        today_orders = Order.objects.filter(created_at__date=today).count()
-        
-        # 6. Active Shipments (Not Delivered)
+        today_orders = base_qs.filter(created_at__date=today).count()
+
+        # 6. Active Shipments — scoped to visible orders only
         active_shipments = Shipment.objects.exclude(
-            status__label__icontains='Delivered'
-        ).count() if Shipment.objects.filter(status__isnull=False).exists() else Shipment.objects.count()
+            Q(status__label__icontains='Delivered') |
+            Q(order__order_status='delivered') |
+            Q(order__status__label__icontains='Deliver')
+        ).exclude(
+            order__payment_method__in=['complete_online', 'partial_payment'],
+            order__payment_status='pending',
+        ).count()
 
         # 7. Order Status Breakdown (Categorized for Dashboard)
-        status_counts = Order.objects.values('status__label').annotate(count=Count('id'))
+        status_counts = base_qs.values('status__label').annotate(count=Count('id'))
         def get_inclusive_count(keywords):
             return sum(s['count'] for s in status_counts if s['status__label'] and any(k.lower() in s['status__label'].lower() for k in keywords))
         
@@ -599,7 +737,7 @@ class AdminDashboardStatsView(views.APIView):
             else:
                 month_end = month_start.replace(month=month_start.month+1)
             
-            monthly_revenue = Order.objects.filter(
+            monthly_revenue = base_qs.filter(
                 created_at__date__gte=month_start,
                 created_at__date__lt=month_end
             ).aggregate(total=Sum('total_amount')).get('total') or 0
@@ -611,10 +749,10 @@ class AdminDashboardStatsView(views.APIView):
         
         # 7. Calculate specific trends for other metrics
         prev_pending_pres = Prescription.objects.filter(
-            status__label__icontains='Pending',
+            Q(status__isnull=True) | Q(status__label__icontains='Pending'),
             created_at__lt=last_30_start,
-            created_at__gte=prev_30_start
-        ).count() if Prescription.objects.filter(status__isnull=False).exists() else 0
+            created_at__gte=prev_30_start,
+        ).filter(order_items__isnull=False).distinct().count()
         pres_trend = round(((pending_pres_count - prev_pending_pres) / max(prev_pending_pres, 1)) * 100, 1)
 
         # For stock, "trend" is more of a status, but we'll calculate change in low-stock count
@@ -748,6 +886,164 @@ class RecordLiveActivityView(views.APIView):
                 break  # Non-lock errors: fail silently, don't spam logs
 
         return Response({'status': 'ok'})
+
+
+class PrescriptionUploadView(views.APIView):
+    """POST /api/sales/prescriptions/upload/ — accept file + order_id, link to OrderItem."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        from apps.catalog.core.models import MetadataGroup, MetadataItem as MI
+        from django.db import transaction
+        from rest_framework.exceptions import ValidationError
+
+        order_id = request.data.get('order_id')
+        prescription_file = request.FILES.get('prescription_file')
+
+        if not order_id:
+            return Response({'error': 'order_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not prescription_file:
+            return Response({'error': 'prescription_file is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Bug #4: Parse numeric order ID if display format is sent
+        try:
+            if isinstance(order_id, str) and order_id.startswith('#'):
+                order_id_numeric = int(''.join(filter(str.isdigit, order_id)))
+            else:
+                order_id_numeric = int(order_id)
+        except (ValueError, TypeError):
+            return Response({'error': 'Invalid order ID format.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            order = Order.objects.get(id=order_id_numeric, user=request.user)
+        except Order.DoesNotExist:
+            return Response({'error': f'Order #{order_id_numeric} not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Bug #3: Validate order has items before creating prescription
+        if not order.items.exists():
+            return Response({'error': 'Order has no items. Cannot add prescription.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        group, _ = MetadataGroup.objects.get_or_create(name='Prescription Status')
+        pending_status, _ = MI.objects.get_or_create(
+            group=group, label='Pending Review',
+            defaults={'value': 'pending_review', 'is_active': True},
+        )
+
+        from apps.catalog.models import Prescription
+
+        # Bug #7: Use transaction to ensure prescription is created and linked atomically
+        try:
+            with transaction.atomic():
+                prescription = Prescription.objects.create(
+                    user=request.user,
+                    prescription_file=prescription_file,
+                    status=pending_status,
+                )
+
+                # Bug #6: Check if update actually affected rows
+                updated_count = order.items.filter(prescription__isnull=True).update(prescription=prescription)
+
+                if updated_count == 0:
+                    raise ValidationError('All order items already have prescriptions. Prescription created but not linked.')
+        except ValidationError as e:
+            return Response({'error': str(e.detail[0])}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({'detail': 'Prescription uploaded successfully.', 'prescription_id': prescription.id})
+
+
+class PrescriptionManualView(views.APIView):
+    """POST /api/sales/prescriptions/manual/ — accept Rx data + order_id, link to OrderItem."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        from apps.catalog.core.models import MetadataGroup, MetadataItem as MI
+        from django.db import transaction
+        from rest_framework.exceptions import ValidationError
+
+        order_id = request.data.get('order_id')
+        rx = request.data.get('rx', {})
+        name = request.data.get('name', '')
+
+        if not order_id:
+            return Response({'error': 'order_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Bug #4: Parse numeric order ID if display format is sent
+        try:
+            if isinstance(order_id, str) and order_id.startswith('#'):
+                order_id_numeric = int(''.join(filter(str.isdigit, order_id)))
+            else:
+                order_id_numeric = int(order_id)
+        except (ValueError, TypeError):
+            return Response({'error': 'Invalid order ID format.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            order = Order.objects.get(id=order_id_numeric, user=request.user)
+        except Order.DoesNotExist:
+            return Response({'error': f'Order #{order_id_numeric} not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Bug #3: Validate order has items before creating prescription
+        if not order.items.exists():
+            return Response({'error': 'Order has no items. Cannot add prescription.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        group, _ = MetadataGroup.objects.get_or_create(name='Prescription Status')
+        pending_status, _ = MI.objects.get_or_create(
+            group=group, label='Pending Review',
+            defaults={'value': 'pending_review', 'is_active': True},
+        )
+
+        od = rx.get('od', {})
+        os_data = rx.get('os', {})
+
+        from apps.catalog.models import Prescription
+
+        # Bug #7: Use transaction to ensure prescription is created and linked atomically
+        try:
+            with transaction.atomic():
+                prescription = Prescription.objects.create(
+                    user=request.user,
+                    patient_name=name,
+                    od_sphere=od.get('sph') or 0,
+                    od_cylinder=od.get('cyl') or 0,
+                    od_axis=od.get('axis') or 0,
+                    os_sphere=os_data.get('sph') or 0,
+                    os_cylinder=os_data.get('cyl') or 0,
+                    os_axis=os_data.get('axis') or 0,
+                    status=pending_status,
+                )
+
+                # Bug #6: Check if update actually affected rows
+                updated_count = order.items.filter(prescription__isnull=True).update(prescription=prescription)
+
+                if updated_count == 0:
+                    raise ValidationError('All order items already have prescriptions. Prescription created but not linked.')
+        except ValidationError as e:
+            return Response({'error': str(e.detail[0])}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({'detail': 'Prescription saved successfully.', 'prescription_id': prescription.id})
+
+
+class PrescriptionByOrderView(views.APIView):
+    """GET /api/sales/prescriptions/by-order/<order_id>/ — prescription status for an order."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, order_id):
+        from apps.catalog.models import Prescription
+        from apps.catalog.serializers import PrescriptionSerializer
+
+        try:
+            order = Order.objects.prefetch_related('items__prescription__status').get(id=order_id)
+        except Order.DoesNotExist:
+            return Response({'error': 'Order not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if not request.user.is_staff and order.user != request.user:
+            return Response({'error': 'Not authorised.'}, status=status.HTTP_403_FORBIDDEN)
+
+        prescriptions = Prescription.objects.filter(
+            order_items__order=order
+        ).select_related('user', 'status').prefetch_related('order_items__order').distinct()
+
+        serializer = PrescriptionSerializer(prescriptions, many=True, context={'request': request})
+        return Response(serializer.data)
 
 
 class DeliveryCheckView(views.APIView):

@@ -21,8 +21,8 @@ const StarSelector = ({ value, onChange }) => {
                         onMouseLeave={() => setHover(0)}
                         onClick={() => onChange(n)}>
                         <svg width="36" height="36" viewBox="0 0 24 24"
-                            fill={active >= n ? 'var(--eyenic-purple-primary)' : 'none'}
-                            stroke="var(--eyenic-purple-primary)" strokeWidth="1.5"
+                            fill={active >= n ? 'var(--specsit-purple-primary)' : 'none'}
+                            stroke="var(--specsit-purple-primary)" strokeWidth="1.5"
                             strokeLinecap="round" strokeLinejoin="round">
                             <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
                         </svg>
@@ -30,7 +30,7 @@ const StarSelector = ({ value, onChange }) => {
                 ))}
             </div>
             {active > 0 && (
-                <span style={{ display: 'block', marginTop: 6, fontSize: 13, color: 'var(--eyenic-body-grey)', fontWeight: 500 }}>
+                <span style={{ display: 'block', marginTop: 6, fontSize: 13, color: 'var(--specsit-body-grey)', fontWeight: 500 }}>
                     {STAR_LABELS[active]}
                 </span>
             )}
@@ -160,22 +160,23 @@ const WriteReviewPage = () => {
             const firstItem = order?.items?.[0];
             const productId = firstItem?.product_id ?? null;
 
-            const payload = {
-                order: orderId,
-                product: productId,
-                rating,
-                review_title: reviewTitle,
-                review_text: reviewText,
-                reviewer_display_name: displayName,
-                review_images: images.map(img => img.preview),
-                is_verified_purchase: true,
-                is_approved: false,
-            };
+            const formData = new FormData();
+            formData.append('order', orderId);
+            formData.append('product', productId);
+            formData.append('rating', rating);
+            formData.append('review_title', reviewTitle);
+            formData.append('review_text', reviewText);
+            formData.append('reviewer_display_name', displayName);
+            formData.append('is_verified_purchase', 'true');
+            formData.append('is_approved', 'false');
+            images.forEach((img, idx) => {
+                formData.append(`image_${idx}`, img.file);
+            });
 
             if (existingReview) {
-                await apiClient.patch(`/catalog/reviews/${existingReview.id}/`, payload);
+                await apiClient.patch(`/catalog/reviews/${existingReview.id}/`, formData);
             } else {
-                await apiClient.post('/catalog/reviews/', payload);
+                await apiClient.post('/catalog/reviews/', formData);
             }
 
             setSubmitSuccess(true);
@@ -221,7 +222,7 @@ const WriteReviewPage = () => {
                                     <polyline points="20 6 9 17 4 12"/>
                                 </svg>
                             </div>
-                            <p style={{ fontSize: 22, fontWeight: 700, color: 'var(--eyenic-black)', margin: '0 0 8px' }}>
+                            <p style={{ fontSize: 22, fontWeight: 700, color: 'var(--specsit-black)', margin: '0 0 8px' }}>
                                 {existingReview ? 'Review updated!' : 'Review submitted!'}
                             </p>
                             <p className="ord-card__variant-info">Thank you for your feedback. Redirecting to your orders…</p>
@@ -231,7 +232,7 @@ const WriteReviewPage = () => {
                             {/* Page heading */}
                             <div style={{ marginBottom: 32 }}>
                                 <button type="button" onClick={() => navigate('/orders')}
-                                    style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--eyenic-body-grey)', fontSize: 13, fontFamily: 'inherit', marginBottom: 16 }}>
+                                    style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--specsit-body-grey)', fontSize: 13, fontFamily: 'inherit', marginBottom: 16 }}>
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                         <polyline points="15 18 9 12 15 6"/>
                                     </svg>
@@ -247,17 +248,17 @@ const WriteReviewPage = () => {
 
                             {/* Items being reviewed */}
                             <div style={{ marginBottom: 32 }}>
-                                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--eyenic-body-grey)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>
+                                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--specsit-body-grey)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>
                                     Items in this order
                                 </p>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                                     {items.length === 0 ? (
-                                        <div style={{ padding: '16px 20px', background: 'var(--eyenic-bg-white)', border: '1px solid var(--eyenic-light-grey)', borderRadius: 12 }}>
+                                        <div style={{ padding: '16px 20px', background: 'var(--specsit-bg-white)', border: '1px solid var(--specsit-light-grey)', borderRadius: 12 }}>
                                             <span className="ord-card__variant-info">No items found</span>
                                         </div>
                                     ) : items.map((item, idx) => (
-                                        <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 18px', background: 'var(--eyenic-bg-white)', border: '1px solid var(--eyenic-light-grey)', borderRadius: 12 }}>
-                                            <div style={{ flexShrink: 0, width: 60, height: 60, borderRadius: 8, border: '1px solid var(--eyenic-light-grey)', overflow: 'hidden', background: '#F9FAFB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 18px', background: 'var(--specsit-bg-white)', border: '1px solid var(--specsit-light-grey)', borderRadius: 12 }}>
+                                            <div style={{ flexShrink: 0, width: 60, height: 60, borderRadius: 8, border: '1px solid var(--specsit-light-grey)', overflow: 'hidden', background: '#F9FAFB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                                 {item.variant_image
                                                     ? <img src={item.variant_image} alt={item.variant_name || 'Product'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                     : <span style={{ fontSize: 26 }}>👓</span>
@@ -273,7 +274,7 @@ const WriteReviewPage = () => {
                                                 </div>
                                             </div>
                                             <div style={{ flexShrink: 0, textAlign: 'right' }}>
-                                                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--eyenic-black)' }}>
+                                                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--specsit-black)' }}>
                                                     ₹{parseFloat(item.price_at_purchase || 0).toLocaleString('en-IN')}
                                                 </div>
                                             </div>
@@ -283,8 +284,8 @@ const WriteReviewPage = () => {
                             </div>
 
                             {/* Review form */}
-                            <div style={{ borderTop: '1px solid var(--eyenic-light-grey)', paddingTop: 32 }}>
-                                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--eyenic-body-grey)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 28 }}>
+                            <div style={{ borderTop: '1px solid var(--specsit-light-grey)', paddingTop: 32 }}>
+                                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--specsit-body-grey)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 28 }}>
                                     Your review
                                 </p>
 
@@ -331,13 +332,13 @@ const WriteReviewPage = () => {
 
                                     {/* Photos */}
                                     <div>
-                                        <label className="review-field-label">Add photos <span style={{ color: 'var(--eyenic-body-grey)', fontWeight: 400 }}>(optional, max 3)</span></label>
+                                        <label className="review-field-label">Add photos <span style={{ color: 'var(--specsit-body-grey)', fontWeight: 400 }}>(optional, max 3)</span></label>
                                         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-start' }}>
                                             {images.map((img, i) => (
                                                 <div key={i} style={{ position: 'relative', width: 72, height: 72 }}>
-                                                    <img src={img.preview} alt="" style={{ width: 72, height: 72, borderRadius: 10, objectFit: 'cover', border: '1px solid var(--eyenic-light-grey)' }} />
+                                                    <img src={img.preview} alt="" style={{ width: 72, height: 72, borderRadius: 10, objectFit: 'cover', border: '1px solid var(--specsit-light-grey)' }} />
                                                     <button type="button" onClick={() => setImages(prev => prev.filter((_, j) => j !== i))}
-                                                        style={{ position: 'absolute', top: -7, right: -7, width: 20, height: 20, borderRadius: '50%', background: 'var(--eyenic-black)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
+                                                        style={{ position: 'absolute', top: -7, right: -7, width: 20, height: 20, borderRadius: '50%', background: 'var(--specsit-black)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
                                                         ×
                                                     </button>
                                                 </div>
@@ -371,9 +372,9 @@ const WriteReviewPage = () => {
                                     )}
 
                                     {/* Actions */}
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 8, borderTop: '1px solid var(--eyenic-light-grey)' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 8, borderTop: '1px solid var(--specsit-light-grey)' }}>
                                         <button type="button" onClick={handleCancel}
-                                            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 500, color: 'var(--eyenic-body-grey)', padding: 0, fontFamily: 'inherit' }}>
+                                            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 500, color: 'var(--specsit-body-grey)', padding: 0, fontFamily: 'inherit' }}>
                                             Cancel
                                         </button>
                                         <button type="submit" disabled={submitting} className="account-btn-primary">

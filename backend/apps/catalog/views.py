@@ -307,17 +307,62 @@ class LensPackageViewSet(viewsets.ModelViewSet):
 class LensViewSet(viewsets.ModelViewSet):
     queryset = Lens.objects.select_related('package', 'type').all()
     serializer_class = LensSerializer
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
 class PrescriptionViewSet(viewsets.ModelViewSet):
     serializer_class = PrescriptionSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Prescription.objects.filter(user=self.request.user)
+        if self.request.user.is_staff:
+            qs = Prescription.objects.select_related('user', 'status').prefetch_related(
+                'order_items__order'
+            ).filter(order_items__isnull=False).distinct()
+            status_filter = self.request.query_params.get('status')
+            if status_filter and status_filter != 'all':
+                from django.db.models import Q
+                status_lower = status_filter.lower()
+                if status_lower == 'pending':
+                    qs = qs.filter(Q(status__isnull=True) | Q(status__label__icontains='pending'))
+                else:
+                    qs = qs.filter(status__label__icontains=status_lower)
+            return qs.order_by('-created_at')
+        return Prescription.objects.filter(user=self.request.user).select_related('status')
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+    @action(detail=True, methods=['patch'])
+    def review(self, request, pk=None):
+        if not request.user.is_staff:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('Only staff members can review prescriptions.')
+
+        from apps.catalog.core.models import MetadataGroup, MetadataItem as MI
+        prescription = self.get_object()
+
+        review_status = request.data.get('status')
+        review_notes = request.data.get('notes', '')
+
+        if review_status:
+            slug_map = {
+                'Approved': 'approved',
+                'Rejected': 'rejected',
+                'Pending': 'pending',
+                'Pending Review': 'pending_review',
+                'Reupload Requested': 'reupload_requested',
+            }
+            group, _ = MetadataGroup.objects.get_or_create(name='Prescription Status')
+            status_obj, _ = MI.objects.get_or_create(
+                group=group,
+                label=review_status,
+                defaults={'value': slug_map.get(review_status, review_status.lower().replace(' ', '_')), 'is_active': True},
+            )
+            prescription.status = status_obj
+
+        prescription.review_notes = review_notes
+        prescription.save()
+        return Response(self.get_serializer(prescription).data)
 
 class UserFaceViewSet(viewsets.ModelViewSet):
     """

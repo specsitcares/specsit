@@ -50,7 +50,7 @@ const ReviewCreatePage = () => {
         const orderRes = await apiClient.get(`/sales/orders/${orderId}/`);
         const order = orderRes.data;
         if (order.order_status !== 'delivered') {
-          navigate('/customer/orders');
+          navigate('/orders');
           return;
         }
 
@@ -209,7 +209,7 @@ const ReviewCreatePage = () => {
           }
           <div>
             <div style={{ fontWeight: 600, color: '#111827', fontSize: 14 }}>{product.title}</div>
-            <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>Reviewing for Order #{orderId}</div>
+            <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>Reviewing for Order #LO-{String(orderId).padStart(7, '0')}</div>
             <div style={{ background: '#d1fae5', color: '#065f46', borderRadius: 4, padding: '2px 8px', fontSize: 11, fontWeight: 600, display: 'inline-block', marginTop: 4 }}>
               ✓ Verified Purchase
             </div>

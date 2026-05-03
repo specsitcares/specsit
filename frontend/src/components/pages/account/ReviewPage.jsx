@@ -68,7 +68,7 @@ const ReviewPage = () => {
         const orderData = orderRes.data;
 
         if (orderData.order_status !== 'delivered') {
-          navigate('/customer/orders');
+          navigate('/orders');
           return;
         }
         setOrder(orderData);
@@ -95,7 +95,7 @@ const ReviewPage = () => {
         setForm(f => ({ ...f, reviewer_display_name: user?.username || '' }));
       } catch (e) {
         console.error(e);
-        navigate('/customer/orders');
+        navigate('/orders');
       } finally {
         setLoading(false);
       }
@@ -169,7 +169,7 @@ const ReviewPage = () => {
       }
 
       setSuccess(true);
-      setTimeout(() => navigate('/customer/orders'), 1800);
+      setTimeout(() => navigate('/orders'), 1800);
     } catch (err) {
       const detail = err.response?.data;
       if (detail && typeof detail === 'object') {
@@ -249,7 +249,7 @@ const ReviewPage = () => {
             </div>
           )}
           <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>
-            Order <strong>#{orderId}</strong>
+            Order <strong>#LO-{String(orderId).padStart(7, '0')}</strong>
             {deliveryDate && <> · Delivered {formatDate(deliveryDate)}</>}
           </div>
         </div>
@@ -364,7 +364,7 @@ const ReviewPage = () => {
 
         {/* ── Footer: cancel left, submit right ── */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 4 }}>
-          <Link to="/customer/orders"
+          <Link to="/orders"
             style={{ fontSize: 13, color: '#6b7280', textDecoration: 'none', fontWeight: 500 }}>
             ← Cancel
           </Link>

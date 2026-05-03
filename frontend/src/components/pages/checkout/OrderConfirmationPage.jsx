@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useSearchParams, useNavigate, Link } from 'react-router-dom';
+import { useSearchParams, useNavigate, useParams, Link } from 'react-router-dom';
 import apiClient from '../../../services/api';
 import '../../../styles/checkout.css';
 
@@ -49,7 +49,7 @@ const OrderSummary = ({ items, totalAmount, depositAmount, balanceAmount, showAw
                             )}
                         </div>
                         <span className="conf-summary-item-price">
-                            ₹{parseFloat(item.price_at_purchase || item.price || 0).toLocaleString()}
+                            ₹{parseFloat(item.price_at_purchase ?? item.price ?? 0).toLocaleString()}
                         </span>
                     </div>
                 )) : (
@@ -101,8 +101,8 @@ const OrderSummary = ({ items, totalAmount, depositAmount, balanceAmount, showAw
 /* ─── Main component ─── */
 const OrderConfirmationPage = () => {
     const [searchParams] = useSearchParams();
+    const { orderId } = useParams();
     const navigate = useNavigate();
-    const orderId = searchParams.get('order_id');
     const hasDeferredRx = searchParams.get('has_deferred_rx') === 'true';
 
     const [order, setOrder] = useState(null);
@@ -190,7 +190,7 @@ const OrderConfirmationPage = () => {
         setSubmitting(true);
         try {
             const formData = new FormData();
-            formData.append('prescription_pdf', file);
+            formData.append('prescription_file', file);
             formData.append('order_id', orderId);
             formData.append('vision_type', 'Single Vision');
             formData.append('patient_name', 'Patient');
@@ -232,7 +232,7 @@ const OrderConfirmationPage = () => {
     const paidFromApi = parseFloat(order.paid_amount) > 0 ? parseFloat(order.paid_amount) : 0;
     const depositAmount = depositFromUrl > 0 ? depositFromUrl : paidFromApi > 0 ? paidFromApi : totalAmount * 0.25;
     const balanceAmount = totalAmount - depositAmount;
-    const displayOrderId = order.order_number || order.id || orderId;
+    const displayOrderId = `LO-${String(order.id || orderId).padStart(7, '0')}`;
     const items = order.items || order.order_items || [];
 
     /* ── Shared header ── */
@@ -290,7 +290,9 @@ const OrderConfirmationPage = () => {
                                             </div>
                                         </div>
                                         <div className="conf-tracking-right">
-                                            <span className="conf-courier-name">Courier: Arjun Kumar</span>
+                                            {order?.tracking?.courier_person && (
+                                                <span className="conf-courier-name">Courier: {order.tracking.courier_person}</span>
+                                            )}
                                             <button className="conf-contact-pill">
                                                 <svg width="10.5" height="10.5" viewBox="0 0 24 24" fill="none" stroke="#040205" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                                     <path d="M22 16.92V19.92C22 20.48 21.76 21.01 21.34 21.38C20.92 21.76 20.36 21.93 19.8 21.86C16.74 21.49 13.8 20.39 11.22 18.64C8.82 17.04 6.8 15.02 5.2 12.62C3.44 10.03 2.34 7.07 1.98 3.99C1.91 3.44 2.08 2.88 2.45 2.46C2.83 2.04 3.36 1.8 3.92 1.8H6.92C7.88 1.8 8.7 2.47 8.87 3.42C9.02 4.27 9.26 5.1 9.59 5.9C9.85 6.53 9.7 7.25 9.22 7.72L7.97 8.97C9.44 11.47 11.53 13.56 14.03 15.03L15.28 13.78C15.75 13.3 16.47 13.15 17.1 13.41C17.9 13.74 18.73 13.98 19.58 14.13C20.54 14.3 21.22 15.13 21.2 16.09L22 16.92Z"/>
