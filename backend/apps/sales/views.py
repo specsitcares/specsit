@@ -33,17 +33,11 @@ class OrderViewSet(viewsets.ModelViewSet):
     ]
     
     def get_queryset(self):
-        from django.db.models import Prefetch
-        from apps.catalog.models import Review
-
-        user_reviews = Review.objects.filter(user_id=self.request.user.id) if self.request.user.is_authenticated else Review.objects.none()
-
         qs = Order.objects.select_related(
             'status', 'coupon', 'shipping_address', 'billing_address', 'user'
         ).prefetch_related(
             'items', 'items__variant', 'items__variant__product',
-            'tracking', 'payments',
-            Prefetch('items__order__review_set', queryset=user_reviews)
+            'tracking', 'payments'
         )
         
         if not self.request.user.is_staff:
