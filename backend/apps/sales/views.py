@@ -306,6 +306,47 @@ class OrderViewSet(viewsets.ModelViewSet):
                 }
             )
 
+    _STATUS_ID_MAP = {
+        4:  ('Confirmed',         'confirmed'),
+        5:  ('Preparing',         'preparing'),
+        8:  ('Ready for Dispatch','ready_for_dispatch'),
+        9:  ('In Transit',        'in_transit'),
+        10: ('Delivered',         'delivered'),
+    }
+
+    def _resolve_status(self, data):
+        from apps.catalog.core.models import MetadataGroup, MetadataItem as MI
+        status_val = data.get('status')
+        if status_val is None:
+            return data
+        data = data.copy()
+        if isinstance(status_val, str) and not str(status_val).isdigit():
+            group, _ = MetadataGroup.objects.get_or_create(name='Order Status')
+            obj, _ = MI.objects.get_or_create(
+                group=group, label=status_val,
+                defaults={'value': status_val.lower().replace(' ', '_'), 'is_active': True},
+            )
+            data['status'] = obj.id
+        else:
+            status_id = int(status_val)
+            if not MI.objects.filter(pk=status_id).exists():
+                label, value = self._STATUS_ID_MAP.get(status_id, (f'Status {status_id}', f'status_{status_id}'))
+                group, _ = MetadataGroup.objects.get_or_create(name='Order Status')
+                obj, _ = MI.objects.get_or_create(
+                    group=group, label=label,
+                    defaults={'value': value, 'is_active': True},
+                )
+                data['status'] = obj.id
+        return data
+
+    def update(self, request, *args, **kwargs):
+        request._full_data = self._resolve_status(request.data)
+        return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        request._full_data = self._resolve_status(request.data)
+        return super().partial_update(request, *args, **kwargs)
+
     def perform_update(self, serializer):
         from apps.catalog.core.models import MetadataItem
         from .models import Shipment
