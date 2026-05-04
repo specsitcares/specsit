@@ -150,6 +150,8 @@ class OrderSerializer(serializers.ModelSerializer):
                 'state': obj.shipping_address.state,
                 'pin_code': obj.shipping_address.pin_code,
                 'country': obj.shipping_address.country,
+                'phone': obj.shipping_address.phone,
+                'full_name': obj.shipping_address.full_name_contact,
             }
         if obj.shipping_address_line:
             return {

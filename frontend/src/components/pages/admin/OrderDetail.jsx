@@ -68,7 +68,6 @@ const OrderDetail = ({ orderId, onBack }) => {
 
   const METADATA_TO_ORDER_STATUS = {
     4: 'confirmed',
-    5: 'confirmed',
     8: 'ready_to_dispatch',
     9: 'in_transit',
     10: 'delivered',
@@ -263,14 +262,22 @@ const OrderDetail = ({ orderId, onBack }) => {
   const deliveredAt         = formatDate(order.delivery_date || order.tracking?.actual_delivery_date);
 
   // ── Lifecycle steps ───────────────────────────────────────────────────────
-  // order.order_status is always up-to-date; order.status (MetadataItem FK)
-  // may lag if the MetadataItem doesn't exist in the DB. Use whichever is higher.
+  // Use status_label (MetadataItem label string) to determine the step — avoids
+  // depending on MetadataItem PKs which are auto-incremented and unpredictable.
+  const labelToStepId = (label) => {
+    const l = (label || '').toLowerCase();
+    if (l.includes('deliver')) return 10;
+    if (l.includes('transit')) return 9;
+    if (l.includes('ready')) return 8;
+    if (l.includes('prepar') || l.includes('quality')) return 5;
+    return 4;
+  };
   const ORDER_STATUS_TO_ID = {
     pending: 4, confirmed: 4, ready_to_dispatch: 8, in_transit: 9, delivered: 10,
   };
   const idFromOrderStatus = ORDER_STATUS_TO_ID[order.order_status] || 4;
-  const idFromMeta = order.status ? Number(order.status) : 0;
-  const currentStatusId = Math.max(idFromMeta, idFromOrderStatus);
+  const idFromLabel = order.status_label ? labelToStepId(order.status_label) : 0;
+  const currentStatusId = Math.max(idFromLabel, idFromOrderStatus);
 
   const steps = [
     {
@@ -650,12 +657,6 @@ const OrderDetail = ({ orderId, onBack }) => {
                     <Phone size={14} color="#040205" />
                     {addr.phone || 'Not provided'}
                   </div>
-                  {addr.pin_code && (
-                    <div className="contact-item">
-                      <Phone size={14} color="#040205" />
-                      {addr.pin_code}
-                    </div>
-                  )}
                 </div>
               </div>
 
