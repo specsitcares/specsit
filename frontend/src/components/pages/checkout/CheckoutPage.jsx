@@ -113,9 +113,28 @@ const CheckoutPage = () => {
         }
     };
 
-    const handleShippingContinue = () => {
+    const handleShippingContinue = async () => {
         if (currentStep === 3) {
-            if (subStep === 'FORM' && !validateAddress()) return;
+            if (subStep === 'FORM') {
+                if (!validateAddress()) return;
+                if (saveAddress) {
+                    try {
+                        const saved = await apiClient.post('/accounts/addresses/', {
+                            title: addressType,
+                            full_name_contact: formData.full_name,
+                            street_address: [formData.address_line, formData.locality].filter(Boolean).join(', '),
+                            phone: formData.mobile,
+                            city: formData.city,
+                            state: formData.state,
+                            pin_code: formData.pincode,
+                        });
+                        setSavedAddresses(prev => [...prev, saved.data]);
+                        setSelectedAddressId(saved.data.id);
+                    } catch {
+                        // non-blocking — proceed even if save fails
+                    }
+                }
+            }
             setCurrentStep(4);
         }
     };
@@ -463,7 +482,7 @@ const CheckoutPage = () => {
                 {currentStep === 3 && (
                     <button className="summary-cta-btn" style={{ marginTop: '24px', borderRadius: '6px', fontSize: '18px', padding: '20px 24px', letterSpacing: '-0.025em' }}
                         onClick={handleShippingContinue}
-                        disabled={subStep === 'FORM' && Object.keys(addressErrors).length > 0}
+                        disabled={subStep === 'FORM' && Object.values(addressErrors).some(Boolean)}
                         title={subStep === 'FORM' && Object.keys(addressErrors).length > 0 ? 'Please fix address errors' : ''}>
                         Save Address and Proceed
                         <ArrowRight />
@@ -589,7 +608,7 @@ const CheckoutPage = () => {
                                                                     if (window.confirm('Delete this address?')) {
                                                                         try {
                                                                             await apiClient.delete(`/accounts/addresses/${addr.id}/`);
-                                                                            setAddresses(prev => prev.filter(a => a.id !== addr.id));
+                                                                            setSavedAddresses(prev => prev.filter(a => a.id !== addr.id));
                                                                         } catch {
                                                                             alert('Failed to delete address');
                                                                         }
