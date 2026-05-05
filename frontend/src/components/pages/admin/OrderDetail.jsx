@@ -28,7 +28,7 @@ const OrderDetail = ({ orderId, onBack }) => {
   const qcFileInputRef = React.useRef(null);
   const [qcFileName, setQcFileName] = useState('');
   const [qcImageLightbox, setQcImageLightbox] = useState(false);
-  const [editingRider, setEditingRider] = useState(false);
+  const [riderEditModalOpen, setRiderEditModalOpen] = useState(false);
   const [dispatchModalOpen, setDispatchModalOpen] = useState(false);
   const [dispatchForm, setDispatchForm] = useState({
     booking_id: '', rider_name: '', rider_phone: '', vehicle_type: 'Bike', eta: '',
@@ -114,7 +114,15 @@ const OrderDetail = ({ orderId, onBack }) => {
   const handleSaveTracking = async () => {
     setTrackingSaving(true);
     try {
-      await apiClient.post(`/sales/orders/${orderId}/update_tracking/`, tracking);
+      const payload = {
+        delivery_agent_name: tracking.delivery_agent_name,
+        delivery_agent_phone: tracking.delivery_agent_phone,
+        courier_company: tracking.courier_company,
+        tracking_number: tracking.tracking_number || null,
+      };
+      if (tracking.shipped_date) payload.shipped_date = tracking.shipped_date;
+      if (tracking.estimated_delivery_date) payload.estimated_delivery_date = tracking.estimated_delivery_date;
+      await apiClient.post(`/sales/orders/${orderId}/update_tracking/`, payload);
       fetchOrder();
     } catch (err) {
       alert('Failed to save tracking info.');
@@ -279,6 +287,13 @@ const OrderDetail = ({ orderId, onBack }) => {
   const idFromLabel = order.status_label ? labelToStepId(order.status_label) : 0;
   const currentStatusId = Math.max(idFromLabel, idFromOrderStatus);
 
+  // Prescription gate: every lens item must have an approved prescription
+  // before the lab can start preparing the glasses.
+  const lensItems = order.items?.filter(item => item.lens) || [];
+  const prescriptionBlocked =
+    lensItems.length > 0 &&
+    !lensItems.every(item => item.prescription_status === 'Approved');
+
   const steps = [
     {
       title: 'Order Received',
@@ -300,6 +315,7 @@ const OrderDetail = ({ orderId, onBack }) => {
       time: currentStatusId > 4 ? 'Completed' : currentStatusId === 4 ? 'In progress' : 'Pending',
       status: currentStatusId > 4 ? 'completed' : currentStatusId === 4 ? 'current' : 'upcoming',
       hasAction: currentStatusId === 4,
+      blocked: currentStatusId === 4 && prescriptionBlocked,
       actionLabel: 'Mark as Prepared',
       nextStatus: 5,
     },
@@ -441,77 +457,52 @@ const OrderDetail = ({ orderId, onBack }) => {
                           {/* Rider card */}
                           {step.showRiderCard && (
                             <div className="step-rider-card">
-                              {editingRider ? (
-                                <div className="step-rider-edit-form">
-                                  <input
-                                    className="step-rider-input"
-                                    placeholder="Rider / agent name"
-                                    value={tracking.delivery_agent_name}
-                                    onChange={e => setTracking(t => ({ ...t, delivery_agent_name: e.target.value }))}
-                                  />
-                                  <input
-                                    className="step-rider-input"
-                                    placeholder="+91 phone number"
-                                    value={tracking.delivery_agent_phone}
-                                    onChange={e => setTracking(t => ({ ...t, delivery_agent_phone: e.target.value }))}
-                                  />
-                                  <input
-                                    className="step-rider-input"
-                                    placeholder="Courier company / vehicle type"
-                                    value={tracking.courier_company}
-                                    onChange={e => setTracking(t => ({ ...t, courier_company: e.target.value }))}
-                                  />
-                                  <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
-                                    <button
-                                      className="step-rider-save-btn"
-                                      onClick={async () => { await handleSaveTracking(); setEditingRider(false); }}
-                                      disabled={trackingSaving}
-                                    >
-                                      {trackingSaving ? 'Saving…' : 'Save'}
-                                    </button>
-                                    <button
-                                      className="step-rider-cancel-btn"
-                                      onClick={() => setEditingRider(false)}
-                                    >
-                                      Cancel
-                                    </button>
-                                  </div>
+                              <div className="step-rider-display">
+                                <div className="step-rider-info">
+                                  <span className="step-rider-name">
+                                    {order.tracking?.delivery_agent_name || 'Rider not yet assigned'}
+                                  </span>
+                                  <span className="step-rider-meta">
+                                    {[order.tracking?.delivery_agent_phone, order.tracking?.courier_company]
+                                      .filter(Boolean).join(' · ') || 'No contact details on file'}
+                                  </span>
                                 </div>
-                              ) : (
-                                <div className="step-rider-display">
-                                  <div className="step-rider-info">
-                                    <span className="step-rider-name">
-                                      {order.tracking?.delivery_agent_name || 'Rider not yet assigned'}
-                                    </span>
-                                    <span className="step-rider-meta">
-                                      {[order.tracking?.delivery_agent_phone, order.tracking?.courier_company]
-                                        .filter(Boolean).join(' · ') || 'No contact details on file'}
-                                    </span>
-                                  </div>
-                                  <button
-                                    className="step-rider-edit-btn"
-                                    onClick={() => setEditingRider(true)}
-                                  >
-                                    Edit
-                                  </button>
-                                </div>
-                              )}
+                                <button
+                                  className="step-rider-edit-btn"
+                                  onClick={() => setRiderEditModalOpen(true)}
+                                >
+                                  Edit
+                                </button>
+                              </div>
                             </div>
                           )}
 
                           {/* Action button */}
                           {step.hasAction && (
-                            <button
-                              className="prepared-action-btn"
-                              onClick={() => {
-                                if (step.isQC) return setQcModalOpen(true);
-                                if (step.isDispatch) return setDispatchModalOpen(true);
-                                if (step.isDelivery) return handleMarkDelivered();
-                                handleStatusUpdate(step.nextStatus);
-                              }}
-                            >
-                              {step.actionLabel}
-                            </button>
+                            step.blocked ? (
+                              <div>
+                                <button className="prepared-action-btn" disabled style={{ opacity: 0.45, cursor: 'not-allowed' }}>
+                                  {step.actionLabel}
+                                </button>
+                                <div style={{ marginTop: 8, display: 'flex', alignItems: 'flex-start', gap: 6, background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: 8, padding: '8px 12px' }}>
+                                  <span style={{ fontSize: 13, color: '#92400e', lineHeight: 1.45 }}>
+                                    Prescription not yet approved. Review and approve the prescription before marking as prepared.
+                                  </span>
+                                </div>
+                              </div>
+                            ) : (
+                              <button
+                                className="prepared-action-btn"
+                                onClick={() => {
+                                  if (step.isQC) return setQcModalOpen(true);
+                                  if (step.isDispatch) return setDispatchModalOpen(true);
+                                  if (step.isDelivery) return handleMarkDelivered();
+                                  handleStatusUpdate(step.nextStatus);
+                                }}
+                              >
+                                {step.actionLabel}
+                              </button>
+                            )
                           )}
                         </div>
                       ) : (
@@ -1159,6 +1150,122 @@ const OrderDetail = ({ orderId, onBack }) => {
           </div>
         );
       })()}
+
+      {/* ── Rider Edit Modal ── */}
+      {riderEditModalOpen && (
+        <div className="dispatch-modal-overlay" onClick={(e) => e.target === e.currentTarget && setRiderEditModalOpen(false)}>
+          <div className="dispatch-modal-card">
+
+            {/* Header */}
+            <div className="dm-header">
+              <div className="dm-header-content">
+                <p className="dm-header-title">Enter Porter rider details</p>
+                <p className="dm-header-sub">
+                  Order #LO-{String(order.id).padStart(7, '0')} · {order.customer_name || 'Customer'} · {addr.city || addr.street || '—'}
+                </p>
+              </div>
+              <button className="dm-close-btn" onClick={() => setRiderEditModalOpen(false)}>
+                <X size={15} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="dm-body">
+
+              {/* Tip alert */}
+              <div className="dm-alert">
+                <p className="dm-alert-title">Tip:</p>
+                <p className="dm-alert-body">Enter exactly what the Porter SMS shows. The rider's name and phone will be sent to the customer.</p>
+              </div>
+
+              <div className="dm-form">
+
+                {/* Porter booking ID */}
+                <div className="dm-field">
+                  <label className="dm-label">Porter booking ID <span className="dm-required">*</span></label>
+                  <input
+                    className="dm-input"
+                    placeholder="e.g. PRT-7782"
+                    value={tracking.tracking_number}
+                    onChange={e => setTracking(t => ({ ...t, tracking_number: e.target.value }))}
+                  />
+                </div>
+
+                {/* Rider full name */}
+                <div className="dm-field">
+                  <label className="dm-label">Rider full name <span className="dm-required">*</span></label>
+                  <input
+                    className="dm-input"
+                    placeholder="e.g. Rakesh"
+                    value={tracking.delivery_agent_name}
+                    onChange={e => setTracking(t => ({ ...t, delivery_agent_name: e.target.value }))}
+                  />
+                </div>
+
+                {/* Rider phone + Vehicle type */}
+                <div className="dm-row">
+                  <div className="dm-field">
+                    <label className="dm-label">Rider phone <span className="dm-required">*</span></label>
+                    <input
+                      className="dm-input"
+                      placeholder="+91-9876543210"
+                      value={tracking.delivery_agent_phone}
+                      onChange={e => setTracking(t => ({ ...t, delivery_agent_phone: e.target.value }))}
+                    />
+                  </div>
+                  <div className="dm-field">
+                    <label className="dm-label">Vehicle type <span className="dm-required">*</span></label>
+                    <div className="dm-select-wrap">
+                      <select
+                        className="dm-select"
+                        value={tracking.courier_company || 'Bike'}
+                        onChange={e => setTracking(t => ({ ...t, courier_company: e.target.value }))}
+                      >
+                        {['Bike', 'Car', 'Auto', 'Van', 'Truck'].map(v => (
+                          <option key={v} value={v}>{v}</option>
+                        ))}
+                      </select>
+                      <ChevronDown size={14} className="dm-select-chevron" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* SMS preview */}
+                <div className="dm-sms-box">
+                  <p className="dm-sms-label">SMS preview to customer</p>
+                  <textarea
+                    className="dm-sms-preview"
+                    readOnly
+                    value={(() => {
+                      const firstName = order.customer_name?.split(' ')[0] || 'Customer';
+                      const orderNum = `#LO-${String(order.id).padStart(7, '0')}`;
+                      const riderName = tracking.delivery_agent_name || '[Rider name]';
+                      const riderPhone = tracking.delivery_agent_phone || '[Phone]';
+                      return `Hi ${firstName}, your eyewear order ${orderNum} is on its way. Rider ${riderName} (${riderPhone}) will deliver. Track via app.`;
+                    })()}
+                  />
+                </div>
+
+              </div>
+
+              {/* Footer */}
+              <div className="dm-footer">
+                <button className="dm-btn-cancel" onClick={() => setRiderEditModalOpen(false)}>
+                  Cancel
+                </button>
+                <button
+                  className="dm-btn-primary"
+                  onClick={async () => { await handleSaveTracking(); setRiderEditModalOpen(false); }}
+                  disabled={trackingSaving}
+                >
+                  {trackingSaving ? 'Saving…' : 'Save changes'}
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
 
     </div>
   );

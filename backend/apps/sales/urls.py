@@ -6,7 +6,7 @@ from .views import (
     OrderTrackingViewSet, PaymentViewSet,
     PrescriptionUploadView, PrescriptionManualView, PrescriptionByOrderView,
 )
-from .payment_views import PaymentInitiateView, PaymentVerifyView, PaymentCancelView
+from .payment_views import PaymentInitiateView, PaymentVerifyView, PaymentCancelView, PaymentSettingsView
 
 router = SimpleRouter()
 router.register(r'orders', OrderViewSet, basename='order')
@@ -25,6 +25,7 @@ urlpatterns = [
     path('prescriptions/upload/', PrescriptionUploadView.as_view(), name='prescription-upload'),
     path('prescriptions/manual/', PrescriptionManualView.as_view(), name='prescription-manual'),
     path('prescriptions/by-order/<int:order_id>/', PrescriptionByOrderView.as_view(), name='prescription-by-order'),
+    path('payments/settings/', PaymentSettingsView.as_view(), name='payment-settings'),
     path('payments/initiate/', PaymentInitiateView.as_view(), name='payment-initiate'),
     path('payments/verify/', PaymentVerifyView.as_view(), name='payment-verify'),
     path('payments/cancel/', PaymentCancelView.as_view(), name='payment-cancel'),

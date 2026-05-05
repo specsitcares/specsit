@@ -14,6 +14,14 @@ class PaymentGatewayConfig(models.Model):
     key_secret = models.CharField(max_length=255, blank=True, help_text="Razorpay Key Secret")
     is_sandbox = models.BooleanField(default=True, help_text="Toggle between Test and Live mode")
     is_active = models.BooleanField(default=True)
+    partial_payment_enabled = models.BooleanField(
+        default=True,
+        help_text="Show the partial payment option to customers at checkout"
+    )
+    partial_payment_percentage = models.IntegerField(
+        default=50,
+        help_text="Percentage of order total charged upfront for partial payments (1–99)"
+    )
 
     class Meta:
         verbose_name_plural = "Payment Gateway Settings"

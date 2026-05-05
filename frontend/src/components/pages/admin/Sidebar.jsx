@@ -31,7 +31,7 @@ const Sidebar = ({ activeApp, setActiveApp, subView, setSubView, onClose, isMobi
     { key: 'Shipments',   label: 'Shipments',         icon: Truck,        subs: ['Track Shipments', 'Shipment Logs'] },
     { key: 'Customers',   label: 'Customers',         icon: Users,        subs: ['Customer Profiles', 'Reviews', 'Face Captures', 'Inquiries'] },
     { key: 'Analytics',   label: 'Analytics',         icon: BarChart2,    subs: ['Sales Performance', 'Category Trends'] },
-    { key: 'Settings',    label: 'Settings',          icon: Settings,     subs: ['Store Settings', 'System Settings', 'CMS Management', 'Staff Roles', 'Profile'] },
+    { key: 'Settings',    label: 'Settings',          icon: Settings,     subs: ['Store Settings', 'Payment Settings', 'CMS Management', 'Staff Roles', 'Profile'] },
   ];
 
   const isActive = (key) => activeApp === key;

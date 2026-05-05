@@ -17,7 +17,7 @@ const SPH_OPTIONS = buildDiopterOptions(-20, 20);
 const CYL_OPTIONS = buildDiopterOptions(-6, 0);
 
 /* ─── Shared: Order summary right column ─── */
-const OrderSummary = ({ items, totalAmount, depositAmount, balanceAmount, showAwaitingBadge }) => (
+const OrderSummary = ({ items, totalAmount, depositAmount, balanceAmount, depositPct, showAwaitingBadge }) => (
     <div className="conf-right">
         <div className="conf-summary-card">
             <div className="conf-summary-header">
@@ -77,23 +77,25 @@ const OrderSummary = ({ items, totalAmount, depositAmount, balanceAmount, showAw
                 </div>
             </div>
 
-            <div className="conf-breakdown">
-                <div className="conf-breakdown__row">
-                    <div className="conf-breakdown__label-stack">
-                        <span className="conf-breakdown__main">Initial Deposit</span>
-                        <span className="conf-breakdown__sub">Due Now (25%)</span>
+            {depositAmount > 0 && (
+                <div className="conf-breakdown">
+                    <div className="conf-breakdown__row">
+                        <div className="conf-breakdown__label-stack">
+                            <span className="conf-breakdown__main">Initial Deposit</span>
+                            <span className="conf-breakdown__sub">Paid Now ({depositPct}%)</span>
+                        </div>
+                        <span className="conf-breakdown__amount-large">₹{depositAmount.toLocaleString('en-IN')}</span>
                     </div>
-                    <span className="conf-breakdown__amount-large">₹{depositAmount.toLocaleString()}</span>
-                </div>
-                <div className="conf-breakdown__divider" />
-                <div className="conf-breakdown__row conf-breakdown__row--faded">
-                    <div className="conf-breakdown__label-stack">
-                        <span className="conf-breakdown__main conf-breakdown__main--grey">Balance Amount</span>
-                        <span className="conf-breakdown__sub">Due on Delivery</span>
+                    <div className="conf-breakdown__divider" />
+                    <div className="conf-breakdown__row conf-breakdown__row--faded">
+                        <div className="conf-breakdown__label-stack">
+                            <span className="conf-breakdown__main conf-breakdown__main--grey">Balance Amount</span>
+                            <span className="conf-breakdown__sub">Due before dispatch</span>
+                        </div>
+                        <span className="conf-breakdown__amount-medium">₹{balanceAmount.toLocaleString('en-IN')}</span>
                     </div>
-                    <span className="conf-breakdown__amount-medium">₹{balanceAmount.toLocaleString()}</span>
                 </div>
-            </div>
+            )}
         </div>
     </div>
 );
@@ -226,12 +228,13 @@ const OrderConfirmationPage = () => {
     }
 
     /* ── Computed values ── */
-    const depositFromUrl = parseFloat(searchParams.get('deposit') || 0);
     const totalFromUrl = parseFloat(searchParams.get('total') || 0);
     const totalAmount = parseFloat(order.total_amount) > 0 ? parseFloat(order.total_amount) : totalFromUrl;
-    const paidFromApi = parseFloat(order.paid_amount) > 0 ? parseFloat(order.paid_amount) : 0;
-    const depositAmount = depositFromUrl > 0 ? depositFromUrl : paidFromApi > 0 ? paidFromApi : totalAmount * 0.25;
-    const balanceAmount = totalAmount - depositAmount;
+    const paidFromApi = parseFloat(order.paid_amount) || 0;
+    const isPartialPayment = order.payment_method === 'partial_payment' || order.payment_method === 'PARTIAL';
+    const depositAmount = isPartialPayment ? paidFromApi : 0;
+    const balanceAmount = isPartialPayment ? (parseFloat(order.balance_amount) || (totalAmount - depositAmount)) : 0;
+    const depositPct = totalAmount > 0 ? Math.round(depositAmount / totalAmount * 100) : 0;
     const displayOrderId = `LO-${String(order.id || orderId).padStart(7, '0')}`;
     const items = order.items || order.order_items || [];
 
@@ -318,6 +321,7 @@ const OrderConfirmationPage = () => {
                             totalAmount={totalAmount}
                             depositAmount={depositAmount}
                             balanceAmount={balanceAmount}
+                            depositPct={depositPct}
                             showAwaitingBadge={false}
                         />
                     </div>
@@ -399,6 +403,7 @@ const OrderConfirmationPage = () => {
                             totalAmount={totalAmount}
                             depositAmount={depositAmount}
                             balanceAmount={balanceAmount}
+                            depositPct={depositPct}
                             showAwaitingBadge={true}
                         />
                     </div>
@@ -497,6 +502,7 @@ const OrderConfirmationPage = () => {
                             totalAmount={totalAmount}
                             depositAmount={depositAmount}
                             balanceAmount={balanceAmount}
+                            depositPct={depositPct}
                             showAwaitingBadge={true}
                         />
                     </div>
@@ -753,6 +759,7 @@ const OrderConfirmationPage = () => {
                         totalAmount={totalAmount}
                         depositAmount={depositAmount}
                         balanceAmount={balanceAmount}
+                        depositPct={depositPct}
                         showAwaitingBadge={false}
                     />
                 </div>

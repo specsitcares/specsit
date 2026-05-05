@@ -38,7 +38,7 @@ const formatPrice = (v) => `₹${parseFloat(v || 0).toLocaleString('en-IN')}`;
 const OrderSummaryPanel = ({ order, showBadge }) => {
     const items = order?.items || [];
     const total = parseFloat(order?.total_amount || 0);
-    const deposit = parseFloat(order?.paid_amount || Math.round(total * 0.25));
+    const deposit = parseFloat(order?.paid_amount || 0);
     const balance = total - deposit;
     const itemCount = items.length;
 
