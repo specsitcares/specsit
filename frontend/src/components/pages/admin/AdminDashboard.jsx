@@ -24,6 +24,7 @@ import VariantTable from './VariantTable';
 import LensManagement from './LensManagement';
 import CmsManagement from './CmsManagement';
 import StoreSettings from './StoreSettings';
+import PaymentSettings from './PaymentSettings';
 import { useAuth } from '../../../context/AuthContext';
 import OrderDetail from './OrderDetail';
 import '../../../styles/admin.css';
@@ -162,6 +163,7 @@ const AdminDashboard = () => {
       'Active Coupons': 'Coupons',
       'CMS Management': 'CMS',
       'Store Settings': 'StoreSettings',
+      'Payment Settings': 'PaymentSettings',
     };
     if (map[subView]) setPrimaryView(map[subView]);
   }, [subView]);
@@ -222,6 +224,8 @@ const AdminDashboard = () => {
         return <CmsManagement />;
       case 'StoreSettings':
         return <StoreSettings />;
+      case 'PaymentSettings':
+        return <PaymentSettings />;
       default:
         return <DashboardHome recentOrders={recentOrders} />;
     }

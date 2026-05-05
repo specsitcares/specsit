@@ -72,11 +72,16 @@ const CheckoutPage = () => {
         '#LO-PAY-CXL': 'Payment was cancelled. You can retry or choose a different method.',
     };
 
+    // Partial payment settings (fetched from admin)
+    const [partialPct, setPartialPct] = useState(50);
+    const [partialPaymentEnabled, setPartialPaymentEnabled] = useState(true);
+
     // Breakdown based on method (using integer paise to avoid rounding errors)
-    const phase1PaiseAmount = Math.round((cartTotal * 100) / 2);
-    const phase1Amount = phase1PaiseAmount / 100;
-    const phase2PaiseAmount = Math.round(cartTotal * 100) - phase1PaiseAmount;
-    const phase2Amount = phase2PaiseAmount / 100;
+    const totalPaise = Math.round(cartTotal * 100);
+    const phase1Paise = Math.round(totalPaise * partialPct / 100);
+    const phase1Amount = phase1Paise / 100;
+    const phase2Paise = totalPaise - phase1Paise;
+    const phase2Amount = phase2Paise / 100;
     const amountDueNow = paymentMethod === 'complete_cod' ? 0
         : paymentMethod === 'partial_payment' ? phase1Amount
         : cartTotal;
@@ -87,6 +92,12 @@ const CheckoutPage = () => {
             hasFetchedAddresses.current = true;
             fetchAddresses();
         }
+        apiClient.get('/sales/payments/settings/')
+            .then(res => {
+                setPartialPaymentEnabled(res.data.partial_payment_enabled ?? true);
+                setPartialPct(res.data.partial_payment_percentage || 50);
+            })
+            .catch(() => {});
         const script = document.createElement('script');
         script.src = 'https://checkout.razorpay.com/v1/checkout.js';
         script.async = true;
@@ -461,7 +472,7 @@ const CheckoutPage = () => {
                         {paymentMethod === 'partial_payment' && (<>
                             <div className="breakdown-row">
                                 <div className="breakdown-label-stack">
-                                    <span className="breakdown-main-label" style={{ textTransform: 'uppercase', fontSize: '12px', letterSpacing: '0.6px' }}>Pay Now (50%)</span>
+                                    <span className="breakdown-main-label" style={{ textTransform: 'uppercase', fontSize: '12px', letterSpacing: '0.6px' }}>Pay Now ({partialPct}%)</span>
                                     <span className="breakdown-sub-label">Via Razorpay today</span>
                                 </div>
                                 <div className="breakdown-value-large" style={{ fontSize: '24px' }}>₹{phase1Amount.toLocaleString()}</div>
@@ -802,12 +813,12 @@ const CheckoutPage = () => {
                                         desc: 'Pay the complete amount now via card, UPI, or net banking.',
                                         icon: '💳',
                                     },
-                                    {
+                                    ...(partialPaymentEnabled ? [{
                                         value: 'partial_payment',
-                                        title: 'Pay 50% Now, 50% Later',
-                                        desc: `Pay ₹${phase1Amount.toLocaleString()} today. Remaining ₹${phase2Amount.toLocaleString()} before dispatch.`,
+                                        title: `Pay ${partialPct}% Now, ${100 - partialPct}% Later`,
+                                        desc: `Pay ₹${phase1Amount.toLocaleString('en-IN')} today. Remaining ₹${phase2Amount.toLocaleString('en-IN')} before dispatch.`,
                                         icon: '✂️',
-                                    },
+                                    }] : []),
                                 ].map(opt => {
                                     const active = paymentMethod === opt.value;
                                     return (

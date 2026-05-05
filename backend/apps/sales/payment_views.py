@@ -8,6 +8,41 @@ from django.conf import settings
 from django.db import transaction
 from .models import PaymentGatewayConfig, Order, Payment
 
+
+def _get_partial_pct():
+    config = PaymentGatewayConfig.objects.filter(name='razorpay', is_active=True).first()
+    return config.partial_payment_percentage if config else 50
+
+
+class PaymentSettingsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        config = PaymentGatewayConfig.objects.filter(name='razorpay', is_active=True).first()
+        return Response({
+            'partial_payment_enabled': config.partial_payment_enabled if config else True,
+            'partial_payment_percentage': config.partial_payment_percentage if config else 50,
+        })
+
+    def put(self, request):
+        if not request.user.is_staff:
+            return Response({'error': 'Admin access required.'}, status=status.HTTP_403_FORBIDDEN)
+        try:
+            pct = int(request.data.get('partial_payment_percentage', ''))
+            if not (1 <= pct <= 99):
+                raise ValueError
+        except (ValueError, TypeError):
+            return Response({'error': 'Percentage must be an integer between 1 and 99.'}, status=status.HTTP_400_BAD_REQUEST)
+        enabled = bool(request.data.get('partial_payment_enabled', True))
+        config, _ = PaymentGatewayConfig.objects.get_or_create(name='razorpay')
+        config.partial_payment_enabled = enabled
+        config.partial_payment_percentage = pct
+        config.save(update_fields=['partial_payment_enabled', 'partial_payment_percentage'])
+        return Response({
+            'partial_payment_enabled': config.partial_payment_enabled,
+            'partial_payment_percentage': config.partial_payment_percentage,
+        })
+
 logger = logging.getLogger(__name__)
 
 
@@ -173,11 +208,13 @@ class PaymentVerifyView(APIView):
                     order.paid_amount = amount_paid
                     order.balance_amount = 0
                 elif payment_method == 'partial_payment':
-                    phase1 = math.ceil(float(order.total_amount) / 2)
-                    amount_paid = phase1
+                    pct = _get_partial_pct()
+                    total_paise = round(float(order.total_amount) * 100)
+                    phase1_paise = round(total_paise * pct / 100)
+                    amount_paid = phase1_paise / 100
                     order.payment_status = 'partial_paid'
                     order.paid_amount = amount_paid
-                    order.balance_amount = float(order.total_amount) - amount_paid
+                    order.balance_amount = (total_paise - phase1_paise) / 100
                 else:
                     # Fallback (ONLINE legacy)
                     amount_paid = float(order.total_amount)

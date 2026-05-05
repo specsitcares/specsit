@@ -818,10 +818,10 @@
 
 .dispatch-modal-card {
   background: #fff;
-  border-radius: 18px;
-  box-shadow: 0px 20px 60px rgba(0, 0, 0, 0.18);
+  border-radius: 24px;
+  box-shadow: 0px 1px 1.5px rgba(0, 0, 0, 0.05), 0px 20px 60px rgba(0, 0, 0, 0.18);
   width: 100%;
-  max-width: 620px;
+  max-width: 738px;
   max-height: 90vh;
   overflow-y: auto;
   display: flex;
@@ -831,35 +831,36 @@
 /* ── Header ── */
 .dm-header {
   background: #f3f3f3;
-  border-radius: 18px 18px 0 0;
-  padding: 14px 16px;
+  border-radius: 24px 24px 0 0;
+  padding: 16px;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
   flex-shrink: 0;
 }
 
 .dm-header-content {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
 }
 
 .dm-header-title {
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 600;
   color: #111827;
   margin: 0;
   line-height: normal;
+  font-family: 'Inter', sans-serif;
 }
 
 .dm-header-sub {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 400;
   color: #020617;
   margin: 0;
-  line-height: 1.5;
+  line-height: 22px;
 }
 
 .dm-close-btn {
@@ -881,10 +882,10 @@
 
 /* ── Body ── */
 .dm-body {
-  padding: 20px;
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 }
 
 /* ── Alert banner ── */
@@ -892,51 +893,51 @@
   background: #fff5db;
   border: 1px solid #f4c95c;
   border-radius: 8px;
-  padding: 12px 14px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
 }
 
 .dm-alert-title {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 500;
   color: #835e00;
   margin: 0;
-  line-height: normal;
+  line-height: 1;
 }
 
 .dm-alert-body {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 400;
   color: #835e00;
   margin: 0;
-  line-height: 1.5;
+  line-height: 22px;
 }
 
 /* ── Form ── */
 .dm-form {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 20px;
 }
 
 .dm-field {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 8px;
 }
 
 .dm-label {
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 500;
   color: #020617;
-  line-height: normal;
+  line-height: 20px;
 }
 
 .dm-required {
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 800;
   color: #c02828;
 }
 
@@ -944,14 +945,14 @@
   background: #fff;
   border: 1px solid #d2d2d2;
   border-radius: 6px;
-  padding: 9px 12px;
-  font-size: 13px;
+  padding: 12px 14px;
+  font-size: 16px;
   font-weight: 400;
   color: #020617;
   outline: none;
   width: 100%;
   box-sizing: border-box;
-  line-height: normal;
+  line-height: 20px;
   transition: border-color 0.15s;
 }
 
@@ -962,7 +963,7 @@
 .dm-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 24px;
 }
 
 /* Select with chevron */
@@ -978,8 +979,8 @@
   background: #fff;
   border: 1px solid #d2d2d2;
   border-radius: 6px;
-  padding: 9px 32px 9px 12px;
-  font-size: 13px;
+  padding: 14px 32px 14px 12px;
+  font-size: 16px;
   font-weight: 400;
   color: #020617;
   outline: none;
@@ -1006,11 +1007,11 @@
   padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .dm-sms-label {
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 500;
   color: #040205;
   margin: 0;
@@ -1021,13 +1022,13 @@
   background: #fff;
   border: 1px solid #d2d2d2;
   border-radius: 6px;
-  padding: 9px 12px;
-  font-size: 12px;
+  padding: 10px 12px;
+  font-size: 16px;
   font-weight: 400;
   color: #64748b;
-  line-height: 1.55;
+  line-height: 20px;
   width: 100%;
-  height: 72px;
+  height: 80px;
   resize: vertical;
   outline: none;
   box-sizing: border-box;
@@ -1039,16 +1040,15 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 10px;
-  padding-top: 4px;
+  gap: 12px;
 }
 
 .dm-btn-cancel {
   background: transparent;
   border: 1px solid #d2d2d2;
   border-radius: 4.8px;
-  padding: 7px 13px;
-  font-size: 13px;
+  padding: 8px 12.8px;
+  font-size: 14px;
   font-weight: 400;
   color: #111827;
   cursor: pointer;
@@ -1061,8 +1061,8 @@
   background: #6b3fa8;
   border: none;
   border-radius: 4.8px;
-  padding: 7px 14px;
-  font-size: 13px;
+  padding: 8px 12.8px;
+  font-size: 14px;
   font-weight: 400;
   color: #fff;
   cursor: pointer;
