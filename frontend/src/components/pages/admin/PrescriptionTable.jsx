@@ -384,6 +384,7 @@ const DetailPanel = ({ rx, onReviewed }) => {
   const [success, setSuccess]       = useState('');
   const [showReupload, setShowReupload] = useState(false);
   const [pdfLoadError, setPdfLoadError] = useState(false);
+  const [pdfBlobUrl, setPdfBlobUrl] = useState(null);
 
   useEffect(() => {
     setNotes(rx.review_notes || '');
@@ -392,7 +393,25 @@ const DetailPanel = ({ rx, onReviewed }) => {
     setZoom(100);
     setShowReupload(false);
     setPdfLoadError(false);
+    setPdfBlobUrl(null);
   }, [rx.id]);
+
+  // Fetch PDF as a blob so the iframe uses a local blob URL —
+  // this bypasses Django's X-Frame-Options: DENY header which blocks direct embedding.
+  useEffect(() => {
+    if (!rx.prescription_file) return;
+    const relativeUrl = rx.prescription_file.replace(/^https?:\/\/[^/]+/, '');
+    if (!/\.pdf$/i.test(relativeUrl.split('?')[0])) return;
+    let cancelled = false;
+    fetch(relativeUrl, { credentials: 'same-origin' })
+      .then(r => r.ok ? r.blob() : Promise.reject(r.status))
+      .then(blob => { if (!cancelled) setPdfBlobUrl(URL.createObjectURL(blob)); })
+      .catch(() => { if (!cancelled) setPdfLoadError(true); });
+    return () => {
+      cancelled = true;
+      setPdfBlobUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null; });
+    };
+  }, [rx.prescription_file]);
 
   const submit = async (reviewStatus) => {
     setSaving(true);
@@ -423,9 +442,12 @@ const DetailPanel = ({ rx, onReviewed }) => {
   };
 
   const hasFile = !!rx.prescription_file;
-  const isImage = hasFile && /\.(jpg|jpeg|png|gif|webp)$/i.test(rx.prescription_file);
-  const isPdf   = hasFile && /\.pdf$/i.test(rx.prescription_file);
-  const fileName = hasFile ? (rx.prescription_file.split('/').pop() || 'Prescription File') : 'No file uploaded';
+  // Strip protocol+host so the Vite proxy serves it same-origin (avoids cross-origin iframe block)
+  const fileUrl = hasFile ? rx.prescription_file.replace(/^https?:\/\/[^/]+/, '') : '';
+  const filePath = hasFile ? fileUrl.split('?')[0] : '';
+  const isImage = hasFile && /\.(jpg|jpeg|png|gif|webp)$/i.test(filePath);
+  const isPdf   = hasFile && /\.pdf$/i.test(filePath);
+  const fileName = hasFile ? (filePath.split('/').pop() || 'Prescription File') : 'No file uploaded';
 
   const rows = [
     { eye: 'OD', sub: '(Right)', sph: rx.od_sphere, cyl: rx.od_cylinder, axis: rx.od_axis, add: rx.od_add },
@@ -482,23 +504,26 @@ const DetailPanel = ({ rx, onReviewed }) => {
 
                 <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 16px 24px', boxSizing: 'border-box', gap: 12 }}>
                   {isImage ? (
-                    <img src={rx.prescription_file} alt="Prescription" style={{ width: `${zoom}%`, borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', transition: 'width 0.2s' }} />
+                    <img src={fileUrl} alt="Prescription" style={{ width: `${zoom}%`, borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', transition: 'width 0.2s' }} />
                   ) : isPdf ? (
                     pdfLoadError ? (
                       <>
                         <FileText size={40} color="#ef4444" />
                         <div style={{ textAlign: 'center' }}>
                           <div style={{ fontSize: 14, fontWeight: 500, color: '#991b1b' }}>Failed to load PDF</div>
-                          <div style={{ fontSize: 12, color: '#dc2626', marginTop: 2 }}>The PDF file could not be displayed. Try downloading it directly.</div>
+                          <div style={{ fontSize: 12, color: '#dc2626', marginTop: 2 }}>
+                            <a href={fileUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#6d28d9' }}>Open PDF in new tab</a>
+                          </div>
                         </div>
                       </>
-                    ) : (
+                    ) : pdfBlobUrl ? (
                       <iframe
-                        src={rx.prescription_file}
+                        src={pdfBlobUrl}
                         title="Prescription PDF"
                         style={{ width: '100%', height: 260, border: 'none', borderRadius: 8 }}
-                        onError={() => setPdfLoadError(true)}
                       />
+                    ) : (
+                      <div style={{ fontSize: 13, color: '#64748b' }}>Loading PDF…</div>
                     )
                   ) : (
                     <>
@@ -515,6 +540,11 @@ const DetailPanel = ({ rx, onReviewed }) => {
 
             {/* Notes + buttons section */}
             <div style={{ flexShrink: 0, background: '#f3f0ff', borderTop: '1px solid #e2e8f0', padding: '25px 24px 24px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+              {isPdf && fileUrl && (
+                <a href={fileUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: '#68408d', textDecoration: 'underline', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <Eye size={14} /> Open PDF in new tab
+                </a>
+              )}
               <NotesAndActions notes={notes} setNotes={setNotes} submit={submit} saving={saving} error={error} success={success} onReuploadClick={() => setShowReupload(true)} />
             </div>
           </>
@@ -643,8 +673,6 @@ const PrescriptionTable = () => {
 
   useEffect(() => {
     fetchPrescriptions();
-    const interval = setInterval(fetchPrescriptions, 5000);
-    return () => clearInterval(interval);
   }, []);
 
   const handleReviewed = async () => {

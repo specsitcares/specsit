@@ -4,7 +4,29 @@ import {
   Truck, Users, BarChart2, Settings, ChevronDown, Columns, X,
 } from 'lucide-react';
 
-const Sidebar = ({ activeApp, setActiveApp, subView, setSubView, onClose, isMobile }) => {
+const Badge = ({ count }) => {
+  if (!count || count <= 0) return null;
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      padding: '1px 6px',
+      borderRadius: 5,
+      background: '#F9F5FF',
+      border: '1px solid #68408D',
+      color: '#040205',
+      fontSize: 11,
+      fontWeight: 500,
+      lineHeight: '16px',
+      letterSpacing: '-0.07px',
+      flexShrink: 0,
+      whiteSpace: 'nowrap',
+    }}>
+      {count > 99 ? '99+' : count}
+    </span>
+  );
+};
+
+const Sidebar = ({ activeApp, setActiveApp, subView, setSubView, onClose, isMobile, badges = {} }) => {
   const [expanded, setExpanded] = useState({
     Dashboards: true,
     Orders: false,
@@ -39,7 +61,7 @@ const Sidebar = ({ activeApp, setActiveApp, subView, setSubView, onClose, isMobi
   return (
     <aside
       className={`admin-sidebar-v3 ${isMobile ? 'open' : ''}`}
-      style={{ width: 220, height: '100vh', background: '#fff', borderRight: '1px solid #e0e0e0', display: 'flex', flexDirection: 'column' }}
+      style={{ width: 248, height: '100vh', background: '#fff', borderRight: '1px solid #e0e0e0', display: 'flex', flexDirection: 'column' }}
     >
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 12px' }}>
@@ -89,9 +111,11 @@ const Sidebar = ({ activeApp, setActiveApp, subView, setSubView, onClose, isMobi
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
+                      flex: 1,
                     }}>
                       {item.label}
                     </span>
+                    <Badge count={badges[item.key]} />
                   </div>
                   <ChevronDown
                     size={16}

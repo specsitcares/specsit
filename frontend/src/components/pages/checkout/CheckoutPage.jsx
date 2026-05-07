@@ -270,6 +270,20 @@ const CheckoutPage = () => {
             const localOrder = orderResponse.data;
             setPendingOrderId(localOrder.id);
 
+            // Upload any PDF prescription files now that we have the order ID
+            await Promise.all(
+                cart.filter(item => item.rxMode === 'upload' && item.prescriptionFile instanceof File).map(async (item) => {
+                    try {
+                        const fd = new FormData();
+                        fd.append('prescription_file', item.prescriptionFile);
+                        fd.append('order_id', localOrder.id);
+                        await apiClient.post('/sales/prescriptions/upload/', fd);
+                    } catch (uploadErr) {
+                        console.warn('Prescription upload failed for cart item', item.id, uploadErr);
+                    }
+                })
+            );
+
             if (paymentMethod === 'complete_cod') {
                 clearCart();
                 navigate(getPostOrderRoute(localOrder.id), { replace: true });

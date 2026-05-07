@@ -62,8 +62,6 @@ const AdminDashboard = () => {
       }
     };
     fetchData();
-    const interval = setInterval(fetchData, 5000);
-    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -250,6 +248,13 @@ const AdminDashboard = () => {
           setSubView={setSubView}
           onClose={() => setSidebarOpen(false)}
           isMobile={sidebarOpen}
+          badges={statsData ? {
+            Orders:        parseInt(statsData.stats?.find(s => s.title === 'Pending Orders')?.value        || 0),
+            Prescriptions: parseInt(statsData.stats?.find(s => s.title === 'Pending Prescriptions')?.value || 0),
+            Inventory:     (parseInt(statsData.attention?.find(a => a.icon === 'AlertTriangle')?.count     || 0) +
+                            parseInt(statsData.attention?.find(a => a.icon === 'AlertCircle')?.count       || 0)),
+            Shipments:     parseInt(statsData.stats?.find(s => s.title === 'Active Shipments')?.value      || 0),
+          } : {}}
         />
 
         <div className="admin-main-container">

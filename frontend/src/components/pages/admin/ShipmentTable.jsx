@@ -18,8 +18,6 @@ const ShipmentTable = () => {
 
   useEffect(() => {
     fetchShipments();
-    const interval = setInterval(fetchShipments, 5000);
-    return () => clearInterval(interval);
   }, []);
 
   const fetchShipments = async () => {

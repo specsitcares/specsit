@@ -360,7 +360,8 @@ class PrescriptionViewSet(viewsets.ModelViewSet):
             )
             prescription.status = status_obj
 
-        prescription.review_notes = review_notes
+        if 'notes' in request.data:
+            prescription.review_notes = request.data.get('notes', '')
         prescription.save()
         return Response(self.get_serializer(prescription).data)
 

@@ -178,11 +178,11 @@ class PrescriptionSerializer(serializers.ModelSerializer):
         return obj.status.label if obj.status else 'Pending'
 
     def get_order_id(self, obj):
-        item = obj.order_items.select_related('order').first()
+        item = obj.order_items.all().first()
         return item.order_id if item else None
 
     def get_order_display_id(self, obj):
-        item = obj.order_items.select_related('order').first()
+        item = obj.order_items.all().first()
         return f'#LO-{str(item.order_id).zfill(7)}' if item else None
 
     def get_prescription_file(self, obj):

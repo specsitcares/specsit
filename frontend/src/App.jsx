@@ -79,8 +79,6 @@ const LiveTracker = () => {
         };
 
         report();
-        const interval = setInterval(report, 15000); // 15s for tighter live sync
-        return () => clearInterval(interval);
     }, [location.pathname]);
 
     return null;

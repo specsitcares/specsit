@@ -291,17 +291,6 @@ const MyOrdersPage = () => {
     useEffect(() => {
         if (!user) { navigate('/login'); return; }
         fetchOrders();
-
-        const onVisible = () => {
-            if (document.visibilityState === 'visible') fetchOrders(true);
-        };
-        const onFocus = () => fetchOrders(true);
-        document.addEventListener('visibilitychange', onVisible);
-        window.addEventListener('focus', onFocus);
-        return () => {
-            document.removeEventListener('visibilitychange', onVisible);
-            window.removeEventListener('focus', onFocus);
-        };
     }, []);
 
     const filtered = orders.filter(o => {

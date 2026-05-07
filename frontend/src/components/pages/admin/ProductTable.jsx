@@ -16,9 +16,7 @@ const ProductTable = () => {
 
   useEffect(() => { 
     if (!showMultiStepForm) {
-      fetchData(); 
-      const interval = setInterval(fetchData, 5000); // 5s real-time poll
-      return () => clearInterval(interval);
+      fetchData();
     }
   }, [showMultiStepForm]);
 

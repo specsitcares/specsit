@@ -1588,6 +1588,18 @@ tr.expanded-parent {
   .dh-charts-row { grid-template-columns: 1fr; }
 }
 
+/* ── Skeleton shimmer ─────────────────────────────────────── */
+@keyframes admin-shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position:  600px 0; }
+}
+.admin-skeleton-cell {
+  border-radius: 5px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e4e4e4 50%, #f0f0f0 75%);
+  background-size: 600px 100%;
+  animation: admin-shimmer 1.4s ease-in-out infinite;
+}
+
 @media (max-width: 768px) {
   .dh-stats-grid { grid-template-columns: repeat(2, 1fr); }
   .dh-attention-grid { flex-direction: column; }

@@ -32,8 +32,6 @@ const DashboardHome = ({ recentOrders: recentOrdersProp, onOrderClick, onNavigat
 
    useEffect(() => {
       fetchStats();
-      const interval = setInterval(fetchStats, 5000);
-      return () => clearInterval(interval);
    }, [fetchStats]);
 
    const [localDonut, setLocalDonut] = useState(null);
@@ -246,8 +244,6 @@ const DashboardHome = ({ recentOrders: recentOrdersProp, onOrderClick, onNavigat
 
    useEffect(() => {
       fetchOrders();
-      const interval = setInterval(fetchOrders, 5000);
-      return () => clearInterval(interval);
    }, [fetchOrders]);
 
    useEffect(() => {
