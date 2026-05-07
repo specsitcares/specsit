@@ -112,7 +112,7 @@ const OrderSummaryPanel = ({ order, showBadge }) => {
 
 /* ── Manual Power Form ──────────────────────────────────── */
 const ManualPowerForm = ({ rx, setRx, rxMeta, setRxMeta }) => {
-    const { samePower, hasCyl, name, phone } = rxMeta;
+    const { samePower, hasCyl, hasAdd, name } = rxMeta;
 
     const sanitizeInput = (value) => {
         if (!value) return '';
@@ -163,18 +163,28 @@ const ManualPowerForm = ({ rx, setRx, rxMeta, setRxMeta }) => {
                     </span>
                     <span className="spp-checkbox__label">I have cylindrical power</span>
                 </label>
+                <label className="spp-checkbox">
+                    <input type="checkbox" className="spp-checkbox__native"
+                        checked={hasAdd}
+                        onChange={e => setRxMeta(p => ({ ...p, hasAdd: e.target.checked }))} />
+                    <span className={`spp-checkbox__box${hasAdd ? ' spp-checkbox__box--on' : ''}`}>
+                        {hasAdd && <CheckIcon />}
+                    </span>
+                    <span className="spp-checkbox__label">I have addition power (progressive / bifocal)</span>
+                </label>
             </div>
 
             <div className="spp-power-grid">
-                <div className="spp-grid-header" style={{ gridTemplateColumns: hasCyl ? '100px 1fr 1fr 1fr' : '100px 1fr 1fr' }}>
+                <div className="spp-grid-header" style={{ gridTemplateColumns: `100px 1fr${hasCyl ? ' 1fr' : ''}${hasAdd ? ' 1fr' : ''} 1fr` }}>
                     <div className="spp-grid-hcell spp-grid-hcell--eye">Eye</div>
                     <div className="spp-grid-hcell">SPH</div>
                     {hasCyl && <div className="spp-grid-hcell">CYL</div>}
+                    {hasAdd && <div className="spp-grid-hcell">ADD</div>}
                     <div className="spp-grid-hcell">Axis</div>
                 </div>
                 {rows.map((row, idx) => (
                     <div key={row.key} className={`spp-grid-row${idx > 0 ? ' spp-grid-row--border' : ''}`}
-                        style={{ gridTemplateColumns: hasCyl ? '100px 1fr 1fr 1fr' : '100px 1fr 1fr' }}>
+                        style={{ gridTemplateColumns: `100px 1fr${hasCyl ? ' 1fr' : ''}${hasAdd ? ' 1fr' : ''} 1fr` }}>
                         <div className="spp-grid-eye">
                             <span className="spp-grid-eye-main">{row.label}</span>
                             {row.sub && <span className="spp-grid-eye-sub">{row.sub}</span>}
@@ -197,6 +207,16 @@ const ManualPowerForm = ({ rx, setRx, rxMeta, setRxMeta }) => {
                                 </select>
                             </div>
                         )}
+                        {hasAdd && (
+                            <div className="spp-grid-cell">
+                                <select className="spp-grid-select"
+                                    value={rx[row.key]?.add || ''}
+                                    onChange={e => handlePowerChange(row.key, 'add', e.target.value)}>
+                                    <option value="">—</option>
+                                    {SPH_VALUES.filter(v => parseFloat(v) >= 0).map(v => <option key={v} value={v}>{v}</option>)}
+                                </select>
+                            </div>
+                        )}
                         <div className="spp-grid-cell spp-grid-cell--axis">
                             <input type="number" min="0" max="180" step="1" placeholder="0"
                                 className="spp-grid-axis"
@@ -212,11 +232,6 @@ const ManualPowerForm = ({ rx, setRx, rxMeta, setRxMeta }) => {
                     <label className="spp-field__label">Whose prescription is this? Name*</label>
                     <input type="text" placeholder="e.g. John Doe" className="spp-field__input"
                         value={name} onChange={e => setRxMeta(p => ({ ...p, name: sanitizeInput(e.target.value) }))} />
-                </div>
-                <div className="spp-field">
-                    <label className="spp-field__label">Phone Number*</label>
-                    <input type="tel" placeholder="+91 00000 00000" className="spp-field__input"
-                        value={phone} onChange={e => setRxMeta(p => ({ ...p, phone: sanitizeInput(e.target.value.replace(/\D/g, '').slice(0, 10)) }))} />
                 </div>
             </div>
 
@@ -333,8 +348,8 @@ const SubmitPrescriptionPage = () => {
     }, [numericOrderId]);
 
     const [view, setView]         = useState('action');
-    const [rx, setRx]             = useState({ od: { sph: '', cyl: '', axis: '' }, os: { sph: '', cyl: '', axis: '' } });
-    const [rxMeta, setRxMeta]     = useState({ samePower: false, hasCyl: true, name: '', phone: '' });
+    const [rx, setRx]             = useState({ od: { sph: '', cyl: '', axis: '', add: '' }, os: { sph: '', cyl: '', axis: '', add: '' } });
+    const [rxMeta, setRxMeta]     = useState({ samePower: false, hasCyl: true, hasAdd: false, name: '' });
     const [uploadedFile, setUploadedFile] = useState(null);
     const [uploadError, setUploadError]   = useState('');
     const [submitting, setSubmitting]     = useState(false);
@@ -370,15 +385,12 @@ const SubmitPrescriptionPage = () => {
                 const formData = new FormData();
                 formData.append('prescription_file', uploadedFile);
                 formData.append('order_id', numericOrderId);
-                await apiClient.post('/sales/prescriptions/upload/', formData, {
-                    headers: { 'Content-Type': 'multipart/form-data' },
-                });
+                await apiClient.post('/sales/prescriptions/upload/', formData);
             } else if (view === 'manual') {
                 await apiClient.post('/sales/prescriptions/manual/', {
                     order_id: numericOrderId,
                     rx,
                     name: rxMeta.name,
-                    phone: rxMeta.phone,
                 });
             }
             setView('success');
@@ -406,7 +418,7 @@ const SubmitPrescriptionPage = () => {
         }
     };
 
-    const canSubmitManual = rxMeta.name.trim() && rxMeta.phone.trim() && (rx.od?.sph || rx.os?.sph);
+    const canSubmitManual = rxMeta.name.trim() && (rx.od?.sph || rx.os?.sph);
     const canSubmitUpload = !!uploadedFile;
 
     const displayOrderId = order

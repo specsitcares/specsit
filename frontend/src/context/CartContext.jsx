@@ -26,7 +26,7 @@ export const CartProvider = ({ children }) => {
 
     // BUG 3 FIX — accept the variant the user actually selected instead of always
     // picking variants[0]. Falls back to variants[0] for callers that don't pass it.
-    const addToCart = (product, lens = null, prescription = null, prescriptionPdfUrl = null, rxMode = null, selectedVariant = null) => {
+    const addToCart = (product, lens = null, prescription = null, prescriptionPdfUrl = null, rxMode = null, selectedVariant = null, prescriptionFile = null) => {
         const variant = selectedVariant || product.variants?.[0] || null;
         const newItem = {
             id: `${product.id}-${variant?.id || 'no-var'}-${lens?.id || 'no-lens'}-${
@@ -37,6 +37,7 @@ export const CartProvider = ({ children }) => {
             lens,
             prescription,
             prescription_pdf_url: prescriptionPdfUrl,
+            prescriptionFile,
             rxMode,
             quantity: 1,
         };

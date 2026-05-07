@@ -41,10 +41,8 @@ const CustomerTable = () => {
     }
   };
 
-  useEffect(() => { 
-    fetchCustomers(); 
-    const interval = setInterval(fetchCustomers, 5000); // Real-time poll
-    return () => clearInterval(interval);
+  useEffect(() => {
+    fetchCustomers();
   }, []);
 
   const bulkDelete = async () => {

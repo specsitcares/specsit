@@ -56,8 +56,6 @@ const ProductDetailPage = () => {
                 .then(r => setReviews(r.data.results || r.data || []))
                 .catch(() => {});
         fetchReviews();
-        const interval = setInterval(fetchReviews, 30000);
-        return () => clearInterval(interval);
     }, [id]);
 
     useEffect(() => {
@@ -138,8 +136,8 @@ const ProductDetailPage = () => {
     };
 
     // BUG 3 FIX — pass selectedVariantObj so cart stores the variant the user actually chose
-    const handleAddToCart = (prod, lens, prescription, prescriptionPdfUrl = null, rxMode = null) => {
-        addToCart(prod ?? product, lens ?? selectedLens, prescription ?? { type: prescriptionType }, prescriptionPdfUrl, rxMode, selectedVariantObj);
+    const handleAddToCart = (prod, lens, prescription, prescriptionPdfUrl = null, rxMode = null, prescriptionFile = null) => {
+        addToCart(prod ?? product, lens ?? selectedLens, prescription ?? { type: prescriptionType }, prescriptionPdfUrl, rxMode, selectedVariantObj, prescriptionFile);
         navigate('/cart');
     };
 

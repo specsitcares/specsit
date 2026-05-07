@@ -10,10 +10,12 @@ import {
 } from 'lucide-react';
 import apiClient from '../../../services/api';
 import '../../../styles/order-detail.css';
+import AdminLoadingState from './AdminLoadingState';
 
 const OrderDetail = ({ orderId, onBack }) => {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   const [tracking, setTracking] = useState({
     tracking_number: '', courier_company: '',
     estimated_delivery_date: '', delivery_agent_name: '', delivery_agent_phone: '',
@@ -43,6 +45,7 @@ const OrderDetail = ({ orderId, onBack }) => {
   const fetchOrder = async () => {
     try {
       setLoading(true);
+      setFetchError(false);
       const res = await apiClient.get(`/sales/orders/${orderId}/`);
       setOrder(res.data);
       if (res.data.tracking) {
@@ -59,6 +62,7 @@ const OrderDetail = ({ orderId, onBack }) => {
     } catch (err) {
       console.error('Failed to fetch order:', err);
       setOrder(null);
+      setFetchError(true);
     } finally {
       setLoading(false);
     }
@@ -209,14 +213,15 @@ const OrderDetail = ({ orderId, onBack }) => {
   };
 
 
-  if (loading) return (
-    <div style={{ padding: '80px', textAlign: 'center', fontFamily: 'Inter', color: '#667085', fontWeight: 600, letterSpacing: '0.1em' }}>
-      SYNCHRONIZING WITH DATABASE...
-    </div>
-  );
-  if (!order) return (
-    <div style={{ padding: '80px', textAlign: 'center', color: '#F04438', fontFamily: 'Inter', fontWeight: 700 }}>
-      ORDER #{orderId} NOT FOUND IN LIVE RECORDS.
+  if (loading || fetchError || !order) return (
+    <div style={{ padding: '32px' }}>
+      <AdminLoadingState
+        loading={loading}
+        error={fetchError || (!loading && !order) ? true : false}
+        onRetry={fetchOrder}
+        label={`order #${orderId}`}
+        colWidths={['25%', '20%', '20%', '20%', '15%']}
+      />
     </div>
   );
 
@@ -603,7 +608,7 @@ const OrderDetail = ({ orderId, onBack }) => {
                   )}
                 </div>
 
-                {order.items?.[0]?.prescription && (
+                {order.items?.[0]?.prescription?.prescription_file && (
                   <div className="prescription-section">
                     <div className="file-info">
                       <div className="pdf-icon-wrap">
@@ -611,11 +616,20 @@ const OrderDetail = ({ orderId, onBack }) => {
                         <div className="pdf-icon-label">pdf</div>
                       </div>
                       <div>
-                        <div className="file-name">Prescription.pdf</div>
+                        <div className="file-name">
+                          {order.items[0].prescription.prescription_file.split('/').pop() || 'Prescription.pdf'}
+                        </div>
                         <div className="file-meta">Uploaded by Customer</div>
                       </div>
                     </div>
-                    <button className="view-link">View</button>
+                    <a
+                      href={order.items[0].prescription.prescription_file}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="view-link"
+                    >
+                      View
+                    </a>
                   </div>
                 )}
               </div>
@@ -721,30 +735,44 @@ const OrderDetail = ({ orderId, onBack }) => {
                             <div className="spec-label">Prescription Details</div>
                             <span className="verified-badge">{item.prescription_status || 'Verified'}</span>
                           </div>
-                          <table className="prescription-table">
-                            <thead>
-                              <tr>
-                                <th>Eye</th><th>SPH</th><th>CYL</th><th>AXIS</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              <tr>
-                                <td className="prescription-type">OD (Right)</td>
-                                <td>{item.prescription.od_sphere}</td>
-                                <td>{item.prescription.od_cylinder}</td>
-                                <td>{item.prescription.od_axis}</td>
-                              </tr>
-                              <tr>
-                                <td className="prescription-type">OS (Left)</td>
-                                <td>{item.prescription.os_sphere}</td>
-                                <td>{item.prescription.os_cylinder}</td>
-                                <td>{item.prescription.os_axis}</td>
-                              </tr>
-                              <tr className="pd-row">
-                                <td colSpan="4">Pupillary Distance (PD): {item.prescription.pd_distance}mm</td>
-                              </tr>
-                            </tbody>
-                          </table>
+                          {item.prescription.prescription_file && !item.prescription.od_sphere && !item.prescription.os_sphere ? (
+                            <div style={{ fontSize: 13, color: '#64748b', padding: '6px 0' }}>
+                              Prescription submitted as document.{' '}
+                              <a
+                                href={item.prescription.prescription_file}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ color: '#68408d', textDecoration: 'underline' }}
+                              >
+                                View file
+                              </a>
+                            </div>
+                          ) : (
+                            <table className="prescription-table">
+                              <thead>
+                                <tr>
+                                  <th>Eye</th><th>SPH</th><th>CYL</th><th>AXIS</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                <tr>
+                                  <td className="prescription-type">OD (Right)</td>
+                                  <td>{item.prescription.od_sphere}</td>
+                                  <td>{item.prescription.od_cylinder}</td>
+                                  <td>{item.prescription.od_axis}</td>
+                                </tr>
+                                <tr>
+                                  <td className="prescription-type">OS (Left)</td>
+                                  <td>{item.prescription.os_sphere}</td>
+                                  <td>{item.prescription.os_cylinder}</td>
+                                  <td>{item.prescription.os_axis}</td>
+                                </tr>
+                                <tr className="pd-row">
+                                  <td colSpan="4">Pupillary Distance (PD): {item.prescription.pd_distance}mm</td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          )}
                         </div>
                       )}
                     </React.Fragment>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import apiClient from '../../../services/api';
 
@@ -69,7 +69,7 @@ const CustomerOrderDetailPage = () => {
   const [review, setReview] = useState(null);
   const [loading, setLoading] = useState(true);
   const [paymentLoading, setPaymentLoading] = useState(false);
-  const pollRef = useRef(null);
+
 
   /* inject print css once */
   useEffect(() => {
@@ -103,8 +103,6 @@ const CustomerOrderDetailPage = () => {
       s.async = true;
       document.body.appendChild(s);
     }
-    pollRef.current = setInterval(() => fetchAll(true), 15000);
-    return () => clearInterval(pollRef.current);
   }, [orderId]);
 
   const handlePhase2Payment = async () => {
@@ -267,6 +265,16 @@ const CustomerOrderDetailPage = () => {
                   {item.lens_prescription_text && (
                     <div style={{ fontSize: 11, color: '#7c3aed', background: '#f5f3ff', borderRadius: 6, padding: '4px 8px', display: 'inline-block', marginBottom: 4 }}>
                       Rx: {item.lens_prescription_text}
+                    </div>
+                  )}
+                  {item.prescription && (
+                    <div style={{ fontSize: 11, color: '#7c3aed', background: '#f5f3ff', borderRadius: 6, padding: '4px 8px', display: 'inline-block', marginBottom: 4 }}>
+                      {item.prescription.prescription_file ? (
+                        <>Prescription: <a href={item.prescription.prescription_file} target="_blank" rel="noopener noreferrer" style={{ color: '#6d28d9', textDecoration: 'underline' }}>View uploaded file</a></>
+                      ) : (
+                        <>Rx: OD {item.prescription.od_sphere} / {item.prescription.od_cylinder} ×{item.prescription.od_axis}{item.prescription.os_sphere ? ` | OS ${item.prescription.os_sphere} / ${item.prescription.os_cylinder} ×${item.prescription.os_axis}` : ''}</>
+                      )}
+                      {item.prescription.status_label && <span style={{ marginLeft: 6, opacity: 0.7 }}>· {item.prescription.status_label}</span>}
                     </div>
                   )}
                   {/* per-item unit price */}

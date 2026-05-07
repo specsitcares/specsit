@@ -4,6 +4,7 @@ import {
   ChevronDown, ChevronRight, ChevronLeft,
   ArrowUpDown, Package
 } from 'lucide-react';
+import AdminLoadingState from './AdminLoadingState';
 
 const BulkBar = ({ count, actions, onClear }) => (
   <div style={{
@@ -85,8 +86,8 @@ const BaseAdminTable = ({
   const totalPages = Math.ceil(pagination.totalCount / pagination.perPage) || 1;
 
   if (loading) return (
-    <div className="flex items-center justify-center h-64">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+    <div style={{ padding: '24px' }}>
+      <AdminLoadingState loading={true} label={title?.toLowerCase() || 'data'} />
     </div>
   );
 

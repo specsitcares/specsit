@@ -24,8 +24,6 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
 
   useEffect(() => {
     fetchInventory();
-    const iv = setInterval(fetchInventory, 5000);
-    return () => clearInterval(iv);
   }, []);
 
   const fetchInventory = async () => {

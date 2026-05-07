@@ -1106,7 +1106,7 @@ const LensSelectionAside = ({ isOpen, onClose, product, onAddToCart }) => {
         const pdfUrl = rxMode === 'upload' && uploadedFile
             ? URL.createObjectURL(uploadedFile)
             : null;
-        onAddToCart(product, lensObj, prescriptionObj, pdfUrl, rxMode);
+        onAddToCart(product, lensObj, prescriptionObj, pdfUrl, rxMode, uploadedFile);
         handleClose();
     };
 

@@ -1,5 +1,5 @@
 import uuid
-from rest_framework import viewsets, permissions, status, views, filters
+from rest_framework import viewsets, permissions, status, views, filters, parsers
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from django.db.models import Sum, Count, Q
@@ -37,6 +37,8 @@ class OrderViewSet(viewsets.ModelViewSet):
             'status', 'coupon', 'shipping_address', 'billing_address', 'user'
         ).prefetch_related(
             'items', 'items__variant', 'items__variant__product',
+            'items__prescription', 'items__prescription__status',
+            'items__lens',
             'tracking', 'payments'
         )
         
@@ -926,6 +928,7 @@ class RecordLiveActivityView(views.APIView):
 class PrescriptionUploadView(views.APIView):
     """POST /api/sales/prescriptions/upload/ — accept file + order_id, link to OrderItem."""
     permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [parsers.MultiPartParser, parsers.FormParser]
 
     def post(self, request):
         from apps.catalog.core.models import MetadataGroup, MetadataItem as MI
@@ -939,6 +942,14 @@ class PrescriptionUploadView(views.APIView):
             return Response({'error': 'order_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
         if not prescription_file:
             return Response({'error': 'prescription_file is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        import os as _os
+        allowed_extensions = {'.pdf', '.jpg', '.jpeg', '.png'}
+        ext = _os.path.splitext(prescription_file.name)[1].lower()
+        if ext not in allowed_extensions:
+            return Response({'error': 'Invalid file type. Only PDF, JPG, and PNG are allowed.'}, status=status.HTTP_400_BAD_REQUEST)
+        if prescription_file.size > 5 * 1024 * 1024:
+            return Response({'error': 'File exceeds the 5 MB size limit.'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Bug #4: Parse numeric order ID if display format is sent
         try:
@@ -954,8 +965,8 @@ class PrescriptionUploadView(views.APIView):
         except Order.DoesNotExist:
             return Response({'error': f'Order #{order_id_numeric} not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Bug #3: Validate order has items before creating prescription
-        if not order.items.exists():
+        item_count = order.items.count()
+        if item_count == 0:
             return Response({'error': 'Order has no items. Cannot add prescription.'}, status=status.HTTP_400_BAD_REQUEST)
 
         group, _ = MetadataGroup.objects.get_or_create(name='Prescription Status')
@@ -966,7 +977,6 @@ class PrescriptionUploadView(views.APIView):
 
         from apps.catalog.models import Prescription
 
-        # Bug #7: Use transaction to ensure prescription is created and linked atomically
         try:
             with transaction.atomic():
                 prescription = Prescription.objects.create(
@@ -974,14 +984,11 @@ class PrescriptionUploadView(views.APIView):
                     prescription_file=prescription_file,
                     status=pending_status,
                 )
-
-                # Bug #6: Check if update actually affected rows
-                updated_count = order.items.filter(prescription__isnull=True).update(prescription=prescription)
-
+                updated_count = order.items.update(prescription=prescription)
                 if updated_count == 0:
-                    raise ValidationError('All order items already have prescriptions. Prescription created but not linked.')
-        except ValidationError as e:
-            return Response({'error': str(e.detail[0])}, status=status.HTTP_400_BAD_REQUEST)
+                    raise ValueError('Prescription was saved but could not be linked to any order items.')
+        except ValueError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response({'detail': 'Prescription uploaded successfully.', 'prescription_id': prescription.id})
 
@@ -1029,30 +1036,27 @@ class PrescriptionManualView(views.APIView):
         od = rx.get('od', {})
         os_data = rx.get('os', {})
 
+        if not od.get('sph') and not os_data.get('sph'):
+            return Response({'error': 'At least one eye must have a sphere (SPH) value.'}, status=status.HTTP_400_BAD_REQUEST)
+
         from apps.catalog.models import Prescription
 
-        # Bug #7: Use transaction to ensure prescription is created and linked atomically
-        try:
-            with transaction.atomic():
-                prescription = Prescription.objects.create(
-                    user=request.user,
-                    patient_name=name,
-                    od_sphere=od.get('sph') or 0,
-                    od_cylinder=od.get('cyl') or 0,
-                    od_axis=od.get('axis') or 0,
-                    os_sphere=os_data.get('sph') or 0,
-                    os_cylinder=os_data.get('cyl') or 0,
-                    os_axis=os_data.get('axis') or 0,
-                    status=pending_status,
-                )
-
-                # Bug #6: Check if update actually affected rows
-                updated_count = order.items.filter(prescription__isnull=True).update(prescription=prescription)
-
-                if updated_count == 0:
-                    raise ValidationError('All order items already have prescriptions. Prescription created but not linked.')
-        except ValidationError as e:
-            return Response({'error': str(e.detail[0])}, status=status.HTTP_400_BAD_REQUEST)
+        with transaction.atomic():
+            prescription = Prescription.objects.create(
+                user=request.user,
+                patient_name=name,
+                od_sphere=od.get('sph') or 0,
+                od_cylinder=od.get('cyl') or 0,
+                od_axis=od.get('axis') or 0,
+                od_add=od.get('add') or 0,
+                os_sphere=os_data.get('sph') or 0,
+                os_cylinder=os_data.get('cyl') or 0,
+                os_axis=os_data.get('axis') or 0,
+                os_add=os_data.get('add') or 0,
+                status=pending_status,
+            )
+            # Replace any existing prescription on all items for this order
+            order.items.update(prescription=prescription)
 
         return Response({'detail': 'Prescription saved successfully.', 'prescription_id': prescription.id})
 

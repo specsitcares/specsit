@@ -80,8 +80,6 @@ const OrderTrackingPage = () => {
 
   useEffect(() => {
     loadOrder().finally(() => setLoading(false));
-    const interval = setInterval(loadOrder, 30000);
-    return () => clearInterval(interval);
   }, [orderId]);
 
   if (loading) return (

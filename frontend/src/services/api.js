@@ -24,14 +24,10 @@ apiClient.interceptors.request.use(
       config.headers.Authorization = `Token ${token}`;
     }
     
-    // For FormData, don't transform and let browser handle the Content-Type with boundary
+    // For FormData, let the browser set Content-Type + boundary automatically.
+    // axios v1.x uses AxiosHeaders — delete operator is a no-op on it, must use .delete()
     if (config.data instanceof FormData) {
-      // Remove the default JSON Content-Type header
-      delete config.headers['Content-Type'];
-      
-      // Prevent axios from transforming FormData to JSON
-      // Keep the browser's automatic handling of FormData
-      config.transformRequest = [(data) => data];
+      config.headers.delete('Content-Type');
     }
     
     return config;

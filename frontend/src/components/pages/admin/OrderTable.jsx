@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import apiClient from '../../../services/api';
 import FormModal from './FormModal';
+import AdminLoadingState from './AdminLoadingState';
 
 const STATUS_CLASS = {
   approved: 'badge-success',
@@ -80,14 +81,6 @@ const OrderTable = ({ category = null, onViewDetails }) => {
 
   useEffect(() => {
     fetchOrders(); fetchMetadata(); fetchAnalytics();
-
-    // Auto-refresh every 30 seconds for Real-Time data feel
-    const interval = setInterval(() => {
-      fetchOrders();
-      fetchAnalytics();
-    }, 5000);
-
-    return () => clearInterval(interval);
   }, [page, perPage, searchQuery, statusFilter, dateFilter, category, activeWarrantyTab, activeReturnTab]);
 
   const fetchMetadata = async () => {
@@ -272,8 +265,8 @@ const OrderTable = ({ category = null, onViewDetails }) => {
   useEffect(() => { setGoToInputVal(String(page)); }, [page]);
 
   if (loading) return (
-    <div className="flex items-center justify-center h-64">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+    <div style={{ padding: '24px' }}>
+      <AdminLoadingState loading={true} label="orders" colWidths={['30%', '15%', '12%', '12%', '12%', '10%', '9%']} />
     </div>
   );
 

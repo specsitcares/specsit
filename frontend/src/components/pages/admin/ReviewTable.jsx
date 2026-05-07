@@ -67,8 +67,6 @@ const ReviewTable = () => {
 
   useEffect(() => {
     fetchReviews();
-    const interval = setInterval(fetchReviews, 15000);
-    return () => clearInterval(interval);
   }, [fetchReviews]);
 
   const handleAction = async (id, action) => {
