@@ -205,7 +205,6 @@ const DashboardHome = ({ recentOrders: recentOrdersProp, onOrderClick, onNavigat
    const isFiltering = !!(searchQuery || statusFilter || dateFilter.from || dateFilter.to);
 
    const fetchOrders = useCallback(async () => {
-      const todayISO = new Date().toISOString().slice(0, 10);
       try {
          const res = await apiClient.get('/sales/orders/', {
             params: {
@@ -215,8 +214,8 @@ const DashboardHome = ({ recentOrders: recentOrdersProp, onOrderClick, onNavigat
                ordering: '-created_at',
                search: searchQuery,
                status: statusFilter,
-               date_from: dateFilter.from || todayISO,
-               date_to: dateFilter.to || todayISO
+               date_from: dateFilter.from || '',
+               date_to: dateFilter.to || '',
             }
          });
          const data = res.data;

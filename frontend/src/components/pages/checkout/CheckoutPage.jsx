@@ -284,6 +284,15 @@ const CheckoutPage = () => {
                 })
             );
 
+            // If any upload items lost their File (page refresh stripped it from localStorage),
+            // redirect to the prescription submission page so the customer can re-upload.
+            const hasMissingUploads = cart.some(item => item.rxMode === 'upload' && !(item.prescriptionFile instanceof File));
+            if (hasMissingUploads) {
+                clearCart();
+                navigate(`/prescription/submit/${localOrder.id}`, { replace: true });
+                return;
+            }
+
             if (paymentMethod === 'complete_cod') {
                 clearCart();
                 navigate(getPostOrderRoute(localOrder.id), { replace: true });
@@ -345,6 +354,8 @@ const CheckoutPage = () => {
     };
 
     const initiateRazorpay = async (localOrderId, amount) => {
+        if (window.__razorpayInFlight) return;
+        window.__razorpayInFlight = true;
         try {
             const res = await apiClient.post('/sales/payments/initiate/', {
                 order_id: localOrderId,
@@ -362,6 +373,7 @@ const CheckoutPage = () => {
                 description,
                 order_id: res.data.id,
                 handler: async function (response) {
+                    window.__razorpayInFlight = false;
                     try {
                         await apiClient.post('/sales/payments/verify/', {
                             razorpay_payment_id: response.razorpay_payment_id,
@@ -377,7 +389,7 @@ const CheckoutPage = () => {
                         setLoading(false);
                     }
                 },
-                modal: { ondismiss: () => { setLoading(false); setPaymentFailed(true); setPaymentErrorCode('#LO-PAY-CXL'); } },
+                modal: { ondismiss: () => { window.__razorpayInFlight = false; setLoading(false); setPaymentFailed(true); setPaymentErrorCode('#LO-PAY-CXL'); } },
                 theme: { color: '#68408D' },
             };
             if (res.data.is_mock) {
@@ -390,6 +402,7 @@ const CheckoutPage = () => {
                 new window.Razorpay(options).open();
             }
         } catch (err) {
+            window.__razorpayInFlight = false;
             setPaymentFailed(true);
             if (err.response?.status === 400) {
                 setPaymentErrorCode('#LO-INIT-400');

@@ -30,7 +30,7 @@ export const CartProvider = ({ children }) => {
         const variant = selectedVariant || product.variants?.[0] || null;
         const newItem = {
             id: `${product.id}-${variant?.id || 'no-var'}-${lens?.id || 'no-lens'}-${
-                prescription ? 'rx' : prescriptionPdfUrl ? 'pdf' : rxMode === 'later' ? 'later' : 'no-rx'
+                prescription ? 'rx' : prescriptionPdfUrl ? 'pdf' : rxMode ? rxMode : 'no-rx'
             }`,
             product,
             variant,

@@ -410,6 +410,11 @@ class OrderViewSet(viewsets.ModelViewSet):
             if shipment_status:
                 Shipment.objects.filter(order=instance).update(status=shipment_status)
 
+        # PIPELINE SYNC: Update OrderTracking.current_status to match order_status
+        if instance.order_status:
+            from .models import OrderTracking
+            OrderTracking.objects.filter(order=instance).update(current_status=instance.order_status)
+
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
     def mark_delivered(self, request, pk=None):
         """
@@ -787,8 +792,8 @@ class AdminDashboardStatsView(views.APIView):
         # 7. Calculate specific trends for other metrics
         prev_pending_pres = Prescription.objects.filter(
             Q(status__isnull=True) | Q(status__label__icontains='Pending'),
-            created_at__lt=last_30_start,
-            created_at__gte=prev_30_start,
+            created_at__date__lt=last_30_start,
+            created_at__date__gte=prev_30_start,
         ).filter(order_items__isnull=False).distinct().count()
         pres_trend = round(((pending_pres_count - prev_pending_pres) / max(prev_pending_pres, 1)) * 100, 1)
 
@@ -977,6 +982,7 @@ class PrescriptionUploadView(views.APIView):
 
         from apps.catalog.models import Prescription
 
+        prescription = None
         try:
             with transaction.atomic():
                 prescription = Prescription.objects.create(
@@ -988,6 +994,8 @@ class PrescriptionUploadView(views.APIView):
                 if updated_count == 0:
                     raise ValueError('Prescription was saved but could not be linked to any order items.')
         except ValueError as e:
+            if prescription and prescription.prescription_file:
+                prescription.prescription_file.delete(save=False)
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response({'detail': 'Prescription uploaded successfully.', 'prescription_id': prescription.id})
@@ -1005,6 +1013,7 @@ class PrescriptionManualView(views.APIView):
         order_id = request.data.get('order_id')
         rx = request.data.get('rx', {})
         name = request.data.get('name', '')
+        vision_type = request.data.get('vision_type', '')
 
         if not order_id:
             return Response({'error': 'order_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -1045,6 +1054,7 @@ class PrescriptionManualView(views.APIView):
             prescription = Prescription.objects.create(
                 user=request.user,
                 patient_name=name,
+                vision_type=vision_type,
                 od_sphere=od.get('sph') or 0,
                 od_cylinder=od.get('cyl') or 0,
                 od_axis=od.get('axis') or 0,
