@@ -226,6 +226,16 @@ class PaymentVerifyView(APIView):
                 order.razorpay_payment_id = razorpay_payment_id
                 order.razorpay_order_id = razorpay_order_id
                 order.razorpay_signature = razorpay_signature
+
+                # Sync the MetadataItem FK so status_label reflects "Confirmed"
+                # (serializer reads status.label first; without this it stays "Pending")
+                from apps.catalog.core.models import MetadataGroup, MetadataItem as MI
+                confirmed_group, _ = MetadataGroup.objects.get_or_create(name='Order Status')
+                confirmed_meta, _ = MI.objects.get_or_create(
+                    group=confirmed_group, label='Confirmed',
+                    defaults={'value': 'confirmed', 'is_active': True},
+                )
+                order.status = confirmed_meta
                 order.save()
 
                 # Bug #2: Use create instead of get_or_create for idempotency
@@ -280,7 +290,7 @@ class PaymentCancelView(APIView):
                         product.stock_quantity += item.quantity
                         product.save(update_fields=['stock_quantity'])
 
-            order.payment_status = 'failed'
+            order.payment_status = 'pending'
             order.order_status = 'cancelled'
             order.save(update_fields=['payment_status', 'order_status'])
 

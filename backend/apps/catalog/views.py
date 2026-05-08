@@ -363,6 +363,38 @@ class PrescriptionViewSet(viewsets.ModelViewSet):
         if 'notes' in request.data:
             prescription.review_notes = request.data.get('notes', '')
         prescription.save()
+
+        # When a prescription is approved, advance any linked order from 'pending' → 'confirmed'
+        # if every lens-requiring item on that order now has an approved prescription.
+        if review_status == 'Approved':
+            from apps.sales.models import Order, OrderItem
+            from apps.catalog.core.models import MetadataGroup, MetadataItem as ConfMI
+            linked_orders = Order.objects.filter(
+                items__prescription=prescription
+            ).distinct()
+            for order in linked_orders:
+                if order.order_status != 'pending':
+                    continue
+                items = order.items.select_related('lens', 'prescription__status').all()
+                lens_items = [i for i in items if i.lens_id]
+                if not lens_items:
+                    continue
+                all_approved = all(
+                    i.prescription and i.prescription.status and
+                    i.prescription.status.label == 'Approved'
+                    for i in lens_items
+                )
+                if all_approved:
+                    conf_group, _ = MetadataGroup.objects.get_or_create(name='Order Status')
+                    conf_meta, _ = ConfMI.objects.get_or_create(
+                        group=conf_group, label='Confirmed',
+                        defaults={'value': 'confirmed', 'is_active': True},
+                    )
+                    Order.objects.filter(pk=order.pk).update(
+                        order_status='confirmed',
+                        status=conf_meta,
+                    )
+
         return Response(self.get_serializer(prescription).data)
 
 class UserFaceViewSet(viewsets.ModelViewSet):

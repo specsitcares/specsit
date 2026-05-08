@@ -81,7 +81,7 @@ const OrderTable = ({ category = null, onViewDetails }) => {
 
   useEffect(() => {
     fetchOrders(); fetchMetadata(); fetchAnalytics();
-  }, [page, perPage, searchQuery, statusFilter, dateFilter, category, activeWarrantyTab, activeReturnTab]);
+  }, [page, perPage, searchQuery, statusFilter, dateFilter.from, dateFilter.to, category, activeWarrantyTab, activeReturnTab]);
 
   const fetchMetadata = async () => {
     try {

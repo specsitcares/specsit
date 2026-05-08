@@ -44,7 +44,11 @@ class OrderItemSerializer(serializers.ModelSerializer):
     def get_prescription_status(self, obj):
         if obj.prescription and obj.prescription.status:
             return obj.prescription.status.label
-        return 'N/A'
+        if obj.prescription:
+            return 'Pending Review'
+        if obj.lens:
+            return 'Awaiting Submission'
+        return 'Not Required'
 
     class Meta:
         model = OrderItem
@@ -138,7 +142,7 @@ class OrderSerializer(serializers.ModelSerializer):
             }
             db_rank = STATUS_RANK.get(instance.order_status or '', 0)
             meta_rank = STATUS_RANK.get(mapped or '', 0)
-            if mapped and meta_rank >= db_rank:
+            if mapped and meta_rank > db_rank:
                 data['order_status'] = mapped
         return data
 

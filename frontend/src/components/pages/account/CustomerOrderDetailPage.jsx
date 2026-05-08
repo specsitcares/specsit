@@ -410,7 +410,7 @@ const CustomerOrderDetailPage = () => {
             <div>
               <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Payment</div>
               <Row label="Method" value={(order.payment_method || '').replace(/_/g, ' ')} />
-              <Row label="Status" value={order.payment_status} />
+              <Row label="Status" value={{ pending: 'Pending', partial_paid: 'Partial Paid', paid: 'Paid', failed: 'Failed', refunded: 'Refunded' }[order.payment_status] || order.payment_status} />
               <Row label="Paid" value={fmtPrice(order.paid_amount)} />
               {parseFloat(order.balance_amount || 0) > 0 && (
                 <Row label="Balance Due" value={fmtPrice(order.balance_amount)} color="#dc2626" bold />

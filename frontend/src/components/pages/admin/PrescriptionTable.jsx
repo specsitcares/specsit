@@ -393,7 +393,7 @@ const DetailPanel = ({ rx, onReviewed }) => {
     setZoom(100);
     setShowReupload(false);
     setPdfLoadError(false);
-    setPdfBlobUrl(null);
+    setPdfBlobUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null; });
   }, [rx.id]);
 
   // Fetch PDF as a blob so the iframe uses a local blob URL —
@@ -521,6 +521,7 @@ const DetailPanel = ({ rx, onReviewed }) => {
                         src={pdfBlobUrl}
                         title="Prescription PDF"
                         style={{ width: '100%', height: 260, border: 'none', borderRadius: 8 }}
+                        onError={() => setPdfLoadError(true)}
                       />
                     ) : (
                       <div style={{ fontSize: 13, color: '#64748b' }}>Loading PDF…</div>

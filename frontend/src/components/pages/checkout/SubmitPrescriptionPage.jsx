@@ -381,7 +381,12 @@ const SubmitPrescriptionPage = () => {
         }
 
         try {
-            if (view === 'upload' && uploadedFile) {
+            if (view === 'upload') {
+                if (!uploadedFile) {
+                    setSubmitError('Please select a file before submitting.');
+                    setSubmitting(false);
+                    return;
+                }
                 const formData = new FormData();
                 formData.append('prescription_file', uploadedFile);
                 formData.append('order_id', numericOrderId);
@@ -391,7 +396,11 @@ const SubmitPrescriptionPage = () => {
                     order_id: numericOrderId,
                     rx,
                     name: rxMeta.name,
+                    vision_type: rxMeta.hasAdd ? 'Progressive' : 'Single Vision',
                 });
+            } else {
+                setSubmitting(false);
+                return;
             }
             setView('success');
         } catch (err) {
