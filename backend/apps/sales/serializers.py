@@ -318,6 +318,11 @@ class WishlistSerializer(serializers.ModelSerializer):
     product_id = serializers.ReadOnlyField(source='variant.product.id')
     variant_image = serializers.SerializerMethodField()
     product_price = serializers.ReadOnlyField(source='variant.product.base_price')
+    product_selling_price = serializers.ReadOnlyField(source='variant.product.selling_price')
+    product_discount_percentage = serializers.ReadOnlyField(source='variant.product.discount_percentage')
+    variant_base_price = serializers.ReadOnlyField(source='variant.base_price')
+    variant_selling_price = serializers.ReadOnlyField(source='variant.selling_price')
+    variant_discount_percent = serializers.ReadOnlyField(source='variant.discount_percent')
     variant_color = serializers.ReadOnlyField(source='variant.color')
     variant_size = serializers.ReadOnlyField(source='variant.frame_size')
     variant_sku = serializers.ReadOnlyField(source='variant.sku')
@@ -335,7 +340,9 @@ class WishlistSerializer(serializers.ModelSerializer):
         model = Wishlist
         fields = [
             'id', 'user', 'variant', 'product_id', 'variant_name', 'variant_image',
-            'product_price', 'variant_color', 'variant_size', 'variant_sku', 'added_at'
+            'product_price', 'product_selling_price', 'product_discount_percentage',
+            'variant_base_price', 'variant_selling_price', 'variant_discount_percent',
+            'variant_color', 'variant_size', 'variant_sku', 'added_at'
         ]
         read_only_fields = ['user', 'added_at']
 
