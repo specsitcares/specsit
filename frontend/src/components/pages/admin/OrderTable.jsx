@@ -11,11 +11,25 @@ import FormModal from './FormModal';
 import AdminLoadingState from './AdminLoadingState';
 
 const STATUS_CLASS = {
-  approved: 'badge-success',
-  completed: 'badge-success',
-  pending: 'badge-warning',
-  cancelled: 'badge-error',
-  shipped: 'badge-info',
+  pending:               'badge-warning',
+  confirmed:             'badge-warning',
+  preparing:             'badge-info',
+  processing:            'badge-info',
+  'ready for dispatch':  'badge-info',
+  'in transit':          'badge-info',
+  shipped:               'badge-info',
+  delivering:            'badge-info',
+  delivered:             'badge-success',
+  completed:             'badge-success',
+  cancelled:             'badge-error',
+};
+
+const STATUS_BADGE_STYLE = {
+  'badge-success': { bg: '#ECFDF3', color: '#039855' },
+  'badge-warning': { bg: '#FFFAEB', color: '#B54708' },
+  'badge-error':   { bg: '#FEF3F2', color: '#D1242F' },
+  'badge-info':    { bg: '#EFF8FF', color: '#175CD3' },
+  'badge-neutral': { bg: '#F2F4F7', color: '#344054' },
 };
 
 const getStatusClass = (label) =>
@@ -101,17 +115,7 @@ const OrderTable = ({ category = null, onViewDetails }) => {
           view_preset: category,
           ordering: '-created_at',
           search: searchQuery,
-          status: category === 'returns' ? (
-            activeReturnTab === 'requests' ? 'pending' :
-              activeReturnTab === 'refund' ? 'processing' :
-                activeReturnTab === 'replacement' ? 'shipped' :
-                  statusFilter
-          ) : category === 'warranty' ? (
-            activeWarrantyTab === 'requests_received' ? 'pending' :
-              activeWarrantyTab === 'claimed' ? 'delivered' :
-                activeWarrantyTab === 'not_claimed' ? 'processing,shipped' :
-                  statusFilter
-          ) : statusFilter,
+          status: statusFilter,
           date_from: dateFilter.from,
           date_to: dateFilter.to
         }
@@ -683,9 +687,17 @@ const OrderTable = ({ category = null, onViewDetails }) => {
                       <>
                         <td style={{ padding: '16px 24px', color: '#667085' }}>{new Date(o.created_at).toLocaleDateString('en-GB')}</td>
                         <td style={{ padding: '16px 24px' }}>
-                          <span style={{ backgroundColor: (o.items?.[0]?.prescription_status || 'N/A').toLowerCase() === 'approved' ? '#ECFDF3' : '#FFFAEB', color: (o.items?.[0]?.prescription_status || 'N/A').toLowerCase() === 'approved' ? '#027A48' : '#B54708', padding: '4px 10px', borderRadius: '4px', fontSize: '12px', fontWeight: 600 }}>
-                            {o.items?.[0]?.prescription_status || 'N/A'}
-                          </span>
+                          {(() => {
+                            const ps = (o.items?.[0]?.prescription_status || 'Frame Only');
+                            const psl = ps.toLowerCase();
+                            const bg = psl === 'approved' ? '#ECFDF3' : psl === 'frame only' ? '#F2F4F7' : '#FFFAEB';
+                            const color = psl === 'approved' ? '#027A48' : psl === 'frame only' ? '#344054' : '#B54708';
+                            return (
+                              <span style={{ backgroundColor: bg, color, padding: '4px 10px', borderRadius: '4px', fontSize: '12px', fontWeight: 600 }}>
+                                {ps}
+                              </span>
+                            );
+                          })()}
                         </td>
                         <td style={{ padding: '16px 24px', fontWeight: 700 }}>₹{Number(o.total_amount).toLocaleString('en-IN')}</td>
                         <td style={{ padding: '16px 24px' }}>
@@ -705,8 +717,8 @@ const OrderTable = ({ category = null, onViewDetails }) => {
                     )}
                     <td style={{ padding: '16px 24px', backgroundColor: expandedRows.includes(o.id) ? '#F9F5FF' : 'inherit' }}>
                       <span style={{
-                        backgroundColor: getStatusClass(o.status_label) === 'badge-success' ? '#ECFDF3' : getStatusClass(o.status_label) === 'badge-warning' ? '#FFFAEB' : getStatusClass(o.status_label) === 'badge-error' ? '#FEF3F2' : '#F2F4F7',
-                        color: getStatusClass(o.status_label) === 'badge-success' ? '#039855' : getStatusClass(o.status_label) === 'badge-warning' ? '#B54708' : getStatusClass(o.status_label) === 'badge-error' ? '#D1242F' : '#344054',
+                        backgroundColor: STATUS_BADGE_STYLE[getStatusClass(o.status_label)].bg,
+                        color: STATUS_BADGE_STYLE[getStatusClass(o.status_label)].color,
                         padding: '6px 14px',
                         borderRadius: '6px',
                         fontSize: '13px',
@@ -774,17 +786,18 @@ const OrderTable = ({ category = null, onViewDetails }) => {
                               </div>
 
                               <div style={{ padding: '16px 0', display: 'flex', justifyContent: 'flex-start' }}>
-                                <span style={{
-                                  backgroundColor: (item.prescription_status || item.status || '').toLowerCase() === 'approved' ? '#ECFDF3' : '#FFFAEB',
-                                  color: (item.prescription_status || item.status || '').toLowerCase() === 'approved' ? '#027A48' : '#B54708',
-                                  padding: '4px 10px',
-                                  borderRadius: '16px',
-                                  fontSize: '11px',
-                                  fontWeight: 700,
-                                  border: `1px solid ${(item.prescription_status || item.status || '').toLowerCase() === 'approved' ? '#D1FADF' : '#FEDF89'}`
-                                }}>
-                                  {item.prescription_status || item.status || 'Pending'}
-                                </span>
+                                {(() => {
+                                  const ps = item.prescription_status || item.status || 'Frame Only';
+                                  const psl = ps.toLowerCase();
+                                  const bg = psl === 'approved' ? '#ECFDF3' : psl === 'frame only' ? '#F2F4F7' : '#FFFAEB';
+                                  const color = psl === 'approved' ? '#027A48' : psl === 'frame only' ? '#344054' : '#B54708';
+                                  const border = psl === 'approved' ? '#D1FADF' : psl === 'frame only' ? '#EAECF0' : '#FEDF89';
+                                  return (
+                                    <span style={{ backgroundColor: bg, color, padding: '4px 10px', borderRadius: '16px', fontSize: '11px', fontWeight: 700, border: `1px solid ${border}` }}>
+                                      {ps}
+                                    </span>
+                                  );
+                                })()}
                               </div>
 
                               <div style={{ padding: '16px 0', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: '#101828', fontSize: '15px' }}>

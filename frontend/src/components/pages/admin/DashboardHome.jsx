@@ -66,7 +66,8 @@ const DashboardHome = ({ recentOrders: recentOrdersProp, onOrderClick, onNavigat
    const [perPage, setPerPage] = useState(10);
    const [page, setPage] = useState(1);
    const [statusFilter, setStatusFilter] = useState('');
-   const [dateFilter, setDateFilter] = useState({ from: '', to: '' });
+   const today = new Date().toISOString().split('T')[0];
+   const [dateFilter, setDateFilter] = useState({ from: today, to: today });
    const [showFilters, setShowFilters] = useState(false);
    const searchInputRef = React.useRef(null);
 
@@ -114,7 +115,10 @@ const DashboardHome = ({ recentOrders: recentOrdersProp, onOrderClick, onNavigat
          alert('Order deleted successfully');
          fetchOrders();
          fetchStats();
-      } catch { /* silent */ }
+      } catch (err) {
+         console.error('Delete failed:', err);
+         alert('Failed to delete order. Please try again.');
+      }
    };
 
    const handleFormSubmit = async (formData) => {

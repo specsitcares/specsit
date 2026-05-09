@@ -155,9 +155,9 @@ const OrderDetail = ({ orderId, onBack }) => {
       }
     }
     if (qcOutcome === 'pass') {
-      await handleStatusUpdate(8);
+      await handleStatusUpdate('Ready for Dispatch');
     } else {
-      await handleStatusUpdate(4);
+      await handleStatusUpdate('Confirmed');
     }
     setQcModalOpen(false);
     setQcImageFile(null);
@@ -202,7 +202,7 @@ const OrderDetail = ({ orderId, onBack }) => {
       await apiClient.post(`/sales/orders/${orderId}/update_tracking/`, trackingPayload);
       setTracking(prev => ({ ...prev, ...trackingPayload }));
       setEtaMinutes(parseEtaMinutes(dispatchForm.eta));
-      await handleStatusUpdate(9);
+      await handleStatusUpdate('In Transit');
       setDispatchModalOpen(false);
       setDispatchForm({ booking_id: '', rider_name: '', rider_phone: '', vehicle_type: 'Bike', eta: '' });
     } catch (err) {
@@ -322,7 +322,7 @@ const OrderDetail = ({ orderId, onBack }) => {
       hasAction: currentStatusId === 4,
       blocked: currentStatusId === 4 && prescriptionBlocked,
       actionLabel: 'Mark as Prepared',
-      nextStatus: 5,
+      nextStatus: 'Preparing',
     },
     {
       title: 'Quality Check',
@@ -332,7 +332,7 @@ const OrderDetail = ({ orderId, onBack }) => {
       hasAction: currentStatusId === 5,
       isQC: true,
       actionLabel: 'Complete Quality Check',
-      nextStatus: 8,
+      nextStatus: 'Ready for Dispatch',
       showQcFile: currentStatusId > 5 && !!(order.tracking?.qc_image_url),
       qcFile: order.tracking?.qc_image_url,
     },
@@ -344,7 +344,7 @@ const OrderDetail = ({ orderId, onBack }) => {
       hasAction: currentStatusId === 8,
       isDispatch: true,
       actionLabel: 'Dispatch Order',
-      nextStatus: 9,
+      nextStatus: 'In Transit',
       showBookingId: currentStatusId > 8,
       bookingId: order.tracking?.tracking_number,
     },

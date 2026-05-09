@@ -20,6 +20,7 @@ const EMPTY_VARIANT = () => ({
   paletteImage: null,
   base_price: '',
   selling_price: '',
+  cost_price: '',
   discount_percentage: '',
   images: [],
 });
@@ -316,27 +317,45 @@ const VariantsPricingForm = ({ formData, onFormDataChange, saving, errors = {}, 
                     </div>
                   </div>
 
-                  <div className="form-field">
-                    <label className="form-field-label">
-                      Selling Price
-                      <span style={{ fontWeight: 400, fontSize: 11, color: '#9ca3af', marginLeft: 6 }}>(auto-calculated)</span>
-                    </label>
-                    <div className="form-field-input-wrapper">
-                      <span className="input-prefix">₹</span>
-                      <input
-                        type="number"
-                        className="form-field-input has-prefix"
-                        placeholder="0.00"
-                        value={v.selling_price}
-                        onChange={(e) => updateVariantPricing(v.id, 'selling_price', e.target.value)}
-                      />
+                  <div className="vp-row">
+                    <div className="form-field">
+                      <label className="form-field-label">
+                        Selling Price
+                        <span style={{ fontWeight: 400, fontSize: 11, color: '#9ca3af', marginLeft: 6 }}>(auto-calculated)</span>
+                      </label>
+                      <div className="form-field-input-wrapper">
+                        <span className="input-prefix">₹</span>
+                        <input
+                          type="number"
+                          className="form-field-input has-prefix"
+                          placeholder="0.00"
+                          value={v.selling_price}
+                          onChange={(e) => updateVariantPricing(v.id, 'selling_price', e.target.value)}
+                        />
+                      </div>
+                      {v.base_price && v.selling_price && (
+                        <span style={{ fontSize: 11, color: '#16a34a', marginTop: 4, display: 'block' }}>
+                          Customer pays ₹{parseFloat(v.selling_price).toLocaleString('en-IN')}
+                          {parseFloat(v.discount_percentage) > 0 && ` (${parseFloat(v.discount_percentage).toFixed(0)}% off ₹${parseFloat(v.base_price).toLocaleString('en-IN')})`}
+                        </span>
+                      )}
                     </div>
-                    {v.base_price && v.selling_price && (
-                      <span style={{ fontSize: 11, color: '#16a34a', marginTop: 4, display: 'block' }}>
-                        Customer pays ₹{parseFloat(v.selling_price).toLocaleString('en-IN')}
-                        {parseFloat(v.discount_percentage) > 0 && ` (${parseFloat(v.discount_percentage).toFixed(0)}% off ₹${parseFloat(v.base_price).toLocaleString('en-IN')})`}
+                    <div className="form-field">
+                      <label className="form-field-label">Cost Price</label>
+                      <div className="form-field-input-wrapper">
+                        <span className="input-prefix">₹</span>
+                        <input
+                          type="number"
+                          className="form-field-input has-prefix"
+                          placeholder="0.00"
+                          value={v.cost_price}
+                          onChange={(e) => updateVariant(v.id, 'cost_price', e.target.value)}
+                        />
+                      </div>
+                      <span style={{ fontSize: 11, color: '#9ca3af', marginTop: 2, display: 'block' }}>
+                        Procurement cost — used for profit analytics
                       </span>
-                    )}
+                    </div>
                   </div>
 
                   <div className="vp-images-section">

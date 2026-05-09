@@ -189,11 +189,18 @@
   text-overflow: ellipsis;
 }
 
-/* Price row */
+/* Price block — stacked layout */
+.product-card__price-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Second row: MRP strikethrough + discount badge */
 .product-card__price-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
@@ -211,23 +218,23 @@
 .product-card__price-new {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 700;
-  font-size: 16px;
-  line-height: 24px;
+  font-size: 18px;
+  line-height: 26px;
   color: #040205;
   white-space: nowrap;
 }
 
 .product-card__discount {
-  padding: 2px 6px;
-  background: #FEFCFF;
-  border-radius: 2px;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
 }
 
 .product-card__discount-text {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-weight: 700;
-  font-size: 10px;
-  line-height: 15px;
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 16px;
   color: #68408D;
   white-space: nowrap;
 }

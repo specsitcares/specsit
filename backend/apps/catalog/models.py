@@ -121,6 +121,7 @@ class Variant(models.Model):
     # Per-variant pricing
     base_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True)
     selling_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True)
+    cost_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True)
 
     # Marketing and Tax
     stock = models.IntegerField(default=0)

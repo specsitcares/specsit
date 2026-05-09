@@ -22,7 +22,7 @@ const ShipmentTable = () => {
 
   const fetchShipments = async () => {
     try {
-      const res = await apiClient.get('/sales/shipments/');
+      const res = await apiClient.get('/sales/shipments/', { params: { page_size: 500 } });
       setShipments(Array.isArray(res.data) ? res.data : (res.data.results || []));
     } catch { /* silent */ } finally { setLoading(false); }
   };
@@ -76,6 +76,17 @@ const ShipmentTable = () => {
     }
   };
 
+  const handleDeleteClick = async (s) => {
+    if (!window.confirm(`Delete shipment for Order #LO-${String(s.order_id).padStart(7, '0')}?`)) return;
+    try {
+      await apiClient.delete(`/sales/shipments/${s.id}/`);
+      fetchShipments();
+    } catch (err) {
+      console.error(err);
+      alert('Failed to delete shipment.');
+    }
+  };
+
   const filtered = shipments.filter(s =>
     [s.tracking_id, s.carrier, s.order_id?.toString()].some(v => v?.toLowerCase().includes(searchQuery.toLowerCase()))
   );
@@ -84,10 +95,10 @@ const ShipmentTable = () => {
 
   const getStatusStyle = (label) => {
     const l = (label || '').toLowerCase();
-    if (l.includes('delivered')) return { bg: '#ECFDF3', text: '#027A48', dot: '#12B76A', border: '#ABEFC6' };
-    if (l.includes('transit'))   return { bg: '#EFF8FF', text: '#175CD3', dot: '#2E90FA', border: '#B2DDFF' };
+    if (l.includes('delivered') || l.includes('completed')) return { bg: '#ECFDF3', text: '#027A48', dot: '#12B76A', border: '#ABEFC6' };
+    if (l.includes('transit') || l.includes('delivering') || l.includes('shipped')) return { bg: '#EFF8FF', text: '#175CD3', dot: '#2E90FA', border: '#B2DDFF' };
     if (l.includes('fail'))    return { bg: '#FEF3F2', text: '#B42318', dot: '#D92D20', border: '#FEE4E2' };
-    return { bg: '#FFFAEB', text: '#B54708', dot: '#F79009', border: '#FEDF89' };
+    return { bg: '#F9FAFB', text: '#344054', dot: '#98A2B3', border: '#EAECF0' };
   };
 
   const columns = [
@@ -139,7 +150,7 @@ const ShipmentTable = () => {
                width: 'fit-content'
              }}>
                <span style={{ width: 6, height: 6, borderRadius: '50%', background: style.dot }}></span>
-               {s.status_label || 'In Transit'}
+               {s.status_label || 'Pending'}
              </span>
              <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '11px', color: '#667085', marginLeft: '4px' }}>
                 <MapPin size={10} /> Local Logistics Hub
@@ -159,8 +170,8 @@ const ShipmentTable = () => {
               <Edit2 size={16} />
             </div>
             <div
-              onClick={() => { setSelectedShipment(s); setFormMode('edit'); setShowForm(true); }}
-              style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+              onClick={() => handleDeleteClick(s)}
+              style={{ width: 32, height: 32, border: '1px solid #FEE4E2', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#FEF3F2', color: '#D92D20', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
               title="Delete Shipment"
             >
               <Trash2 size={16} />
