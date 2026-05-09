@@ -99,29 +99,29 @@ const CouponTable = () => {
   const renderRow = (c, idx, { isSelected, onToggle } = {}) => (
     <tr key={c.id || idx} style={{ borderBottom: '1px solid #EAECF0', backgroundColor: isSelected ? '#F9F5FF' : '#fff' }}>
       <td style={{ padding: '16px 24px' }}>
-        <input type="checkbox" checked={!!isSelected} onChange={onToggle} style={{ cursor: 'pointer', borderRadius: '4px', accentColor: '#7F56D9' }} />
+        <input type="checkbox" checked={!!isSelected} onChange={onToggle} style={{ cursor: 'pointer', borderRadius: '3px', accentColor: '#7F56D9' }} />
       </td>
       <td style={{ padding: '16px 24px' }}>
         <code style={{
           background: '#F9F5FF', color: '#6941C6',
-          padding: '4px 10px', borderRadius: '6px',
-          fontSize: '13px', fontWeight: 700, letterSpacing: '0.05em',
+          padding: '4px 10px', borderRadius: '5px',
+          fontSize: '10px', fontWeight: 700, letterSpacing: '0.05em',
           fontFamily: 'monospace', border: '1px solid #E9D7FE'
         }}>{c.code}</code>
       </td>
       <td style={{ padding: '16px 24px' }}>
-        <div style={{ fontWeight: 600, color: '#101828', fontSize: '14px' }}>{c.discount_percentage}% OFF</div>
+        <div style={{ fontWeight: 600, color: '#101828', fontSize: '11px' }}>{c.discount_percentage}% OFF</div>
       </td>
       <td style={{ padding: '16px 24px' }}>
-        <div style={{ fontSize: '14px', color: '#667085' }}>₹{Number(c.min_cart_value || 0).toLocaleString('en-IN')}</div>
+        <div style={{ fontSize: '11px', color: '#667085' }}>₹{Number(c.min_cart_value || 0).toLocaleString('en-IN')}</div>
       </td>
       <td style={{ padding: '16px 24px' }}>
         <span style={{
           backgroundColor: c.is_bogo ? '#F9F5FF' : '#EFF8FF',
           color: c.is_bogo ? '#6941C6' : '#175CD3',
           padding: '4px 10px',
-          borderRadius: '16px',
-          fontSize: '12px',
+          borderRadius: '13px',
+          fontSize: '10px',
           fontWeight: 600,
           border: `1px solid ${c.is_bogo ? '#E9D7FE' : '#B2DDFF'}`
         }}>
@@ -133,8 +133,8 @@ const CouponTable = () => {
           backgroundColor: isExpired(c) ? '#FEF3F2' : c.is_active ? '#ECFDF3' : '#F2F4F7',
           color: isExpired(c) ? '#B42318' : c.is_active ? '#027A48' : '#344054',
           padding: '4px 10px',
-          borderRadius: '16px',
-          fontSize: '12px',
+          borderRadius: '13px',
+          fontSize: '10px',
           fontWeight: 600,
           display: 'inline-flex',
           alignItems: 'center',
@@ -146,7 +146,7 @@ const CouponTable = () => {
         </span>
       </td>
       <td style={{ padding: '16px 24px' }}>
-        <span style={{ fontSize: '14px', color: '#667085' }}>
+        <span style={{ fontSize: '11px', color: '#667085' }}>
           {c.valid_until ? new Date(c.valid_until).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) : 'No limit'}
         </span>
       </td>
@@ -154,14 +154,14 @@ const CouponTable = () => {
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
           <div
             onClick={() => handleEditClick(c)}
-            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
             title="Edit Coupon"
           >
             <Edit2 size={16} />
           </div>
           <div
             onClick={() => { setSelectedCoupon(c); setFormMode('edit'); setShowForm(true); }}
-            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
             title="Delete Coupon"
           >
             <Trash2 size={16} />
@@ -197,8 +197,8 @@ const CouponTable = () => {
         showFilters={showFilters}
         setShowFilters={setShowFilters}
         filterContent={
-          <div style={{ display: 'flex', gap: '16px' }}>
-             <div style={{ fontSize: '14px', color: '#667085' }}>No active filters available for coupons.</div>
+          <div style={{ display: 'flex', gap: '13px' }}>
+             <div style={{ fontSize: '11px', color: '#667085' }}>No active filters available for coupons.</div>
           </div>
         }
       />

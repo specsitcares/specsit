@@ -57,6 +57,7 @@ const DEFAULT_VARIANT = () => ({
   paletteImage: null,
   base_price: '',
   selling_price: '',
+  cost_price: '',
   discount_percentage: '',
   images: [],
 });
@@ -85,7 +86,6 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
     short_description: '',
     meta_title: '',
     meta_description: '',
-    cost_price: '',
     frame_width: '',
     frame_type: '',
     frame_shape: '',
@@ -145,6 +145,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
                 : null,
               base_price: v.base_price || '',
               selling_price: v.selling_price || '',
+              cost_price: v.cost_price || '',
               discount_percentage: discPct,
               images: (v.images || []).map(img => ({
                 id: img.id,
@@ -168,7 +169,6 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
             short_description: p.short_description || '',
             meta_title: p.meta_title || '',
             meta_description: p.meta_description || '',
-            cost_price: p.cost_price || '',
             frame_width: p.frame_width || '',
             frame_type: p.frame_type || '',
             frame_shape: p.frame_shape || '',
@@ -264,7 +264,6 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
       base_price: parseFloat(firstVariant?.base_price) || 0,
       selling_price: parseFloat(firstVariant?.selling_price) || parseFloat(firstVariant?.base_price) || 0,
       discount_percentage: 0,
-      cost_price: parseFloat(formData.cost_price) || 0,
       frame_only_mode: !!formData.frame_only_mode,
       use_meta_template: useMetaTemplate,
       meta_title: metaTitle,
@@ -338,6 +337,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
         variantPayload.append('stock', parseInt(v.quantity) || 0);
         variantPayload.append('base_price', parseFloat(v.base_price) || 0);
         variantPayload.append('selling_price', parseFloat(v.selling_price) || parseFloat(v.base_price) || 0);
+        variantPayload.append('cost_price', parseFloat(v.cost_price) || 0);
         variantPayload.append('tax_percent', parseFloat(formData.taxPercent) || 0);
         variantPayload.append('discount_percent', parseFloat(formData.discountPercent) || 0);
         variantPayload.append('is_bogo', formData.isBogo ? 'true' : 'false');
@@ -465,7 +465,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
           <button
             className="pf-btn pf-btn-ghost"
             onClick={onBack}
-            style={{ border: 'none', padding: '0', marginBottom: '8px', color: '#697177' }}
+            style={{ border: 'none', padding: '0', marginBottom: '6px', color: '#697177' }}
           >
             <ArrowLeft size={16} /> Back to Products
           </button>
@@ -590,14 +590,14 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
                   </div>
 
                   <div className="form-field">
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                       <label className="form-field-label" style={{ margin: 0 }}>Meta Tags (SEO)</label>
-                      <div style={{ display: 'flex', gap: '3px', background: '#F2F4F7', borderRadius: '8px', padding: '3px' }}>
+                      <div style={{ display: 'flex', gap: '3px', background: '#F2F4F7', borderRadius: '6px', padding: '3px' }}>
                         <button
                           type="button"
                           onClick={() => setUseMetaTemplate(true)}
                           style={{
-                            padding: '5px 12px', borderRadius: '6px', border: 'none', fontSize: '12px',
+                            padding: '5px 12px', borderRadius: '5px', border: 'none', fontSize: '10px',
                             fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
                             background: useMetaTemplate ? '#fff' : 'transparent',
                             color: useMetaTemplate ? '#344054' : '#667085',
@@ -610,7 +610,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
                           type="button"
                           onClick={() => setUseMetaTemplate(false)}
                           style={{
-                            padding: '5px 12px', borderRadius: '6px', border: 'none', fontSize: '12px',
+                            padding: '5px 12px', borderRadius: '5px', border: 'none', fontSize: '10px',
                             fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
                             background: !useMetaTemplate ? '#fff' : 'transparent',
                             color: !useMetaTemplate ? '#344054' : '#667085',
@@ -655,7 +655,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
                           placeholder="e.g. Ray-Ban Aviator Classic | Buy Online"
                           value={formData.meta_title}
                           onChange={(e) => handleInputChange('meta_title', e.target.value)}
-                          style={{ marginBottom: '10px' }}
+                          style={{ marginBottom: '8px' }}
                         />
                         <textarea
                           className="form-field-textarea"
@@ -674,28 +674,13 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
                     <hr className="title-divider" />
                   </div>
 
-                  <div className="form-field-row">
-                    <div className="form-field">
-                      <label className="form-field-label">Cost Price</label>
-                      <input
-                        type="number"
-                        className="form-field-input"
-                        placeholder="0.00"
-                        value={formData.cost_price}
-                        onChange={(e) => handleInputChange('cost_price', e.target.value)}
-                      />
-                      <span style={{ fontSize: 11, color: '#9ca3af', marginTop: 2, display: 'block' }}>
-                        Your procurement / purchase cost — used for profit analytics
-                      </span>
-                    </div>
-                    <div className="form-field">
-                      <label className="form-field-label">Frame Width</label>
-                      <div className="form-field-select-wrapper">
-                        <select value={formData.frame_width} onChange={(e) => handleInputChange('frame_width', e.target.value)}>
-                          {FRAME_WIDTH_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                        </select>
-                        <span className="select-chevron"><ChevronDown size={16} /></span>
-                      </div>
+                  <div className="form-field">
+                    <label className="form-field-label">Frame Width</label>
+                    <div className="form-field-select-wrapper">
+                      <select value={formData.frame_width} onChange={(e) => handleInputChange('frame_width', e.target.value)}>
+                        {FRAME_WIDTH_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                      </select>
+                      <span className="select-chevron"><ChevronDown size={16} /></span>
                     </div>
                   </div>
 
@@ -798,7 +783,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
       </div>
 
       {errors.general && (
-        <div className="form-field-error" style={{ marginTop: '16px', justifyContent: 'center', fontSize: '14px' }}>
+        <div className="form-field-error" style={{ marginTop: '13px', justifyContent: 'center', fontSize: '11px' }}>
           <AlertCircle size={16} /> {errors.general}
         </div>
       )}

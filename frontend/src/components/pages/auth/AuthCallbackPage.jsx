@@ -57,7 +57,7 @@ const AuthCallbackPage = () => {
                     <p>{error}</p>
                     <button 
                         onClick={() => navigate('/login')}
-                        style={{ padding: '10px 20px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}
+                        style={{ padding: '10px 20px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
                     >
                         Go back to Login
                     </button>

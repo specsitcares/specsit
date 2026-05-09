@@ -384,7 +384,7 @@ const ReviewTable = () => {
             </button>
             {Array.from({ length: totalPages }, (_, i) => i + 1).filter(p => Math.abs(p - page) <= 2 || p === 1 || p === totalPages).map((p, idx, arr) => (
               <React.Fragment key={p}>
-                {idx > 0 && arr[idx - 1] !== p - 1 && <span style={{ lineHeight: '34px', color: '#9CA3AF', fontSize: 13 }}>…</span>}
+                {idx > 0 && arr[idx - 1] !== p - 1 && <span style={{ lineHeight: '27px', color: '#9CA3AF', fontSize: 13 }}>…</span>}
                 <button onClick={() => setPage(p)}
                   style={{ width: 34, height: 34, border: `1px solid ${p === page ? '#7F56D9' : '#D0D5DD'}`, borderRadius: 8, background: p === page ? '#7F56D9' : '#fff', color: p === page ? '#fff' : '#344054', cursor: 'pointer', fontSize: 13, fontWeight: p === page ? 700 : 400 }}>
                   {p}

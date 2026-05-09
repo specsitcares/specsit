@@ -244,6 +244,7 @@ const CheckoutPage = () => {
             quantity: item.quantity,
             price_at_purchase: resolveProductPrice(item.product) + (item.lens ? parseFloat(item.lens.price || 0) : 0),
             lens_pd: pdValues[item.id] ? parseFloat(pdValues[item.id]) : undefined,
+            patient_name: item.prescription?.name || item.prescription?.patient_name || undefined,
             lens_prescription_text: item.rxMode === 'manual'
                 ? formatRxText(item.prescription)
                 : item.rxMode === 'upload'
@@ -432,7 +433,7 @@ const CheckoutPage = () => {
             <div className="checkout-summary-card">
                 {/* Header */}
                 <div className="summary-header-row">
-                    <span className="summary-heading" style={{ fontSize: '20px', fontWeight: '700', letterSpacing: '-0.025em' }}>Your Order</span>
+                    <span className="summary-heading" style={{ fontSize: '16px', fontWeight: '700', letterSpacing: '-0.025em' }}>Your Order</span>
                     <span className="summary-items-badge">{cart.length} {cart.length === 1 ? 'Item' : 'Items'}</span>
                 </div>
 
@@ -462,16 +463,16 @@ const CheckoutPage = () => {
 
                 {/* Pricing rows */}
                 <div className="summary-calc-row">
-                    <span className="summary-calc-label" style={{ textTransform: 'uppercase', fontSize: '10px', letterSpacing: '1px', fontWeight: '700' }}>Subtotal</span>
+                    <span className="summary-calc-label" style={{ textTransform: 'uppercase', fontSize: '8px', letterSpacing: '1px', fontWeight: '700' }}>Subtotal</span>
                     <span className="summary-calc-value">₹{cartTotal.toLocaleString()}</span>
                 </div>
-                <div className="summary-calc-row" style={{ marginTop: '8px' }}>
-                    <span className="summary-calc-value" style={{ fontWeight: '400', fontSize: '14px', color: 'var(--specsit-black)' }}>Shipping</span>
+                <div className="summary-calc-row" style={{ marginTop: '6px' }}>
+                    <span className="summary-calc-value" style={{ fontWeight: '400', fontSize: '11px', color: 'var(--specsit-black)' }}>Shipping</span>
                     <span className="summary-calc-value free">Free</span>
                 </div>
 
                 <div className="summary-total-row">
-                    <span className="summary-total-label" style={{ textTransform: 'uppercase', letterSpacing: '1.2px', fontSize: '12px' }}>Total</span>
+                    <span className="summary-total-label" style={{ textTransform: 'uppercase', letterSpacing: '1.2px', fontSize: '10px' }}>Total</span>
                     <span className="summary-total-value">₹{cartTotal.toLocaleString()}</span>
                 </div>
 
@@ -481,36 +482,36 @@ const CheckoutPage = () => {
                         {paymentMethod === 'complete_cod' && (
                             <div className="breakdown-row">
                                 <div className="breakdown-label-stack">
-                                    <span className="breakdown-main-label" style={{ textTransform: 'uppercase', fontSize: '12px', letterSpacing: '0.6px' }}>Cash on Delivery</span>
+                                    <span className="breakdown-main-label" style={{ textTransform: 'uppercase', fontSize: '10px', letterSpacing: '0.6px' }}>Cash on Delivery</span>
                                     <span className="breakdown-sub-label">Pay on delivery</span>
                                 </div>
-                                <div className="breakdown-value-large" style={{ fontSize: '24px' }}>₹{cartTotal.toLocaleString()}</div>
+                                <div className="breakdown-value-large" style={{ fontSize: '19px' }}>₹{cartTotal.toLocaleString()}</div>
                             </div>
                         )}
                         {paymentMethod === 'complete_online' && (
                             <div className="breakdown-row">
                                 <div className="breakdown-label-stack">
-                                    <span className="breakdown-main-label" style={{ textTransform: 'uppercase', fontSize: '12px', letterSpacing: '0.6px' }}>Pay Online</span>
+                                    <span className="breakdown-main-label" style={{ textTransform: 'uppercase', fontSize: '10px', letterSpacing: '0.6px' }}>Pay Online</span>
                                     <span className="breakdown-sub-label">Full amount via Razorpay</span>
                                 </div>
-                                <div className="breakdown-value-large" style={{ fontSize: '24px' }}>₹{cartTotal.toLocaleString()}</div>
+                                <div className="breakdown-value-large" style={{ fontSize: '19px' }}>₹{cartTotal.toLocaleString()}</div>
                             </div>
                         )}
                         {paymentMethod === 'partial_payment' && (<>
                             <div className="breakdown-row">
                                 <div className="breakdown-label-stack">
-                                    <span className="breakdown-main-label" style={{ textTransform: 'uppercase', fontSize: '12px', letterSpacing: '0.6px' }}>Pay Now ({partialPct}%)</span>
+                                    <span className="breakdown-main-label" style={{ textTransform: 'uppercase', fontSize: '10px', letterSpacing: '0.6px' }}>Pay Now ({partialPct}%)</span>
                                     <span className="breakdown-sub-label">Via Razorpay today</span>
                                 </div>
-                                <div className="breakdown-value-large" style={{ fontSize: '24px' }}>₹{phase1Amount.toLocaleString()}</div>
+                                <div className="breakdown-value-large" style={{ fontSize: '19px' }}>₹{phase1Amount.toLocaleString()}</div>
                             </div>
                             <div className="breakdown-divider" style={{ opacity: 1 }} />
                             <div className="breakdown-row" style={{ opacity: 0.7 }}>
                                 <div className="breakdown-label-stack">
-                                    <span className="breakdown-main-label" style={{ color: 'var(--specsit-body-grey)', textTransform: 'uppercase', fontSize: '12px', letterSpacing: '0.6px' }}>Remaining Balance</span>
+                                    <span className="breakdown-main-label" style={{ color: 'var(--specsit-body-grey)', textTransform: 'uppercase', fontSize: '10px', letterSpacing: '0.6px' }}>Remaining Balance</span>
                                     <span className="breakdown-sub-label">Due before dispatch</span>
                                 </div>
-                                <div className="breakdown-value-medium" style={{ fontSize: '18px' }}>₹{phase2Amount.toLocaleString()}</div>
+                                <div className="breakdown-value-medium" style={{ fontSize: '14px' }}>₹{phase2Amount.toLocaleString()}</div>
                             </div>
                         </>)}
                     </div>
@@ -518,7 +519,7 @@ const CheckoutPage = () => {
 
                 {/* CTA */}
                 {currentStep === 3 && (
-                    <button className="summary-cta-btn" style={{ marginTop: '24px', borderRadius: '6px', fontSize: '18px', padding: '20px 24px', letterSpacing: '-0.025em' }}
+                    <button className="summary-cta-btn" style={{ marginTop: '19px', borderRadius: '5px', fontSize: '14px', padding: '20px 24px', letterSpacing: '-0.025em' }}
                         onClick={handleShippingContinue}
                         disabled={subStep === 'FORM' && Object.values(addressErrors).some(Boolean)}
                         title={subStep === 'FORM' && Object.keys(addressErrors).length > 0 ? 'Please fix address errors' : ''}>
@@ -528,7 +529,7 @@ const CheckoutPage = () => {
                 )}
                 {currentStep === 4 && !paymentFailed && (
                     <>
-                        <button className="summary-cta-btn" style={{ marginTop: '24px', borderRadius: '6px', fontSize: '18px', padding: '20px 24px', letterSpacing: '-0.025em' }}
+                        <button className="summary-cta-btn" style={{ marginTop: '19px', borderRadius: '5px', fontSize: '14px', padding: '20px 24px', letterSpacing: '-0.025em' }}
                             onClick={handlePlaceOrder} disabled={loading || cart.length === 0 || showConfirmation} title={cart.length === 0 ? 'Please add items to your cart' : ''}>
                             {loading ? 'Processing…'
                                 : cart.length === 0 ? 'Add items to continue'
@@ -540,21 +541,21 @@ const CheckoutPage = () => {
 
                         {showConfirmation && (
                             <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <div style={{ background: '#fff', borderRadius: '12px', padding: '32px', maxWidth: '400px', boxShadow: '0 10px 40px rgba(0,0,0,0.15)' }}>
-                                    <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '12px', color: '#0f172a' }}>Confirm Order</h3>
-                                    <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '24px', lineHeight: '1.5' }}>
+                                <div style={{ background: '#fff', borderRadius: '10px', padding: '26px', maxWidth: '320px', boxShadow: '0 10px 40px rgba(0,0,0,0.15)' }}>
+                                    <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '10px', color: '#0f172a' }}>Confirm Order</h3>
+                                    <p style={{ fontSize: '11px', color: '#6b7280', marginBottom: '19px', lineHeight: '1.5' }}>
                                         You're about to place an order for ₹{cartTotal.toLocaleString()}. This action cannot be undone immediately.
                                     </p>
-                                    <div style={{ display: 'flex', gap: '12px' }}>
+                                    <div style={{ display: 'flex', gap: '10px' }}>
                                         <button
                                             onClick={() => setShowConfirmation(false)}
-                                            style={{ flex: 1, padding: '10px 16px', borderRadius: '6px', border: '1px solid #d1d5db', background: '#fff', color: '#0f172a', fontSize: '14px', fontWeight: '500', cursor: 'pointer' }}>
+                                            style={{ flex: 1, padding: '10px 16px', borderRadius: '5px', border: '1px solid #d1d5db', background: '#fff', color: '#0f172a', fontSize: '11px', fontWeight: '500', cursor: 'pointer' }}>
                                             Cancel
                                         </button>
                                         <button
                                             onClick={handleConfirmOrder}
                                             disabled={loading}
-                                            style={{ flex: 1, padding: '10px 16px', borderRadius: '6px', border: 'none', background: '#68408d', color: '#fff', fontSize: '14px', fontWeight: '500', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
+                                            style={{ flex: 1, padding: '10px 16px', borderRadius: '5px', border: 'none', background: '#68408d', color: '#fff', fontSize: '11px', fontWeight: '500', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
                                             {loading ? 'Processing…' : 'Confirm Order'}
                                         </button>
                                     </div>
@@ -608,7 +609,7 @@ const CheckoutPage = () => {
                                 </div>
                             ) : subStep === 'LIST' ? (
                                 <>
-                                    <h2 className="shipping-details-title" style={{ fontSize: '36px', letterSpacing: '-0.025em' }}>Select Shipping Address</h2>
+                                    <h2 className="shipping-details-title" style={{ fontSize: '29px', letterSpacing: '-0.025em' }}>Select Shipping Address</h2>
                                     <div className="addr-list">
                                         {savedAddresses.map(addr => {
                                             const isSelected = selectedAddressId === addr.id;

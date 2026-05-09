@@ -16,7 +16,7 @@
   overflow: hidden;
   background: #FEFCFF;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+  box-shadow: 0px 3px 3px 0px rgba(0, 0, 0, 0.25);
 }
 
 /* ── Hero Panel (Left) ───────────────────────────────────── */
@@ -42,7 +42,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 24px 40px 24px 56px;
+  padding: 19px 32px 19px 45px;
   overflow-y: auto;          /* safety valve if viewport is tiny */
   min-height: 0;
   animation: lpSlideIn 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
@@ -53,9 +53,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20px;                 /* was 48px */
+  gap: 16px;                 /* was 38px */
   width: 100%;
-  max-width: 420px;
+  max-width: 336px;
 }
 
 /* ── Branding ────────────────────────────────────────────── */
@@ -71,7 +71,7 @@
 .lp-title {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 700;
-  font-size: 22px;           /* was 30px */
+  font-size: 18px;           /* was 24px */
   line-height: 1.2em;
   letter-spacing: -0.025em;
   text-align: center;
@@ -82,7 +82,7 @@
 .lp-subtitle {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 400;
-  font-size: 14px;           /* was 16px */
+  font-size: 11px;           /* was 13px */
   line-height: 1.4em;
   text-align: center;
   color: #040205;
@@ -102,22 +102,22 @@
   display: flex;
   flex-direction: row;
   align-items: stretch;
-  gap: 4px;
-  padding: 4px;
+  gap: 3px;
+  padding: 3px;
   background: #EFEDF0;
   border: 1px solid rgba(205, 195, 209, 0.1);
-  border-radius: 12px;
+  border-radius: 10px;
 }
 
 .lp-toggle-btn {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 8px 28px;         /* was 10px 32px */
-  border-radius: 10px;
+  padding: 6px 22px;         /* was 8px 26px */
+  border-radius: 8px;
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 600;
-  font-size: 13px;           /* was 14px */
+  font-size: 10px;           /* was 11px */
   line-height: 1.4em;
   text-align: center;
   text-decoration: none;
@@ -140,9 +140,9 @@
   width: 100%;
   background: #fef2f2;
   color: #b91c1c;
-  padding: 10px 14px;
-  border-radius: 8px;
-  font-size: 13px;
+  padding: 8px 11px;
+  border-radius: 6px;
+  font-size: 10px;
   font-weight: 500;
   border: 1px solid #fee2e2;
   animation: lpFadeIn 0.3s ease;
@@ -155,7 +155,7 @@
   flex-direction: column;
   align-items: stretch;
   align-self: stretch;
-  gap: 14px;                 /* was 24px */
+  gap: 11px;                 /* was 19px */
   width: 100%;
 }
 
@@ -164,13 +164,13 @@
   display: flex;
   flex-direction: column;
   align-self: stretch;
-  gap: 5px;                  /* was 6px */
+  gap: 4px;                  /* was 5px */
 }
 
 .lp-label {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 500;
-  font-size: 13px;           /* was 14px */
+  font-size: 10px;           /* was 11px */
   line-height: 1.4em;
   color: #040205;
   text-align: left;
@@ -179,14 +179,14 @@
 /* ── Input ───────────────────────────────────────────────── */
 .lp-input {
   width: 100%;
-  height: 44px;              /* was 56px */
-  padding: 10px 20px;        /* was 17.5px 24px */
+  height: 35px;              /* was 45px */
+  padding: 8px 16px;        /* was 14px 19px */
   background: #FEFCFF;
   border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  border-radius: 6px;
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 400;
-  font-size: 15px;           /* was 16px */
+  font-size: 12px;           /* was 13px */
   line-height: 1.3em;
   color: #040205;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -219,7 +219,7 @@
 .lp-forgot-link {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 600;
-  font-size: 12px;
+  font-size: 10px;
   line-height: 1.3em;
   color: #68408D;
   background: none;
@@ -242,12 +242,12 @@
 }
 
 .lp-input--password {
-  padding-right: 48px;
+  padding-right: 38px;
 }
 
 .lp-eye-toggle {
   position: absolute;
-  right: 14px;
+  right: 11px;
   top: 50%;
   transform: translateY(-50%);
   background: none;
@@ -271,20 +271,20 @@
   justify-content: center;
   align-items: center;
   align-self: stretch;
-  height: 44px;              /* was 56px */
+  height: 35px;              /* was 45px */
   background: #68408D;
   color: #FEFCFF;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 700;
-  font-size: 15px;           /* was 16px */
+  font-size: 12px;           /* was 13px */
   line-height: 1.4em;
   text-align: center;
   cursor: pointer;
   box-shadow:
-    0px 4px 6px -4px rgba(79, 40, 116, 0.1),
-    0px 10px 15px -3px rgba(79, 40, 116, 0.1);
+    0px 3px 5px -3px rgba(79, 40, 116, 0.1),
+    0px 8px 12px -3px rgba(79, 40, 116, 0.1);
   transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
   position: relative;
   overflow: hidden;
@@ -294,8 +294,8 @@
   background: #7b4da8;
   transform: translateY(-1px);
   box-shadow:
-    0px 6px 10px -4px rgba(79, 40, 116, 0.18),
-    0px 14px 20px -3px rgba(79, 40, 116, 0.18);
+    0px 5px 8px -3px rgba(79, 40, 116, 0.18),
+    0px 11px 16px -3px rgba(79, 40, 116, 0.18);
 }
 
 .lp-submit-btn:active:not(:disabled) {
@@ -317,7 +317,7 @@
   flex-direction: row;
   align-items: center;
   align-self: stretch;
-  padding: 2px 0;            /* was 16px 0 */
+  padding: 2px 0;            /* was 13px 0 */
 }
 
 .lp-divider-line {
@@ -329,10 +329,10 @@
 }
 
 .lp-divider-text {
-  padding: 0 12px;
+  padding: 0 10px;
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 600;
-  font-size: 11px;           /* was 12px */
+  font-size: 9px;           /* was 10px */
   line-height: 1.3em;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -345,7 +345,7 @@
   display: flex;
   flex-direction: row;
   align-self: stretch;
-  gap: 10px;                 /* was 12px */
+  gap: 8px;                 /* was 10px */
 }
 
 .lp-social-btn {
@@ -353,15 +353,15 @@
   flex-direction: row;
   justify-content: center;
   align-items: center;
-  gap: 10px;
-  height: 40px;              /* was 56px */
-  padding: 0 48px;
+  gap: 8px;
+  height: 32px;              /* was 45px */
+  padding: 0 38px;
   border: 1px solid rgba(205, 195, 209, 0.3);
-  border-radius: 8px;
+  border-radius: 6px;
   background: transparent;
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 600;
-  font-size: 13px;
+  font-size: 10px;
   line-height: 1.4em;
   color: #040205;
   cursor: pointer;
@@ -380,8 +380,8 @@
 }
 
 .lp-social-icon {
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
   object-fit: contain;
   flex-shrink: 0;
 }
@@ -390,8 +390,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
   flex-shrink: 0;
 }
 
@@ -399,7 +399,7 @@
 .lp-legal {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 400;
-  font-size: 11px;           /* was 12px */
+  font-size: 9px;           /* was 10px */
   line-height: 1.4em;
   color: #040205;
   text-align: center;
@@ -420,7 +420,7 @@
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 40px;        /* was 20px 48px */
+  padding: 10px 32px;        /* was 16px 38px */
   background: #FEFCFF;
   border-top: 1px solid rgba(205, 195, 209, 0.12);
   flex-shrink: 0;
@@ -429,27 +429,27 @@
 .lp-footer-brand {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 11px;
   color: #040205;
 }
 
 .lp-footer-copy {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 400;
-  font-size: 12px;
+  font-size: 10px;
   color: #71717A;
 }
 
 .lp-footer-links {
   display: flex;
   flex-direction: row;
-  gap: 20px;
+  gap: 16px;
 }
 
 .lp-footer-link {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 400;
-  font-size: 12px;
+  font-size: 10px;
   color: #71717A;
   text-decoration: none;
   transition: color 0.2s ease;
@@ -461,22 +461,22 @@
 
 /* ── Animations ──────────────────────────────────────────── */
 @keyframes lpFadeIn {
-  from { opacity: 0; transform: translateY(-4px); }
+  from { opacity: 0; transform: translateY(-3px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes lpSlideIn {
-  from { opacity: 0; transform: translateX(20px); }
+  from { opacity: 0; transform: translateX(16px); }
   to   { opacity: 1; transform: translateX(0); }
 }
 
 /* ── Responsive ──────────────────────────────────────────── */
 @media (max-width: 1200px) {
   .lp-auth-panel {
-    padding: 20px 32px;
+    padding: 16px 26px;
   }
   .lp-auth-container {
-    gap: 16px;
+    gap: 13px;
   }
 }
 
@@ -485,7 +485,7 @@
     grid-template-columns: 40% 60%;
   }
   .lp-auth-panel {
-    padding: 16px 28px;
+    padding: 13px 22px;
   }
 }
 
@@ -495,7 +495,7 @@
     max-height: none;
     overflow: visible;
     grid-template-columns: 1fr;
-    grid-template-rows: 200px 1fr auto;
+    grid-template-rows: 160px 1fr auto;
     grid-template-areas:
       "hero"
       "auth"
@@ -503,31 +503,31 @@
   }
 
   .lp-hero-panel {
-    height: 200px;
+    height: 160px;
   }
 
   .lp-auth-panel {
-    padding: 32px 24px;
+    padding: 26px 19px;
     align-items: flex-start;
   }
 
   .lp-footer {
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
     text-align: center;
-    padding: 14px 24px;
+    padding: 11px 19px;
   }
 
   .lp-social-btn {
-    padding: 0 24px;
+    padding: 0 19px;
   }
 }
 
 @media (max-width: 480px) {
   .lp-auth-panel {
-    padding: 24px 16px;
+    padding: 19px 13px;
   }
   .lp-title {
-    font-size: 22px;
+    font-size: 18px;
   }
 }

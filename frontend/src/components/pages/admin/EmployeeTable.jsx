@@ -110,26 +110,26 @@ const EmployeeTable = () => {
   const renderRow = (emp, idx, { isSelected, onToggle } = {}) => (
     <tr key={emp.id || idx} style={{ borderBottom: '1px solid #EAECF0', backgroundColor: isSelected ? '#F9F5FF' : '#fff' }}>
       <td style={{ padding: '16px 24px' }}>
-        <input type="checkbox" checked={!!isSelected} onChange={onToggle} style={{ cursor: 'pointer', borderRadius: '4px', accentColor: '#7F56D9' }} />
+        <input type="checkbox" checked={!!isSelected} onChange={onToggle} style={{ cursor: 'pointer', borderRadius: '3px', accentColor: '#7F56D9' }} />
       </td>
       <td style={{ padding: '16px 24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#F4EBFF', color: '#7F56D9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <User size={16} />
           </div>
-          <div style={{ fontWeight: 600, color: '#101828', fontSize: '14px' }}>{emp.name || '-'}</div>
+          <div style={{ fontWeight: 600, color: '#101828', fontSize: '11px' }}>{emp.name || '-'}</div>
         </div>
       </td>
       <td style={{ padding: '16px 24px' }}>
-        <div style={{ fontSize: '14px', color: '#475467' }}>{emp.email || '-'}</div>
+        <div style={{ fontSize: '11px', color: '#475467' }}>{emp.email || '-'}</div>
       </td>
       <td style={{ padding: '16px 24px' }}>
         <span style={{
           backgroundColor: '#F9F5FF',
           color: '#6941C6',
           padding: '4px 10px',
-          borderRadius: '16px',
-          fontSize: '12px',
+          borderRadius: '13px',
+          fontSize: '10px',
           fontWeight: 600,
           border: '1px solid #E9D7FE'
         }}>
@@ -137,23 +137,23 @@ const EmployeeTable = () => {
         </span>
       </td>
       <td style={{ padding: '16px 24px' }}>
-        <div style={{ fontSize: '14px', color: '#475467' }}>{emp.phone_number || 'N/A'}</div>
+        <div style={{ fontSize: '11px', color: '#475467' }}>{emp.phone_number || 'N/A'}</div>
       </td>
       <td style={{ padding: '16px 24px' }}>
-        <div style={{ fontSize: '13px', color: '#667085' }}>{new Date(emp.created_at).toLocaleDateString()}</div>
+        <div style={{ fontSize: '10px', color: '#667085' }}>{new Date(emp.created_at).toLocaleDateString()}</div>
       </td>
       <td style={{ padding: '16px 24px' }}>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
           <div
             onClick={() => handleEditClick(emp)}
-            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
             title="Edit Employee"
           >
             <Edit2 size={16} />
           </div>
           <div
             onClick={() => handleFormDelete(emp.id)}
-            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
             title="Delete Employee"
           >
             <Trash2 size={16} />
@@ -189,8 +189,8 @@ const EmployeeTable = () => {
         showFilters={showFilters}
         setShowFilters={setShowFilters}
         filterContent={
-          <div style={{ display: 'flex', gap: '16px' }}>
-             <div style={{ fontSize: '14px', color: '#667085' }}>No active filters available for employees.</div>
+          <div style={{ display: 'flex', gap: '13px' }}>
+             <div style={{ fontSize: '11px', color: '#667085' }}>No active filters available for employees.</div>
           </div>
         }
       />

@@ -46,7 +46,7 @@ const QueryTable = () => {
   const renderRow = (q, idx) => (
     <tr key={q.id || idx} style={{ borderBottom: '1px solid #EAECF0', backgroundColor: '#fff' }}>
       <td style={{ padding: '16px 24px' }}>
-        <input type="checkbox" style={{ cursor: 'pointer', borderRadius: '4px', accentColor: '#7F56D9' }} />
+        <input type="checkbox" style={{ cursor: 'pointer', borderRadius: '3px', accentColor: '#7F56D9' }} />
       </td>
       <td style={{ padding: '16px 24px' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
@@ -54,8 +54,8 @@ const QueryTable = () => {
             <MessageSquare size={16} />
           </div>
           <div style={{ maxWidth: 360 }}>
-            <div style={{ fontWeight: 600, color: '#101828', fontSize: '14px', marginBottom: 2 }}>{q.subject}</div>
-            <div style={{ fontSize: '12px', color: '#667085', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', lineHeight: 1.5 }}>
+            <div style={{ fontWeight: 600, color: '#101828', fontSize: '11px', marginBottom: 2 }}>{q.subject}</div>
+            <div style={{ fontSize: '10px', color: '#667085', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', lineHeight: 1.5 }}>
               {q.message}
             </div>
           </div>
@@ -63,10 +63,10 @@ const QueryTable = () => {
       </td>
       <td style={{ padding: '16px 24px' }}>
         <div>
-          <div style={{ fontSize: '14px', fontWeight: 600, color: '#344054', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ fontSize: '11px', fontWeight: 600, color: '#344054', display: 'flex', alignItems: 'center', gap: 6 }}>
             <User size={12} color="#667085" /> {q.name || 'Anonymous'}
           </div>
-          <div style={{ fontSize: '12px', color: '#667085', display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+          <div style={{ fontSize: '10px', color: '#667085', display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
             <Mail size={12} color="#D0D5DD" /> {q.email}
           </div>
         </div>
@@ -76,8 +76,8 @@ const QueryTable = () => {
           backgroundColor: q.is_resolved ? '#ECFDF3' : '#FFFAEB',
           color: q.is_resolved ? '#027A48' : '#B54708',
           padding: '4px 10px',
-          borderRadius: '16px',
-          fontSize: '12px',
+          borderRadius: '13px',
+          fontSize: '10px',
           fontWeight: 600,
           display: 'inline-flex',
           alignItems: 'center',
@@ -89,19 +89,19 @@ const QueryTable = () => {
         </span>
       </td>
       <td style={{ padding: '16px 24px' }}>
-        <span style={{ fontSize: '13px', color: '#667085' }}>{new Date(q.created_at).toLocaleDateString()}</span>
+        <span style={{ fontSize: '10px', color: '#667085' }}>{new Date(q.created_at).toLocaleDateString()}</span>
       </td>
       <td style={{ padding: '16px 24px' }}>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
           <div
             onClick={() => toggleResolved(q)}
-            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
             title={q.is_resolved ? "Re-open" : "Resolve"}
           >
             {q.is_resolved ? <Clock size={16} /> : <CheckCircle size={16} />}
           </div>
           <div
-            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
           >
             <MoreVertical size={16} />
           </div>
@@ -130,8 +130,8 @@ const QueryTable = () => {
       showFilters={showFilters}
       setShowFilters={setShowFilters}
       filterContent={
-        <div style={{ display: 'flex', gap: '16px' }}>
-           <div style={{ fontSize: '14px', color: '#667085' }}>Customer support filters coming soon.</div>
+        <div style={{ display: 'flex', gap: '13px' }}>
+           <div style={{ fontSize: '11px', color: '#667085' }}>Customer support filters coming soon.</div>
         </div>
       }
     />

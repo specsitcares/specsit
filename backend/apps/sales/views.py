@@ -68,7 +68,10 @@ class OrderViewSet(viewsets.ModelViewSet):
         # Manual Filtering for Admins
         status_id = self.request.query_params.get('status')
         if status_id and status_id != "":
-            qs = qs.filter(status_id=status_id)
+            try:
+                qs = qs.filter(status_id=int(status_id))
+            except (ValueError, TypeError):
+                pass
             
         date_from = self.request.query_params.get('date_from')
         if date_from and date_from != "":
@@ -154,7 +157,10 @@ class OrderViewSet(viewsets.ModelViewSet):
         # On-page Status Filter
         status_id = request.query_params.get('status')
         if status_id and status_id != "":
-            qs = qs.filter(status_id=status_id)
+            try:
+                qs = qs.filter(status_id=int(status_id))
+            except (ValueError, TypeError):
+                pass
 
         # 2. Extract Context-Aware Counts
         status_counts = qs.values('status__label').annotate(count=Count('id'))
@@ -404,9 +410,17 @@ class OrderViewSet(viewsets.ModelViewSet):
                     defaults={'value': 'delivered', 'is_active': True},
                 )
             elif 'shipped' in label or 'transit' in label:
-                shipment_status = MetadataItem.objects.filter(group__name='Shipment Status', label='Shipped').first()
+                group, _ = MetadataGroup.objects.get_or_create(name='Shipment Status')
+                shipment_status, _ = MI.objects.get_or_create(
+                    group=group, label='Shipped',
+                    defaults={'value': 'shipped', 'is_active': True},
+                )
             elif any(s in label for s in ['preparing', 'received', 'quality', 'ready', 'confirmed']):
-                shipment_status = MetadataItem.objects.filter(group__name='Shipment Status', label='Processing').first()
+                group, _ = MetadataGroup.objects.get_or_create(name='Shipment Status')
+                shipment_status, _ = MI.objects.get_or_create(
+                    group=group, label='Processing',
+                    defaults={'value': 'processing', 'is_active': True},
+                )
             if shipment_status:
                 Shipment.objects.filter(order=instance).update(status=shipment_status)
 
@@ -430,16 +444,16 @@ class OrderViewSet(viewsets.ModelViewSet):
         now = timezone.now()
 
         # Update order — sync both status fields
-        from apps.catalog.core.models import MetadataItem
-        delivered_meta = MetadataItem.objects.filter(
-            group__name='Order Status',
-            label__icontains='deliver',
-        ).first()
+        from apps.catalog.core.models import MetadataGroup, MetadataItem as MI
+        order_group, _ = MetadataGroup.objects.get_or_create(name='Order Status')
+        delivered_meta, _ = MI.objects.get_or_create(
+            group=order_group, label='Delivered',
+            defaults={'value': 'delivered', 'is_active': True},
+        )
 
         order.order_status = 'delivered'
         order.delivery_date = now
-        if delivered_meta:
-            order.status = delivered_meta
+        order.status = delivered_meta
         if order.payment_method in ('complete_cod', 'COD'):
             order.payment_status = 'paid'
         order.save()
@@ -525,7 +539,7 @@ class WishlistViewSet(viewsets.ModelViewSet):
     serializer_class = WishlistSerializer
     permission_classes = [permissions.IsAuthenticated]
     def get_queryset(self):
-        return Wishlist.objects.filter(user=self.request.user).select_related('variant', 'variant__product')
+        return Wishlist.objects.filter(user=self.request.user).select_related('variant', 'variant__product').order_by('-added_at')
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 

@@ -104,7 +104,7 @@ const CustomerTable = () => {
   const renderRow = (u, idx, { isSelected, onToggle } = {}) => (
     <tr key={u.id || idx} style={{ borderBottom: '1px solid #EAECF0', backgroundColor: isSelected ? '#F9F5FF' : '#fff' }}>
       <td style={{ padding: '16px 24px' }}>
-        <input type="checkbox" checked={!!isSelected} onChange={onToggle} style={{ cursor: 'pointer', borderRadius: '4px', accentColor: '#7F56D9' }} />
+        <input type="checkbox" checked={!!isSelected} onChange={onToggle} style={{ cursor: 'pointer', borderRadius: '3px', accentColor: '#7F56D9' }} />
       </td>
       <td style={{ padding: '16px 24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -119,15 +119,15 @@ const CustomerTable = () => {
             {initials(u)}
           </div>
           <div>
-            <div style={{ fontWeight: 600, color: '#101828', fontSize: '14px' }}>
+            <div style={{ fontWeight: 600, color: '#101828', fontSize: '11px' }}>
               {u.first_name || u.username} {u.last_name || ''}
             </div>
-            <div style={{ fontSize: '12px', color: '#667085' }}>@{u.username}</div>
+            <div style={{ fontSize: '10px', color: '#667085' }}>@{u.username}</div>
           </div>
         </div>
       </td>
       <td style={{ padding: '16px 24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#475467', fontSize: '14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#475467', fontSize: '11px' }}>
           <Mail size={14} color="#667085" />
           {u.email || '—'}
         </div>
@@ -137,8 +137,8 @@ const CustomerTable = () => {
           backgroundColor: u.is_staff ? '#F9F5FF' : '#F2F4F7',
           color: u.is_staff ? '#6941C6' : '#414651',
           padding: '4px 10px',
-          borderRadius: '16px',
-          fontSize: '12px',
+          borderRadius: '13px',
+          fontSize: '10px',
           fontWeight: 600,
           display: 'inline-flex',
           alignItems: 'center',
@@ -150,7 +150,7 @@ const CustomerTable = () => {
         </span>
       </td>
       <td style={{ padding: '16px 24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#475467', fontSize: '14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#475467', fontSize: '11px' }}>
           <Calendar size={14} color="#667085" />
           {u.date_joined ? new Date(u.date_joined).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
         </div>
@@ -159,14 +159,14 @@ const CustomerTable = () => {
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
           <div
             onClick={() => handleEditClick(u)}
-            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
             title="Edit Customer"
           >
             <Edit2 size={16} />
           </div>
           <div
             onClick={() => handleEditClick(u)} // Assuming delete also opens edit modal with delete option as per original code handleEditClick and handleDeleteClick was same
-            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
             title="Delete Customer"
           >
             <Trash2 size={16} />
@@ -202,9 +202,9 @@ const CustomerTable = () => {
         showFilters={showFilters}
         setShowFilters={setShowFilters}
         filterContent={
-          <div style={{ display: 'flex', gap: '16px' }}>
+          <div style={{ display: 'flex', gap: '13px' }}>
              {/* Add customer specific filters here if needed */}
-             <div style={{ fontSize: '14px', color: '#667085' }}>No active filters available for customers.</div>
+             <div style={{ fontSize: '11px', color: '#667085' }}>No active filters available for customers.</div>
           </div>
         }
       />

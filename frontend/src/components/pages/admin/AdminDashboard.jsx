@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Routes, Route, useNavigate, useParams } from 'react-router-dom';
 import apiClient from '../../../services/api';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
@@ -7,10 +8,8 @@ import OrderTable from './OrderTable';
 import CustomerTable from './CustomerTable';
 import PrescriptionTable from './PrescriptionTable';
 import UserFaceTable from './UserFaceTable';
-import ProductTable from './ProductTable';
 import ProductsPage from './ProductsPage';
 import LensForm from './LensForm';
-import FrameForm from './FrameForm';
 import ProductDetailsForm from './ProductDetailsForm';
 import InventoryTable from './InventoryTable';
 import ShipmentTable from './ShipmentTable';
@@ -25,30 +24,60 @@ import LensManagement from './LensManagement';
 import CmsManagement from './CmsManagement';
 import StoreSettings from './StoreSettings';
 import PaymentSettings from './PaymentSettings';
+import QueryTable from './QueryTable';
 import { useAuth } from '../../../context/AuthContext';
 import OrderDetail from './OrderDetail';
 import '../../../styles/admin.css';
 
+/* ── Route wrappers that pull params from the URL ─────────── */
+
+const OrderDetailRoute = () => {
+  const { orderId } = useParams();
+  const navigate = useNavigate();
+  return <OrderDetail orderId={parseInt(orderId)} onBack={() => navigate('/admin/orders')} />;
+};
+
+const ProductsRoute = () => {
+  const navigate = useNavigate();
+  return (
+    <ProductsPage
+      onAddNew={(type) => navigate(`/admin/products/new/${type}`)}
+      onEdit={(type, id) => navigate(`/admin/products/edit/${type}/${id}`)}
+    />
+  );
+};
+
+const LensFormRoute = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  return (
+    <LensForm
+      productId={id ? parseInt(id) : null}
+      onBack={() => navigate('/admin/products')}
+      onSaved={() => navigate('/admin/products')}
+    />
+  );
+};
+
+const FrameFormRoute = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  return (
+    <ProductDetailsForm
+      onBack={() => navigate('/admin/products')}
+      editProduct={id ? { id: parseInt(id) } : null}
+    />
+  );
+};
+
+/* ── Main dashboard shell ─────────────────────────────────── */
+
 const AdminDashboard = () => {
   const { user, logout } = useAuth();
-  const [activeApp, setActiveApp] = useState('Dashboards');
-  const [subView, setSubView] = useState('Defaults');
-  const [primaryView, setPrimaryView] = useState('Dashboard');
+  const navigate = useNavigate();
   const [statsData, setStatsData] = useState(null);
   const [recentOrders, setRecentOrders] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [viewingOrderId, setViewingOrderId] = useState(null);
-  const [inventoryFilter, setInventoryFilter] = useState('all');
-  // Product form navigation state
-  const [productFormType, setProductFormType] = useState(null); // 'lens' | 'frame'
-  const [productFormId, setProductFormId] = useState(null); // null = create, id = edit
-
-  // Browser back-button intercept
-  const navHistoryRef = useRef([]);
-  const isGoingBackRef = useRef(false);
-  const isInitializedRef = useRef(false);
-  const prevNavRef = useRef(null);
-  const settleTimerRef = useRef(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -64,209 +93,119 @@ const AdminDashboard = () => {
     fetchData();
   }, []);
 
-  useEffect(() => {
-    setProductFormType(null);
-    setProductFormId(null);
-    if (activeApp === 'Orders') setPrimaryView('Order');
-    else if (activeApp === 'Customers') setPrimaryView('Customers');
-    else if (activeApp === 'Dashboards') setPrimaryView('Dashboard');
-    else if (activeApp === 'Analytics') setPrimaryView('Analytics');
-    else setPrimaryView(activeApp);
-  }, [activeApp]);
+  const badges = statsData ? {
+    Orders:        parseInt(statsData.stats?.find(s => s.title === 'Pending Orders')?.value        || 0),
+    Prescriptions: parseInt(statsData.stats?.find(s => s.title === 'Pending Prescriptions')?.value || 0),
+    Inventory:    (parseInt(statsData.attention?.find(a => a.icon === 'AlertTriangle')?.count      || 0) +
+                   parseInt(statsData.attention?.find(a => a.icon === 'AlertCircle')?.count        || 0)),
+    Shipments:     parseInt(statsData.stats?.find(s => s.title === 'Active Shipments')?.value      || 0),
+  } : {};
 
-  // Track navigation — debounced with setTimeout(0) so cascading React effects
-  // (e.g. [activeApp] effect → setPrimaryView) all settle before we snapshot.
-  // Watches every nav variable so sub-view changes are also captured.
-  useEffect(() => {
-    const current = { primaryView, activeApp, subView, viewingOrderId, productFormType, productFormId, inventoryFilter };
-
-    if (!isInitializedRef.current) {
-      isInitializedRef.current = true;
-      prevNavRef.current = current;
-      window.history.pushState({ adminPanel: true }, '');
-      return;
-    }
-
-    if (settleTimerRef.current) clearTimeout(settleTimerRef.current);
-
-    settleTimerRef.current = setTimeout(() => {
-      settleTimerRef.current = null;
-
-      if (isGoingBackRef.current) {
-        isGoingBackRef.current = false;
-        prevNavRef.current = current;
-        return;
-      }
-
-      const prev = prevNavRef.current;
-      const changed = prev && (
-        prev.primaryView !== current.primaryView ||
-        prev.subView !== current.subView ||
-        prev.viewingOrderId !== current.viewingOrderId ||
-        prev.productFormType !== current.productFormType
-      );
-
-      if (changed) {
-        navHistoryRef.current.push({ ...prev });
-        window.history.pushState({ adminPanel: true }, '');
-      }
-
-      prevNavRef.current = current;
-    }, 0);
-  }, [primaryView, activeApp, subView, viewingOrderId, productFormType, productFormId, inventoryFilter]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Intercept browser back button — restore internal nav state instead of leaving
-  useEffect(() => {
-    const handlePopState = () => {
-      window.history.pushState({ adminPanel: true }, ''); // keep admin reachable
-      const prev = navHistoryRef.current.pop();
-      if (prev) {
-        isGoingBackRef.current = true;
-        setPrimaryView(prev.primaryView);
-        setActiveApp(prev.activeApp);
-        setSubView(prev.subView);
-        setViewingOrderId(prev.viewingOrderId);
-        setProductFormType(prev.productFormType);
-        setProductFormId(prev.productFormId);
-        setInventoryFilter(prev.inventoryFilter);
-      }
-    };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
-
-  useEffect(() => {
-    const map = {
-      'All Orders': 'Order',
-      'Return Window': 'Order',
-      'Warranty Window': 'Order',
-      'Profiles': 'Customers',
-      'Customer Profiles': 'Customers',
-      'Customer Queries': 'Queries',
-      'All Prescriptions': 'Prescriptions',
-      'Face Captures': 'UserFace',
-      'All Products': 'Products',
-      'All Categories': 'Categories',
-      'All Brands': 'Brands',
-      'All Collections': 'Collections',
-      'All Variants': 'Variants',
-      'Manage Lenses': 'Lenses',
-      'Current Stock': 'Inventory',
-      'Low Stock': 'Inventory',
-      'Restock Records': 'Inventory',
-      'Track Shipments': 'Shipments',
-      'Reviews': 'Reviews',
-      'Pending Reviews': 'Reviews',
-      'Employees': 'Staff',
-      'Active Coupons': 'Coupons',
-      'CMS Management': 'CMS',
-      'Store Settings': 'StoreSettings',
-      'Payment Settings': 'PaymentSettings',
-    };
-    if (map[subView]) setPrimaryView(map[subView]);
-  }, [subView]);
-
-  const renderContent = () => {
-    if (viewingOrderId) {
-      return <OrderDetail orderId={viewingOrderId} onBack={() => setViewingOrderId(null)} />;
-    }
-    
-    switch (primaryView) {
-      case 'Dashboard':
-      case 'Dashboards':
-      case 'Analytics':
-        return <DashboardHome recentOrders={recentOrders} onOrderClick={id => setViewingOrderId(id)} onNavigate={({ view, filter }) => { setInventoryFilter(filter || 'all'); setPrimaryView(view); }} />;
-      case 'Order':
-      case 'Orders': {
-        const cat = subView === 'Return Window' ? 'returns' : subView === 'Warranty Window' ? 'warranty' : null;
-        return <OrderTable category={cat} onViewDetails={id => setViewingOrderId(id)} />;
-      }
-      case 'Customers':
-        return <CustomerTable />;
-      case 'Prescriptions':
-        return <PrescriptionTable />;
-      case 'UserFace':
-        return <UserFaceTable />;
-      case 'Products':
-        if (productFormType === 'lens') {
-          return <LensForm productId={productFormId} onBack={() => { setProductFormType(null); setProductFormId(null); }} onSaved={() => { setProductFormType(null); setProductFormId(null); }} />;
-        }
-        if (productFormType === 'frame') {
-          return <ProductDetailsForm onBack={() => { setProductFormType(null); setProductFormId(null); }} editProduct={productFormId ? { id: productFormId } : null} />;
-        }
-        return <ProductsPage
-          onAddNew={(type) => { setProductFormType(type); setProductFormId(null); }}
-          onEdit={(type, id) => { setProductFormType(type); setProductFormId(id); }}
-        />;
-      case 'Categories':
-        return <CategoryTable />;
-      case 'Brands':
-        return <BrandTable />;
-      case 'Collections':
-        return <CollectionTable />;
-      case 'Variants':
-        return <VariantTable />;
-      case 'Inventory':
-        return <InventoryTable initialFilter={inventoryFilter} />;
-      case 'Lenses':
-        return <LensManagement />;
-      case 'Shipments':
-        return <ShipmentTable />;
-      case 'Reviews':
-        return <ReviewTable />;
-      case 'Staff':
-        return <EmployeeTable />;
-      case 'Coupons':
-        return <CouponTable />;
-      case 'CMS':
-        return <CmsManagement />;
-      case 'StoreSettings':
-        return <StoreSettings />;
-      case 'PaymentSettings':
-        return <PaymentSettings />;
-      default:
-        return <DashboardHome recentOrders={recentOrders} />;
+  const handleDashboardNavigate = ({ view, filter }) => {
+    if (view === 'Inventory') {
+      navigate(filter === 'low' ? '/admin/inventory/low' : filter === 'out' ? '/admin/inventory/out' : '/admin/inventory');
+    } else if (view === 'Prescriptions') {
+      navigate('/admin/prescriptions');
+    } else if (view === 'Shipments') {
+      navigate('/admin/shipments');
     }
   };
 
   return (
     <div className="admin-viewport-wrapper">
       <TopBar
-        activeView={activeApp}
-        setActiveView={setActiveApp}
-        userName={user?.username || 'Olivia Rhye'}
+        userName={user?.username || 'Admin'}
         userRole="Admin"
         onLogout={logout}
-        toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+        toggleSidebar={() => setSidebarOpen(prev => !prev)}
       />
 
       <div className="admin-layout-new">
         <Sidebar
-          activeApp={activeApp}
-          setActiveApp={setActiveApp}
-          subView={subView}
-          setSubView={setSubView}
           onClose={() => setSidebarOpen(false)}
           isMobile={sidebarOpen}
-          badges={statsData ? {
-            Orders:        parseInt(statsData.stats?.find(s => s.title === 'Pending Orders')?.value        || 0),
-            Prescriptions: parseInt(statsData.stats?.find(s => s.title === 'Pending Prescriptions')?.value || 0),
-            Inventory:     (parseInt(statsData.attention?.find(a => a.icon === 'AlertTriangle')?.count     || 0) +
-                            parseInt(statsData.attention?.find(a => a.icon === 'AlertCircle')?.count       || 0)),
-            Shipments:     parseInt(statsData.stats?.find(s => s.title === 'Active Shipments')?.value      || 0),
-          } : {}}
+          badges={badges}
         />
 
         <div className="admin-main-container">
           {sidebarOpen && (
-            <div 
-              className="sidebar-backdrop mobile-only" 
+            <div
+              className="sidebar-backdrop mobile-only"
               onClick={() => setSidebarOpen(false)}
               style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 998 }}
-            ></div>
+            />
           )}
           <main className="admin-content-scroller">
-            {renderContent()}
+            <Routes>
+              {/* Dashboard */}
+              <Route index element={
+                <DashboardHome
+                  recentOrders={recentOrders}
+                  onOrderClick={id => navigate(`/admin/orders/${id}`)}
+                  onNavigate={handleDashboardNavigate}
+                />
+              } />
+
+              {/* Orders */}
+              <Route path="orders"          element={<OrderTable category={null}       onViewDetails={id => navigate(`/admin/orders/${id}`)} />} />
+              <Route path="orders/returns"  element={<OrderTable category="returns"    onViewDetails={id => navigate(`/admin/orders/${id}`)} />} />
+              <Route path="orders/warranty" element={<OrderTable category="warranty"   onViewDetails={id => navigate(`/admin/orders/${id}`)} />} />
+              <Route path="orders/:orderId" element={<OrderDetailRoute />} />
+
+              {/* Products */}
+              <Route path="products"                  element={<ProductsRoute />} />
+              <Route path="products/new/lens"         element={<LensFormRoute />} />
+              <Route path="products/new/frame"        element={<FrameFormRoute />} />
+              <Route path="products/edit/lens/:id"    element={<LensFormRoute />} />
+              <Route path="products/edit/frame/:id"   element={<FrameFormRoute />} />
+              <Route path="products/categories"       element={<CategoryTable />} />
+              <Route path="products/brands"           element={<BrandTable />} />
+              <Route path="products/collections"      element={<CollectionTable />} />
+              <Route path="products/variants"         element={<VariantTable />} />
+              <Route path="products/lenses"           element={<LensManagement />} />
+
+              {/* Inventory */}
+              <Route path="inventory"     element={<InventoryTable initialFilter="all" />} />
+              <Route path="inventory/low" element={<InventoryTable initialFilter="low" />} />
+              <Route path="inventory/out" element={<InventoryTable initialFilter="out" />} />
+
+              {/* Prescriptions */}
+              <Route path="prescriptions" element={<PrescriptionTable />} />
+
+              {/* Shipments */}
+              <Route path="shipments" element={<ShipmentTable />} />
+
+              {/* Customers */}
+              <Route path="customers"          element={<CustomerTable />} />
+              <Route path="customers/reviews"  element={<ReviewTable />} />
+              <Route path="customers/faces"    element={<UserFaceTable />} />
+              <Route path="customers/inquiries" element={<QueryTable />} />
+
+              {/* Analytics */}
+              <Route path="analytics" element={
+                <DashboardHome
+                  recentOrders={recentOrders}
+                  onOrderClick={id => navigate(`/admin/orders/${id}`)}
+                  onNavigate={handleDashboardNavigate}
+                />
+              } />
+
+              {/* Settings */}
+              <Route path="settings"         element={<StoreSettings />} />
+              <Route path="settings/payment" element={<PaymentSettings />} />
+              <Route path="settings/cms"     element={<CmsManagement />} />
+              <Route path="settings/staff"   element={<EmployeeTable />} />
+              <Route path="settings/coupons" element={<CouponTable />} />
+
+              {/* Fallback */}
+              <Route path="*" element={
+                <DashboardHome
+                  recentOrders={recentOrders}
+                  onOrderClick={id => navigate(`/admin/orders/${id}`)}
+                  onNavigate={handleDashboardNavigate}
+                />
+              } />
+            </Routes>
           </main>
         </div>
       </div>

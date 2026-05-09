@@ -853,7 +853,7 @@ const ManualPowerForm = ({ rx, onRxChange, rxMeta, onMetaChange, powerType }) =>
                             max="3.50"
                             placeholder="+0.00"
                             className="lsa-power-grid__axis-input"
-                            style={{ width: '100px' }}
+                            style={{ width: '80px' }}
                             value={rx.add || ''}
                             onChange={e => onRxChange('add', 'value', e.target.value)}
                         />
@@ -1013,6 +1013,16 @@ const StepRx = ({ powerType, rx, onRxChange, rxMode, setRxMode, onUpload, upload
                         )}
                         <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={onUpload} style={{ display: 'none' }} />
                     </label>
+                    <div className="lsa-manual-field" style={{ marginTop: 12 }}>
+                        <label className="lsa-manual-field__label">WHOSE PRESCRIPTION IS THIS? NAME*</label>
+                        <input
+                            type="text"
+                            placeholder="e.g. John Doe"
+                            className="lsa-manual-field__input"
+                            value={rxMeta.name}
+                            onChange={e => onMetaChange('name', e.target.value)}
+                        />
+                    </div>
                 </div>
             )}
 
@@ -1026,6 +1036,16 @@ const StepRx = ({ powerType, rx, onRxChange, rxMode, setRxMode, onUpload, upload
                     </svg>
                     <p>We'll remind you to submit your prescription within 15 days of delivery.</p>
                     <button className="lsa-rx-back-link" style={{ marginTop: 4 }} onClick={() => setRxMode(null)}>← Change option</button>
+                    <div className="lsa-manual-field" style={{ marginTop: 12 }}>
+                        <label className="lsa-manual-field__label">WHOSE PRESCRIPTION IS THIS? NAME*</label>
+                        <input
+                            type="text"
+                            placeholder="e.g. John Doe"
+                            className="lsa-manual-field__input"
+                            value={rxMeta.name}
+                            onChange={e => onMetaChange('name', e.target.value)}
+                        />
+                    </div>
                 </div>
             )}
         </div>
@@ -1102,6 +1122,8 @@ const LensSelectionAside = ({ isOpen, onClose, product, onAddToCart }) => {
         const needsRx = powerType === 'with_power' || powerType === 'progressive';
         const prescriptionObj = needsRx && rxMode === 'manual'
             ? { ...rx, pd: rxMeta.pd, name: rxMeta.name, phone: rxMeta.phone }
+            : needsRx && (rxMode === 'upload' || rxMode === 'later') && rxMeta.name
+            ? { name: rxMeta.name }
             : null;
         const pdfUrl = rxMode === 'upload' && uploadedFile
             ? URL.createObjectURL(uploadedFile)
@@ -1132,7 +1154,7 @@ const LensSelectionAside = ({ isOpen, onClose, product, onAddToCart }) => {
             sub: null,
             disabled: !rxReady,
             action: handleAddToCart,
-            style: { letterSpacing: '1.4px', fontSize: '14px', borderRadius: '8px', padding: '18px 16px' },
+            style: { letterSpacing: '1.4px', fontSize: '11px', borderRadius: '6px', padding: '18px 16px' },
         },
     ][step];
 

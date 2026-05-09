@@ -45,7 +45,7 @@ const S = {
 
   sectionLabel: { fontSize: 11, fontWeight: 700, color: '#68408d', textTransform: 'uppercase', letterSpacing: '1.2px', margin: '0 0 2px' },
   cardTitle: { fontSize: 20, fontWeight: 700, color: '#040205', letterSpacing: '-0.4px', margin: 0 },
-  cardBody: { fontSize: 14, color: '#71717a', lineHeight: '22px', margin: 0 },
+  cardBody: { fontSize: 14, color: '#71717a', lineHeight: '18px', margin: 0 },
 
   orderMetaGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 24px', fontSize: 13 },
   metaLabel: { color: '#9ca3af', marginRight: 4 },
@@ -60,7 +60,7 @@ const S = {
     padding: '14px 0',
   },
   thumb: { width: 56, height: 56, borderRadius: 10, background: '#efedf0', overflow: 'hidden', flexShrink: 0 },
-  itemName: { fontWeight: 700, color: '#040205', fontSize: 13, lineHeight: '18px', marginBottom: 2 },
+  itemName: { fontWeight: 700, color: '#040205', fontSize: 13, lineHeight: '14px', marginBottom: 2 },
   itemSub: { fontSize: 11, color: '#71717a' },
 
   reviewedBadge: {
@@ -118,7 +118,7 @@ const S = {
   itemRow: { display: 'flex', gap: 14, alignItems: 'center' },
   itemThumb: { width: 56, height: 56, borderRadius: 8, background: '#efedf0', overflow: 'hidden', flexShrink: 0 },
   itemInfo: { flex: 1, display: 'flex', flexDirection: 'column', gap: 3 },
-  itemNameSm: { fontSize: 11, fontWeight: 700, color: '#040205', textTransform: 'uppercase', letterSpacing: '0.8px', lineHeight: '15px' },
+  itemNameSm: { fontSize: 11, fontWeight: 700, color: '#040205', textTransform: 'uppercase', letterSpacing: '0.8px', lineHeight: '12px' },
   itemVariantSm: { fontSize: 10, color: '#71717a' },
   itemPriceSm: { fontSize: 12, fontWeight: 700, color: '#040205', whiteSpace: 'nowrap' },
 

@@ -7,7 +7,7 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
     const location = useLocation();
 
     if (loading) {
-        return <div style={{ padding: '40px', textAlign: 'center' }}>Loading...</div>;
+        return <div style={{ padding: '32px', textAlign: 'center' }}>Loading...</div>;
     }
 
     if (!user) {
@@ -17,7 +17,7 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
 
     if (requireAdmin && !user.is_staff) {
         return (
-            <div style={{ padding: '40px', textAlign: 'center' }}>
+            <div style={{ padding: '32px', textAlign: 'center' }}>
                 <h2>Access Denied</h2>
                 <p>You don't have permission to access the admin panel.</p>
             </div>

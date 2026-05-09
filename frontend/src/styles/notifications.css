@@ -4,37 +4,37 @@
 
 /* Page heading block */
 .notif-page-header {
-  margin-bottom: 32px;
+  margin-bottom: 26px;
 }
 
 .notif-page-title {
-  font-size: 36px;
+  font-size: 29px;
   font-weight: 800;
   color: var(--specsit-black);
   letter-spacing: -1px;
-  line-height: 40px;
-  margin: 0 0 8px;
+  line-height: 32px;
+  margin: 0 0 6px;
 }
 
 .notif-page-subtitle {
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 400;
   color: var(--specsit-black);
-  line-height: 28px;
+  line-height: 22px;
   margin: 0;
 }
 
 /* Card */
 .notif-card {
   background: var(--specsit-bg-white);
-  border-radius: 8px;
-  box-shadow: 0px 20px 40px 0px rgba(4, 2, 5, 0.04);
+  border-radius: 6px;
+  box-shadow: 0px 16px 32px 0px rgba(4, 2, 5, 0.04);
   overflow: hidden;
-  max-width: 896px;
+  max-width: 717px;
 }
 
 .notif-rows {
-  padding: 48px;
+  padding: 38px;
   display: flex;
   flex-direction: column;
 }
@@ -44,8 +44,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
-  padding: 32px 0;
+  gap: 19px;
+  padding: 26px 0;
 }
 
 .notif-row--bordered {
@@ -55,16 +55,16 @@
 .notif-row__left {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 19px;
   min-width: 0;
 }
 
 /* Channel icon */
 .notif-row__icon {
   flex-shrink: 0;
-  width: 56px;
-  height: 56px;
-  border-radius: 12px;
+  width: 45px;
+  height: 45px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -74,31 +74,31 @@
 .notif-row__text {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
   min-width: 0;
 }
 
 .notif-row__label {
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--specsit-black);
-  line-height: 28px;
+  line-height: 22px;
 }
 
 .notif-row__desc {
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 400;
   color: var(--specsit-black);
-  line-height: 20px;
+  line-height: 16px;
 }
 
 /* Toggle track */
 .notif-toggle {
   flex-shrink: 0;
   position: relative;
-  width: 48px;
-  height: 24px;
-  border-radius: 12px;
+  width: 38px;
+  height: 19px;
+  border-radius: 10px;
   border: none;
   background: var(--specsit-light-grey);
   cursor: pointer;
@@ -113,10 +113,10 @@
 /* Toggle knob */
 .notif-toggle__knob {
   position: absolute;
-  top: 4px;
-  left: 4px;
-  width: 16px;
-  height: 16px;
+  top: 3px;
+  left: 3px;
+  width: 13px;
+  height: 13px;
   border-radius: 50%;
   background: #fff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
@@ -125,7 +125,7 @@
 }
 
 .notif-toggle--on .notif-toggle__knob {
-  transform: translateX(24px);
+  transform: translateX(19px);
 }
 
 /* Card footer with save button */
@@ -133,32 +133,32 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 16px;
-  padding: 24px 48px;
+  gap: 13px;
+  padding: 19px 38px;
   border-top: 1px solid var(--specsit-light-grey);
 }
 
 .notif-saved-msg {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
+  gap: 5px;
+  font-size: 10px;
   font-weight: 600;
   color: #15803D;
 }
 
 .notif-save-btn {
-  padding: 16px 40px;
+  padding: 13px 32px;
   background: var(--specsit-purple-primary);
   color: var(--specsit-bg-white);
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 700;
-  line-height: 24px;
+  line-height: 19px;
   cursor: pointer;
-  box-shadow: 0px 10px 15px -3px rgba(88, 28, 135, 0.1), 0px 4px 6px -4px rgba(88, 28, 135, 0.1);
+  box-shadow: 0px 8px 12px -3px rgba(88, 28, 135, 0.1), 0px 3px 5px -3px rgba(88, 28, 135, 0.1);
   transition: opacity 0.15s;
   white-space: nowrap;
 }
@@ -168,12 +168,12 @@
 
 /* Responsive */
 @media (max-width: 700px) {
-  .notif-page-title { font-size: 26px; }
-  .notif-page-subtitle { font-size: 15px; }
-  .notif-rows { padding: 24px; }
-  .notif-card__footer { padding: 16px 24px; }
-  .notif-row { padding: 20px 0; }
-  .notif-row__label { font-size: 15px; }
-  .notif-row__desc { font-size: 13px; }
-  .notif-save-btn { padding: 14px 28px; font-size: 14px; }
+  .notif-page-title { font-size: 21px; }
+  .notif-page-subtitle { font-size: 12px; }
+  .notif-rows { padding: 19px; }
+  .notif-card__footer { padding: 13px 19px; }
+  .notif-row { padding: 16px 0; }
+  .notif-row__label { font-size: 12px; }
+  .notif-row__desc { font-size: 10px; }
+  .notif-save-btn { padding: 11px 22px; font-size: 11px; }
 }

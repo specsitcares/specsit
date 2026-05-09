@@ -9,15 +9,15 @@
   --font-secondary: 'DM Sans', sans-serif;
 
   /* --- Font Sizes (High Density / Compact Scale) --- */
-  --fs-xs: 9px;
-  --fs-sm: 11px;
-  --fs-base: 13px;
-  --fs-md: 14px;
-  --fs-lg: 16px;
-  --fs-xl: 18px;
-  --fs-2xl: 22px;
-  --fs-3xl: 28px;
-  --fs-hero: 48px;
+  --fs-xs: 7px;
+  --fs-sm: 9px;
+  --fs-base: 10px;
+  --fs-md: 11px;
+  --fs-lg: 13px;
+  --fs-xl: 14px;
+  --fs-2xl: 18px;
+  --fs-3xl: 22px;
+  --fs-hero: 38px;
 
   /* --- Font Weights --- */
   --fw-light: 300;
@@ -47,7 +47,7 @@
 
 /* --- Global Tag Overrides --- */
 html {
-  font-size: 13px !important;
+  font-size: 10px !important;
   font-family: var(--font-secondary);
   color: var(--clr-text-main);
   line-height: var(--lh-base);

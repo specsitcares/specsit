@@ -48,7 +48,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
             return 'Pending Review'
         if obj.lens:
             return 'Awaiting Submission'
-        return 'Not Required'
+        return 'Frame Only'
 
     class Meta:
         model = OrderItem
@@ -109,7 +109,25 @@ class OrderSerializer(serializers.ModelSerializer):
         return review.rating if review else None
 
     def get_status_label(self, obj):
-        return obj.status.label if obj.status else obj.order_status or 'Pending'
+        STATUS_RANK = {
+            'pending': 0, 'confirmed': 1,
+            'ready_to_dispatch': 2, 'in_transit': 3,
+            'delivered': 4, 'cancelled': 4,
+        }
+        if obj.status:
+            meta_mapped = self._label_to_order_status(obj.status.label)
+            db_rank = STATUS_RANK.get(obj.order_status or '', 0)
+            meta_rank = STATUS_RANK.get(meta_mapped or '', 0)
+            # If order_status is more advanced (e.g., delivered) but FK label is stale, use order_status
+            if db_rank > meta_rank:
+                ORDER_STATUS_LABELS = {
+                    'pending': 'Pending', 'confirmed': 'Confirmed',
+                    'ready_to_dispatch': 'Ready for Dispatch', 'in_transit': 'In Transit',
+                    'delivered': 'Delivered', 'cancelled': 'Cancelled',
+                }
+                return ORDER_STATUS_LABELS.get(obj.order_status, obj.order_status or 'Pending')
+            return obj.status.label
+        return obj.order_status or 'Pending'
 
     @staticmethod
     def _label_to_order_status(label):
@@ -300,6 +318,11 @@ class WishlistSerializer(serializers.ModelSerializer):
     product_id = serializers.ReadOnlyField(source='variant.product.id')
     variant_image = serializers.SerializerMethodField()
     product_price = serializers.ReadOnlyField(source='variant.product.base_price')
+    product_selling_price = serializers.ReadOnlyField(source='variant.product.selling_price')
+    product_discount_percentage = serializers.ReadOnlyField(source='variant.product.discount_percentage')
+    variant_base_price = serializers.ReadOnlyField(source='variant.base_price')
+    variant_selling_price = serializers.ReadOnlyField(source='variant.selling_price')
+    variant_discount_percent = serializers.ReadOnlyField(source='variant.discount_percent')
     variant_color = serializers.ReadOnlyField(source='variant.color')
     variant_size = serializers.ReadOnlyField(source='variant.frame_size')
     variant_sku = serializers.ReadOnlyField(source='variant.sku')
@@ -317,7 +340,9 @@ class WishlistSerializer(serializers.ModelSerializer):
         model = Wishlist
         fields = [
             'id', 'user', 'variant', 'product_id', 'variant_name', 'variant_image',
-            'product_price', 'variant_color', 'variant_size', 'variant_sku', 'added_at'
+            'product_price', 'product_selling_price', 'product_discount_percentage',
+            'variant_base_price', 'variant_selling_price', 'variant_discount_percent',
+            'variant_color', 'variant_size', 'variant_sku', 'added_at'
         ]
         read_only_fields = ['user', 'added_at']
 

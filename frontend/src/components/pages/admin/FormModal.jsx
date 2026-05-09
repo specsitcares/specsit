@@ -124,13 +124,13 @@ const FormModal = ({
         {(successMessage || errors.general) && (
           <div style={{ padding: '16px 24px 0' }}>
             {successMessage && (
-              <div className="badge badge-success" style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', justifyContent: 'flex-start' }}>
+              <div className="badge badge-success" style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', justifyContent: 'flex-start' }}>
                 <CheckCircle size={16} />
                 <span>{successMessage}</span>
               </div>
             )}
             {errors.general && (
-              <div className="badge badge-error" style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', justifyContent: 'flex-start' }}>
+              <div className="badge badge-error" style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', justifyContent: 'flex-start' }}>
                 <AlertCircle size={16} />
                 <span>{errors.general}</span>
               </div>
@@ -142,7 +142,7 @@ const FormModal = ({
         {!showDeleteConfirm ? (
           <form onSubmit={handleSubmit}>
             <div className="form-modal-body" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '13px' }}>
                 {fields.map(field => {
                   if (field.readOnly && mode === 'create') return null;
                   
@@ -161,7 +161,7 @@ const FormModal = ({
                           id={field.name}
                           name={field.name}
                           className="form-input"
-                          style={{ minHeight: '80px', resize: 'vertical' }}
+                          style={{ minHeight: '64px', resize: 'vertical' }}
                           value={fieldValue}
                           onChange={handleInputChange}
                           placeholder={field.placeholder || ''}
@@ -184,7 +184,7 @@ const FormModal = ({
                           ))}
                         </select>
                       ) : field.type === 'checkbox' ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '3px' }}>
                           <input
                             type="checkbox"
                             id={field.name}
@@ -192,14 +192,14 @@ const FormModal = ({
                             checked={!!fieldValue}
                             onChange={handleInputChange}
                             disabled={isSubmitting || field.readOnly}
-                            style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                            style={{ width: '13px', height: '13px', cursor: 'pointer' }}
                           />
                           <span className="form-label" style={{ fontWeight: 400, cursor: 'pointer' }} onClick={() => !field.readOnly && handleInputChange({ target: { name: field.name, type: 'checkbox', checked: !fieldValue } })}>
                             {field.placeholder || 'Enable this feature'}
                           </span>
                         </div>
                       ) : field.type === 'file' ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                           <input
                             type="file"
                             id={field.name}
@@ -210,7 +210,7 @@ const FormModal = ({
                             disabled={isSubmitting || field.readOnly}
                           />
                           {mode === 'edit' && fieldValue && typeof fieldValue === 'string' && (
-                            <div style={{ fontSize: '11px', color: 'var(--gray-400)' }}>
+                            <div style={{ fontSize: '9px', color: 'var(--gray-400)' }}>
                               Current file: {fieldValue.split('/').pop()}
                             </div>
                           )}
@@ -232,7 +232,7 @@ const FormModal = ({
                       )}
 
                       {fieldError && (
-                        <span style={{ fontSize: '12px', color: 'var(--error-700)', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                        <span style={{ fontSize: '10px', color: 'var(--error-700)', display: 'flex', alignItems: 'center', gap: '3px', marginTop: '2px' }}>
                           <AlertCircle size={12} /> {Array.isArray(fieldError) ? fieldError[0] : fieldError}
                         </span>
                       )}
@@ -270,24 +270,24 @@ const FormModal = ({
           <div className="form-modal-body">
             <div style={{ textAlign: 'center', padding: '20px 0' }}>
               <div style={{ 
-                width: '64px', height: '64px', borderRadius: '50%', background: 'var(--error-50)', 
+                width: '51px', height: '51px', borderRadius: '50%', background: 'var(--error-50)', 
                 color: 'var(--error-500)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 margin: '0 auto 16px'
               }}>
                 <Trash2 size={32} />
               </div>
-              <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--gray-900)', marginBottom: '8px' }}>
+              <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--gray-900)', marginBottom: '6px' }}>
                 Are you sure?
               </h3>
-              <p style={{ color: 'var(--gray-500)', fontSize: '14px', maxWidth: '300px', margin: '0 auto 24px' }}>
+              <p style={{ color: 'var(--gray-500)', fontSize: '11px', maxWidth: '240px', margin: '0 auto 24px' }}>
                 You are about to delete this {title.toLowerCase()}. This action is permanent and cannot be undone.
               </p>
               
-              <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-                <button className="btn btn-outline" style={{ minWidth: '100px' }} onClick={() => setShowDeleteConfirm(false)} disabled={isSubmitting}>
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+                <button className="btn btn-outline" style={{ minWidth: '80px' }} onClick={() => setShowDeleteConfirm(false)} disabled={isSubmitting}>
                   Cancel
                 </button>
-                <button className="btn btn-danger" style={{ minWidth: '100px', background: 'var(--error-700)', color: 'white' }} onClick={handleDelete} disabled={isSubmitting}>
+                <button className="btn btn-danger" style={{ minWidth: '80px', background: 'var(--error-700)', color: 'white' }} onClick={handleDelete} disabled={isSubmitting}>
                   {isSubmitting ? 'Deleting...' : 'Yes, Delete'}
                 </button>
               </div>

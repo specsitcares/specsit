@@ -22,7 +22,7 @@ const ShipmentTable = () => {
 
   const fetchShipments = async () => {
     try {
-      const res = await apiClient.get('/sales/shipments/');
+      const res = await apiClient.get('/sales/shipments/', { params: { page_size: 500 } });
       setShipments(Array.isArray(res.data) ? res.data : (res.data.results || []));
     } catch { /* silent */ } finally { setLoading(false); }
   };
@@ -76,6 +76,17 @@ const ShipmentTable = () => {
     }
   };
 
+  const handleDeleteClick = async (s) => {
+    if (!window.confirm(`Delete shipment for Order #LO-${String(s.order_id).padStart(7, '0')}?`)) return;
+    try {
+      await apiClient.delete(`/sales/shipments/${s.id}/`);
+      fetchShipments();
+    } catch (err) {
+      console.error(err);
+      alert('Failed to delete shipment.');
+    }
+  };
+
   const filtered = shipments.filter(s =>
     [s.tracking_id, s.carrier, s.order_id?.toString()].some(v => v?.toLowerCase().includes(searchQuery.toLowerCase()))
   );
@@ -84,10 +95,10 @@ const ShipmentTable = () => {
 
   const getStatusStyle = (label) => {
     const l = (label || '').toLowerCase();
-    if (l.includes('delivered')) return { bg: '#ECFDF3', text: '#027A48', dot: '#12B76A', border: '#ABEFC6' };
-    if (l.includes('transit'))   return { bg: '#EFF8FF', text: '#175CD3', dot: '#2E90FA', border: '#B2DDFF' };
+    if (l.includes('delivered') || l.includes('completed')) return { bg: '#ECFDF3', text: '#027A48', dot: '#12B76A', border: '#ABEFC6' };
+    if (l.includes('transit') || l.includes('delivering') || l.includes('shipped')) return { bg: '#EFF8FF', text: '#175CD3', dot: '#2E90FA', border: '#B2DDFF' };
     if (l.includes('fail'))    return { bg: '#FEF3F2', text: '#B42318', dot: '#D92D20', border: '#FEE4E2' };
-    return { bg: '#FFFAEB', text: '#B54708', dot: '#F79009', border: '#FEDF89' };
+    return { bg: '#F9FAFB', text: '#344054', dot: '#98A2B3', border: '#EAECF0' };
   };
 
   const columns = [
@@ -104,7 +115,7 @@ const ShipmentTable = () => {
     return (
       <tr key={s.id || idx} style={{ borderBottom: '1px solid #EAECF0', backgroundColor: isSelected ? '#F9F5FF' : '#fff' }}>
         <td style={{ padding: '16px 24px' }}>
-          <input type="checkbox" checked={!!isSelected} onChange={onToggle} style={{ cursor: 'pointer', borderRadius: '4px', accentColor: '#7F56D9' }} />
+          <input type="checkbox" checked={!!isSelected} onChange={onToggle} style={{ cursor: 'pointer', borderRadius: '3px', accentColor: '#7F56D9' }} />
         </td>
         <td style={{ padding: '16px 24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -114,23 +125,23 @@ const ShipmentTable = () => {
         </td>
         <td style={{ padding: '16px 24px' }}>
           <div>
-            <div style={{ fontWeight: 600, color: '#101828', fontSize: '14px' }}>{s.carrier || 'Standard'}</div>
-            <div style={{ fontSize: '12px', color: '#667085' }}>{s.method || 'Priority'}</div>
+            <div style={{ fontWeight: 600, color: '#101828', fontSize: '11px' }}>{s.carrier || 'Standard'}</div>
+            <div style={{ fontSize: '10px', color: '#667085' }}>{s.method || 'Priority'}</div>
           </div>
         </td>
         <td style={{ padding: '16px 24px' }}>
-          <code style={{ background: '#F9FAFB', border: '1px solid #EAECF0', padding: '4px 8px', borderRadius: '6px', fontFamily: 'monospace', fontSize: '12px', color: '#344054', fontWeight: 600 }}>
+          <code style={{ background: '#F9FAFB', border: '1px solid #EAECF0', padding: '4px 8px', borderRadius: '5px', fontFamily: 'monospace', fontSize: '10px', color: '#344054', fontWeight: 600 }}>
             {s.tracking_id || 'AWAITING'}
           </code>
         </td>
         <td style={{ padding: '16px 24px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
              <span style={{
                backgroundColor: style.bg,
                color: style.text,
                padding: '4px 10px',
-               borderRadius: '16px',
-               fontSize: '12px',
+               borderRadius: '13px',
+               fontSize: '10px',
                fontWeight: 600,
                display: 'inline-flex',
                alignItems: 'center',
@@ -139,28 +150,28 @@ const ShipmentTable = () => {
                width: 'fit-content'
              }}>
                <span style={{ width: 6, height: 6, borderRadius: '50%', background: style.dot }}></span>
-               {s.status_label || 'In Transit'}
+               {s.status_label || 'Pending'}
              </span>
-             <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '11px', color: '#667085', marginLeft: '4px' }}>
+             <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '9px', color: '#667085', marginLeft: '3px' }}>
                 <MapPin size={10} /> Local Logistics Hub
              </div>
           </div>
         </td>
         <td style={{ padding: '16px 24px' }}>
-          <span style={{ fontSize: '13px', color: '#667085' }}>{new Date(s.created_at).toLocaleDateString()}</span>
+          <span style={{ fontSize: '10px', color: '#667085' }}>{new Date(s.created_at).toLocaleDateString()}</span>
         </td>
         <td style={{ padding: '16px 24px' }}>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
             <div
               onClick={() => handleEditClick(s)}
-              style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+              style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
               title="Edit Shipment"
             >
               <Edit2 size={16} />
             </div>
             <div
-              onClick={() => { setSelectedShipment(s); setFormMode('edit'); setShowForm(true); }}
-              style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+              onClick={() => handleDeleteClick(s)}
+              style={{ width: 32, height: 32, border: '1px solid #FEE4E2', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#FEF3F2', color: '#D92D20', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
               title="Delete Shipment"
             >
               <Trash2 size={16} />
@@ -197,8 +208,8 @@ const ShipmentTable = () => {
         showFilters={showFilters}
         setShowFilters={setShowFilters}
         filterContent={
-          <div style={{ display: 'flex', gap: '16px' }}>
-             <div style={{ fontSize: '14px', color: '#667085' }}>Logistics filters coming soon.</div>
+          <div style={{ display: 'flex', gap: '13px' }}>
+             <div style={{ fontSize: '11px', color: '#667085' }}>Logistics filters coming soon.</div>
           </div>
         }
       />

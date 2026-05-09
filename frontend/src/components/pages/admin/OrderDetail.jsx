@@ -214,7 +214,7 @@ const OrderDetail = ({ orderId, onBack }) => {
 
 
   if (loading || fetchError || !order) return (
-    <div style={{ padding: '32px' }}>
+    <div style={{ padding: '26px' }}>
       <AdminLoadingState
         loading={loading}
         error={fetchError || (!loading && !order) ? true : false}
@@ -322,7 +322,7 @@ const OrderDetail = ({ orderId, onBack }) => {
       hasAction: currentStatusId === 4,
       blocked: currentStatusId === 4 && prescriptionBlocked,
       actionLabel: 'Mark as Prepared',
-      nextStatus: 5,
+      nextStatus: 'Preparing',
     },
     {
       title: 'Quality Check',
@@ -332,7 +332,7 @@ const OrderDetail = ({ orderId, onBack }) => {
       hasAction: currentStatusId === 5,
       isQC: true,
       actionLabel: 'Complete Quality Check',
-      nextStatus: 8,
+      nextStatus: 'Ready for Dispatch',
       showQcFile: currentStatusId > 5 && !!(order.tracking?.qc_image_url),
       qcFile: order.tracking?.qc_image_url,
     },
@@ -344,7 +344,7 @@ const OrderDetail = ({ orderId, onBack }) => {
       hasAction: currentStatusId === 8,
       isDispatch: true,
       actionLabel: 'Dispatch Order',
-      nextStatus: 9,
+      nextStatus: 'In Transit',
       showBookingId: currentStatusId > 8,
       bookingId: order.tracking?.tracking_number,
     },
@@ -375,7 +375,7 @@ const OrderDetail = ({ orderId, onBack }) => {
       <div className="order-detail-inner">
 
         {/* Breadcrumb */}
-        <div className="breadcrumb-container" style={{ marginBottom: '20px' }}>
+        <div className="breadcrumb-container" style={{ marginBottom: '16px' }}>
           <span className="breadcrumb-item" onClick={onBack} style={{ cursor: 'pointer' }}>
             Order
           </span>

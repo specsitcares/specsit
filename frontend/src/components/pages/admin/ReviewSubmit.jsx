@@ -3,12 +3,12 @@ import React from 'react';
 const na = <span style={{ color: '#9CA3AF', fontWeight: 400 }}>—</span>;
 
 const S = {
-  section: { marginBottom: '28px' },
-  heading: { fontSize: '13px', fontWeight: 700, color: '#344054', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' },
-  divider: { border: 'none', borderTop: '1px solid #EAECF0', marginBottom: '18px' },
+  section: { marginBottom: '22px' },
+  heading: { fontSize: '10px', fontWeight: 700, color: '#344054', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' },
+  divider: { border: 'none', borderTop: '1px solid #EAECF0', marginBottom: '14px' },
   grid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px 40px' },
-  label: { fontSize: '11px', color: '#667085', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.04em' },
-  value: { fontSize: '14px', fontWeight: 500, color: '#101828' },
+  label: { fontSize: '9px', color: '#667085', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.04em' },
+  value: { fontSize: '11px', fontWeight: 500, color: '#101828' },
 };
 
 const Field = ({ label, value }) => (
@@ -57,23 +57,23 @@ const ReviewSubmit = ({
 
       {/* ── Meta Tags ── */}
       <Section title="Meta Tags (SEO)">
-        <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
           <span style={{
-            fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '12px',
+            fontSize: '9px', fontWeight: 600, padding: '2px 8px', borderRadius: '10px',
             background: useMetaTemplate ? '#F9F5FF' : '#F2F4F7',
             color: useMetaTemplate ? '#6941C6' : '#344054',
           }}>
             {useMetaTemplate ? 'Global template' : 'Custom'}
           </span>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '11px' }}>
           <div>
             <div style={S.label}>Meta Title</div>
-            <div style={{ ...S.value, fontSize: '13px' }}>{metaTitle || na}</div>
+            <div style={{ ...S.value, fontSize: '10px' }}>{metaTitle || na}</div>
           </div>
           <div>
             <div style={S.label}>Meta Description</div>
-            <div style={{ ...S.value, fontSize: '13px', lineHeight: 1.6 }}>{metaDescription || na}</div>
+            <div style={{ ...S.value, fontSize: '10px', lineHeight: 1.6 }}>{metaDescription || na}</div>
           </div>
         </div>
       </Section>
@@ -97,11 +97,11 @@ const ReviewSubmit = ({
 
       {/* ── Variants & Pricing ── */}
       <Section title="Variants & Pricing">
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid #EAECF0' }}>
               {['Color', 'Stock', 'MRP', 'Selling Price'].map(h => (
-                <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: '#667085', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontSize: '9px', fontWeight: 600, color: '#667085', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   {h}
                 </th>
               ))}
@@ -110,8 +110,8 @@ const ReviewSubmit = ({
           <tbody>
             {(formData.variants || []).length > 0 ? formData.variants.map((v, i) => (
               <tr key={i} style={{ borderBottom: '1px solid #F2F4F7' }}>
-                <td style={{ padding: '12px', color: '#101828', fontWeight: 500 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <td style={{ padding: '10px', color: '#101828', fontWeight: 500 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <div style={{
                       width: 14, height: 14, borderRadius: '50%',
                       background: v.colorCode || '#D0D5DD',
@@ -120,11 +120,11 @@ const ReviewSubmit = ({
                     {v.colorName || na}
                   </div>
                 </td>
-                <td style={{ padding: '12px', color: '#344054' }}>{v.quantity ?? 0}</td>
-                <td style={{ padding: '12px', color: '#101828', fontWeight: 500 }}>
+                <td style={{ padding: '10px', color: '#344054' }}>{v.quantity ?? 0}</td>
+                <td style={{ padding: '10px', color: '#101828', fontWeight: 500 }}>
                   {v.base_price ? `₹${parseFloat(v.base_price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : na}
                 </td>
-                <td style={{ padding: '12px', color: '#16a34a', fontWeight: 500 }}>
+                <td style={{ padding: '10px', color: '#16a34a', fontWeight: 500 }}>
                   {v.selling_price ? `₹${parseFloat(v.selling_price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : na}
                 </td>
               </tr>
@@ -140,8 +140,8 @@ const ReviewSubmit = ({
       </Section>
 
       {/* ── Confirm & Submit ── */}
-      <div style={{ marginBottom: '24px' }}>
-        <label style={{ display: 'flex', gap: '10px', cursor: 'pointer', alignItems: 'flex-start' }}>
+      <div style={{ marginBottom: '19px' }}>
+        <label style={{ display: 'flex', gap: '8px', cursor: 'pointer', alignItems: 'flex-start' }}>
           <input
             type="checkbox"
             checked={confirmed}
@@ -149,8 +149,8 @@ const ReviewSubmit = ({
             style={{ marginTop: '3px', accentColor: '#7F56D9' }}
           />
           <div>
-            <div style={{ fontSize: '14px', fontWeight: 600, color: '#344054' }}>I confirm all details are correct</div>
-            <div style={{ fontSize: '12px', color: '#667085', marginTop: '3px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 600, color: '#344054' }}>I confirm all details are correct</div>
+            <div style={{ fontSize: '10px', color: '#667085', marginTop: '3px' }}>
               This will publish the product and all its variants to the live catalog.
             </div>
           </div>
@@ -158,7 +158,7 @@ const ReviewSubmit = ({
       </div>
 
       {errors?.general && (
-        <div style={{ background: '#FEF3F2', border: '1px solid #FECDCA', padding: '12px 16px', borderRadius: '8px', color: '#B42318', fontSize: '13px' }}>
+        <div style={{ background: '#FEF3F2', border: '1px solid #FECDCA', padding: '12px 16px', borderRadius: '6px', color: '#B42318', fontSize: '10px' }}>
           {errors.general}
         </div>
       )}

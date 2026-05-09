@@ -32,8 +32,8 @@ const S = {
   },
   fulfillmentRow: { display: 'flex', gap: 12, alignItems: 'center' },
   fulfillmentLabel: { fontSize: 12, fontWeight: 700, color: '#68408d', textTransform: 'uppercase', letterSpacing: '1.2px' },
-  deliveryHeading: { fontSize: 30, fontWeight: 700, color: '#040205', margin: '16px 0 0', letterSpacing: '-0.5px', lineHeight: '36px' },
-  deliveryBody: { fontSize: 16, color: '#040205', lineHeight: '24px', margin: '0 0 0', maxWidth: 600 },
+  deliveryHeading: { fontSize: 30, fontWeight: 700, color: '#040205', margin: '16px 0 0', letterSpacing: '-0.5px', lineHeight: '29px' },
+  deliveryBody: { fontSize: 16, color: '#040205', lineHeight: '19px', margin: '0 0 0', maxWidth: 600 },
 
   trackingRow: { display: 'flex', gap: 40, alignItems: 'center' },
   trackingLeft: { display: 'flex', gap: 16, alignItems: 'center' },
@@ -41,8 +41,8 @@ const S = {
     width: 48, height: 48, background: '#efedf0', borderRadius: 12,
     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
-  trackingTitle: { fontSize: 14, fontWeight: 700, color: '#040205', margin: '0 0 2px', lineHeight: '20px' },
-  trackingEta: { fontSize: 12, color: '#040205', margin: 0, lineHeight: '16px' },
+  trackingTitle: { fontSize: 14, fontWeight: 700, color: '#040205', margin: '0 0 2px', lineHeight: '16px' },
+  trackingEta: { fontSize: 12, color: '#040205', margin: 0, lineHeight: '13px' },
   trackingRight: { display: 'flex', alignItems: 'center', gap: 20, flex: 1 },
   courierName: { fontSize: 14, fontWeight: 600, color: '#040205' },
   contactBtn: {
@@ -80,8 +80,8 @@ const S = {
   itemRow: { display: 'flex', gap: 16, alignItems: 'center' },
   itemThumb: { width: 64, height: 64, borderRadius: 8, background: '#efedf0', overflow: 'hidden', flexShrink: 0 },
   itemInfo: { flex: 1, display: 'flex', flexDirection: 'column', gap: 4 },
-  itemName: { fontSize: 12, fontWeight: 700, color: '#040205', textTransform: 'uppercase', letterSpacing: '1.2px', lineHeight: '16px' },
-  itemVariant: { fontSize: 10, color: '#71717a', lineHeight: '15px' },
+  itemName: { fontSize: 12, fontWeight: 700, color: '#040205', textTransform: 'uppercase', letterSpacing: '1.2px', lineHeight: '13px' },
+  itemVariant: { fontSize: 10, color: '#71717a', lineHeight: '12px' },
   itemPrice: { fontSize: 12, fontWeight: 700, color: '#040205', whiteSpace: 'nowrap' },
 
   pricingSection: { borderTop: '1px solid #fefcff', paddingTop: 25, display: 'flex', flexDirection: 'column', gap: 16 },

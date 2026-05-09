@@ -7,21 +7,21 @@
     right: 0;
     bottom: 0;
     background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(4px);
+    backdrop-filter: blur(3px);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 1000;
     font-family: 'Plus Jakarta Sans', sans-serif;
-    padding: 16px;
+    padding: 13px;
 }
 
 .location-modal-content {
     background: #FEFCFF;
     width: 100%;
-    max-width: 512px;
-    border-radius: 24px;
-    box-shadow: 0px 25px 50px -12px rgba(0, 0, 0, 0.25);
+    max-width: 410px;
+    border-radius: 19px;
+    box-shadow: 0px 20px 40px -10px rgba(0, 0, 0, 0.25);
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -31,14 +31,14 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 32px 32px 16px;
+    padding: 26px 26px 13px;
     border-bottom: 1px solid #EBE3F2;
 }
 
 .location-modal-header h2 {
     color: #68408D;
     font-weight: 800;
-    font-size: 20px;
+    font-size: 16px;
     line-height: 1.4;
     letter-spacing: -0.025em;
     margin: 0;
@@ -52,9 +52,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 12px;
+    width: 26px;
+    height: 26px;
+    border-radius: 10px;
     transition: background-color 0.2s;
 }
 
@@ -63,15 +63,15 @@
 }
 
 .location-modal-body {
-    padding: 32px;
+    padding: 26px;
     display: flex;
     flex-direction: column;
-    gap: 32px;
+    gap: 26px;
 }
 
 .pincode-search-container {
     display: flex;
-    gap: 12px;
+    gap: 10px;
     width: 100%;
 }
 
@@ -82,13 +82,13 @@
 
 .pincode-input {
     width: 100%;
-    padding: 17px 20px;
+    padding: 14px 16px;
     background: #FEFCFF;
     border: 1px solid #EBE3F2;
-    border-radius: 16px;
+    border-radius: 13px;
     font-family: 'Plus Jakarta Sans', sans-serif;
     font-weight: 500;
-    font-size: 14px;
+    font-size: 11px;
     color: #040205;
     outline: none;
     transition: border-color 0.2s;
@@ -103,13 +103,13 @@
 }
 
 .check-button {
-    padding: 17px 33px;
+    padding: 14px 26px;
     background: #FEFCFF;
     border: 1px solid #EBE3F2;
-    border-radius: 16px;
+    border-radius: 13px;
     color: #71717A;
     font-weight: 700;
-    font-size: 14px;
+    font-size: 11px;
     cursor: pointer;
     transition: all 0.2s;
     white-space: nowrap;
@@ -125,14 +125,14 @@
 .current-location-btn {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     background: none;
     border: none;
     cursor: pointer;
     padding: 0;
     color: #0F766E;
     font-weight: 700;
-    font-size: 14px;
+    font-size: 11px;
     letter-spacing: -0.025em;
     transition: opacity 0.2s;
 }
@@ -144,13 +144,13 @@
 .saved-addresses-section {
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 19px;
 }
 
 .section-title {
     color: #040205;
     font-weight: 800;
-    font-size: 12px;
+    font-size: 10px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     margin: 0;
@@ -159,19 +159,19 @@
 .address-list {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 13px;
 }
 
 .address-card {
-    padding: 20px;
+    padding: 16px;
     background: #FEFCFF;
     border: 1px solid #EBE3F2;
-    border-radius: 16px;
+    border-radius: 13px;
     cursor: pointer;
     transition: all 0.2s;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 3px;
 }
 
 .address-card:hover {
@@ -187,15 +187,15 @@
 
 .tags-container {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     align-items: center;
 }
 
 .tag {
-    padding: 2px 8px;
+    padding: 2px 6px;
     border-radius: 2px;
     font-weight: 900;
-    font-size: 10px;
+    font-size: 8px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
 }
@@ -214,51 +214,51 @@
 .delivery-badge {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 3px;
     background: #E0F2FE;
     color: #0EA5E9;
-    padding: 2px 8px;
+    padding: 2px 6px;
     border-radius: 2px;
     font-weight: 700;
-    font-size: 10px;
+    font-size: 8px;
 }
 
 .address-text {
     color: #040205;
     font-weight: 700;
-    font-size: 14px;
+    font-size: 11px;
     line-height: 1.375;
-    margin: 7px 0 0;
+    margin: 6px 0 0;
 }
 
 .address-subtext {
     color: #040205;
     font-weight: 500;
-    font-size: 12px;
-    margin: 0 0 12px;
+    font-size: 10px;
+    margin: 0 0 10px;
 }
 
 .address-footer {
-    padding-top: 16px;
+    padding-top: 13px;
     border-top: 1px solid #EBE3F2;
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 13px;
 }
 
 .contact-info {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 13px;
 }
 
 .contact-item {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
     color: #040205;
     font-weight: 700;
-    font-size: 12px;
+    font-size: 10px;
 }
 
 .contact-divider {
@@ -266,18 +266,18 @@
 }
 
 .modal-promotion-footer {
-    padding: 25px 24px 24px;
+    padding: 20px 19px 19px;
     background: #EBE3F2;
     border-top: 1px solid #EBE3F2;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
 }
 
 .promotion-text {
     color: #040205;
     font-weight: 500;
-    font-size: 12px;
+    font-size: 10px;
     line-height: 1.33;
     margin: 0;
 }
@@ -294,7 +294,7 @@
 }
 
 @keyframes slideUp {
-    from { transform: translateY(20px); opacity: 0; }
+    from { transform: translateY(16px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
 }
 
@@ -323,9 +323,9 @@
 
 .location-error-msg {
     color: #dc2626;
-    font-size: 12px;
+    font-size: 10px;
     font-weight: 500;
-    margin: -20px 0 0;
+    margin: -16px 0 0;
     padding: 0;
     line-height: 1.4;
 }
