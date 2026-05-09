@@ -94,9 +94,9 @@ const AdminLoadingState = ({
         <div style={{ background: '#fff', border: '1px solid #EAECF0', borderRadius: 12, overflow: 'hidden' }}>
           {/* Fake header */}
           <div style={{ padding: '14px 16px', borderBottom: '1px solid #F2F4F7', display: 'flex', gap: 16 }}>
-            <Skel w="120px" h={13} />
+            <Skel w="96px" h={13} />
+            <Skel w="64px" h={13} />
             <Skel w="80px" h={13} />
-            <Skel w="100px" h={13} />
           </div>
           <SkeletonTable rows={rows} colWidths={colWidths} />
         </div>

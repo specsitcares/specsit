@@ -614,7 +614,7 @@ const ProductListingPage = () => {
                                             onChange={(e) => setMaxPrice(e.target.value)}
                                             style={{ accentColor: '#68408D', width: '100%' }}
                                         />
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#71717A' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#71717A' }}>
                                             <span>₹0</span>
                                             <span>₹{Number(maxPrice).toLocaleString('en-IN')}</span>
                                         </div>

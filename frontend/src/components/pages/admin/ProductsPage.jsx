@@ -10,8 +10,8 @@ const StatusBadge = ({ isActive }) => (
     backgroundColor: isActive ? '#ECFDF3' : '#FEF3F2',
     color: isActive ? '#027A48' : '#B42318',
     padding: '4px 10px',
-    borderRadius: '16px',
-    fontSize: '12px',
+    borderRadius: '13px',
+    fontSize: '10px',
     fontWeight: 600,
     display: 'inline-flex',
     alignItems: 'center',
@@ -24,9 +24,9 @@ const StatusBadge = ({ isActive }) => (
 );
 
 const StockBadge = ({ qty, threshold = 10 }) => {
-  if (qty <= 0) return <span style={{ backgroundColor: '#FEF3F2', color: '#B42318', padding: '4px 10px', borderRadius: '16px', fontSize: '12px', fontWeight: 600, border: '1px solid #FECDCA' }}>Out of Stock</span>;
-  if (qty <= threshold) return <span style={{ backgroundColor: '#FFFAEB', color: '#B54708', padding: '4px 10px', borderRadius: '16px', fontSize: '12px', fontWeight: 600, border: '1px solid #FEDF89' }}>Low ({qty})</span>;
-  return <span style={{ backgroundColor: '#ECFDF3', color: '#027A48', padding: '4px 10px', borderRadius: '16px', fontSize: '12px', fontWeight: 600, border: '1px solid #ABEFC6' }}>{qty}</span>;
+  if (qty <= 0) return <span style={{ backgroundColor: '#FEF3F2', color: '#B42318', padding: '4px 10px', borderRadius: '13px', fontSize: '10px', fontWeight: 600, border: '1px solid #FECDCA' }}>Out of Stock</span>;
+  if (qty <= threshold) return <span style={{ backgroundColor: '#FFFAEB', color: '#B54708', padding: '4px 10px', borderRadius: '13px', fontSize: '10px', fontWeight: 600, border: '1px solid #FEDF89' }}>Low ({qty})</span>;
+  return <span style={{ backgroundColor: '#ECFDF3', color: '#027A48', padding: '4px 10px', borderRadius: '13px', fontSize: '10px', fontWeight: 600, border: '1px solid #ABEFC6' }}>{qty}</span>;
 };
 
 const ActionBtn = ({ onClick, danger, children }) => (
@@ -35,7 +35,7 @@ const ActionBtn = ({ onClick, danger, children }) => (
     style={{
       width: 32, height: 32,
       border: `1px solid ${danger ? '#FECDCA' : '#D0D5DD'}`,
-      borderRadius: '8px',
+      borderRadius: '6px',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       cursor: 'pointer',
       background: danger ? '#FEF3F2' : '#fff',
@@ -570,7 +570,7 @@ const ProductsPage = ({ onAddNew, onEdit }) => {
     fontSize: 14,
     background: activeTab === tab ? '#fff' : 'transparent',
     border: 'none',
-    borderRadius: '6px',
+    borderRadius: '5px',
     boxShadow: activeTab === tab ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
   });
 

@@ -16,12 +16,12 @@
 .checkout-redesign {
   display: flex;
   width: 100%;
-  max-width: 1920px;
+  max-width: 1536px;
   flex-direction: column;
   align-items: flex-start;
-  gap: 40px;
+  gap: 32px;
   margin: 0 auto;
-  padding: 60px 80px;
+  padding: 48px 64px;
   background: var(--specsit-bg-white);
   min-height: 100vh;
   font-family: 'Plus Jakarta Sans', sans-serif;
@@ -30,7 +30,7 @@
 .checkout-main-content {
   display: grid;
   grid-template-columns: 1.6fr 1fr;
-  gap: 64px;
+  gap: 51px;
   width: 100%;
 }
 
@@ -40,7 +40,7 @@
 
 .order-summary-side {
   position: sticky;
-  top: 100px;
+  top: 80px;
   height: fit-content;
 }
 
@@ -52,14 +52,14 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 16px;
+  gap: 13px;
   width: 100%;
 }
 
 .step-item-figma {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   transition: opacity 0.3s ease;
 }
 
@@ -73,14 +73,14 @@
 }
 
 .step-circle-figma {
-  width: 32px;
-  height: 32px;
-  border-radius: 12px;
+  width: 26px;
+  height: 26px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   line-height: 1.33;
   text-align: center;
@@ -93,12 +93,12 @@
 .step-circle-figma.active {
   background: var(--specsit-purple-primary);
   color: #fff;
-  box-shadow: 0px 4px 6px -4px rgba(79, 40, 116, 0.2), 0px 10px 15px -3px rgba(79, 40, 116, 0.2);
+  box-shadow: 0px 3px 5px -3px rgba(79, 40, 116, 0.2), 0px 8px 12px -3px rgba(79, 40, 116, 0.2);
 }
 
 .step-label-figma {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 500;
   line-height: 1.43;
   color: var(--specsit-black);
@@ -109,8 +109,8 @@
 }
 
 .step-dot-figma {
-  width: 4px;
-  height: 6px;
+  width: 3px;
+  height: 5px;
   background: var(--specsit-light-grey);
   flex-shrink: 0;
 }
@@ -125,20 +125,20 @@
 
 .cart-title-figma {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 48px;
+  font-size: 38px;
   font-weight: 800;
   line-height: 1;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   color: var(--specsit-black);
 }
 
 .secure-label-figma {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   color: var(--specsit-body-grey);
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 500;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -151,12 +151,12 @@
 
 .product-card-figma {
   background: var(--specsit-bg-white);
-  border-radius: 8px;
-  padding: 33px;
+  border-radius: 6px;
+  padding: 26px;
   border: 1px solid var(--specsit-purple-light);
   display: flex;
-  gap: 32px;
-  margin-bottom: 24px;
+  gap: 26px;
+  margin-bottom: 19px;
   position: relative;
   width: 100%;
   box-sizing: border-box;
@@ -165,15 +165,15 @@
 }
 
 .product-card-figma:hover {
-  box-shadow: 0px 4px 12px rgba(4, 2, 5, 0.06);
+  box-shadow: 0px 3px 10px rgba(4, 2, 5, 0.06);
 }
 
 .product-thumb-figma {
-  width: 192px;
-  height: 192px;
+  width: 154px;
+  height: 154px;
   background: var(--specsit-bg-white);
-  padding: 16px;
-  border-radius: 4px;
+  padding: 13px;
+  border-radius: 3px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -191,13 +191,13 @@
   justify-content: space-between;
   align-items: flex-start;
   width: 100%;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
 
 .brand-label-figma {
   color: var(--specsit-purple-primary);
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   line-height: 1.33;
   letter-spacing: 0.1em;
@@ -208,7 +208,7 @@
 .product-name-figma {
   color: var(--specsit-black);
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 700;
   line-height: 1.4;
   letter-spacing: -0.025em;
@@ -218,7 +218,7 @@
 .product-price-figma {
   color: var(--specsit-black);
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 700;
   line-height: 1.55;
   white-space: nowrap;
@@ -228,13 +228,13 @@
 .spec-list-figma {
   display: flex;
   flex-wrap: wrap;
-  gap: 2px 12px;
-  margin-bottom: 4px;
+  gap: 2px 10px;
+  margin-bottom: 3px;
 }
 
 .spec-item-figma {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 600;
   line-height: 1.33;
   color: var(--specsit-black);
@@ -242,10 +242,10 @@
 
 /* Prescription Box */
 .prescription-box-figma {
-  margin-top: 8px;
-  padding: 21px 13px 13px;
+  margin-top: 6px;
+  padding: 17px 10px 10px;
   background: #FEFCFF;
-  border-radius: 4px;
+  border-radius: 3px;
   border: 1px solid #EFEDF0;
   box-sizing: border-box;
   width: 100%;
@@ -254,12 +254,12 @@
 .prescription-title-figma {
   color: #68408D;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 700;
-  line-height: 15px;
+  line-height: 12px;
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .prescription-table-figma {
@@ -275,36 +275,36 @@
 }
 
 .prescription-table-figma th {
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 500;
   color: #71717A;
   letter-spacing: 1px;
   text-transform: uppercase;
-  padding: 1px 1px 4px;
+  padding: 1px 1px 3px;
   border-bottom: 1px solid #EBE3F2;
 }
 
 .prescription-table-figma td {
-  font-size: 11px;
-  padding: 6.5px 1px;
+  font-size: 9px;
+  padding: 5px 1px;
   color: #040205;
   border-bottom: 1px solid #EBE3F2;
 }
 
 .prescription-table-figma .col-eye {
-  width: 124px;
+  width: 99px;
 }
 
 .prescription-table-figma .col-sph {
-  width: 54px;
+  width: 43px;
 }
 
 .prescription-table-figma .col-cyl {
-  width: 54px;
+  width: 43px;
 }
 
 .prescription-table-figma .col-axis {
-  width: 60px;
+  width: 48px;
 }
 
 .prescription-table-figma td.eye-name {
@@ -324,22 +324,22 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 4px;
+  margin-top: 3px;
 }
 
 .qty-selector-figma {
   display: flex;
   align-items: center;
   background: var(--specsit-light-grey);
-  border-radius: 4px;
-  height: 32px;
+  border-radius: 3px;
+  height: 26px;
   box-sizing: border-box;
 }
 
 .qty-btn-figma {
   border: none;
   background: none;
-  padding: 8px 12px;
+  padding: 6px 10px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -354,18 +354,18 @@
 .qty-val-figma {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 700;
-  font-size: 12px;
-  padding: 0 4px;
+  font-size: 10px;
+  padding: 0 3px;
   color: var(--specsit-black);
 }
 
 .remove-btn-figma {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   color: var(--specsit-body-grey);
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 600;
   cursor: pointer;
   transition: opacity 0.2s;
@@ -380,9 +380,9 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 24px;
+  padding: 13px 19px;
   background: var(--specsit-bg-white);
-  border-radius: 8px;
+  border-radius: 6px;
   border: 1px solid var(--specsit-purple-light);
   width: 100%;
   box-sizing: border-box;
@@ -397,7 +397,7 @@
 .shipping-hint-content-figma {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 13px;
 }
 
 .shipping-hint-text-figma {
@@ -409,14 +409,14 @@
 .shipping-hint-label-figma {
   color: var(--specsit-black);
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 700;
 }
 
 .shipping-hint-address-figma {
   color: var(--specsit-body-grey);
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 500;
 }
 
@@ -426,36 +426,36 @@
 
 .promo-box-figma {
   background: var(--specsit-white);
-  border-radius: 16px;
-  padding: 32px;
+  border-radius: 13px;
+  padding: 26px;
   outline: 1px solid var(--specsit-light-grey);
-  box-shadow: 0px 20px 40px rgba(4, 2, 5, 0.06);
-  margin-bottom: 32px;
+  box-shadow: 0px 16px 32px rgba(4, 2, 5, 0.06);
+  margin-bottom: 26px;
 }
 
 .promo-title-figma {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 2.4px;
   display: block;
-  margin-bottom: 16px;
+  margin-bottom: 13px;
 }
 
 .promo-input-group-figma {
   display: flex;
   position: relative;
-  margin-bottom: 16px;
+  margin-bottom: 13px;
 }
 
 .promo-input-figma {
   flex: 1;
   background: var(--specsit-light-grey);
-  border-radius: 4px;
-  padding: 12px 16px;
+  border-radius: 3px;
+  padding: 10px 13px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   border: none;
   outline: none;
   text-transform: uppercase;
@@ -464,20 +464,20 @@
 
 .promo-apply-figma {
   position: absolute;
-  right: 12.5px;
+  right: 10px;
   top: 50%;
   transform: translateY(-50%);
   background: var(--specsit-purple-primary);
   color: #fff;
-  border-radius: 6px;
-  padding: 6px 16px;
+  border-radius: 5px;
+  padding: 5px 13px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 700;
   text-transform: uppercase;
   border: none;
   cursor: pointer;
-  box-shadow: 0px 4px 6px -4px rgba(79, 40, 116, 0.2), 0px 10px 15px -3px rgba(79, 40, 116, 0.2);
+  box-shadow: 0px 3px 5px -3px rgba(79, 40, 116, 0.2), 0px 8px 12px -3px rgba(79, 40, 116, 0.2);
   transition: transform 0.15s ease;
 }
 
@@ -487,26 +487,26 @@
 
 .applied-tag-figma {
   background: var(--specsit-purple-light);
-  border-radius: 12px;
-  padding: 6px 12px;
+  border-radius: 10px;
+  padding: 5px 10px;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   color: var(--specsit-purple-primary);
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 700;
   text-transform: uppercase;
-  margin-bottom: 16px;
+  margin-bottom: 13px;
 }
 
 .offers-link-figma {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   color: var(--specsit-purple-primary);
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 700;
   text-transform: uppercase;
   cursor: pointer;
@@ -518,49 +518,49 @@
 
 .checkout-summary-card {
   background: var(--specsit-white);
-  border-radius: 16px;
-  padding: 32px;
+  border-radius: 13px;
+  padding: 26px;
   outline: 1px solid var(--specsit-light-grey);
-  box-shadow: 0px 20px 40px rgba(4, 2, 5, 0.06);
+  box-shadow: 0px 16px 32px rgba(4, 2, 5, 0.06);
 }
 
 .summary-header-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 19px;
 }
 
 .summary-heading {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--specsit-black);
 }
 
 .summary-items-badge {
   background: var(--specsit-light-grey);
-  border-radius: 12px;
-  padding: 4px 12px;
+  border-radius: 10px;
+  padding: 3px 10px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--specsit-black);
 }
 
 .summary-item-row {
   display: flex;
-  gap: 16px;
+  gap: 13px;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 13px;
 }
 
 .summary-item-thumb {
-  width: 64px;
-  height: 64px;
+  width: 51px;
+  height: 51px;
   background: var(--specsit-light-grey);
-  border-radius: 8px;
-  padding: 4px;
+  border-radius: 6px;
+  padding: 3px;
   overflow: hidden;
   flex-shrink: 0;
 }
@@ -578,7 +578,7 @@
 
 .summary-item-name {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--specsit-black);
   margin-bottom: 2px;
@@ -586,14 +586,14 @@
 
 .summary-item-variant {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 500;
   color: var(--specsit-body-grey);
 }
 
 .summary-item-price {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--specsit-black);
   white-space: nowrap;
@@ -602,7 +602,7 @@
 .summary-divider {
   border: none;
   border-top: 1px solid var(--specsit-light-grey);
-  margin: 16px 0;
+  margin: 13px 0;
 }
 
 .summary-calc-row {
@@ -610,8 +610,8 @@
   justify-content: space-between;
   align-items: center;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
-  margin-bottom: 8px;
+  font-size: 11px;
+  margin-bottom: 6px;
 }
 
 .summary-calc-label {
@@ -633,21 +633,21 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: 16px;
+  padding-top: 13px;
   border-top: 1px solid var(--specsit-light-grey);
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 .summary-total-label {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--specsit-black);
 }
 
 .summary-total-value {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 800;
   color: var(--specsit-purple-primary);
 }
@@ -655,9 +655,9 @@
 /* Mandatory Breakdown */
 .mandatory-breakdown {
   background: var(--specsit-light-grey);
-  border-radius: 8px;
-  padding: 20px;
-  margin-top: 20px;
+  border-radius: 6px;
+  padding: 16px;
+  margin-top: 16px;
 }
 
 .breakdown-row {
@@ -674,21 +674,21 @@
 
 .breakdown-main-label {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--specsit-purple-primary);
 }
 
 .breakdown-sub-label {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 500;
   color: var(--specsit-body-grey);
 }
 
 .breakdown-value-large {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 800;
   color: var(--specsit-black);
 }
@@ -696,13 +696,13 @@
 .breakdown-divider {
   height: 1px;
   background: var(--specsit-purple-light);
-  margin: 12px 0;
+  margin: 10px 0;
   opacity: 0.7;
 }
 
 .breakdown-value-medium {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--specsit-body-grey);
 }
@@ -712,24 +712,24 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
   background: var(--specsit-purple-primary);
   color: #fff;
   border: none;
-  border-radius: 8px;
-  padding: 16px 24px;
+  border-radius: 6px;
+  padding: 13px 19px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0px 4px 6px -4px rgba(79, 40, 116, 0.2), 0px 10px 15px -3px rgba(79, 40, 116, 0.2);
+  box-shadow: 0px 3px 5px -3px rgba(79, 40, 116, 0.2), 0px 8px 12px -3px rgba(79, 40, 116, 0.2);
 }
 
 .summary-cta-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0px 8px 20px rgba(79, 40, 116, 0.3);
+  box-shadow: 0px 6px 16px rgba(79, 40, 116, 0.3);
 }
 
 .summary-cta-btn:disabled {
@@ -749,35 +749,35 @@
   justify-content: center;
   min-height: 60vh;
   text-align: center;
-  padding: 80px 20px;
+  padding: 64px 16px;
 }
 
 .empty-cart-icon {
-  width: 120px;
-  height: 120px;
+  width: 96px;
+  height: 96px;
   background: var(--specsit-purple-light);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 32px;
+  margin-bottom: 26px;
 }
 
 .empty-cart-title {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 32px;
+  font-size: 26px;
   font-weight: 800;
   color: var(--specsit-black);
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .empty-cart-subtitle {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--specsit-body-grey);
-  margin-bottom: 40px;
-  max-width: 360px;
+  margin-bottom: 32px;
+  max-width: 288px;
 }
 
 /* ============================================================
@@ -786,28 +786,28 @@
 
 .checkout-auth-card {
   background: var(--specsit-white);
-  border-radius: 16px;
-  padding: 40px;
+  border-radius: 13px;
+  padding: 32px;
   outline: 1px solid var(--specsit-light-grey);
-  box-shadow: 0px 20px 40px rgba(4, 2, 5, 0.06);
+  box-shadow: 0px 16px 32px rgba(4, 2, 5, 0.06);
 }
 
 .checkout-auth-header {
-  margin-bottom: 24px;
+  margin-bottom: 19px;
   text-align: center;
 }
 
 .checkout-auth-title {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 28px;
+  font-size: 22px;
   font-weight: 800;
   color: var(--specsit-black);
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
 
 .checkout-auth-subtitle {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 500;
   color: var(--specsit-body-grey);
 }
@@ -817,42 +817,42 @@
   display: flex;
   background: var(--specsit-bg-white);
   border: 1px solid var(--specsit-light-grey);
-  border-radius: 12px;
-  margin-bottom: 32px;
+  border-radius: 10px;
+  margin-bottom: 26px;
   overflow: hidden;
 }
 
 .checkout-auth-toggle-btn {
   flex: 1;
-  padding: 12px 24px;
+  padding: 10px 19px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--specsit-body-grey);
   background: none;
   border: none;
   cursor: pointer;
-  border-radius: 12px;
+  border-radius: 10px;
   transition: all 0.25s ease;
 }
 
 .checkout-auth-toggle-btn.active {
   background: var(--specsit-white);
   color: var(--specsit-purple-primary);
-  box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 /* Form Fields */
 .checkout-auth-form {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
 .checkout-field-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 
 .checkout-field-header {
@@ -863,7 +863,7 @@
 
 .checkout-field-label {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--specsit-body-grey);
   text-transform: uppercase;
@@ -872,7 +872,7 @@
 
 .checkout-field-link {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--specsit-purple-primary);
   cursor: pointer;
@@ -883,12 +883,12 @@
 
 .checkout-auth-input {
   width: 100%;
-  padding: 14px 16px;
+  padding: 11px 13px;
   background: var(--specsit-bg-white);
   border: 1px solid var(--specsit-light-grey);
-  border-radius: 8px;
+  border-radius: 6px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 500;
   color: var(--specsit-black);
   outline: none;
@@ -909,36 +909,36 @@
 }
 
 .password-input-wrapper .checkout-auth-input {
-  padding-right: 48px;
+  padding-right: 38px;
 }
 
 .password-toggle-btn {
   position: absolute;
-  right: 14px;
+  right: 11px;
   top: 50%;
   transform: translateY(-50%);
   background: none;
   border: none;
   cursor: pointer;
   color: var(--specsit-body-grey);
-  padding: 4px;
+  padding: 3px;
   display: flex;
   align-items: center;
 }
 
 .checkout-auth-submit {
   width: 100%;
-  padding: 16px;
+  padding: 13px;
   background: var(--specsit-purple-primary);
   color: #fff;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0px 4px 6px -4px rgba(79, 40, 116, 0.2), 0px 10px 15px -3px rgba(79, 40, 116, 0.2);
+  box-shadow: 0px 3px 5px -3px rgba(79, 40, 116, 0.2), 0px 8px 12px -3px rgba(79, 40, 116, 0.2);
 }
 
 .checkout-auth-submit:hover {
@@ -955,8 +955,8 @@
 .checkout-social-divider {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin: 8px 0;
+  gap: 13px;
+  margin: 6px 0;
 }
 
 .checkout-social-divider-line {
@@ -967,7 +967,7 @@
 
 .checkout-social-divider-text {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--specsit-body-grey);
   white-space: nowrap;
@@ -976,7 +976,7 @@
 /* Social Buttons */
 .checkout-social-row {
   display: flex;
-  gap: 12px;
+  gap: 10px;
 }
 
 .checkout-social-btn {
@@ -984,13 +984,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 12px 20px;
+  gap: 8px;
+  padding: 10px 16px;
   border: 1px solid var(--specsit-light-grey);
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--specsit-white);
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--specsit-body-grey);
   cursor: pointer;
@@ -1007,21 +1007,21 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: 20px;
+  padding-top: 16px;
   border-top: 1px solid var(--specsit-light-grey);
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 .checkout-guest-text {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--specsit-body-grey);
 }
 
 .checkout-guest-btn {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--specsit-body-grey);
   background: none;
@@ -1034,24 +1034,24 @@
 /* Trust Elements */
 .checkout-trust-row {
   display: flex;
-  gap: 16px;
-  margin-top: 24px;
+  gap: 13px;
+  margin-top: 19px;
 }
 
 .checkout-trust-badge {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px;
+  gap: 10px;
+  padding: 13px;
   background: var(--specsit-bg-white);
   border: 1px solid var(--specsit-light-grey);
-  border-radius: 16px;
+  border-radius: 13px;
 }
 
 .checkout-trust-icon {
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1061,7 +1061,7 @@
 
 .checkout-trust-label {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--specsit-black);
   margin-bottom: 2px;
@@ -1069,7 +1069,7 @@
 
 .checkout-trust-desc {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 500;
   color: var(--specsit-body-grey);
 }
@@ -1080,41 +1080,41 @@
 
 .shipping-step-title {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 28px;
+  font-size: 22px;
   font-weight: 800;
   color: var(--specsit-black);
-  margin-bottom: 32px;
+  margin-bottom: 26px;
 }
 
 /* Address Type Pills */
 .address-type-section {
-  margin-bottom: 32px;
+  margin-bottom: 26px;
 }
 
 .address-type-label {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--specsit-black);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   display: block;
 }
 
 .address-type-pills {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 .pill-btn {
-  padding: 10px 20px;
+  padding: 8px 16px;
   border: 1px solid var(--specsit-light-grey);
-  border-radius: 12px;
+  border-radius: 10px;
   background: none;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--specsit-black);
   cursor: pointer;
@@ -1138,7 +1138,7 @@
 .shipping-form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 24px;
+  gap: 19px;
 }
 
 .shipping-form-row.full-width {
@@ -1148,28 +1148,28 @@
 .shipping-input-group {
   display: flex;
   flex-direction: column;
-  padding: 16px 0;
+  padding: 13px 0;
   border-bottom: 1px solid var(--specsit-light-grey);
 }
 
 .shipping-input-label {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--specsit-black);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
 
 .shipping-input {
   width: 100%;
-  padding: 8px 0;
+  padding: 6px 0;
   border: none;
   border-bottom: 1px solid var(--specsit-light-grey);
   background: transparent;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   color: var(--specsit-black);
   outline: none;
   transition: border-color 0.2s ease;
@@ -1187,14 +1187,14 @@
 .shipping-checkbox-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-top: 24px;
+  gap: 8px;
+  margin-top: 19px;
   cursor: pointer;
 }
 
 .shipping-checkbox {
-  width: 16px;
-  height: 16px;
+  width: 13px;
+  height: 13px;
   border: 1px solid var(--specsit-light-grey);
   border-radius: 2px;
   accent-color: var(--specsit-purple-primary);
@@ -1203,7 +1203,7 @@
 
 .shipping-checkbox-label {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 13px;
+  font-size: 10px;
   font-weight: 600;
   color: var(--specsit-black);
 }
@@ -1215,14 +1215,14 @@
 .address-selection-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 13px;
 }
 
 .horizontal-address-card {
   display: flex;
   background: var(--specsit-light-grey);
   border: 1px solid var(--specsit-purple-light);
-  border-radius: 16px;
+  border-radius: 13px;
   overflow: hidden;
   transition: all 0.2s ease;
   cursor: pointer;
@@ -1232,35 +1232,35 @@
   background: var(--specsit-bg-white);
   border-color: var(--specsit-purple-primary);
   border-width: 2px;
-  box-shadow: 0px 4px 12px rgba(104, 64, 141, 0.1);
+  box-shadow: 0px 3px 10px rgba(104, 64, 141, 0.1);
 }
 
 .card-main-info {
   flex: 1;
-  padding: 20px 24px;
+  padding: 16px 19px;
 }
 
 .address-title-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
+  gap: 8px;
+  margin-bottom: 6px;
 }
 
 .address-title-row span:first-child {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--specsit-black);
 }
 
 .address-badge-small {
   display: inline-block;
-  padding: 2px 8px;
+  padding: 2px 6px;
   background: var(--specsit-purple-primary);
   border-radius: 2px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 800;
   color: var(--specsit-white);
   text-transform: uppercase;
@@ -1276,16 +1276,16 @@
   display: flex;
   flex-direction: column;
   border-left: 1px solid var(--specsit-light-grey);
-  min-width: 80px;
+  min-width: 64px;
 }
 
 .sidebar-action-btn {
   flex: 1;
-  padding: 12px 16px;
+  padding: 10px 13px;
   background: none;
   border: none;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   cursor: pointer;
   transition: background 0.15s ease;
@@ -1313,10 +1313,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  padding: 20px;
+  gap: 10px;
+  padding: 16px;
   border: 2px dashed var(--specsit-light-grey);
-  border-radius: 16px;
+  border-radius: 13px;
   background: none;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1336,14 +1336,14 @@
 
 .add-address-main {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--specsit-black);
 }
 
 .add-address-sub {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 500;
   color: var(--specsit-body-grey);
 }
@@ -1355,39 +1355,39 @@
 .payment-section {
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 26px;
 }
 
 /* Card Section */
 .payment-card-section {
   background: var(--specsit-light-grey);
-  border-radius: 8px;
-  padding: 24px;
+  border-radius: 6px;
+  padding: 19px;
 }
 
 .payment-section-title {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--specsit-black);
-  margin-bottom: 16px;
+  margin-bottom: 13px;
 }
 
 .card-logos-row {
   display: flex;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: 10px;
+  margin-bottom: 16px;
 }
 
 .card-logo-chip {
-  width: 48px;
-  height: 32px;
-  border-radius: 4px;
+  width: 38px;
+  height: 26px;
+  border-radius: 3px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 800;
   color: #fff;
   opacity: 0.8;
@@ -1396,36 +1396,36 @@
 .card-form-grid {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 13px;
 }
 
 .card-form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 13px;
 }
 
 .card-input-group {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .card-input-label {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--specsit-black);
 }
 
 .card-input {
   width: 100%;
-  padding: 12px 16px;
+  padding: 10px 13px;
   background: var(--specsit-bg-white);
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   color: var(--specsit-black);
   outline: none;
   box-sizing: border-box;
@@ -1439,24 +1439,24 @@
 .upi-section {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 13px;
 }
 
 .upi-buttons-row {
   display: flex;
-  gap: 12px;
+  gap: 10px;
 }
 
 .upi-btn {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 20px;
+  gap: 8px;
+  padding: 10px 16px;
   background: var(--specsit-bg-white);
   border: 1px solid var(--specsit-light-grey);
-  border-radius: 8px;
+  border-radius: 6px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--specsit-black);
   cursor: pointer;
@@ -1470,13 +1470,13 @@
 }
 
 .upi-icon-chip {
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 800;
   color: #fff;
 }
@@ -1484,23 +1484,23 @@
 .upi-custom-wrapper {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .upi-custom-input-row {
   display: flex;
   align-items: center;
   border-bottom: 2px solid var(--specsit-light-grey);
-  padding-bottom: 4px;
+  padding-bottom: 3px;
 }
 
 .upi-custom-input {
   flex: 1;
-  padding: 8px 0;
+  padding: 6px 0;
   border: none;
   background: transparent;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   color: var(--specsit-black);
   outline: none;
 }
@@ -1513,57 +1513,57 @@
   background: none;
   border: none;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--specsit-purple-primary);
   cursor: pointer;
-  padding: 4px 8px;
+  padding: 3px 6px;
 }
 
 /* Net Banking */
 .net-banking-section {
   background: var(--specsit-light-grey);
-  border-radius: 8px;
-  padding: 24px;
+  border-radius: 6px;
+  padding: 19px;
 }
 
 .bank-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 10px;
+  margin-bottom: 13px;
 }
 
 .bank-option {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px;
+  gap: 8px;
+  padding: 10px;
   background: var(--specsit-bg-white);
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .bank-option:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 .bank-logo-chip {
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 26px;
   border-radius: 2px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 8px;
+  font-size: 6px;
   font-weight: 800;
   color: #fff;
 }
 
 .bank-name {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 13px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--specsit-black);
 }
@@ -1571,13 +1571,13 @@
 .bank-more-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px;
+  gap: 6px;
+  padding: 10px;
   background: var(--specsit-bg-white);
   border: 1px solid var(--specsit-light-grey);
-  border-radius: 8px;
+  border-radius: 6px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 13px;
+  font-size: 10px;
   font-weight: 600;
   color: var(--specsit-black);
   cursor: pointer;
@@ -1592,26 +1592,26 @@
 /* Digital Wallets */
 .wallets-section-title {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 800;
   color: var(--specsit-black);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .wallets-row {
   display: flex;
-  gap: 12px;
+  gap: 10px;
 }
 
 .wallet-btn {
-  padding: 14px 24px;
+  padding: 11px 19px;
   border: 1px solid var(--specsit-light-grey);
-  border-radius: 12px;
+  border-radius: 10px;
   background: none;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--specsit-black);
   cursor: pointer;
@@ -1630,49 +1630,49 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 32px;
+  gap: 26px;
 }
 
 .payment-failed-icon {
-  width: 80px;
-  height: 80px;
+  width: 64px;
+  height: 64px;
 }
 
 .payment-failed-content {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 13px;
 }
 
 .payment-failed-title {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 32px;
+  font-size: 26px;
   font-weight: 800;
   color: var(--specsit-black);
 }
 
 .payment-failed-desc {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--specsit-black);
   line-height: 1.6;
-  max-width: 500px;
+  max-width: 400px;
 }
 
 .payment-error-box {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 14px 20px;
+  gap: 6px;
+  padding: 11px 16px;
   background: var(--specsit-light-grey);
   border: 1px solid var(--specsit-purple-light);
-  border-radius: 8px;
+  border-radius: 6px;
 }
 
 .error-code-label {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--specsit-black);
   text-transform: uppercase;
@@ -1681,28 +1681,28 @@
 
 .error-code-value {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--specsit-error-red);
 }
 
 .payment-failed-actions {
   display: flex;
-  gap: 12px;
-  margin-top: 8px;
+  gap: 10px;
+  margin-top: 6px;
 }
 
 .retry-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 14px 24px;
+  gap: 6px;
+  padding: 11px 19px;
   background: var(--specsit-purple-primary);
   color: #fff;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1710,19 +1710,19 @@
 
 .retry-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0px 4px 12px rgba(79, 40, 116, 0.25);
+  box-shadow: 0px 3px 10px rgba(79, 40, 116, 0.25);
 }
 
 .change-method-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 14px 24px;
+  gap: 6px;
+  padding: 11px 19px;
   background: none;
   border: 2px solid var(--specsit-light-grey);
-  border-radius: 8px;
+  border-radius: 6px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--specsit-black);
   cursor: pointer;
@@ -1740,11 +1740,11 @@
 .checkout-error-banner {
   background: #FEE2E2;
   border: 1px solid #FECACA;
-  border-radius: 8px;
-  padding: 12px 16px;
-  margin-bottom: 16px;
+  border-radius: 6px;
+  padding: 10px 13px;
+  margin-bottom: 13px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 13px;
+  font-size: 10px;
   font-weight: 600;
   color: var(--specsit-error-red);
   text-align: center;
@@ -1757,16 +1757,16 @@
 .checkout-back-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   background: none;
   border: none;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--specsit-body-grey);
   cursor: pointer;
-  padding: 8px 0;
-  margin-top: 16px;
+  padding: 6px 0;
+  margin-top: 13px;
   transition: color 0.15s ease;
 }
 
@@ -1784,23 +1784,23 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 60px 0;
+  padding: 48px 0;
   width: 100%;
 }
 
 .success-circle {
-  width: 80px;
-  height: 80px;
+  width: 64px;
+  height: 64px;
   background: #10B981;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-size: 36px;
+  font-size: 29px;
   font-weight: 800;
-  margin-bottom: 24px;
-  box-shadow: 0px 8px 24px rgba(16, 185, 129, 0.3);
+  margin-bottom: 19px;
+  box-shadow: 0px 6px 19px rgba(16, 185, 129, 0.3);
 }
 
 /* ============================================================
@@ -1809,13 +1809,13 @@
 
 @media (max-width: 1200px) {
   .checkout-redesign {
-    padding: 40px 40px;
+    padding: 32px 32px;
   }
 
   .checkout-main-content,
   .cart-grid-figma {
     flex-direction: column;
-    gap: 40px;
+    gap: 32px;
   }
 
   .order-summary-side,
@@ -1826,12 +1826,12 @@
 
 @media (max-width: 768px) {
   .checkout-redesign {
-    padding: 24px 16px;
-    gap: 24px;
+    padding: 19px 13px;
+    gap: 19px;
   }
 
   .cart-title-figma {
-    font-size: 32px;
+    font-size: 26px;
   }
 
   .shipping-form-row {
@@ -1859,7 +1859,7 @@
 @keyframes checkoutFadeIn {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(10px);
   }
 
   to {
@@ -1879,24 +1879,24 @@
 /* Page title */
 .shipping-details-title {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 30px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--specsit-black);
   letter-spacing: -0.025em;
-  margin-bottom: 40px;
+  margin-bottom: 32px;
 }
 
 /* ── Address Type Selector ── */
 .address-type-section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-bottom: 40px;
+  gap: 10px;
+  margin-bottom: 32px;
 }
 
 .address-type-label {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 700;
   color: var(--specsit-black);
   text-transform: uppercase;
@@ -1906,15 +1906,15 @@
 .address-type-buttons {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 10px;
 }
 
 .address-type-btn {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
-  padding: 10px 26px;
-  border-radius: 12px;
+  padding: 8px 21px;
+  border-radius: 10px;
   border: 1px solid var(--specsit-light-grey);
   background: transparent;
   color: var(--specsit-black);
@@ -1931,28 +1931,28 @@
   background: var(--specsit-purple-primary);
   border-color: var(--specsit-purple-primary);
   color: #fff;
-  box-shadow: 0px 4px 6px -4px rgba(79, 40, 116, 0.2), 0px 10px 15px -3px rgba(79, 40, 116, 0.2);
+  box-shadow: 0px 3px 5px -3px rgba(79, 40, 116, 0.2), 0px 8px 12px -3px rgba(79, 40, 116, 0.2);
 }
 
 /* ── Shipping Underline Form ── */
 .shipping-underline-form {
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 26px;
   width: 100%;
-  padding-bottom: 44px;
+  padding-bottom: 35px;
 }
 
 .underline-form-grid-2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 32px;
+  gap: 26px;
 }
 
 .underline-form-grid-3 {
   display: grid;
   grid-template-columns: 1fr 2fr;
-  gap: 32px;
+  gap: 26px;
 }
 
 .underline-col-span-2 {
@@ -1968,21 +1968,21 @@
 
 .underline-label {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 700;
   color: var(--specsit-black);
   text-transform: uppercase;
   letter-spacing: 1px;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
 
 .underline-input {
   background: transparent;
   border: none;
   border-bottom: 1px solid var(--specsit-light-grey);
-  padding: 12px 0;
+  padding: 10px 0;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 400;
   color: var(--specsit-black);
   outline: none;
@@ -1998,13 +1998,13 @@
 .save-address-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding-top: 16px;
+  gap: 10px;
+  padding-top: 13px;
 }
 
 .save-address-checkbox {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   border: 1px solid var(--specsit-light-grey);
   border-radius: 2px;
   background: var(--specsit-bg-white);
@@ -2015,7 +2015,7 @@
 
 .save-address-label {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 400;
   color: var(--specsit-black);
   cursor: pointer;
@@ -2024,16 +2024,16 @@
 /* ── Add address / back buttons ── */
 .add-address-btn {
   width: 100%;
-  padding: 12px;
+  padding: 10px;
   background: none;
   border: 1px dashed var(--specsit-purple-primary);
-  border-radius: 12px;
+  border-radius: 10px;
   color: var(--specsit-purple-primary);
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 700;
   cursor: pointer;
-  margin-top: 16px;
+  margin-top: 13px;
   transition: background 0.2s ease;
 }
 
@@ -2046,10 +2046,10 @@
   border: none;
   color: var(--specsit-body-grey);
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   cursor: pointer;
   padding: 0;
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 .back-to-list-btn:hover {
@@ -2060,8 +2060,8 @@
 .summary-items-list {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  margin-bottom: 24px;
+  gap: 19px;
+  margin-bottom: 19px;
 }
 
 /* ── Horizontal address cards ── */
@@ -2069,10 +2069,10 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: 16px;
+  padding: 13px;
   border: 1px solid var(--specsit-light-grey);
-  border-radius: 12px;
-  margin-bottom: 12px;
+  border-radius: 10px;
+  margin-bottom: 10px;
   transition: border-color 0.2s ease;
 }
 
@@ -2084,16 +2084,16 @@
 .address-title-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
+  gap: 6px;
+  margin-bottom: 3px;
 }
 
 .address-badge-small {
   background: var(--specsit-purple-light);
   color: var(--specsit-purple-primary);
-  border-radius: 8px;
-  padding: 2px 8px;
-  font-size: 11px;
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-size: 9px;
   font-weight: 700;
 }
 
@@ -2124,7 +2124,7 @@
 .addr-list {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   width: 100%;
 }
 
@@ -2133,8 +2133,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 26px;
-  border-radius: 16px;
+  padding: 21px;
+  border-radius: 13px;
   cursor: pointer;
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
   width: 100%;
@@ -2155,14 +2155,14 @@
 }
 
 .addr-card--idle:hover {
-  box-shadow: 0px 4px 12px rgba(104, 64, 141, 0.08);
+  box-shadow: 0px 3px 10px rgba(104, 64, 141, 0.08);
 }
 
 /* ── Left side: info ── */
 .addr-card__info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
   flex: 1;
   min-width: 0;
 }
@@ -2170,13 +2170,13 @@
 .addr-card__name-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 8px;
+  gap: 10px;
+  margin-bottom: 6px;
 }
 
 .addr-card__name {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--specsit-black);
   line-height: 1.55;
@@ -2185,11 +2185,11 @@
 /* Address type badge */
 .addr-badge {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  padding: 2px 8px;
+  padding: 2px 6px;
   border-radius: 2px;
   line-height: 1.5;
   background: var(--specsit-purple-light);
@@ -2203,7 +2203,7 @@
 
 .addr-card__address {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 400;
   color: var(--specsit-black);
   line-height: 1.625;
@@ -2213,9 +2213,9 @@
 .addr-card__phone {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 500;
   color: var(--specsit-black);
   line-height: 1.43;
@@ -2225,22 +2225,22 @@
 .addr-card__actions {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 19px;
   flex-shrink: 0;
-  margin-left: 24px;
+  margin-left: 19px;
 }
 
 .addr-card__edit-delete {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding-right: 25px;
+  gap: 13px;
+  padding-right: 20px;
   border-right: 1px solid var(--specsit-light-grey);
 }
 
 .addr-action-btn {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 600;
   background: none;
   border: none;
@@ -2259,19 +2259,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
 }
 
 .addr-select-btn {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--specsit-black);
   background: var(--specsit-light-grey);
   border: none;
-  border-radius: 12px;
-  padding: 8px 24px;
+  border-radius: 10px;
+  padding: 6px 19px;
   cursor: pointer;
   transition: background 0.2s ease;
 }
@@ -2285,10 +2285,10 @@
 .addr-add-new {
   display: flex;
   align-items: center;
-  gap: 24px;
-  padding: 26px;
+  gap: 19px;
+  padding: 21px;
   border: 2px dashed var(--specsit-light-grey);
-  border-radius: 16px;
+  border-radius: 13px;
   background: transparent;
   cursor: pointer;
   width: 100%;
@@ -2303,10 +2303,10 @@
 }
 
 .addr-add-new__icon {
-  width: 48px;
-  height: 48px;
+  width: 38px;
+  height: 38px;
   background: var(--specsit-light-grey);
-  border-radius: 12px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2325,7 +2325,7 @@
 
 .addr-add-new__title {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--specsit-black);
   line-height: 1.5;
@@ -2333,7 +2333,7 @@
 
 .addr-add-new__subtitle {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 400;
   color: var(--specsit-black);
   line-height: 1.33;
@@ -2343,7 +2343,7 @@
   .addr-card {
     flex-direction: column;
     align-items: flex-start;
-    gap: 16px;
+    gap: 13px;
   }
 
   .addr-card__actions {
@@ -2363,13 +2363,13 @@
 .addr-loading {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 40px 0;
+  gap: 10px;
+  padding: 32px 0;
 }
 
 .addr-loading__spinner {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   border: 2px solid var(--specsit-light-grey);
   border-top-color: var(--specsit-purple-primary);
   border-radius: 50%;
@@ -2383,7 +2383,7 @@
 
 .addr-loading__text {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 500;
   color: var(--specsit-body-grey);
 }
@@ -2396,7 +2396,7 @@
 .payment-step-view {
   display: flex;
   flex-direction: column;
-  gap: 48px;
+  gap: 38px;
   width: 100%;
 }
 
@@ -2404,13 +2404,13 @@
 .pay-section {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 19px;
   width: 100%;
 }
 
 .pay-section__title {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--specsit-black);
   letter-spacing: -0.025em;
@@ -2421,9 +2421,9 @@
 /* ── Card section ── */
 .pay-section--card {
   background: var(--specsit-light-grey);
-  border-radius: 8px;
-  padding: 32px;
-  gap: 24px;
+  border-radius: 6px;
+  padding: 26px;
+  gap: 19px;
 }
 
 .pay-section__header {
@@ -2435,41 +2435,41 @@
 
 .pay-card-logos {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
   opacity: 0.8;
 }
 
 .pay-card-logo {
-  width: 38px;
-  height: 24px;
-  border-radius: 4px;
+  width: 30px;
+  height: 19px;
+  border-radius: 3px;
   display: block;
 }
 
 .pay-card-fields {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 19px;
   width: 100%;
 }
 
 .pay-card-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 32px;
+  gap: 26px;
 }
 
 /* ── Form field ── */
 .pay-field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .pay-field__label {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--specsit-black);
   text-transform: uppercase;
@@ -2481,9 +2481,9 @@
   background: var(--specsit-bg-white);
   border: none;
   border-radius: 0;
-  padding: 12px 16px;
+  padding: 10px 13px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 400;
   color: var(--specsit-black);
   outline: none;
@@ -2502,27 +2502,27 @@
 
 /* ── UPI section ── */
 .pay-section--upi {
-  gap: 24px;
+  gap: 19px;
 }
 
 .pay-upi-apps {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 13px;
 }
 
 .pay-upi-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  padding: 17px 24px;
+  gap: 10px;
+  padding: 14px 19px;
   background: var(--specsit-bg-white);
   border: 1px solid var(--specsit-light-grey);
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--specsit-black);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -2540,7 +2540,7 @@
 .pay-upi-id {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .pay-upi-input-row {
@@ -2558,9 +2558,9 @@
   flex: 1;
   background: transparent;
   border: none;
-  padding: 9px 12px;
+  padding: 7px 10px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 400;
   color: var(--specsit-black);
   outline: none;
@@ -2574,9 +2574,9 @@
   background: none;
   border: none;
   cursor: pointer;
-  padding: 0 16px;
+  padding: 0 13px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--specsit-purple-primary);
   text-transform: uppercase;
@@ -2589,25 +2589,25 @@
 /* ── Net Banking section ── */
 .pay-section--netbanking {
   background: var(--specsit-light-grey);
-  border-radius: 8px;
-  padding: 32px;
+  border-radius: 6px;
+  padding: 26px;
 }
 
 .pay-bank-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  gap: 13px;
 }
 
 .pay-bank-tile {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 16px;
+  gap: 6px;
+  padding: 13px;
   background: var(--specsit-bg-white);
   border: 2px solid transparent;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
   transition: border-color 0.15s ease;
 }
@@ -2621,14 +2621,14 @@
 }
 
 .pay-bank-tile__icon {
-  width: 24px;
-  height: 24px;
+  width: 19px;
+  height: 19px;
   border-radius: 2px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 800;
   color: white;
   letter-spacing: -0.5px;
@@ -2636,7 +2636,7 @@
 
 .pay-bank-tile__label {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 700;
   color: var(--specsit-black);
   text-transform: uppercase;
@@ -2651,12 +2651,12 @@
 
 .pay-bank-select {
   width: 100%;
-  padding: 12px 40px 12px 16px;
+  padding: 10px 32px 10px 13px;
   background: var(--specsit-bg-white);
   border: 1px solid var(--specsit-light-grey);
-  border-radius: 8px;
+  border-radius: 6px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 400;
   color: var(--specsit-black);
   appearance: none;
@@ -2671,7 +2671,7 @@
 
 .pay-bank-select-chevron {
   position: absolute;
-  right: 12px;
+  right: 10px;
   pointer-events: none;
   flex-shrink: 0;
 }
@@ -2680,12 +2680,12 @@
 .pay-section--wallets {
   flex-direction: row;
   align-items: center;
-  gap: 32px;
+  gap: 26px;
 }
 
 .pay-wallets-label {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--specsit-black);
   text-transform: uppercase;
@@ -2696,16 +2696,16 @@
 
 .pay-wallet-btns {
   display: flex;
-  gap: 16px;
+  gap: 13px;
 }
 
 .pay-wallet-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 9px 25px;
+  padding: 7px 20px;
   border: 1px solid var(--specsit-light-grey);
-  border-radius: 12px;
+  border-radius: 10px;
   background: transparent;
   cursor: pointer;
   transition: border-color 0.15s ease;
@@ -2745,11 +2745,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 86px;
-  height: 86px;
+  width: 69px;
+  height: 69px;
   background: rgba(255, 218, 214, 0.3);
-  border-radius: 12px;
-  margin-bottom: 16px;
+  border-radius: 10px;
+  margin-bottom: 13px;
   flex-shrink: 0;
 }
 
@@ -2757,13 +2757,13 @@
 .pay-failed__body {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  margin-bottom: 16px;
+  gap: 19px;
+  margin-bottom: 13px;
 }
 
 .pay-failed__title {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 48px;
+  font-size: 38px;
   font-weight: 800;
   color: var(--specsit-black);
   letter-spacing: -0.05em;
@@ -2773,31 +2773,31 @@
 
 .pay-failed__desc {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 400;
   color: var(--specsit-black);
   line-height: 1.625;
   margin: 0;
-  max-width: 512px;
+  max-width: 410px;
 }
 
 /* ── Error code badge ── */
 .pay-failed__code-badge {
   display: flex;
   align-items: center;
-  gap: 12px;
-  height: 50px;
-  padding: 0 20px;
+  gap: 10px;
+  height: 40px;
+  padding: 0 16px;
   background: var(--specsit-light-grey);
   border: 1px solid var(--specsit-purple-light);
-  border-radius: 8px;
-  margin-top: 16px;
-  margin-bottom: 16px;
+  border-radius: 6px;
+  margin-top: 13px;
+  margin-bottom: 13px;
 }
 
 .pay-failed__code-label {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 500;
   color: var(--specsit-black);
   text-transform: uppercase;
@@ -2807,7 +2807,7 @@
 
 .pay-failed__code-value {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 700;
   color: #BA1A1A;
   white-space: nowrap;
@@ -2817,22 +2817,22 @@
 .pay-failed__actions {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin-top: 16px;
+  gap: 13px;
+  margin-top: 13px;
   flex-wrap: wrap;
 }
 
 .pay-failed__retry-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 18px 32px;
+  gap: 6px;
+  padding: 14px 26px;
   background: var(--specsit-purple-primary);
   color: #fff;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -2841,7 +2841,7 @@
 
 .pay-failed__retry-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0px 8px 20px rgba(79, 40, 116, 0.3);
+  box-shadow: 0px 6px 16px rgba(79, 40, 116, 0.3);
 }
 
 .pay-failed__retry-btn:disabled {
@@ -2853,14 +2853,14 @@
 .pay-failed__change-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 18px 34px;
+  gap: 6px;
+  padding: 14px 27px;
   background: transparent;
   color: var(--specsit-black);
   border: 2px solid var(--specsit-light-grey);
-  border-radius: 8px;
+  border-radius: 6px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -2882,27 +2882,27 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 16px;
-  padding: 120px 24px;
+  gap: 13px;
+  padding: 96px 19px;
   min-height: 60vh;
 }
 
 .conf-page {
-  max-width: 1440px;
+  max-width: 1152px;
   margin: 0 auto;
-  padding: 100px 120px;
+  padding: 80px 96px;
   display: flex;
   flex-direction: column;
-  gap: 48px;
+  gap: 38px;
   align-items: center;
 }
 
 @media (max-width: 1100px) {
-  .conf-page { padding: 64px 40px; }
+  .conf-page { padding: 51px 32px; }
 }
 
 @media (max-width: 768px) {
-  .conf-page { padding: 48px 20px; }
+  .conf-page { padding: 38px 16px; }
 }
 
 /* Header */
@@ -2910,15 +2910,15 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 13px;
   width: 100%;
 }
 
 .conf-check-box {
-  width: 80px;
-  height: 70px;
+  width: 64px;
+  height: 56px;
   background: var(--specsit-purple-light);
-  border-radius: 12px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2927,22 +2927,22 @@
 
 .conf-thank-you {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 60px;
+  font-size: 48px;
   font-weight: 800;
   color: var(--specsit-black);
   text-align: center;
   letter-spacing: -3px;
   line-height: 1;
-  margin: 8px 0 0;
+  margin: 6px 0 0;
 }
 
 .conf-order-id {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 400;
   color: var(--specsit-black);
   text-align: center;
-  line-height: 28px;
+  line-height: 22px;
 }
 
 .conf-order-id__bold {
@@ -2955,7 +2955,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 40px;
+  gap: 32px;
   width: 100%;
 }
 
@@ -2970,14 +2970,14 @@
 .conf-left {
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 26px;
   flex: 1 0 0;
   min-width: 0;
 }
 
 .conf-delivery-card {
   background: var(--specsit-bg-white);
-  border-radius: 8px;
+  border-radius: 6px;
   overflow: hidden;
   width: 100%;
 }
@@ -2985,73 +2985,73 @@
 .conf-delivery-card__inner {
   display: flex;
   flex-direction: column;
-  gap: 40px;
-  padding: 32px;
+  gap: 32px;
+  padding: 26px;
 }
 
 .conf-delivery-top {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .conf-priority-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .conf-priority-label {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--specsit-purple-primary);
   text-transform: uppercase;
   letter-spacing: 1.2px;
-  line-height: 16px;
+  line-height: 13px;
 }
 
 .conf-delivery-heading {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 30px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--specsit-black);
-  line-height: 36px;
-  margin: 16px 0 0;
+  line-height: 29px;
+  margin: 13px 0 0;
 }
 
 .conf-delivery-desc {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 400;
   color: var(--specsit-black);
-  line-height: 24px;
-  max-width: 600px;
+  line-height: 19px;
+  max-width: 480px;
 }
 
 /* Tracking row */
 .conf-tracking-row {
   display: flex;
   align-items: center;
-  gap: 40px;
+  gap: 32px;
 }
 
 @media (max-width: 600px) {
-  .conf-tracking-row { flex-direction: column; align-items: flex-start; gap: 16px; }
+  .conf-tracking-row { flex-direction: column; align-items: flex-start; gap: 13px; }
 }
 
 .conf-tracking-left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 13px;
   flex-shrink: 0;
 }
 
 .conf-tracking-icon-box {
-  width: 48px;
-  height: 48px;
+  width: 38px;
+  height: 38px;
   background: var(--specsit-light-grey);
-  border-radius: 12px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3066,45 +3066,45 @@
 
 .conf-tracking-title {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--specsit-black);
-  line-height: 20px;
+  line-height: 16px;
   white-space: nowrap;
 }
 
 .conf-tracking-eta {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 400;
   color: var(--specsit-black);
-  line-height: 16px;
+  line-height: 13px;
 }
 
 .conf-tracking-right {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 16px;
   flex: 1;
 }
 
 .conf-courier-name {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--specsit-black);
-  line-height: 16px;
+  line-height: 13px;
   white-space: nowrap;
 }
 
 .conf-contact-pill {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
+  gap: 5px;
+  padding: 5px 10px;
   background: var(--specsit-light-grey);
   border: none;
-  border-radius: 12px;
+  border-radius: 10px;
   cursor: pointer;
   transition: background 0.2s;
 }
@@ -3115,20 +3115,20 @@
 
 .conf-contact-pill__text {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 700;
   color: var(--specsit-black);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  line-height: 15px;
+  line-height: 12px;
 }
 
 /* CTA buttons */
 .conf-cta-row {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding-top: 16px;
+  gap: 13px;
+  padding-top: 13px;
 }
 
 @media (max-width: 480px) {
@@ -3139,18 +3139,18 @@
 .conf-track-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex: 1;
-  padding: 16px 32px;
+  padding: 13px 26px;
   background: var(--specsit-purple-primary);
   color: var(--specsit-bg-white);
   border: none;
-  border-radius: 6px;
+  border-radius: 5px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: -0.4px;
-  line-height: 24px;
+  line-height: 19px;
   text-decoration: none;
   cursor: pointer;
   justify-content: center;
@@ -3167,16 +3167,16 @@
   align-items: center;
   justify-content: center;
   flex: 1;
-  padding: 16px 32px;
+  padding: 13px 26px;
   background: var(--specsit-purple-light);
   color: var(--specsit-black);
   border: none;
-  border-radius: 6px;
+  border-radius: 5px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: -0.4px;
-  line-height: 24px;
+  line-height: 19px;
   text-decoration: none;
   cursor: pointer;
   transition: background 0.2s, transform 0.2s;
@@ -3189,7 +3189,7 @@
 
 /* Right column - order summary */
 .conf-right {
-  width: 520px;
+  width: 416px;
   flex-shrink: 0;
 }
 
@@ -3200,12 +3200,12 @@
 .conf-summary-card {
   background: var(--specsit-bg-white);
   border: 1px solid var(--specsit-bg-white);
-  border-radius: 16px;
-  box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.03);
-  padding: 41px;
+  border-radius: 13px;
+  box-shadow: 0px 3px 16px rgba(0, 0, 0, 0.03);
+  padding: 33px;
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 26px;
 }
 
 .conf-summary-header {
@@ -3216,41 +3216,41 @@
 
 .conf-summary-heading {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--specsit-black);
   letter-spacing: -0.5px;
-  line-height: 28px;
+  line-height: 22px;
 }
 
 .conf-summary-badge {
   background: var(--specsit-light-grey);
-  padding: 4px 12px;
-  border-radius: 12px;
+  padding: 3px 10px;
+  border-radius: 10px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 700;
   color: var(--specsit-black);
-  line-height: 15px;
+  line-height: 12px;
 }
 
 .conf-summary-items {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 19px;
 }
 
 .conf-summary-item {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 13px;
 }
 
 .conf-summary-thumb {
-  width: 64px;
-  height: 64px;
+  width: 51px;
+  height: 51px;
   background: var(--specsit-bg-white);
-  border-radius: 8px;
+  border-radius: 6px;
   overflow: hidden;
   flex-shrink: 0;
   display: flex;
@@ -3267,35 +3267,35 @@
 .conf-summary-item-info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
   flex: 1;
   min-width: 0;
 }
 
 .conf-summary-item-name {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--specsit-black);
   text-transform: uppercase;
   letter-spacing: 1.2px;
-  line-height: 16px;
+  line-height: 13px;
 }
 
 .conf-summary-item-variant {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 400;
   color: var(--specsit-body-grey);
-  line-height: 15px;
+  line-height: 12px;
 }
 
 .conf-summary-item-price {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--specsit-black);
-  line-height: 16px;
+  line-height: 13px;
   flex-shrink: 0;
 }
 
@@ -3303,9 +3303,9 @@
 .conf-summary-totals {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 13px;
   border-top: 1px solid var(--specsit-light-grey);
-  padding-top: 25px;
+  padding-top: 20px;
 }
 
 .conf-summary-row {
@@ -3316,20 +3316,20 @@
 
 .conf-summary-row__label {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 700;
   color: var(--specsit-body-grey);
   text-transform: uppercase;
   letter-spacing: 1px;
-  line-height: 15px;
+  line-height: 12px;
 }
 
 .conf-summary-row__value {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 500;
   color: var(--specsit-black);
-  line-height: 16px;
+  line-height: 13px;
 }
 
 .conf-summary-row__value--free {
@@ -3342,35 +3342,35 @@
   align-items: center;
   justify-content: space-between;
   border-top: 1px solid var(--specsit-light-grey);
-  padding-top: 17px;
+  padding-top: 14px;
 }
 
 .conf-summary-total__label {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--specsit-black);
   text-transform: uppercase;
   letter-spacing: 1.2px;
-  line-height: 16px;
+  line-height: 13px;
 }
 
 .conf-summary-total__value {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 800;
   color: var(--specsit-purple-primary);
-  line-height: 28px;
+  line-height: 22px;
 }
 
 /* Deposit breakdown */
 .conf-breakdown {
   background: var(--specsit-light-grey);
-  border-radius: 8px;
-  padding: 24px;
+  border-radius: 6px;
+  padding: 19px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 13px;
 }
 
 .conf-breakdown__row {
@@ -3382,7 +3382,7 @@
 .conf-breakdown__row--faded {
   opacity: 0.7;
   border-top: 1px solid var(--specsit-purple-light);
-  padding-top: 17px;
+  padding-top: 14px;
 }
 
 .conf-breakdown__label-stack {
@@ -3393,12 +3393,12 @@
 
 .conf-breakdown__main {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--specsit-purple-primary);
   text-transform: uppercase;
   letter-spacing: 0.6px;
-  line-height: 16px;
+  line-height: 13px;
 }
 
 .conf-breakdown__main--grey {
@@ -3407,68 +3407,68 @@
 
 .conf-breakdown__sub {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 400;
   color: var(--specsit-body-grey);
-  line-height: 15px;
+  line-height: 12px;
 }
 
 .conf-breakdown__amount-large {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 24px;
+  font-size: 19px;
   font-weight: 800;
   color: var(--specsit-black);
-  line-height: 32px;
+  line-height: 26px;
 }
 
 .conf-breakdown__amount-medium {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--specsit-body-grey);
-  line-height: 28px;
+  line-height: 22px;
 }
 
 @media (max-width: 480px) {
-  .conf-thank-you { font-size: 40px; letter-spacing: -2px; }
-  .conf-delivery-heading { font-size: 24px; }
-  .conf-summary-card { padding: 24px; }
+  .conf-thank-you { font-size: 32px; letter-spacing: -2px; }
+  .conf-delivery-heading { font-size: 19px; }
+  .conf-summary-card { padding: 19px; }
 }
 
 /* ── Alternate heading (Vision Details Received) ── */
 .conf-thank-you--alt {
-  font-size: 48px;
+  font-size: 38px;
   letter-spacing: -1.2px;
   white-space: nowrap;
 }
 
 @media (max-width: 768px) {
-  .conf-thank-you--alt { font-size: 32px; white-space: normal; }
+  .conf-thank-you--alt { font-size: 26px; white-space: normal; }
 }
 
 /* ── Awaiting Power Details badge ── */
 .conf-awaiting-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   background: #f7e387;
   color: var(--specsit-black);
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 700;
   letter-spacing: 1px;
   text-transform: uppercase;
-  padding: 4px 10px;
-  border-radius: 6px;
-  margin-top: 4px;
+  padding: 3px 8px;
+  border-radius: 5px;
+  margin-top: 3px;
   width: fit-content;
 }
 
 /* ── Screen 1: Submit Your Lens Power card ── */
 .conf-rx-card {
   background: var(--specsit-bg-white);
-  border-radius: 8px;
-  box-shadow: 0px 20px 40px 0px rgba(4,2,5,0.04);
+  border-radius: 6px;
+  box-shadow: 0px 16px 32px 0px rgba(4,2,5,0.04);
   overflow: hidden;
   width: 100%;
 }
@@ -3476,14 +3476,14 @@
 .conf-rx-card__inner {
   display: flex;
   flex-direction: column;
-  gap: 32px;
-  padding: 40px;
+  gap: 26px;
+  padding: 32px;
 }
 
 .conf-rx-top {
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 18px;
 }
 
 .conf-action-badge {
@@ -3492,57 +3492,57 @@
   background: var(--specsit-purple-light);
   color: var(--specsit-purple-primary);
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.6px;
   text-transform: uppercase;
-  padding: 4px 12px;
-  border-radius: 12px;
+  padding: 3px 10px;
+  border-radius: 10px;
   width: fit-content;
 }
 
 .conf-rx-heading {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 30px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--specsit-black);
-  line-height: 36px;
+  line-height: 29px;
   margin: 0;
 }
 
 .conf-rx-desc {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 400;
   color: var(--specsit-black);
-  line-height: 32px;
+  line-height: 26px;
   margin: 0;
 }
 
 .conf-rx-actions {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 19px;
 }
 
 .conf-rx-btn-row {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 16px;
   flex-wrap: wrap;
 }
 
 .conf-rx-submit-btn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   background: var(--specsit-purple-primary);
   color: var(--specsit-bg-white);
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 600;
-  padding: 16px 32px;
-  border-radius: 4px;
+  padding: 13px 26px;
+  border-radius: 3px;
   border: none;
   cursor: pointer;
   transition: background 0.2s;
@@ -3553,8 +3553,8 @@
 .conf-rx-submit-btn--full {
   width: 100%;
   justify-content: center;
-  border-radius: 6px;
-  margin-top: 8px;
+  border-radius: 5px;
+  margin-top: 6px;
 }
 
 .conf-rx-submit-btn:disabled {
@@ -3569,10 +3569,10 @@
   background: var(--specsit-purple-light);
   color: var(--specsit-black);
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 600;
-  padding: 16px 32px;
-  border-radius: 4px;
+  padding: 13px 26px;
+  border-radius: 3px;
   border: none;
   cursor: pointer;
   transition: background 0.2s;
@@ -3582,49 +3582,49 @@
 
 .conf-rx-disclaimer {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-style: italic;
   font-weight: 400;
   color: var(--specsit-body-grey);
-  line-height: 20px;
+  line-height: 16px;
   margin: 0;
 }
 
 .conf-rx-disclaimer--padded {
-  padding: 0 8px;
+  padding: 0 6px;
 }
 
 /* Stats row at bottom of Screen 1 card */
 .conf-rx-stats {
   display: flex;
   align-items: center;
-  gap: 32px;
-  padding: 33px 40px 40px;
+  gap: 26px;
+  padding: 26px 32px 32px;
   border-top: 1px solid rgba(205,195,209,0.2);
 }
 
 .conf-rx-stat {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 13px;
   flex: 1 0 0;
 }
 
 .conf-rx-stat__value {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--specsit-black);
-  line-height: 24px;
+  line-height: 19px;
   margin: 0;
 }
 
 .conf-rx-stat__label {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 400;
   color: var(--specsit-black);
-  line-height: 20px;
+  line-height: 16px;
   margin: 0;
 }
 
@@ -3632,16 +3632,16 @@
 .conf-back-btn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   background: none;
   border: none;
   cursor: pointer;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--specsit-black);
   letter-spacing: -0.35px;
-  padding: 0 0 8px;
+  padding: 0 0 6px;
 }
 
 .conf-back-btn:hover { opacity: 0.7; }
@@ -3650,18 +3650,18 @@
 .conf-help-bar {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 13px;
   background: var(--specsit-bg-white);
   border: 1px solid rgba(205,195,209,0.1);
-  border-radius: 8px;
-  padding: 17px;
+  border-radius: 6px;
+  padding: 14px;
 }
 
 .conf-help-bar__icon {
-  width: 48px;
-  height: 48px;
+  width: 38px;
+  height: 38px;
   background: #22c55e;
-  border-radius: 4px;
+  border-radius: 3px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3676,7 +3676,7 @@
 
 .conf-help-bar__title {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--specsit-black);
   margin: 0;
@@ -3687,7 +3687,7 @@
   border: none;
   cursor: pointer;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--specsit-purple-primary);
   padding: 0;
@@ -3698,18 +3698,18 @@
 .conf-method-options {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 13px;
 }
 
 .conf-method-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
+  gap: 16px;
   background: var(--specsit-bg-white);
   border: 1px solid rgba(205,195,209,0.2);
-  border-radius: 8px;
-  padding: 21px;
+  border-radius: 6px;
+  padding: 17px;
   cursor: pointer;
   width: 100%;
   text-align: left;
@@ -3718,13 +3718,13 @@
 
 .conf-method-card:hover {
   border-color: var(--specsit-purple-primary);
-  box-shadow: 0 4px 16px rgba(104,64,141,0.1);
+  box-shadow: 0 3px 13px rgba(104,64,141,0.1);
 }
 
 .conf-method-card--upload {
   border: 1px solid var(--specsit-light-grey);
-  border-radius: 16px;
-  padding: 25px;
+  border-radius: 13px;
+  padding: 20px;
 }
 
 .conf-method-card--upload:disabled {
@@ -3733,10 +3733,10 @@
 }
 
 .conf-method-card__icon-wrap {
-  width: 64px;
-  height: 64px;
+  width: 51px;
+  height: 51px;
   background: var(--specsit-purple-light);
-  border-radius: 8px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3746,84 +3746,84 @@
 .conf-method-card__info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
   flex: 1 0 0;
 }
 
 .conf-method-card__title {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--specsit-black);
   margin: 0;
-  line-height: 28px;
+  line-height: 22px;
 }
 
 .conf-method-card__sub {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 400;
   color: var(--specsit-black);
   margin: 0;
-  line-height: 20px;
+  line-height: 16px;
 }
 
 .conf-method-card__spinner {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   flex-shrink: 0;
 }
 
 /* ── Screen 3: Form styles ── */
 .conf-left--form {
-  gap: 24px;
+  gap: 19px;
 }
 
 .conf-form-section {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .conf-form-heading {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--specsit-black);
-  line-height: 28px;
+  line-height: 22px;
   margin: 0;
 }
 
 .conf-form-sub {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 400;
   color: var(--specsit-body-grey);
-  line-height: 20px;
+  line-height: 16px;
   margin: 0;
 }
 
 .conf-toggles {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 12px;
 }
 
 .conf-toggle-label {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   cursor: pointer;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 500;
   color: var(--specsit-body-grey);
   user-select: none;
 }
 
 .conf-toggle-cb {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   border: 1px solid var(--specsit-light-grey);
   border-radius: 2px;
   cursor: pointer;
@@ -3838,7 +3838,7 @@
 /* Power grid table */
 .conf-power-grid-wrap {
   border: 1px solid var(--specsit-light-grey);
-  border-radius: 8px;
+  border-radius: 6px;
   overflow: hidden;
   box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
@@ -3851,12 +3851,12 @@
 .conf-power-th {
   background: var(--specsit-bg-white);
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 700;
   color: var(--specsit-body-grey);
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  padding: 12px 16px;
+  padding: 10px 13px;
   text-align: left;
   border-bottom: 1px solid var(--specsit-light-grey);
 }
@@ -3871,50 +3871,50 @@
 
 .conf-power-eye {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--specsit-body-grey);
-  padding: 20px 16px;
+  padding: 16px 13px;
   white-space: nowrap;
 }
 
 .conf-power-eye__abbr {
-  font-size: 9px;
+  font-size: 7px;
   display: block;
 }
 
 .conf-power-cell {
-  padding: 10px 8px 10px 0;
+  padding: 8px 6px 8px 0;
 }
 
 .conf-power-cell--axis {
-  padding-right: 8px;
+  padding-right: 6px;
 }
 
 .conf-power-select {
-  height: 36px;
+  height: 29px;
   background: var(--specsit-light-grey);
   border: none;
-  border-radius: 4px;
+  border-radius: 3px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   color: var(--specsit-black);
-  padding: 0 8px;
+  padding: 0 6px;
   cursor: pointer;
-  width: 90px;
+  width: 72px;
   appearance: auto;
 }
 
 .conf-power-input {
-  height: 36px;
-  width: 100px;
+  height: 29px;
+  width: 80px;
   background: var(--specsit-light-grey);
   border: none;
-  border-radius: 4px;
+  border-radius: 3px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   color: var(--specsit-black);
-  padding: 0 12px;
+  padding: 0 10px;
 }
 
 .conf-power-input:focus, .conf-power-select:focus {
@@ -3931,18 +3931,18 @@
 .conf-identity-fields {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 19px;
 }
 
 .conf-field-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .conf-field-label {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 700;
   color: var(--specsit-body-grey);
   letter-spacing: 1px;
@@ -3954,9 +3954,9 @@
   border-bottom: 2px solid var(--specsit-light-grey);
   background: transparent;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   color: var(--specsit-black);
-  padding: 13px 0 15px;
+  padding: 10px 0 12px;
   width: 100%;
   transition: border-color 0.2s;
 }
@@ -3970,7 +3970,7 @@
 
 .conf-submit-error {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 13px;
+  font-size: 10px;
   color: var(--specsit-error-red);
   margin: 0;
 }
@@ -3979,30 +3979,30 @@
 .conf-cant-find {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 .conf-cant-find__text {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   color: var(--specsit-body-grey);
 }
 
 .conf-cant-find__link {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--specsit-body-grey);
   text-decoration: underline;
 }
 
 @media (max-width: 960px) {
-  .conf-rx-stats { flex-direction: column; gap: 20px; padding: 24px; }
-  .conf-rx-card__inner { padding: 24px; }
+  .conf-rx-stats { flex-direction: column; gap: 16px; padding: 19px; }
+  .conf-rx-card__inner { padding: 19px; }
   .conf-rx-btn-row { flex-direction: column; align-items: stretch; }
   .conf-rx-submit-btn, .conf-rx-how-btn { width: 100%; justify-content: center; }
-  .conf-thank-you--alt { font-size: 36px; }
+  .conf-thank-you--alt { font-size: 29px; }
 }
 
 /* ============================================================
@@ -4011,8 +4011,8 @@
 
 /* Page shell overrides */
 .checkout-redesign {
-  padding: 100px 120px;
-  gap: 58px;
+  padding: 80px 96px;
+  gap: 46px;
 }
 
 /* Step separator chevron */
@@ -4031,16 +4031,16 @@
 
 /* Cart header */
 .cart-title-figma {
-  font-size: 48px;
+  font-size: 38px;
   line-height: 1;
   letter-spacing: -2.4px;
-  margin-bottom: 7.5px;
+  margin-bottom: 6px;
 }
 
 /* Two-col layout: flex instead of grid */
 .cart-grid-figma {
   display: flex;
-  gap: 64px;
+  gap: 51px;
   align-items: flex-start;
   width: 100%;
 }
@@ -4050,29 +4050,29 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 26px;
 }
 
-/* Right column fixed 600px, no sticky */
+/* Right column fixed 480px, no sticky */
 .cart-right-figma {
-  flex: 0 0 600px;
-  width: 600px;
+  flex: 0 0 480px;
+  width: 480px;
   position: static;
   height: auto;
 }
 
 /* Product card overrides */
 .product-card-figma {
-  padding: 33px;
-  gap: 32px;
+  padding: 26px;
+  gap: 26px;
   margin-bottom: 0;
 }
 
 /* Product thumbnail 192×192 */
 .product-thumb-figma {
-  width: 192px;
-  height: 192px;
-  padding: 16px;
+  width: 154px;
+  height: 154px;
+  padding: 13px;
   flex-shrink: 0;
 }
 
@@ -4081,22 +4081,22 @@
 .title-stack-figma {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .spec-grid-figma {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  column-gap: 16px;
-  row-gap: 4px;
-  margin: 4px 0;
+  column-gap: 13px;
+  row-gap: 3px;
+  margin: 3px 0;
 }
 
 .spec-grid-item-figma {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 600;
-  line-height: 16px;
+  line-height: 13px;
   color: var(--specsit-black);
 }
 
@@ -4109,18 +4109,18 @@
 .pdf-btn-figma {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 7px 13px;
+  gap: 6px;
+  padding: 6px 10px;
   border: 1px solid var(--specsit-purple-primary);
   border-radius: 2px;
   background: none;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 600;
-  line-height: 16px;
+  line-height: 13px;
   color: var(--specsit-purple-primary);
   cursor: pointer;
-  margin-top: 8px;
+  margin-top: 6px;
   transition: background 0.2s;
 }
 
@@ -4131,7 +4131,7 @@
 /* Action row: spacing from above */
 .action-row-figma {
   margin-top: 0;
-  padding-top: 16px;
+  padding-top: 13px;
 }
 
 /* Qty selector */
@@ -4139,18 +4139,18 @@
   display: flex;
   align-items: center;
   background: var(--specsit-light-grey);
-  border-radius: 4px;
-  padding: 4px 8px;
+  border-radius: 3px;
+  padding: 3px 6px;
   height: auto;
 }
 
 .qty-btn-figma {
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 26px;
   padding: 0;
   border: none;
   background: none;
-  border-radius: 6px;
+  border-radius: 5px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4163,17 +4163,17 @@
 }
 
 .qty-val-figma {
-  width: 40px;
+  width: 32px;
   text-align: center;
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 700;
-  font-size: 14px;
-  line-height: 20px;
+  font-size: 11px;
+  line-height: 16px;
   color: var(--specsit-black);
 }
 
 .remove-btn-figma {
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 500;
   background: none;
   border: none;
@@ -4182,15 +4182,15 @@
 /* Shipping hint: no border */
 .shipping-hint-figma {
   border: none;
-  padding: 24px;
+  padding: 19px;
   background: var(--specsit-bg-white);
-  border-radius: 8px;
+  border-radius: 6px;
 }
 
 .shipping-icon-bg-figma {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
   background: var(--specsit-bg-white);
   display: flex;
   align-items: center;
@@ -4202,20 +4202,20 @@
 .checkout-summary-card {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  padding: 33px;
+  gap: 19px;
+  padding: 26px;
   background: var(--specsit-bg-white);
   border: 1px solid var(--specsit-light-grey);
-  border-radius: 16px;
-  box-shadow: 0px 20px 40px 0px rgba(4, 2, 5, 0.06);
+  border-radius: 13px;
+  box-shadow: 0px 16px 32px 0px rgba(4, 2, 5, 0.06);
   outline: none;
 }
 
 .summary-card-title {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 700;
-  line-height: 28px;
+  line-height: 22px;
   letter-spacing: -0.5px;
   color: var(--specsit-black);
 }
@@ -4224,32 +4224,32 @@
 .partial-payment-alert {
   background: var(--specsit-purple-light);
   border: 1px solid var(--specsit-purple-light);
-  border-radius: 8px;
-  padding: 17px;
+  border-radius: 6px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .partial-payment-alert-header {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .partial-payment-alert-title {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 700;
-  line-height: 20px;
+  line-height: 16px;
   color: var(--specsit-purple-primary);
 }
 
 .partial-payment-alert-body {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 400;
-  line-height: 19.5px;
+  line-height: 16px;
   color: var(--specsit-body-grey);
 }
 
@@ -4257,16 +4257,16 @@
 .promo-section-figma {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding-bottom: 25px;
+  gap: 10px;
+  padding-bottom: 20px;
   border-bottom: 1px solid var(--specsit-light-grey);
 }
 
 .promo-heading-figma {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 800;
-  line-height: 16px;
+  line-height: 13px;
   letter-spacing: 2.4px;
   text-transform: uppercase;
   color: var(--specsit-black);
@@ -4281,19 +4281,19 @@
 .applied-coupon-tag {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 7px 13px;
+  gap: 6px;
+  padding: 6px 10px;
   background: var(--specsit-purple-light);
   border: 1px solid var(--specsit-purple-light);
-  border-radius: 12px;
+  border-radius: 10px;
   width: fit-content;
 }
 
 .applied-coupon-code {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 700;
-  line-height: 15px;
+  line-height: 12px;
   letter-spacing: 0.5px;
   text-transform: uppercase;
   color: var(--specsit-purple-primary);
@@ -4313,12 +4313,12 @@
 .offers-link-figma {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   color: var(--specsit-purple-primary);
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 700;
-  line-height: 15px;
+  line-height: 12px;
   letter-spacing: 1.5px;
   text-transform: uppercase;
   cursor: pointer;
@@ -4330,9 +4330,9 @@
 /* "Your Order" subheading */
 .your-order-heading {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 700;
-  line-height: 28px;
+  line-height: 22px;
   letter-spacing: -0.45px;
   color: var(--specsit-black);
 }
@@ -4341,8 +4341,8 @@
 .order-lines-figma {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding-top: 8px;
+  gap: 13px;
+  padding-top: 6px;
 }
 
 .order-line-row {
@@ -4353,23 +4353,23 @@
 
 /* Shipping row gets a border-bottom */
 .order-line-shipping {
-  padding-bottom: 17px;
+  padding-bottom: 14px;
   border-bottom: 1px solid var(--specsit-purple-light);
 }
 
 .order-line-label {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 400;
-  line-height: 20px;
+  line-height: 16px;
   color: var(--specsit-body-grey);
 }
 
 .order-line-value {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 500;
-  line-height: 24px;
+  line-height: 19px;
   color: var(--specsit-body-grey);
 }
 
@@ -4385,30 +4385,30 @@
 
 /* Total order value row */
 .order-total-row {
-  padding-top: 8px;
+  padding-top: 6px;
 }
 
 .order-total-label {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 600;
-  line-height: 20px;
+  line-height: 16px;
   color: var(--specsit-black);
 }
 
 .order-total-value {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 700;
-  line-height: 28px;
+  line-height: 22px;
   color: var(--specsit-black);
 }
 
 /* Mandatory breakdown overrides */
 .mandatory-breakdown {
   background: var(--specsit-light-grey);
-  border-radius: 8px;
-  padding: 24px;
+  border-radius: 6px;
+  padding: 19px;
   margin-top: 0;
   display: flex;
   flex-direction: column;
@@ -4423,9 +4423,9 @@
 
 .breakdown-label-upper {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
-  line-height: 16px;
+  line-height: 13px;
   letter-spacing: 0.6px;
   text-transform: uppercase;
   color: var(--specsit-purple-primary);
@@ -4437,25 +4437,25 @@
 
 .breakdown-sub-figma {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 400;
-  line-height: 15px;
+  line-height: 12px;
   color: var(--specsit-body-grey);
 }
 
 .breakdown-value-xxl {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 24px;
+  font-size: 19px;
   font-weight: 800;
-  line-height: 32px;
+  line-height: 26px;
   color: var(--specsit-black);
 }
 
 .breakdown-value-lg {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 700;
-  line-height: 28px;
+  line-height: 22px;
   color: var(--specsit-body-grey);
 }
 
@@ -4464,8 +4464,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 17px;
-  padding-top: 17px;
+  margin-top: 14px;
+  padding-top: 14px;
   border-top: 1px solid var(--specsit-purple-light);
   opacity: 0.7;
 }
@@ -4474,14 +4474,14 @@
 .cart-cta-section {
   display: flex;
   flex-direction: column;
-  gap: 28px;
-  padding-top: 16px;
+  gap: 22px;
+  padding-top: 13px;
 }
 
 /* CTA button override */
 .summary-cta-btn {
-  font-size: 18px;
-  line-height: 28px;
+  font-size: 14px;
+  line-height: 22px;
 }
 
 /* Trust row */
@@ -4496,14 +4496,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 3px;
 }
 
 .trust-label-figma {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 700;
-  line-height: 12.5px;
+  line-height: 10px;
   letter-spacing: 0.5px;
   text-transform: uppercase;
   color: var(--specsit-body-grey);
@@ -4516,29 +4516,29 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 32px;
+  padding: 16px 26px;
 }
 
 .cart-mini-footer-brand {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 700;
-  line-height: 28px;
+  line-height: 22px;
   color: var(--specsit-black);
 }
 
 .cart-mini-footer-links {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 0 68px;
+  gap: 10px;
+  padding: 0 54px;
 }
 
 .cart-mini-footer-link {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 400;
-  line-height: 20px;
+  line-height: 16px;
   letter-spacing: 1.4px;
   text-transform: uppercase;
   color: var(--specsit-body-grey);
@@ -4552,9 +4552,9 @@
 
 .cart-mini-footer-copy {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 400;
-  line-height: 20px;
+  line-height: 16px;
   letter-spacing: 1.4px;
   text-transform: uppercase;
   color: var(--specsit-body-grey);
@@ -4568,26 +4568,26 @@
 .summary-card-new {
   display: flex;
   flex-direction: column;
-  gap: 32px;
-  padding: 33px;
+  gap: 26px;
+  padding: 26px;
   background: var(--specsit-bg-white);
   border: 1px solid var(--specsit-light-grey);
-  border-radius: 16px;
-  box-shadow: 0px 20px 40px 0px rgba(4, 2, 5, 0.06);
+  border-radius: 13px;
+  box-shadow: 0px 16px 32px 0px rgba(4, 2, 5, 0.06);
 }
 
 /* Promotions & Coupons section */
 .summary-promos {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding-bottom: 25px;
+  gap: 10px;
+  padding-bottom: 20px;
   border-bottom: 1px solid var(--specsit-light-grey);
 }
 
 .summary-promos__title {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 2.4px;
   text-transform: uppercase;
@@ -4596,7 +4596,7 @@
 }
 
 .summary-promo-input-row {
-  padding-top: 4px;
+  padding-top: 3px;
 }
 
 .summary-promo-input-wrap {
@@ -4606,7 +4606,7 @@
 
 .promo-error-figma {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   color: var(--specsit-error-red);
   margin: 0;
 }
@@ -4614,33 +4614,33 @@
 /* "Your Order" heading */
 .summary-your-order {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 700;
   letter-spacing: -0.45px;
-  line-height: 28px;
+  line-height: 22px;
   color: var(--specsit-black);
-  margin: -8px 0 0;
+  margin: -6px 0 0;
 }
 
 /* Order item list */
 .summary-order-items {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  margin-top: -16px;
+  gap: 19px;
+  margin-top: -13px;
 }
 
 .summary-order-item {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 13px;
 }
 
 .summary-order-item__thumb {
-  width: 64px;
-  height: 64px;
+  width: 51px;
+  height: 51px;
   background: var(--specsit-light-grey);
-  border-radius: 4px;
+  border-radius: 3px;
   overflow: hidden;
   flex-shrink: 0;
   display: flex;
@@ -4664,10 +4664,10 @@
 
 .summary-order-item__name {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--specsit-black);
-  line-height: 20px;
+  line-height: 16px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4675,15 +4675,15 @@
 
 .summary-order-item__variant {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 400;
   color: var(--specsit-black);
-  line-height: 16px;
+  line-height: 13px;
 }
 
 .summary-order-item__price {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--specsit-black);
   white-space: nowrap;
@@ -4693,10 +4693,10 @@
 .summary-price-section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding-top: 25px;
+  gap: 10px;
+  padding-top: 20px;
   border-top: 1px solid var(--specsit-light-grey);
-  margin-top: -8px;
+  margin-top: -6px;
 }
 
 .summary-price-row {
@@ -4704,10 +4704,10 @@
   justify-content: space-between;
   align-items: center;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 400;
   color: var(--specsit-black);
-  line-height: 20px;
+  line-height: 16px;
 }
 
 .summary-price-row--saving {
@@ -4721,10 +4721,10 @@
 }
 
 .summary-price-row--total {
-  padding-top: 16px;
-  font-size: 20px;
+  padding-top: 13px;
+  font-size: 16px;
   font-weight: 800;
-  line-height: 28px;
+  line-height: 22px;
 }
 
 /* Pay CTA button */
@@ -4733,16 +4733,16 @@
   background: var(--specsit-purple-primary);
   color: #FEFCFF;
   border: none;
-  border-radius: 8px;
-  padding: 16px;
+  border-radius: 6px;
+  padding: 13px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 700;
   letter-spacing: -0.2px;
-  line-height: 28px;
+  line-height: 22px;
   text-align: center;
   cursor: pointer;
-  box-shadow: 0px 10px 15px -3px rgba(88, 28, 135, 0.1), 0px 4px 6px -4px rgba(88, 28, 135, 0.1);
+  box-shadow: 0px 8px 12px -3px rgba(88, 28, 135, 0.1), 0px 3px 5px -3px rgba(88, 28, 135, 0.1);
   transition: opacity 0.15s;
 }
 
@@ -4754,28 +4754,28 @@
 .summary-trust-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 13px;
 }
 
 .summary-trust-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .summary-trust-item span {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 700;
   letter-spacing: 1px;
   text-transform: uppercase;
   color: var(--specsit-black);
-  line-height: 15px;
+  line-height: 12px;
 }
 
 /* PDF upload wrap */
 .cart-pdf-wrap {
-  padding-top: 8px;
+  padding-top: 6px;
 }
 
 /* Step circle "done" state */
@@ -4786,21 +4786,21 @@
 
 /* Responsive */
 @media (max-width: 1200px) {
-  .checkout-redesign { padding: 80px; }
+  .checkout-redesign { padding: 64px; }
 }
 
 @media (max-width: 1024px) {
-  .checkout-redesign { padding: 60px 40px; }
+  .checkout-redesign { padding: 48px 32px; }
   .cart-grid-figma { flex-direction: column; }
   .cart-right-figma { flex: none; width: 100%; position: static; }
-  .cart-mini-footer { flex-direction: column; gap: 16px; text-align: center; }
+  .cart-mini-footer { flex-direction: column; gap: 13px; text-align: center; }
   .cart-mini-footer-links { padding: 0; flex-wrap: wrap; justify-content: center; }
 }
 
 @media (max-width: 768px) {
-  .checkout-redesign { padding: 40px 20px; }
-  .product-card-figma { flex-direction: column; padding: 20px; }
-  .product-thumb-figma { width: 100%; height: 200px; }
+  .checkout-redesign { padding: 32px 16px; }
+  .product-card-figma { flex-direction: column; padding: 16px; }
+  .product-thumb-figma { width: 100%; height: 160px; }
   .summary-trust-row { grid-template-columns: 1fr; }
 }
 
@@ -4808,15 +4808,15 @@
 .prescription-pd-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 6px;
-  padding-top: 6px;
+  gap: 5px;
+  margin-top: 5px;
+  padding-top: 5px;
   border-top: 1px solid #EBE3F2;
 }
 
 .prescription-pd-label {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 500;
   color: #71717A;
   letter-spacing: 1px;
@@ -4825,7 +4825,7 @@
 
 .prescription-pd-val {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 700;
   color: #040205;
 }

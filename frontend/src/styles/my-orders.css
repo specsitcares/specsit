@@ -12,51 +12,51 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 24px;
-  margin-bottom: 40px;
+  gap: 19px;
+  margin-bottom: 32px;
   flex-wrap: wrap;
 }
 
 .orders-page-header__left {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .orders-page-title {
-  font-size: 48px;
+  font-size: 38px;
   font-weight: 800;
   color: var(--specsit-black);
   letter-spacing: -2.4px;
-  line-height: 52px;
+  line-height: 42px;
   margin: 0;
 }
 
 .orders-page-subtitle {
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 400;
   color: var(--specsit-black);
-  line-height: 28px;
+  line-height: 22px;
   margin: 0;
 }
 
 .orders-page-header__right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex-shrink: 0;
-  margin-top: 4px;
+  margin-top: 3px;
 }
 
 /* Search input */
 .orders-search {
   position: relative;
-  width: 256px;
+  width: 205px;
 }
 
 .orders-search__icon {
   position: absolute;
-  left: 14px;
+  left: 11px;
   top: 50%;
   transform: translateY(-50%);
   color: var(--specsit-body-grey);
@@ -67,12 +67,12 @@
 
 .orders-search__input {
   width: 100%;
-  padding: 13px 16px 13px 42px;
+  padding: 10px 13px 10px 34px;
   background: var(--specsit-bg-white);
   border: 1px solid var(--specsit-purple-light);
-  border-radius: 6px;
+  border-radius: 5px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   color: var(--specsit-black);
   outline: none;
   transition: border-color 0.15s;
@@ -86,8 +86,8 @@
 .orders-filter-btn {
   background: var(--specsit-bg-white);
   border: 1px solid var(--specsit-purple-light);
-  border-radius: 6px;
-  padding: 12px;
+  border-radius: 5px;
+  padding: 10px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -101,35 +101,35 @@
 
 /* ── Recommendations section ───────────────────────────────── */
 .reco-section {
-  margin-bottom: 48px;
+  margin-bottom: 38px;
 }
 
 .reco-section__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .reco-section__title {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--specsit-black);
-  line-height: 28px;
+  line-height: 22px;
   margin: 0;
 }
 
 .reco-section__nav {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .reco-nav-btn {
   background: var(--specsit-bg-white);
   border: 1px solid var(--specsit-purple-light);
-  border-radius: 12px;
-  padding: 9px;
+  border-radius: 10px;
+  padding: 7px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -147,26 +147,26 @@
 
 .reco-track {
   display: flex;
-  gap: 20px;
+  gap: 16px;
   transition: transform 0.3s ease;
 }
 
 /* Product card */
 .reco-card {
   flex-shrink: 0;
-  width: 280px;
+  width: 224px;
   background: var(--specsit-bg-white);
-  border-radius: 8px;
-  padding: 16px;
+  border-radius: 6px;
+  padding: 13px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .reco-card__img-wrap {
   width: 100%;
-  height: 248px;
-  border-radius: 6px;
+  height: 198px;
+  border-radius: 5px;
   overflow: hidden;
   background: var(--specsit-light-grey);
   display: flex;
@@ -187,33 +187,33 @@
 .reco-card__info {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 
 .reco-card__name {
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--specsit-black);
-  line-height: 20px;
+  line-height: 16px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .reco-card__price {
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--specsit-purple-primary);
-  line-height: 20px;
+  line-height: 16px;
 }
 
 .reco-card__atb {
   background: var(--specsit-light-grey);
   border: none;
   border-radius: 2px;
-  padding: 10px 16px;
+  padding: 8px 13px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--specsit-black);
   cursor: pointer;
@@ -228,40 +228,40 @@
 .order-history-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 24px;
+  gap: 10px;
+  margin-bottom: 19px;
 }
 
 .order-history-title {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--specsit-black);
-  line-height: 28px;
+  line-height: 22px;
   margin: 0;
 }
 
 .order-count-badge {
   background: var(--specsit-light-grey);
-  border-radius: 12px;
-  padding: 4px 12px;
-  font-size: 12px;
+  border-radius: 10px;
+  padding: 3px 10px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--specsit-black);
   letter-spacing: 1.2px;
   text-transform: uppercase;
-  line-height: 16px;
+  line-height: 13px;
 }
 
 /* Order card */
 .ord-card {
   background: var(--specsit-bg-white);
   border: 1px solid var(--specsit-light-grey);
-  border-radius: 16px;
-  padding: 33px;
+  border-radius: 13px;
+  padding: 26px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  margin-bottom: 16px;
+  gap: 19px;
+  margin-bottom: 13px;
 }
 
 /* Top row: status circle + label + order info + right action */
@@ -269,21 +269,21 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 13px;
 }
 
 .ord-card__top-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
 }
 
 .ord-card__status-icon {
   flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -297,19 +297,19 @@
 }
 
 .ord-card__status-label {
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
-  line-height: 16px;
+  line-height: 13px;
   letter-spacing: 0.6px;
   text-transform: uppercase;
   white-space: nowrap;
 }
 
 .ord-card__meta-text {
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 500;
   color: var(--specsit-black);
-  line-height: 20px;
+  line-height: 16px;
   white-space: nowrap;
 }
 
@@ -319,7 +319,7 @@
 
 /* Right action: refund link */
 .ord-card__refund-link {
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--specsit-purple-primary);
   text-decoration: underline;
@@ -334,7 +334,7 @@
 
 /* Right action: cancel reason */
 .ord-card__cancel-reason {
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 500;
   color: var(--specsit-body-grey);
 }
@@ -343,17 +343,17 @@
 .ord-card__bottom {
   display: flex;
   align-items: flex-start;
-  gap: 16px;
+  gap: 13px;
 }
 
 .ord-card__thumb {
   flex-shrink: 0;
-  width: 128px;
-  height: 128px;
-  border-radius: 8px;
+  width: 102px;
+  height: 102px;
+  border-radius: 6px;
   background: var(--specsit-bg-white);
   border: 1px solid rgba(205, 195, 209, 0.1);
-  padding: 9px;
+  padding: 7px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -365,7 +365,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 4px;
+  border-radius: 3px;
 }
 
 /* Cancelled desaturation: white overlay with mix-blend-mode saturation (matches Figma) */
@@ -374,7 +374,7 @@
   inset: 0;
   background: var(--specsit-bg-white);
   mix-blend-mode: saturation;
-  border-radius: 4px;
+  border-radius: 3px;
   pointer-events: none;
 }
 
@@ -382,7 +382,7 @@
   width: 100%;
   height: 100%;
   background: var(--specsit-light-grey);
-  border-radius: 4px;
+  border-radius: 3px;
 }
 
 .ord-card__details {
@@ -390,32 +390,32 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .ord-card__product-name {
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--specsit-black);
-  line-height: 28px;
+  line-height: 22px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .ord-card__variant-info {
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 400;
   color: var(--specsit-body-grey);
-  line-height: 20px;
+  line-height: 16px;
 }
 
 .ord-card__price {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--specsit-black);
-  line-height: 28px;
-  margin-top: 4px;
+  line-height: 22px;
+  margin-top: 3px;
 }
 
 .ord-card__bottom-right {
@@ -423,23 +423,23 @@
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 12px;
+  gap: 10px;
 }
 
 /* Star rating */
 .ord-card__rate-label {
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--specsit-body-grey);
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  line-height: 16px;
+  line-height: 13px;
 }
 
 .ord-card__stars {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
 }
 
 .ord-star-btn {
@@ -461,10 +461,10 @@
 .ord-card__reorder-btn {
   background: var(--specsit-black);
   border: none;
-  border-radius: 6px;
-  padding: 10px 24px;
+  border-radius: 5px;
+  padding: 8px 19px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--specsit-light-grey);
   cursor: pointer;
@@ -495,16 +495,16 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-  padding: 64px 0;
+  gap: 10px;
+  padding: 51px 0;
   text-align: center;
 }
 
 .orders-empty__icon {
-  width: 72px;
-  height: 72px;
+  width: 58px;
+  height: 58px;
   background: var(--specsit-light-grey);
-  border-radius: 16px;
+  border-radius: 13px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -512,18 +512,18 @@
 }
 
 .orders-empty__title {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--specsit-black);
   margin: 0;
 }
 
 .orders-empty__sub {
-  font-size: 15px;
+  font-size: 12px;
   font-weight: 400;
   color: var(--specsit-body-grey);
   margin: 0;
-  max-width: 320px;
+  max-width: 256px;
 }
 
 /* ── Card footer ───────────────────────────────────────────── */
@@ -531,38 +531,38 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding-top: 16px;
+  gap: 13px;
+  padding-top: 13px;
   border-top: 1px solid var(--specsit-light-grey);
-  min-height: 24px;
+  min-height: 19px;
 }
 
 .ord-card__footer-left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .ord-card__footer-stars {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
 }
 
 .ord-card__footer-star-label {
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 400;
   color: var(--specsit-body-grey);
-  line-height: 20px;
+  line-height: 16px;
 }
 
 .ord-card__footer-link {
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--specsit-purple-primary);
   text-decoration: none;
   white-space: nowrap;
-  line-height: 20px;
+  line-height: 16px;
 }
 
 .ord-card__footer-link:hover {
@@ -572,28 +572,28 @@
 /* ── Review form ───────────────────────────────────────────── */
 .review-field-label {
   display: block;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--specsit-black);
-  line-height: 20px;
-  margin-bottom: 8px;
+  line-height: 16px;
+  margin-bottom: 6px;
 }
 
 .review-field-error {
   display: block;
-  font-size: 13px;
+  font-size: 10px;
   color: #BE123C;
-  margin-top: 4px;
-  line-height: 18px;
+  margin-top: 3px;
+  line-height: 14px;
 }
 
 .review-textarea {
   width: 100%;
-  padding: 12px 16px;
+  padding: 10px 13px;
   border: 1px solid var(--specsit-purple-light, #CDC3D1);
-  border-radius: 8px;
+  border-radius: 6px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   color: var(--specsit-black);
   background: var(--specsit-bg-white);
   resize: vertical;
@@ -608,11 +608,11 @@
 
 .review-input {
   width: 100%;
-  padding: 12px 16px;
+  padding: 10px 13px;
   border: 1px solid var(--specsit-purple-light, #CDC3D1);
-  border-radius: 8px;
+  border-radius: 6px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   color: var(--specsit-black);
   background: var(--specsit-bg-white);
   outline: none;
@@ -624,10 +624,10 @@
 .review-input::placeholder { color: var(--specsit-body-grey); }
 
 .review-upload-zone {
-  width: 60px;
-  height: 60px;
+  width: 48px;
+  height: 48px;
   border: 1.5px dashed var(--specsit-body-grey);
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--specsit-bg-white);
   display: flex;
   flex-direction: column;
@@ -642,13 +642,13 @@
 
 /* ── Responsive ────────────────────────────────────────────── */
 @media (max-width: 900px) {
-  .orders-page-title { font-size: 32px; letter-spacing: -1.2px; }
-  .orders-page-header { flex-direction: column; gap: 16px; }
+  .orders-page-title { font-size: 26px; letter-spacing: -1.2px; }
+  .orders-page-header { flex-direction: column; gap: 13px; }
   .orders-page-header__right { width: 100%; }
   .orders-search { width: 100%; flex: 1; }
-  .ord-card { padding: 20px; }
+  .ord-card { padding: 16px; }
   .ord-card__bottom { flex-wrap: wrap; }
   .ord-card__bottom-right { align-items: flex-start; }
-  .reco-card { width: 220px; }
-  .reco-card__img-wrap { height: 180px; }
+  .reco-card { width: 176px; }
+  .reco-card__img-wrap { height: 144px; }
 }

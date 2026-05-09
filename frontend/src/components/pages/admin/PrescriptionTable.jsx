@@ -68,8 +68,8 @@ const RxCard = ({ rx, selected, onClick }) => {
       onClick={() => onClick(rx)}
       style={{
         display: 'flex',
-        gap: 12,
-        padding: '14px 16px',
+        gap: 10,
+        padding: '11px 13px',
         borderBottom: '1px solid #e2e8f0',
         cursor: 'pointer',
         background: selected ? '#f3f0ff' : '#fff',
@@ -82,25 +82,25 @@ const RxCard = ({ rx, selected, onClick }) => {
       {/* content */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-          <span style={{ fontWeight: 600, fontSize: 14, color: rx.order_display_id ? '#0f172a' : '#ef4444' }}>
+          <span style={{ fontWeight: 600, fontSize: 11, color: rx.order_display_id ? '#0f172a' : '#ef4444' }}>
             {rx.order_display_id || `#RX-${String(rx.id).padStart(5, '0')} (orphaned)`}
           </span>
-          <span style={{ fontSize: 12, color: '#64748b' }}>{timeAgo(rx.created_at)}</span>
+          <span style={{ fontSize: 10, color: '#64748b' }}>{timeAgo(rx.created_at)}</span>
         </div>
 
-        <div style={{ fontSize: 14, color: '#68408d', fontWeight: 500, marginBottom: 3 }}>
+        <div style={{ fontSize: 11, color: '#68408d', fontWeight: 500, marginBottom: 3 }}>
           {rx.user_name || 'Unknown'}
         </div>
 
-        <div style={{ fontSize: 12, color: '#64748b', marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div style={{ fontSize: 10, color: '#64748b', marginBottom: 5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {rx.vision_type || 'Vision type not set'}
         </div>
 
         <div style={{
           display: 'inline-flex', alignItems: 'center',
-          padding: '2px 8px', borderRadius: 9999,
+          padding: '2px 6px', borderRadius: 9999,
           background: badge.bg, color: badge.color,
-          fontSize: 12, fontWeight: 500,
+          fontSize: 10, fontWeight: 500,
         }}>
           {rx.status_label || 'Pending'}
         </div>
@@ -179,7 +179,7 @@ const ReuploadDrawer = ({ rx, onClose, onSend }) => {
         onClick={e => e.stopPropagation()}
         style={{
           position: 'absolute', top: 0, right: 0, bottom: 0,
-          width: 480, maxWidth: '100vw',
+          width: 384, maxWidth: '100vw',
           background: '#fff',
           display: 'flex', flexDirection: 'column',
           boxShadow: '-9px 0 20px rgba(36,36,36,0.04), -36px 0 36px rgba(36,36,36,0.03), -80px 0 48px rgba(36,36,36,0.02)',
@@ -187,9 +187,9 @@ const ReuploadDrawer = ({ rx, onClose, onSend }) => {
         }}
       >
         {/* ── Header ── */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '16px', background: '#f3f3f3', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '13px', background: '#f3f3f3', flexShrink: 0 }}>
           <div style={{ flex: 1, overflow: 'hidden' }}>
-            <span style={{ fontSize: 20, fontWeight: 600, color: '#111827', fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap' }}>
+            <span style={{ fontSize: 16, fontWeight: 600, color: '#111827', fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap' }}>
               Request Reupload
             </span>
           </div>
@@ -202,37 +202,37 @@ const ReuploadDrawer = ({ rx, onClose, onSend }) => {
         </div>
 
         {/* ── Body ── */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: 13, display: 'flex', flexDirection: 'column', gap: 19 }}>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {/* Reason field */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ fontSize: 14, color: '#020617' }}>Reason for request</span>
-                <span style={{ fontSize: 16, fontWeight: 800, color: '#c02828' }}>*</span>
+                <span style={{ fontSize: 11, color: '#020617' }}>Reason for request</span>
+                <span style={{ fontSize: 13, fontWeight: 800, color: '#c02828' }}>*</span>
               </div>
               <div style={{ position: 'relative' }}>
                 <select
                   value={reason}
                   onChange={e => handleReasonChange(e.target.value)}
                   style={{
-                    width: '100%', appearance: 'none', padding: '14px 40px 14px 12px',
-                    border: '1px solid #d2d2d2', borderRadius: 6,
-                    fontSize: 16, color: '#020617', background: '#fff',
+                    width: '100%', appearance: 'none', padding: '11px 32px 11px 10px',
+                    border: '1px solid #d2d2d2', borderRadius: 5,
+                    fontSize: 13, color: '#020617', background: '#fff',
                     cursor: 'pointer', outline: 'none', fontFamily: 'inherit',
                   }}
                 >
                   {REUPLOAD_REASONS.map(r => <option key={r} value={r}>{r}</option>)}
                 </select>
-                <ChevronDown size={16} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#020617' }} />
+                <ChevronDown size={13} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#020617' }} />
               </div>
             </div>
 
             {/* Message field */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ fontSize: 14, color: '#020617' }}>Message to customer</span>
-                <span style={{ fontSize: 16, fontWeight: 800, color: '#c02828' }}>*</span>
+                <span style={{ fontSize: 11, color: '#020617' }}>Message to customer</span>
+                <span style={{ fontSize: 13, fontWeight: 800, color: '#c02828' }}>*</span>
               </div>
               <div style={{ position: 'relative' }}>
                 <textarea
@@ -241,9 +241,9 @@ const ReuploadDrawer = ({ rx, onClose, onSend }) => {
                   rows={5}
                   style={{
                     width: '100%', boxSizing: 'border-box',
-                    padding: '10px 12px', minHeight: 80,
-                    border: '1px solid #d2d2d2', borderRadius: 6,
-                    fontSize: 14, color: '#020617', lineHeight: '17px',
+                    padding: '8px 10px', minHeight: 64,
+                    border: '1px solid #d2d2d2', borderRadius: 5,
+                    fontSize: 11, color: '#020617', lineHeight: '16px',
                     resize: 'vertical', outline: 'none',
                     background: '#fff', fontFamily: 'inherit',
                   }}
@@ -253,8 +253,8 @@ const ReuploadDrawer = ({ rx, onClose, onSend }) => {
           </div>
 
           {/* Warning alert */}
-          <div style={{ background: '#fff5db', border: '1px solid #f4c95c', borderRadius: 8, padding: 16 }}>
-            <p style={{ fontSize: 14, color: '#835e00', lineHeight: '22px', margin: 0 }}>
+          <div style={{ background: '#fff5db', border: '1px solid #f4c95c', borderRadius: 6, padding: 13 }}>
+            <p style={{ fontSize: 11, color: '#835e00', lineHeight: '16px', margin: 0 }}>
               This will put the order on hold until the customer provides a new document. The current document will be archived.
             </p>
           </div>
@@ -267,14 +267,14 @@ const ReuploadDrawer = ({ rx, onClose, onSend }) => {
         </div>
 
         {/* ── Footer ── */}
-        <div style={{ flexShrink: 0, borderTop: '1px solid #e0e0e0', padding: 20, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+        <div style={{ flexShrink: 0, borderTop: '1px solid #e0e0e0', padding: 16, display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
           <button
             onClick={onClose}
             disabled={sending}
             style={{
-              minWidth: 80, padding: '8px 12px', borderRadius: 6,
+              minWidth: 64, padding: '6px 10px', borderRadius: 5,
               border: '1px solid #e2e8f0', background: '#fff',
-              color: '#0f172a', fontSize: 16, cursor: 'pointer',
+              color: '#0f172a', fontSize: 13, cursor: 'pointer',
               opacity: sending ? 0.6 : 1,
             }}
           >
@@ -284,9 +284,9 @@ const ReuploadDrawer = ({ rx, onClose, onSend }) => {
             onClick={handleSend}
             disabled={sending}
             style={{
-              minWidth: 80, padding: '8px 12px', borderRadius: 6,
+              minWidth: 64, padding: '6px 10px', borderRadius: 5,
               border: 'none', background: sending ? '#9a6bbf' : '#68408d',
-              color: '#fefcff', fontSize: 16,
+              color: '#fefcff', fontSize: 13,
               cursor: sending ? 'not-allowed' : 'pointer',
             }}
           >
@@ -302,7 +302,7 @@ const ReuploadDrawer = ({ rx, onClose, onSend }) => {
 const NotesAndActions = ({ notes, setNotes, submit, saving, error, success, onReuploadClick }) => (
   <>
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <label style={{ fontSize: 14, fontWeight: 500, color: '#0f172a', lineHeight: '20px' }}>
+      <label style={{ fontSize: 14, fontWeight: 500, color: '#0f172a', lineHeight: '16px' }}>
         Internal Notes
       </label>
       <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, minHeight: 64 }}>
@@ -312,7 +312,7 @@ const NotesAndActions = ({ notes, setNotes, submit, saving, error, success, onRe
           placeholder="Notes for team (not visible to customer)..."
           rows={3}
           style={{
-            width: '100%', boxSizing: 'border-box', padding: '13px',
+            width: '100%', boxSizing: 'border-box', padding: '10px',
             border: 'none', borderRadius: 10, fontSize: 14,
             color: '#0f172a', resize: 'vertical', outline: 'none',
             background: 'transparent', fontFamily: 'inherit',
@@ -456,7 +456,7 @@ const DetailPanel = ({ rx, onReviewed }) => {
 
   const DataCell = ({ value, mismatch }) => (
     <td style={{ padding: '13px 12px', borderBottom: '1px solid #e2e8f0', verticalAlign: 'top' }}>
-      <div style={{ fontSize: 14, color: mismatch ? '#ef4444' : '#0f172a', fontWeight: mismatch ? 600 : 400, lineHeight: '20px' }}>
+      <div style={{ fontSize: 14, color: mismatch ? '#ef4444' : '#0f172a', fontWeight: mismatch ? 600 : 400, lineHeight: '16px' }}>
         {fmt(value)}
       </div>
     </td>
@@ -579,8 +579,8 @@ const DetailPanel = ({ rx, onReviewed }) => {
                   {rows.map(row => (
                     <tr key={row.eye}>
                       <td style={{ padding: '14px 12px 15px', borderBottom: '1px solid #e2e8f0', verticalAlign: 'top' }}>
-                        <div style={{ fontWeight: 500, fontSize: 14, color: '#000', lineHeight: '20px' }}>{row.eye}</div>
-                        <div style={{ fontSize: 12, color: '#64748b', lineHeight: '16px' }}>{row.sub}</div>
+                        <div style={{ fontWeight: 500, fontSize: 14, color: '#000', lineHeight: '16px' }}>{row.eye}</div>
+                        <div style={{ fontSize: 12, color: '#64748b', lineHeight: '13px' }}>{row.sub}</div>
                       </td>
                       <DataCell value={row.sph}  mismatch={false} />
                       <DataCell value={row.cyl}  mismatch={false} />
@@ -592,11 +592,11 @@ const DetailPanel = ({ rx, onReviewed }) => {
               </table>
 
               {/* footer metadata */}
-              <div style={{ background: 'rgba(241,245,249,0.2)', padding: '16px', display: 'flex', gap: 32, flexWrap: 'wrap' }}>
+              <div style={{ background: 'rgba(241,245,249,0.2)', padding: '13px', display: 'flex', gap: 32, flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <span style={{ fontSize: 12, color: '#64748b', lineHeight: '16px' }}>PD (Pupillary Distance)</span>
+                  <span style={{ fontSize: 12, color: '#64748b', lineHeight: '13px' }}>PD (Pupillary Distance)</span>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                    <span style={{ fontSize: 14, fontWeight: 500, color: '#0f172a', lineHeight: '20px' }}>
+                    <span style={{ fontSize: 14, fontWeight: 500, color: '#0f172a', lineHeight: '16px' }}>
                       {rx.pd_distance ? `${rx.pd_distance}` : '—'}
                     </span>
                     {rx.pd_distance && (
@@ -605,12 +605,12 @@ const DetailPanel = ({ rx, onReviewed }) => {
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <span style={{ fontSize: 12, color: '#64748b', lineHeight: '16px' }}>Vision Type</span>
-                  <span style={{ fontSize: 14, fontWeight: 500, color: '#0f172a', lineHeight: '20px' }}>{rx.vision_type || '—'}</span>
+                  <span style={{ fontSize: 12, color: '#64748b', lineHeight: '13px' }}>Vision Type</span>
+                  <span style={{ fontSize: 14, fontWeight: 500, color: '#0f172a', lineHeight: '16px' }}>{rx.vision_type || '—'}</span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <span style={{ fontSize: 12, color: '#64748b', lineHeight: '16px' }}>Submitted</span>
-                  <span style={{ fontSize: 14, fontWeight: 500, color: '#0f172a', lineHeight: '20px' }}>
+                  <span style={{ fontSize: 12, color: '#64748b', lineHeight: '13px' }}>Submitted</span>
+                  <span style={{ fontSize: 14, fontWeight: 500, color: '#0f172a', lineHeight: '16px' }}>
                     {rx.created_at ? new Date(rx.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
                   </span>
                 </div>

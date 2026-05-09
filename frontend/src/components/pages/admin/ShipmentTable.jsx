@@ -115,7 +115,7 @@ const ShipmentTable = () => {
     return (
       <tr key={s.id || idx} style={{ borderBottom: '1px solid #EAECF0', backgroundColor: isSelected ? '#F9F5FF' : '#fff' }}>
         <td style={{ padding: '16px 24px' }}>
-          <input type="checkbox" checked={!!isSelected} onChange={onToggle} style={{ cursor: 'pointer', borderRadius: '4px', accentColor: '#7F56D9' }} />
+          <input type="checkbox" checked={!!isSelected} onChange={onToggle} style={{ cursor: 'pointer', borderRadius: '3px', accentColor: '#7F56D9' }} />
         </td>
         <td style={{ padding: '16px 24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -125,23 +125,23 @@ const ShipmentTable = () => {
         </td>
         <td style={{ padding: '16px 24px' }}>
           <div>
-            <div style={{ fontWeight: 600, color: '#101828', fontSize: '14px' }}>{s.carrier || 'Standard'}</div>
-            <div style={{ fontSize: '12px', color: '#667085' }}>{s.method || 'Priority'}</div>
+            <div style={{ fontWeight: 600, color: '#101828', fontSize: '11px' }}>{s.carrier || 'Standard'}</div>
+            <div style={{ fontSize: '10px', color: '#667085' }}>{s.method || 'Priority'}</div>
           </div>
         </td>
         <td style={{ padding: '16px 24px' }}>
-          <code style={{ background: '#F9FAFB', border: '1px solid #EAECF0', padding: '4px 8px', borderRadius: '6px', fontFamily: 'monospace', fontSize: '12px', color: '#344054', fontWeight: 600 }}>
+          <code style={{ background: '#F9FAFB', border: '1px solid #EAECF0', padding: '4px 8px', borderRadius: '5px', fontFamily: 'monospace', fontSize: '10px', color: '#344054', fontWeight: 600 }}>
             {s.tracking_id || 'AWAITING'}
           </code>
         </td>
         <td style={{ padding: '16px 24px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
              <span style={{
                backgroundColor: style.bg,
                color: style.text,
                padding: '4px 10px',
-               borderRadius: '16px',
-               fontSize: '12px',
+               borderRadius: '13px',
+               fontSize: '10px',
                fontWeight: 600,
                display: 'inline-flex',
                alignItems: 'center',
@@ -152,26 +152,26 @@ const ShipmentTable = () => {
                <span style={{ width: 6, height: 6, borderRadius: '50%', background: style.dot }}></span>
                {s.status_label || 'Pending'}
              </span>
-             <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '11px', color: '#667085', marginLeft: '4px' }}>
+             <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '9px', color: '#667085', marginLeft: '3px' }}>
                 <MapPin size={10} /> Local Logistics Hub
              </div>
           </div>
         </td>
         <td style={{ padding: '16px 24px' }}>
-          <span style={{ fontSize: '13px', color: '#667085' }}>{new Date(s.created_at).toLocaleDateString()}</span>
+          <span style={{ fontSize: '10px', color: '#667085' }}>{new Date(s.created_at).toLocaleDateString()}</span>
         </td>
         <td style={{ padding: '16px 24px' }}>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
             <div
               onClick={() => handleEditClick(s)}
-              style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+              style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
               title="Edit Shipment"
             >
               <Edit2 size={16} />
             </div>
             <div
               onClick={() => handleDeleteClick(s)}
-              style={{ width: 32, height: 32, border: '1px solid #FEE4E2', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#FEF3F2', color: '#D92D20', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+              style={{ width: 32, height: 32, border: '1px solid #FEE4E2', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#FEF3F2', color: '#D92D20', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
               title="Delete Shipment"
             >
               <Trash2 size={16} />
@@ -208,8 +208,8 @@ const ShipmentTable = () => {
         showFilters={showFilters}
         setShowFilters={setShowFilters}
         filterContent={
-          <div style={{ display: 'flex', gap: '16px' }}>
-             <div style={{ fontSize: '14px', color: '#667085' }}>Logistics filters coming soon.</div>
+          <div style={{ display: 'flex', gap: '13px' }}>
+             <div style={{ fontSize: '11px', color: '#667085' }}>Logistics filters coming soon.</div>
           </div>
         }
       />

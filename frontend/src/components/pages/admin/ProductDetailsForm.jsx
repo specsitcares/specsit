@@ -465,7 +465,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
           <button
             className="pf-btn pf-btn-ghost"
             onClick={onBack}
-            style={{ border: 'none', padding: '0', marginBottom: '8px', color: '#697177' }}
+            style={{ border: 'none', padding: '0', marginBottom: '6px', color: '#697177' }}
           >
             <ArrowLeft size={16} /> Back to Products
           </button>
@@ -590,14 +590,14 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
                   </div>
 
                   <div className="form-field">
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                       <label className="form-field-label" style={{ margin: 0 }}>Meta Tags (SEO)</label>
-                      <div style={{ display: 'flex', gap: '3px', background: '#F2F4F7', borderRadius: '8px', padding: '3px' }}>
+                      <div style={{ display: 'flex', gap: '3px', background: '#F2F4F7', borderRadius: '6px', padding: '3px' }}>
                         <button
                           type="button"
                           onClick={() => setUseMetaTemplate(true)}
                           style={{
-                            padding: '5px 12px', borderRadius: '6px', border: 'none', fontSize: '12px',
+                            padding: '5px 12px', borderRadius: '5px', border: 'none', fontSize: '10px',
                             fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
                             background: useMetaTemplate ? '#fff' : 'transparent',
                             color: useMetaTemplate ? '#344054' : '#667085',
@@ -610,7 +610,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
                           type="button"
                           onClick={() => setUseMetaTemplate(false)}
                           style={{
-                            padding: '5px 12px', borderRadius: '6px', border: 'none', fontSize: '12px',
+                            padding: '5px 12px', borderRadius: '5px', border: 'none', fontSize: '10px',
                             fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
                             background: !useMetaTemplate ? '#fff' : 'transparent',
                             color: !useMetaTemplate ? '#344054' : '#667085',
@@ -655,7 +655,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
                           placeholder="e.g. Ray-Ban Aviator Classic | Buy Online"
                           value={formData.meta_title}
                           onChange={(e) => handleInputChange('meta_title', e.target.value)}
-                          style={{ marginBottom: '10px' }}
+                          style={{ marginBottom: '8px' }}
                         />
                         <textarea
                           className="form-field-textarea"
@@ -783,7 +783,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
       </div>
 
       {errors.general && (
-        <div className="form-field-error" style={{ marginTop: '16px', justifyContent: 'center', fontSize: '14px' }}>
+        <div className="form-field-error" style={{ marginTop: '13px', justifyContent: 'center', fontSize: '11px' }}>
           <AlertCircle size={16} /> {errors.general}
         </div>
       )}

@@ -90,23 +90,23 @@ const VariantTable = () => {
   const renderRow = (v, idx, { isSelected, onToggle } = {}) => (
     <tr key={v.id || idx} style={{ borderBottom: '1px solid #EAECF0', backgroundColor: isSelected ? '#F9F5FF' : '#fff' }}>
       <td style={{ padding: '16px 24px' }}>
-        <input type="checkbox" checked={!!isSelected} onChange={onToggle} style={{ cursor: 'pointer', borderRadius: '4px', accentColor: '#7F56D9' }} />
+        <input type="checkbox" checked={!!isSelected} onChange={onToggle} style={{ cursor: 'pointer', borderRadius: '3px', accentColor: '#7F56D9' }} />
       </td>
       <td style={{ padding: '16px 24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ width: 36, height: 36, borderRadius: 6, background: '#F9FAFB', border: '1px solid #EAECF0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
             {v.image ? <img src={v.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <Grid size={18} color="#D0D5DD" />}
           </div>
-          <div style={{ fontWeight: 600, color: '#101828', fontSize: '14px' }}>{v.product_name || 'N/A'}</div>
+          <div style={{ fontWeight: 600, color: '#101828', fontSize: '11px' }}>{v.product_name || 'N/A'}</div>
         </div>
       </td>
       <td style={{ padding: '16px 24px' }}>
-        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-          {v.size && <span style={{ background: '#F2F4F7', color: '#344054', fontSize: '11px', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>{v.size}</span>}
+        <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+          {v.size && <span style={{ background: '#F2F4F7', color: '#344054', fontSize: '9px', padding: '2px 8px', borderRadius: '3px', fontWeight: 600 }}>{v.size}</span>}
           {v.color && (
              <span style={{ 
-               padding: '2px 8px', fontSize: '11px', background: 'white', 
-               border: '1px solid #D0D5DD', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, color: '#344054'
+               padding: '2px 8px', fontSize: '9px', background: 'white', 
+               border: '1px solid #D0D5DD', borderRadius: '3px', display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 600, color: '#344054'
              }}>
                <div style={{ width: 8, height: 8, borderRadius: '50%', background: v.color.toLowerCase(), border: '1px solid #EAECF0' }} />
                {v.color}
@@ -115,33 +115,33 @@ const VariantTable = () => {
         </div>
       </td>
       <td style={{ padding: '16px 24px' }}>
-        <code style={{ background: '#F9FAFB', border: '1px solid #EAECF0', padding: '4px 8px', borderRadius: '6px', fontFamily: 'monospace', fontSize: '12px', color: '#344054', fontWeight: 600 }}>
+        <code style={{ background: '#F9FAFB', border: '1px solid #EAECF0', padding: '4px 8px', borderRadius: '5px', fontFamily: 'monospace', fontSize: '10px', color: '#344054', fontWeight: 600 }}>
           {v.sku}
         </code>
       </td>
       <td style={{ padding: '16px 24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <Box size={14} color={v.stock > 10 ? '#12B76A' : '#F79009'} />
-          <span style={{ fontSize: '13px', fontWeight: 600, color: v.stock <= 10 ? '#B54708' : '#101828' }}>
+          <span style={{ fontSize: '10px', fontWeight: 600, color: v.stock <= 10 ? '#B54708' : '#101828' }}>
             {v.stock} pcs
           </span>
         </div>
       </td>
       <td style={{ padding: '16px 24px' }}>
-        <span style={{ fontSize: '14px', fontWeight: 700, color: '#101828' }}>₹{v.price_adjustment ? Number(v.price_adjustment).toLocaleString('en-IN') : '0'}</span>
+        <span style={{ fontSize: '11px', fontWeight: 700, color: '#101828' }}>₹{v.price_adjustment ? Number(v.price_adjustment).toLocaleString('en-IN') : '0'}</span>
       </td>
       <td style={{ padding: '16px 24px' }}>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
           <div
             onClick={() => handleEditClick(v)}
-            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
             title="Edit Variant"
           >
             <Edit2 size={16} />
           </div>
           <div
             onClick={() => { setSelectedVariant(v); setFormMode('edit'); setShowForm(true); }}
-            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
             title="Delete Variant"
           >
             <Trash2 size={16} />
@@ -177,8 +177,8 @@ const VariantTable = () => {
         showFilters={showFilters}
         setShowFilters={setShowFilters}
         filterContent={
-          <div style={{ display: 'flex', gap: '16px' }}>
-             <div style={{ fontSize: '14px', color: '#667085' }}>Variant attributes filters coming soon.</div>
+          <div style={{ display: 'flex', gap: '13px' }}>
+             <div style={{ fontSize: '11px', color: '#667085' }}>Variant attributes filters coming soon.</div>
           </div>
         }
       />

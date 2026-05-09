@@ -72,7 +72,7 @@ const CmsManagement = () => {
         <tr key={item.id || idx} style={{ borderBottom: '1px solid #EAECF0' }}>
             <td style={{ padding: '16px 24px' }}><input type="checkbox" /></td>
             {getColumns().map(col => (
-                <td key={col.key} style={{ padding: '16px 24px', fontSize: '14px', color: '#475467' }}>
+                <td key={col.key} style={{ padding: '16px 24px', fontSize: '11px', color: '#475467' }}>
                     {String(item[col.key] ?? '')}
                 </td>
             ))}
@@ -88,15 +88,15 @@ const CmsManagement = () => {
     );
 
     return (
-        <div className="cms-management-container" style={{ padding: '32px' }}>
-            <div style={{ marginBottom: '24px', display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '8px' }}>
+        <div className="cms-management-container" style={{ padding: '26px' }}>
+            <div style={{ marginBottom: '19px', display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '6px' }}>
                 {CMS_MODELS.map(model => (
                     <button
                         key={model.key}
                         onClick={() => setActiveModel(model)}
                         style={{
                             padding: '8px 16px',
-                            borderRadius: '8px',
+                            borderRadius: '6px',
                             border: activeModel.key === model.key ? '1px solid #7F56D9' : '1px solid #D0D5DD',
                             backgroundColor: activeModel.key === model.key ? '#F9F5FF' : '#fff',
                             color: activeModel.key === model.key ? '#7F56D9' : '#344054',
@@ -123,17 +123,17 @@ const CmsManagement = () => {
 
             {showModal && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-                    <div style={{ background: '#fff', padding: '32px', borderRadius: '16px', width: '100%', maxWidth: '500px' }}>
-                        <h3 style={{ marginBottom: '24px' }}>{editingItem ? 'Edit' : 'Add'} {activeModel.label}</h3>
-                        <p style={{ color: '#667085', fontSize: '14px', marginBottom: '24px' }}>
+                    <div style={{ background: '#fff', padding: '26px', borderRadius: '13px', width: '100%', maxWidth: '400px' }}>
+                        <h3 style={{ marginBottom: '19px' }}>{editingItem ? 'Edit' : 'Add'} {activeModel.label}</h3>
+                        <p style={{ color: '#667085', fontSize: '11px', marginBottom: '19px' }}>
                             Full CRUD coming soon. For now, please use the Django Admin for deep edits.
                         </p>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-                            <button onClick={() => setShowModal(false)} style={{ padding: '10px 16px', border: '1px solid #D0D5DD', borderRadius: '8px', background: '#fff' }}>Cancel</button>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                            <button onClick={() => setShowModal(false)} style={{ padding: '10px 16px', border: '1px solid #D0D5DD', borderRadius: '6px', background: '#fff' }}>Cancel</button>
                             <a 
                                 href="/admin-django/" 
                                 target="_blank" 
-                                style={{ padding: '10px 16px', background: '#7F56D9', color: '#fff', borderRadius: '8px', textDecoration: 'none', fontWeight: 600 }}
+                                style={{ padding: '10px 16px', background: '#7F56D9', color: '#fff', borderRadius: '6px', textDecoration: 'none', fontWeight: 600 }}
                             >
                                 Open Django Admin
                             </a>

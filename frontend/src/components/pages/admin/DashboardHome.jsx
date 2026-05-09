@@ -363,7 +363,7 @@ const DashboardHome = ({ recentOrders: recentOrdersProp, onOrderClick, onNavigat
 
          {/* ── Attention Required ───────────────────────────── */}
          {attentionList.length > 0 && (
-            <div style={{ marginBottom: '32px' }}>
+            <div style={{ marginBottom: '26px' }}>
                <h2 className="dh-section-heading">Attention Required</h2>
                <div className="dh-attention-grid">
                   {attentionList.map((item, idx) => {
@@ -396,7 +396,7 @@ const DashboardHome = ({ recentOrders: recentOrdersProp, onOrderClick, onNavigat
          )}
 
          {/* ── Charts Row (Figma 402:7321) ──────────────────── */}
-         <div className="dh-charts-row" style={{ marginBottom: '32px' }}>
+         <div className="dh-charts-row" style={{ marginBottom: '26px' }}>
 
             {/* Donut card — Figma 402:7324 */}
             <div className="dh-chart-card">
@@ -413,7 +413,7 @@ const DashboardHome = ({ recentOrders: recentOrdersProp, onOrderClick, onNavigat
                </div>
                <div className="dh-chart-card__body dh-chart-card__body--donut">
                   <div className="dh-donut-wrap">
-                     <ResponsiveContainer width="100%" height={258}>
+                     <ResponsiveContainer width="100%" height={206}>
                         <PieChart>
                            <Pie
                               data={displayDonut.length ? displayDonut : [
@@ -423,8 +423,8 @@ const DashboardHome = ({ recentOrders: recentOrdersProp, onOrderClick, onNavigat
                               ]}
                               cx="50%"
                               cy="50%"
-                              innerRadius={78}
-                              outerRadius={118}
+                              innerRadius={62}
+                              outerRadius={94}
                               dataKey="value"
                               startAngle={90}
                               endAngle={-270}
@@ -445,7 +445,7 @@ const DashboardHome = ({ recentOrders: recentOrdersProp, onOrderClick, onNavigat
                         <span>Overview</span>
                      </div>
                   </div>
-                  <div className="dh-donut-legend" style={{ width: 215 }}>
+                  <div className="dh-donut-legend" style={{ width: 172 }}>
                      {(displayDonut.length ? displayDonut : [
                         { name: 'Pending Prescriptions', value: 40 },
                         { name: 'Low Stock Products', value: 35 },
@@ -477,7 +477,7 @@ const DashboardHome = ({ recentOrders: recentOrdersProp, onOrderClick, onNavigat
                   </div>
                </div>
                <div className="dh-chart-card__body dh-chart-card__body--area">
-                  <ResponsiveContainer width="100%" height={255}>
+                  <ResponsiveContainer width="100%" height={204}>
                      <AreaChart
                         data={chartData.length ? chartData : [
                            { name: 'Jan', value: 6000 },
@@ -500,20 +500,20 @@ const DashboardHome = ({ recentOrders: recentOrdersProp, onOrderClick, onNavigat
                         <CartesianGrid strokeDasharray="4 4" stroke="#e0e0e0" />
                         <XAxis
                            dataKey="name"
-                           tick={{ fontSize: 14, fill: '#7d7d7d', fontWeight: 500 }}
+                           tick={{ fontSize: 11, fill: '#7d7d7d', fontWeight: 500 }}
                            axisLine={false}
                            tickLine={false}
-                           dy={8}
+                           dy={6}
                         />
                         <YAxis
-                           tick={{ fontSize: 14, fill: '#7d7d7d', fontWeight: 500 }}
+                           tick={{ fontSize: 11, fill: '#7d7d7d', fontWeight: 500 }}
                            axisLine={false}
                            tickLine={false}
                            tickFormatter={v => v >= 1000 ? `${v / 1000}k` : String(v)}
                            ticks={[0, 10000, 20000, 50000, 100000]}
                            domain={[0, 100000]}
-                           width={44}
-                           dx={-4}
+                           width={35}
+                           dx={-3}
                         />
                         <Tooltip
                            content={({ active, payload, label }) => {
@@ -678,7 +678,10 @@ const DashboardHome = ({ recentOrders: recentOrdersProp, onOrderClick, onNavigat
                                        <div key={item.id || si} className="dh-sub-row">
                                           {/* 400px customer name column */}
                                           <div className="dh-sub-row__customer">
-                                             {item.patient_name || item.customer_name || o.customer_name}
+                                             {(() => {
+                                               const fromText = item.lens_prescription_text?.match(/Patient:\s*([^|]+)/)?.[1]?.trim();
+                                               return item.patient_name || item.prescription?.patient_name || fromText || <span style={{ color: '#9ca3af', fontWeight: 400 }}>—</span>;
+                                             })()}
                                           </div>
                                           {/* Flex inner columns */}
                                           <div className="dh-sub-row__inner">

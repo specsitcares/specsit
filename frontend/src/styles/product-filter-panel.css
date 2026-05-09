@@ -5,18 +5,18 @@
 .product-filter-panel {
   background: #fefcff;
   border: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: 12px;
-  padding: 24px;
+  border-radius: 10px;
+  padding: 19px;
   width: 100%;
-  max-width: 280px;
+  max-width: 224px;
 }
 
 /* Filter Section */
 .filter-section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-bottom: 24px;
+  gap: 10px;
+  margin-bottom: 19px;
 }
 
 .filter-section:last-child {
@@ -26,8 +26,8 @@
 .filter-title {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 600;
-  font-size: 14px;
-  line-height: 20px;
+  font-size: 11px;
+  line-height: 16px;
   letter-spacing: 0.7px;
   text-transform: uppercase;
   color: #040205;
@@ -39,7 +39,7 @@
 }
 
 .filter-toggle {
-  font-size: 16px;
+  font-size: 13px;
   flex-shrink: 0;
   transition: transform 0.2s ease;
 }
@@ -52,8 +52,8 @@
 .filter-options {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  max-height: 400px;
+  gap: 8px;
+  max-height: 320px;
   overflow-y: auto;
 }
 
@@ -66,17 +66,17 @@
 .checkbox-item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   cursor: pointer;
 }
 
 .checkbox-input {
   appearance: none;
   -webkit-appearance: none;
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
   border: 2px solid #d4d4d8;
-  border-radius: 4px;
+  border-radius: 3px;
   cursor: pointer;
   background: #ffffff;
   transition: all 0.2s ease;
@@ -101,7 +101,7 @@
   left: 50%;
   transform: translate(-50%, -50%);
   color: #ffffff;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: bold;
   line-height: 1;
 }
@@ -109,8 +109,8 @@
 .checkbox-label {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 500;
-  font-size: 13px;
-  line-height: 18px;
+  font-size: 10px;
+  line-height: 14px;
   color: #71717a;
   cursor: pointer;
   flex: 1;
@@ -125,8 +125,8 @@
 .filter-count {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 400;
-  font-size: 12px;
-  line-height: 14px;
+  font-size: 10px;
+  line-height: 11px;
   color: #a1a1a6;
   margin-left: auto;
   flex-shrink: 0;
@@ -134,18 +134,18 @@
 
 /* Editor's Pick Section */
 .editors-pick-section {
-  margin-top: 32px;
-  padding-top: 24px;
+  margin-top: 26px;
+  padding-top: 19px;
   border-top: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .editors-pick-title {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 700;
-  font-size: 16px;
-  line-height: 24px;
+  font-size: 13px;
+  line-height: 19px;
   color: #040205;
-  margin: 0 0 12px 0;
+  margin: 0 0 10px 0;
 }
 
 .editors-pick-badge {
@@ -154,62 +154,62 @@
   color: #ffffff;
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 600;
-  font-size: 11px;
-  line-height: 12px;
+  font-size: 9px;
+  line-height: 10px;
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  padding: 4px 8px;
-  border-radius: 4px;
-  margin-bottom: 12px;
+  padding: 3px 6px;
+  border-radius: 3px;
+  margin-bottom: 10px;
 }
 
 .editors-pick-image {
   width: 100%;
-  height: 240px;
-  border-radius: 8px;
+  height: 192px;
+  border-radius: 6px;
   object-fit: cover;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   background: #f4f1ff;
 }
 
 .editors-pick-name {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 600;
-  font-size: 14px;
-  line-height: 20px;
+  font-size: 11px;
+  line-height: 16px;
   color: #040205;
-  margin: 0 0 8px 0;
+  margin: 0 0 6px 0;
 }
 
 .editors-pick-description {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 400;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: 10px;
+  line-height: 13px;
   color: #71717a;
-  margin: 0 0 12px 0;
+  margin: 0 0 10px 0;
 }
 
 .editors-pick-price {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 700;
-  font-size: 16px;
-  line-height: 24px;
+  font-size: 13px;
+  line-height: 19px;
   color: #68408d;
-  margin: 0 0 12px 0;
+  margin: 0 0 10px 0;
 }
 
 .editors-pick-cta {
   width: 100%;
-  padding: 12px;
+  padding: 10px;
   background: #68408d;
   color: #ffffff;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 600;
-  font-size: 13px;
-  line-height: 18px;
+  font-size: 10px;
+  line-height: 14px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -217,12 +217,12 @@
 .editors-pick-cta:hover {
   background: #563070;
   transform: translateY(-2px);
-  box-shadow: 0px 8px 16px rgba(104, 64, 141, 0.16);
+  box-shadow: 0px 6px 13px rgba(104, 64, 141, 0.16);
 }
 
 /* Scrollbar Styling */
 .filter-options::-webkit-scrollbar {
-  width: 4px;
+  width: 3px;
 }
 
 .filter-options::-webkit-scrollbar-track {
@@ -243,37 +243,37 @@
 @media (max-width: 1024px) {
   .product-filter-panel {
     max-width: 100%;
-    padding: 16px;
+    padding: 13px;
   }
 
   .filter-section {
-    margin-bottom: 16px;
+    margin-bottom: 13px;
   }
 
   .editors-pick-section {
-    margin-top: 20px;
-    padding-top: 16px;
+    margin-top: 16px;
+    padding-top: 13px;
   }
 }
 
 @media (max-width: 768px) {
   .product-filter-panel {
-    padding: 12px;
+    padding: 10px;
   }
 
   .filter-title {
-    font-size: 13px;
+    font-size: 10px;
   }
 
   .checkbox-label {
-    font-size: 12px;
+    font-size: 10px;
   }
 
   .editors-pick-image {
-    height: 180px;
+    height: 144px;
   }
 
   .editors-pick-title {
-    font-size: 14px;
+    font-size: 11px;
   }
 }

@@ -284,9 +284,9 @@ const VariantsPricingForm = ({ formData, onFormDataChange, saving, errors = {}, 
                     )}
                   </div>
 
-                  <div className="vp-pricing-section-title" style={{ marginTop: '8px', marginBottom: '4px' }}>
-                    <span style={{ fontSize: '13px', fontWeight: '600', color: '#344054' }}>Pricing</span>
-                    <hr style={{ border: 'none', borderTop: '1px solid #EAECF0', marginTop: '6px' }} />
+                  <div className="vp-pricing-section-title" style={{ marginTop: '6px', marginBottom: '3px' }}>
+                    <span style={{ fontSize: '10px', fontWeight: '600', color: '#344054' }}>Pricing</span>
+                    <hr style={{ border: 'none', borderTop: '1px solid #EAECF0', marginTop: '5px' }} />
                   </div>
 
                   <div className="vp-row">
@@ -424,7 +424,7 @@ const VariantsPricingForm = ({ formData, onFormDataChange, saving, errors = {}, 
       </div>
 
       {/* ──── Product-Level Fields ──── */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginTop: '24px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '19px', marginTop: '19px' }}>
         <div className="form-field">
           <label className="form-field-label">Frame Material</label>
           <input

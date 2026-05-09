@@ -5,50 +5,50 @@
 .rx-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 13px;
 }
 
 .rx-card {
   background: #fff;
   border: 1.5px solid var(--specsit-light-grey);
-  border-radius: 12px;
-  padding: 24px;
+  border-radius: 10px;
+  padding: 19px;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .rx-card:hover {
   border-color: var(--specsit-purple-light);
-  box-shadow: 0 2px 12px rgba(104, 64, 141, 0.08);
+  box-shadow: 0 2px 10px rgba(104, 64, 141, 0.08);
 }
 
 .rx-card__header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 20px;
-  gap: 12px;
+  margin-bottom: 16px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
 .rx-card__patient {
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--specsit-black);
-  margin-right: 10px;
+  margin-right: 8px;
 }
 
 .rx-card__badge {
   display: inline-flex;
-  padding: 3px 10px;
+  padding: 3px 8px;
   background: var(--specsit-purple-light);
   color: var(--specsit-purple-primary);
-  border-radius: 20px;
-  font-size: 12px;
+  border-radius: 16px;
+  font-size: 10px;
   font-weight: 600;
 }
 
 .rx-card__date {
-  font-size: 13px;
+  font-size: 10px;
   color: var(--specsit-body-grey);
   font-weight: 500;
   flex-shrink: 0;
@@ -57,20 +57,20 @@
 /* Prescription table */
 .rx-table-wrap {
   overflow-x: auto;
-  margin-bottom: 16px;
+  margin-bottom: 13px;
 }
 
 .rx-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 14px;
-  min-width: 360px;
+  font-size: 11px;
+  min-width: 288px;
 }
 
 .rx-table th {
-  padding: 8px 16px;
+  padding: 6px 13px;
   background: var(--specsit-light-grey);
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 700;
   color: var(--specsit-body-grey);
   text-transform: uppercase;
@@ -78,11 +78,11 @@
   text-align: center;
 }
 
-.rx-table th:first-child { text-align: left; border-radius: 6px 0 0 6px; }
-.rx-table th:last-child  { border-radius: 0 6px 6px 0; }
+.rx-table th:first-child { text-align: left; border-radius: 5px 0 0 5px; }
+.rx-table th:last-child  { border-radius: 0 5px 5px 0; }
 
 .rx-table td {
-  padding: 12px 16px;
+  padding: 10px 13px;
   color: var(--specsit-black);
   font-weight: 500;
   text-align: center;
@@ -92,7 +92,7 @@
 .rx-table tr:last-child td { border-bottom: none; }
 
 .rx-table__eye-label {
-  font-size: 13px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--specsit-purple-primary);
   text-align: left !important;
@@ -103,12 +103,12 @@
 .rx-card__pd {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 16px;
+  gap: 5px;
+  margin-bottom: 13px;
 }
 
 .rx-pd-label {
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -116,52 +116,52 @@
 }
 
 .rx-pd-value {
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--specsit-black);
 }
 
 .rx-pd-type {
-  font-size: 13px;
+  font-size: 10px;
   color: var(--specsit-body-grey);
   font-weight: 500;
 }
 
 .rx-card__actions {
   display: flex;
-  gap: 8px;
-  padding-top: 16px;
+  gap: 6px;
+  padding-top: 13px;
   border-top: 1px solid var(--specsit-light-grey);
 }
 
 /* Form panel */
 .rx-form-panel {
   background: #fff;
-  border-radius: 16px;
-  padding: 32px;
+  border-radius: 13px;
+  padding: 26px;
   width: 100%;
-  max-width: 640px;
+  max-width: 512px;
   max-height: 90vh;
   overflow-y: auto;
 }
 
 .rx-form-section {
-  margin-bottom: 28px;
+  margin-bottom: 22px;
 }
 
 .rx-form-section__label {
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--specsit-body-grey);
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .rx-form-eye-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
+  gap: 10px;
 }
 
 @media (max-width: 600px) {

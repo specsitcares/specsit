@@ -68,6 +68,9 @@ const OrderTrackingPage = () => {
   const { orderId } = useParams();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [confirming, setConfirming] = useState(false);
+  const [confirmError, setConfirmError] = useState(null);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const loadOrder = async () => {
     try {
@@ -75,6 +78,20 @@ const OrderTrackingPage = () => {
       setOrder(res.data);
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  const handleConfirmDelivery = async () => {
+    setConfirming(true);
+    setConfirmError(null);
+    try {
+      await apiClient.post(`/sales/orders/${orderId}/mark_delivered/`);
+      await loadOrder();
+      setShowConfirm(false);
+    } catch (e) {
+      setConfirmError(e.response?.data?.detail || 'Could not confirm delivery. Please try again.');
+    } finally {
+      setConfirming(false);
     }
   };
 
@@ -144,14 +161,14 @@ const OrderTrackingPage = () => {
 
               {/* "ORDER REFERENCE" label */}
               <div style={{ width: '100%' }}>
-                <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#68408d', letterSpacing: '3.2px', textTransform: 'uppercase', lineHeight: '24px' }}>
+                <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#68408d', letterSpacing: '3.2px', textTransform: 'uppercase', lineHeight: '19px' }}>
                   Order Reference
                 </p>
               </div>
 
               {/* #LX-XXXXX heading */}
               <div style={{ paddingBottom: 8, width: '100%' }}>
-                <p style={{ margin: 0, fontSize: 48, fontWeight: 800, color: '#040205', letterSpacing: '-2.4px', lineHeight: '48px' }}>
+                <p style={{ margin: 0, fontSize: 48, fontWeight: 800, color: '#040205', letterSpacing: '-2.4px', lineHeight: '38px' }}>
                   {displayId}
                 </p>
               </div>
@@ -164,7 +181,7 @@ const OrderTrackingPage = () => {
                     <circle cx="10" cy="10" r="8.5" stroke="#68408d" strokeWidth="1.3" />
                     <path d="M10 5.5V10.5L13 12.5" stroke="#68408d" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
-                  <span style={{ fontSize: 20, fontWeight: 700, color: '#68408d', lineHeight: '28px' }}>
+                  <span style={{ fontSize: 20, fontWeight: 700, color: '#68408d', lineHeight: '22px' }}>
                     Arriving in 18 minutes
                   </span>
                 </div>
@@ -180,6 +197,67 @@ const OrderTrackingPage = () => {
                     <path d="M3 9L7 13L15 5" stroke="#065f46" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                   <span style={{ fontSize: 18, fontWeight: 700, color: '#065f46' }}>Delivered</span>
+                </div>
+              )}
+
+              {/* ── Customer confirm delivery ── */}
+              {order.order_status === 'in_transit' && !showConfirm && (
+                <button
+                  onClick={() => setShowConfirm(true)}
+                  style={{
+                    alignSelf: 'flex-start', marginTop: 8,
+                    background: '#68408d', color: '#fefcff', border: 'none',
+                    borderRadius: 12, padding: '14px 28px',
+                    fontSize: 16, fontWeight: 700, cursor: 'pointer', fontFamily: font,
+                    display: 'inline-flex', alignItems: 'center', gap: 10,
+                  }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                    <path d="M3 9L7 13L15 5" stroke="#fefcff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  I received my order
+                </button>
+              )}
+
+              {order.order_status === 'in_transit' && showConfirm && (
+                <div style={{
+                  alignSelf: 'stretch', marginTop: 8,
+                  background: '#fefcff', border: '1px solid #ebe3f2', borderRadius: 16,
+                  padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14,
+                }}>
+                  <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#040205' }}>
+                    Confirm you received this order?
+                  </p>
+                  <p style={{ margin: 0, fontSize: 14, color: '#71717a', lineHeight: 1.5 }}>
+                    This will mark the order as delivered and you'll be invited to leave a review.
+                  </p>
+                  {confirmError && (
+                    <p style={{ margin: 0, fontSize: 13, color: '#dc2626', fontWeight: 600 }}>{confirmError}</p>
+                  )}
+                  <div style={{ display: 'flex', gap: 12 }}>
+                    <button
+                      onClick={handleConfirmDelivery}
+                      disabled={confirming}
+                      style={{
+                        background: '#68408d', color: '#fefcff', border: 'none',
+                        borderRadius: 10, padding: '12px 24px',
+                        fontSize: 15, fontWeight: 700, cursor: confirming ? 'not-allowed' : 'pointer',
+                        fontFamily: font, opacity: confirming ? 0.7 : 1,
+                      }}
+                    >
+                      {confirming ? 'Confirming…' : 'Yes, I received it'}
+                    </button>
+                    <button
+                      onClick={() => { setShowConfirm(false); setConfirmError(null); }}
+                      style={{
+                        background: '#efedf0', color: '#040205', border: 'none',
+                        borderRadius: 10, padding: '12px 24px',
+                        fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: font,
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -221,7 +299,7 @@ const OrderTrackingPage = () => {
                     <div style={{ opacity: isPending ? 0.5 : 1 }}>
                       <p style={{
                         margin: 0, height: 28,
-                        fontSize: 18, fontWeight: 700, lineHeight: '28px',
+                        fontSize: 18, fontWeight: 700, lineHeight: '22px',
                         color: isActive ? '#68408d' : '#040205',
                       }}>
                         {step.label}
@@ -229,7 +307,7 @@ const OrderTrackingPage = () => {
                       {subtitle && (
                         <p style={{
                           margin: 0, height: 20,
-                          fontSize: 14, lineHeight: '20px',
+                          fontSize: 14, lineHeight: '16px',
                           fontWeight: isActive ? 500 : 400,
                           color: '#040205',
                         }}>
@@ -244,7 +322,7 @@ const OrderTrackingPage = () => {
 
             {/* ── 401:15338 — Items Summary Section ── */}
             <div style={{ borderTop: '1px solid #efedf0', paddingTop: 49, display: 'flex', flexDirection: 'column', gap: 24, width: '100%' }}>
-              <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: '#040205', textTransform: 'uppercase', letterSpacing: '1.4px', lineHeight: '20px' }}>
+              <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: '#040205', textTransform: 'uppercase', letterSpacing: '1.4px', lineHeight: '16px' }}>
                 Items in this order
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 24, width: '100%' }}>
@@ -262,15 +340,15 @@ const OrderTrackingPage = () => {
                         )}
                       </div>
                       <div>
-                        <p style={{ margin: 0, height: 24, fontSize: 16, fontWeight: 700, color: '#040205', lineHeight: '24px' }}>
+                        <p style={{ margin: 0, height: 24, fontSize: 16, fontWeight: 700, color: '#040205', lineHeight: '19px' }}>
                           {item.variant_name || 'Product'}
                         </p>
-                        <p style={{ margin: 0, height: 20, fontSize: 14, fontWeight: 400, color: '#040205', lineHeight: '20px' }}>
+                        <p style={{ margin: 0, height: 20, fontSize: 14, fontWeight: 400, color: '#040205', lineHeight: '16px' }}>
                           {item.lens_pd ? `Prescription: PD ${item.lens_pd}mm` : (item.variant_sku || 'One Size')}
                         </p>
                       </div>
                     </div>
-                    <p style={{ margin: 0, height: 24, fontSize: 16, fontWeight: 700, color: '#68408d', lineHeight: '24px', whiteSpace: 'nowrap' }}>
+                    <p style={{ margin: 0, height: 24, fontSize: 16, fontWeight: 700, color: '#68408d', lineHeight: '19px', whiteSpace: 'nowrap' }}>
                       {formatPrice(item.price_at_purchase)}
                     </p>
                   </div>
@@ -285,13 +363,13 @@ const OrderTrackingPage = () => {
             }}>
               {/* Header row */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 17, paddingRight: 0.01, borderBottom: '1px solid #efedf0' }}>
-                <p style={{ margin: 0, height: 16, fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1.2px', color: '#71717a', lineHeight: '16px' }}>
+                <p style={{ margin: 0, height: 16, fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1.2px', color: '#71717a', lineHeight: '13px' }}>
                   Payment Status
                 </p>
                 <span style={{
                   background: isPartial ? '#f7e387' : order.payment_status === 'paid' ? '#d1fae5' : '#efedf0',
                   borderRadius: 12, padding: '4px 12px',
-                  fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', lineHeight: '15px',
+                  fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', lineHeight: '12px',
                   color: '#040205',
                 }}>
                   {isPartial ? 'Partial Payment' : order.payment_status === 'paid' ? 'Paid' : order.payment_method?.replace(/_/g, ' ') || 'Pending'}
@@ -301,19 +379,19 @@ const OrderTrackingPage = () => {
               {/* Rows */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <p style={{ margin: 0, height: 20, fontSize: 14, fontWeight: 400, color: '#71717a', lineHeight: '20px' }}>
+                  <p style={{ margin: 0, height: 20, fontSize: 14, fontWeight: 400, color: '#71717a', lineHeight: '16px' }}>
                     {isPartial ? 'Initial Deposit Paid' : 'Total Paid'}
                   </p>
-                  <p style={{ margin: 0, height: 24, fontSize: 16, fontWeight: 700, color: '#040205', lineHeight: '24px' }}>
+                  <p style={{ margin: 0, height: 24, fontSize: 16, fontWeight: 700, color: '#040205', lineHeight: '19px' }}>
                     {formatPrice(paidAmount)}
                   </p>
                 </div>
                 {balanceAmount > 0 && (
                   <div style={{ background: '#ebe3f2', borderRadius: 4, padding: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <p style={{ margin: 0, height: 20, fontSize: 14, fontWeight: 600, color: '#68408d', lineHeight: '20px' }}>
+                    <p style={{ margin: 0, height: 20, fontSize: 14, fontWeight: 600, color: '#68408d', lineHeight: '16px' }}>
                       Balance Due on Delivery
                     </p>
-                    <p style={{ margin: 0, height: 28, fontSize: 18, fontWeight: 800, color: '#68408d', lineHeight: '28px' }}>
+                    <p style={{ margin: 0, height: 28, fontSize: 18, fontWeight: 800, color: '#68408d', lineHeight: '22px' }}>
                       {formatPrice(balanceAmount)}
                     </p>
                   </div>
@@ -367,7 +445,7 @@ const OrderTrackingPage = () => {
                     boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
                   }}>
                     <TruckWhite />
-                    <span style={{ fontSize: 12, fontWeight: 700, color: '#fefcff', textTransform: 'uppercase', letterSpacing: '0.6px', lineHeight: '16px' }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#fefcff', textTransform: 'uppercase', letterSpacing: '0.6px', lineHeight: '13px' }}>
                       Your Courier
                     </span>
                   </div>
@@ -401,7 +479,7 @@ const OrderTrackingPage = () => {
                           style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       </div>
                       <div>
-                        <p style={{ margin: 0, height: 28, fontSize: 18, fontWeight: 700, color: '#040205', lineHeight: '28px' }}>
+                        <p style={{ margin: 0, height: 28, fontSize: 18, fontWeight: 700, color: '#040205', lineHeight: '22px' }}>
                           {tracking.courier_name || 'Vikram Singh'}
                         </p>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -409,7 +487,7 @@ const OrderTrackingPage = () => {
                           <svg width="12" height="12" viewBox="0 0 12 12" fill="#f59e0b">
                             <path d="M6 1L7.39 4.26L11 4.64L8.5 6.97L9.18 10.5L6 8.77L2.82 10.5L3.5 6.97L1 4.64L4.61 4.26L6 1Z" />
                           </svg>
-                          <span style={{ height: 20, fontSize: 14, fontWeight: 600, color: '#040205', lineHeight: '20px' }}>
+                          <span style={{ height: 20, fontSize: 14, fontWeight: 600, color: '#040205', lineHeight: '16px' }}>
                             4.9 • 2,400+ deliveries
                           </span>
                         </div>
@@ -441,10 +519,10 @@ const OrderTrackingPage = () => {
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 32,
           boxSizing: 'border-box',
         }}>
-          <h2 style={{ margin: 0, fontSize: 30, fontWeight: 800, color: '#040205', textAlign: 'center', letterSpacing: '-1px', lineHeight: '36px' }}>
+          <h2 style={{ margin: 0, fontSize: 30, fontWeight: 800, color: '#040205', textAlign: 'center', letterSpacing: '-1px', lineHeight: '29px' }}>
             Something not right?
           </h2>
-          <p style={{ margin: 0, fontSize: 18, fontWeight: 400, color: '#040205', textAlign: 'center', lineHeight: '28px', maxWidth: 726 }}>
+          <p style={{ margin: 0, fontSize: 18, fontWeight: 400, color: '#040205', textAlign: 'center', lineHeight: '22px', maxWidth: 726 }}>
             Our Atelier support team is standing by to assist you with your fitting or delivery details.
           </p>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center' }}>

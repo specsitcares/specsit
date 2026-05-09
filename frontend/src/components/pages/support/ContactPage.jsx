@@ -13,7 +13,7 @@ const ContactPage = () => {
                 <div className="support-page-header">
                     <p className="contact-label">CONCIERGE SERVICES</p>
                     <h1 className="support-page-heading" style={{ letterSpacing: '-1.2px' }}>Get in Touch</h1>
-                    <p className="support-page-description" style={{ fontSize: '18px' }}>
+                    <p className="support-page-description" style={{ fontSize: '14px' }}>
                         Our concierge team is available every day of the week. Whether you have a pre-purchase question or need post-delivery assistance, we're here.
                     </p>
                 </div>

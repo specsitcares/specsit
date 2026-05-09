@@ -4,12 +4,12 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 17px 61px;
-    border-radius: 12px;
+    padding: 14px 49px;
+    border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0px 20px 40px 0px rgba(104, 64, 141, 0.06);
-    backdrop-filter: blur(12px);
-    margin: 12px 100px;
+    box-shadow: 0px 16px 32px 0px rgba(104, 64, 141, 0.06);
+    backdrop-filter: blur(10px);
+    margin: 10px 80px;
     position: relative;
     z-index: 1000;
 }
@@ -21,8 +21,8 @@
 .visitor-brand .brand-logo {
     font-family: 'Plus Jakarta Sans', sans-serif;
     font-weight: 700;
-    font-size: 20px;
-    line-height: 28px;
+    font-size: 16px;
+    line-height: 22px;
     letter-spacing: -1px;
     color: #040205;
     text-decoration: none;
@@ -31,14 +31,14 @@
 .visitor-nav {
     display: flex;
     align-items: center;
-    gap: 40px;
+    gap: 32px;
 }
 
 .visitor-nav-link {
     font-family: 'Plus Jakarta Sans', sans-serif;
     font-weight: 500;
-    font-size: 16px;
-    line-height: 20px;
+    font-size: 13px;
+    line-height: 16px;
     letter-spacing: -0.35px;
     color: #71717A;
     text-decoration: none;
@@ -55,23 +55,23 @@
     font-weight: 600;
     color: #68408D;
     border-bottom-color: #EBE3F2;
-    padding-bottom: 6px;
+    padding-bottom: 5px;
 }
 
 .visitor-actions {
     display: flex;
     align-items: center;
-    gap: 28px;
+    gap: 22px;
 }
 
 .visitor-search {
-    width: 280px;
+    width: 224px;
     background: #FEFCFF;
-    border-radius: 12px;
-    padding: 8px 24px;
+    border-radius: 10px;
+    padding: 6px 19px;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     border: 1px solid transparent;
     transition: all 0.2s ease;
 }
@@ -82,8 +82,8 @@
 }
 
 .visitor-search-icon {
-    width: 13px;
-    height: 13px;
+    width: 10px;
+    height: 10px;
     flex-shrink: 0;
 }
 
@@ -91,7 +91,7 @@
     border: none;
     background: transparent;
     font-family: 'Plus Jakarta Sans', sans-serif;
-    font-size: 14px;
+    font-size: 11px;
     color: #040205;
     width: 100%;
     outline: none;
@@ -115,27 +115,27 @@
 }
 
 .visitor-cart-icon {
-    width: 22px;
-    height: 23px;
+    width: 18px;
+    height: 18px;
 }
 
 .visitor-cart-badge {
     position: absolute;
-    top: -4px;
-    right: -4px;
+    top: -3px;
+    right: -3px;
     background: #68408D;
     color: #FEFCFF;
     font-family: 'Plus Jakarta Sans', sans-serif;
     font-weight: 700;
-    font-size: 10px;
-    line-height: 15px;
-    min-width: 16px;
-    height: 16px;
-    border-radius: 12px;
+    font-size: 8px;
+    line-height: 12px;
+    min-width: 13px;
+    height: 13px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0 5px 1px 5px;
+    padding: 0 4px 1px 4px;
 }
 
 .visitor-user-btn {
@@ -152,21 +152,21 @@
 
 @media (max-width: 1200px) {
     .visitor-header {
-        margin: 12px 40px;
-        padding: 17px 30px;
+        margin: 10px 32px;
+        padding: 14px 24px;
     }
     .visitor-search {
-        width: 200px;
+        width: 160px;
     }
 }
 
 @media (max-width: 992px) {
     .visitor-header {
         flex-direction: column;
-        gap: 16px;
-        margin: 12px 20px;
+        gap: 13px;
+        margin: 10px 16px;
     }
     .visitor-nav {
-        gap: 20px;
+        gap: 16px;
     }
 }

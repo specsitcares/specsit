@@ -132,13 +132,13 @@ const App = () => {
                                     <Route path="support/privacy" element={<PrivacyPolicyPage />} />
                                 </Route>
                                 
-                                <Route 
-                                    path="admin" 
+                                <Route
+                                    path="admin/*"
                                     element={
                                         <ProtectedRoute requireAdmin={true}>
                                             <AdminDashboard />
                                         </ProtectedRoute>
-                                    } 
+                                    }
                                 />
                             </Routes>
                         </Router>

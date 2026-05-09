@@ -3,17 +3,17 @@ import { Save, Info, RefreshCw } from 'lucide-react';
 import apiClient from '../../../services/api';
 
 const field = {
-  label: { fontSize: '13px', fontWeight: 600, color: '#344054', marginBottom: '6px', display: 'block' },
-  hint:  { fontSize: '12px', color: '#667085', marginTop: '4px' },
+  label: { fontSize: '10px', fontWeight: 600, color: '#344054', marginBottom: '5px', display: 'block' },
+  hint:  { fontSize: '10px', color: '#667085', marginTop: '3px' },
   input: {
     width: '100%', padding: '10px 14px', border: '1px solid #D0D5DD',
-    borderRadius: '8px', fontSize: '14px', color: '#101828',
+    borderRadius: '6px', fontSize: '11px', color: '#101828',
     outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit',
   },
   textarea: {
     width: '100%', padding: '10px 14px', border: '1px solid #D0D5DD',
-    borderRadius: '8px', fontSize: '14px', color: '#101828', resize: 'vertical',
-    outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', minHeight: '90px',
+    borderRadius: '6px', fontSize: '11px', color: '#101828', resize: 'vertical',
+    outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', minHeight: '72px',
   },
 };
 
@@ -85,7 +85,7 @@ const StoreSettings = () => {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '200px', gap: '10px', color: '#667085' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '160px', gap: '8px', color: '#667085' }}>
         <RefreshCw size={18} style={{ animation: 'spin 1s linear infinite' }} /> Loading settings…
       </div>
     );
@@ -95,20 +95,20 @@ const StoreSettings = () => {
   const previewDesc  = resolve(settings.meta_description_template || '', preview);
 
   return (
-    <div style={{ maxWidth: '800px' }}>
+    <div style={{ maxWidth: '640px' }}>
       {/* Header */}
-      <div style={{ marginBottom: '28px' }}>
-        <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#101828', margin: 0 }}>Store Settings</h1>
-        <p style={{ fontSize: '14px', color: '#667085', marginTop: '4px' }}>
+      <div style={{ marginBottom: '22px' }}>
+        <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#101828', margin: 0 }}>Store Settings</h1>
+        <p style={{ fontSize: '11px', color: '#667085', marginTop: '3px' }}>
           Configure global defaults that apply across the store.
         </p>
       </div>
 
       {/* Store Identity */}
-      <div style={{ background: '#fff', border: '1px solid #EAECF0', borderRadius: '12px', padding: '24px', marginBottom: '20px' }}>
-        <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#101828', margin: '0 0 4px' }}>Store Identity</h2>
-        <p style={{ fontSize: '13px', color: '#667085', margin: '0 0 20px' }}>
-          Used as the <code style={{ background: '#F2F4F7', padding: '1px 5px', borderRadius: '4px' }}>{'{store_name}'}</code> placeholder in all templates.
+      <div style={{ background: '#fff', border: '1px solid #EAECF0', borderRadius: '10px', padding: '19px', marginBottom: '16px' }}>
+        <h2 style={{ fontSize: '12px', fontWeight: 700, color: '#101828', margin: '0 0 4px' }}>Store Identity</h2>
+        <p style={{ fontSize: '10px', color: '#667085', margin: '0 0 20px' }}>
+          Used as the <code style={{ background: '#F2F4F7', padding: '1px 5px', borderRadius: '3px' }}>{'{store_name}'}</code> placeholder in all templates.
         </p>
         <div>
           <label style={field.label}>Store Name</label>
@@ -122,21 +122,21 @@ const StoreSettings = () => {
       </div>
 
       {/* SEO Meta Templates */}
-      <div style={{ background: '#fff', border: '1px solid #EAECF0', borderRadius: '12px', padding: '24px', marginBottom: '20px' }}>
-        <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#101828', margin: '0 0 4px' }}>SEO Meta Templates</h2>
-        <p style={{ fontSize: '13px', color: '#667085', margin: '0 0 4px' }}>
-          These are the default <code style={{ background: '#F2F4F7', padding: '1px 5px', borderRadius: '4px' }}>&lt;title&gt;</code> and{' '}
-          <code style={{ background: '#F2F4F7', padding: '1px 5px', borderRadius: '4px' }}>&lt;meta description&gt;</code> applied to every product
+      <div style={{ background: '#fff', border: '1px solid #EAECF0', borderRadius: '10px', padding: '19px', marginBottom: '16px' }}>
+        <h2 style={{ fontSize: '12px', fontWeight: 700, color: '#101828', margin: '0 0 4px' }}>SEO Meta Templates</h2>
+        <p style={{ fontSize: '10px', color: '#667085', margin: '0 0 4px' }}>
+          These are the default <code style={{ background: '#F2F4F7', padding: '1px 5px', borderRadius: '3px' }}>&lt;title&gt;</code> and{' '}
+          <code style={{ background: '#F2F4F7', padding: '1px 5px', borderRadius: '3px' }}>&lt;meta description&gt;</code> applied to every product
           that has "Use global template" enabled on its product form.
         </p>
 
         {/* Placeholder guide */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', margin: '12px 0 20px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', margin: '12px 0 20px' }}>
           {PLACEHOLDERS.map(p => (
             <span key={p.token} title={p.desc} style={{
-              display: 'inline-flex', alignItems: 'center', gap: '4px',
+              display: 'inline-flex', alignItems: 'center', gap: '3px',
               background: '#F9F5FF', border: '1px solid #E9D7FE',
-              borderRadius: '6px', padding: '3px 10px', fontSize: '12px',
+              borderRadius: '5px', padding: '3px 10px', fontSize: '10px',
               color: '#6941C6', fontFamily: 'monospace', cursor: 'default'
             }}>
               {p.token} <span style={{ color: '#9E77ED', fontFamily: 'sans-serif' }}>· {p.desc}</span>
@@ -144,7 +144,7 @@ const StoreSettings = () => {
           ))}
         </div>
 
-        <div style={{ marginBottom: '16px' }}>
+        <div style={{ marginBottom: '13px' }}>
           <label style={field.label}>Meta Title Template <span style={{ color: '#F04438' }}>*</span></label>
           <input
             style={field.input}
@@ -168,24 +168,24 @@ const StoreSettings = () => {
       </div>
 
       {/* Live Preview */}
-      <div style={{ background: '#F9FAFB', border: '1px solid #EAECF0', borderRadius: '12px', padding: '24px', marginBottom: '24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '16px' }}>
+      <div style={{ background: '#F9FAFB', border: '1px solid #EAECF0', borderRadius: '10px', padding: '19px', marginBottom: '19px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '13px' }}>
           <Info size={15} color="#667085" />
-          <span style={{ fontSize: '13px', fontWeight: 600, color: '#344054' }}>Live Preview</span>
-          <span style={{ fontSize: '12px', color: '#9CA3AF', marginLeft: '4px' }}>how it looks for a sample product</span>
+          <span style={{ fontSize: '10px', fontWeight: 600, color: '#344054' }}>Live Preview</span>
+          <span style={{ fontSize: '10px', color: '#9CA3AF', marginLeft: '3px' }}>how it looks for a sample product</span>
         </div>
 
         {/* Preview product inputs */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '13px' }}>
           {[
             { key: 'product_name', label: 'Product Name' },
             { key: 'brand',        label: 'Brand' },
             { key: 'category',     label: 'Category' },
           ].map(({ key, label }) => (
             <div key={key}>
-              <label style={{ ...field.label, fontSize: '11px', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</label>
+              <label style={{ ...field.label, fontSize: '9px', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</label>
               <input
-                style={{ ...field.input, fontSize: '13px', background: '#fff' }}
+                style={{ ...field.input, fontSize: '10px', background: '#fff' }}
                 value={preview[key]}
                 onChange={e => setPreview(p => ({ ...p, [key]: e.target.value }))}
               />
@@ -194,36 +194,36 @@ const StoreSettings = () => {
         </div>
 
         {/* Google SERP mock */}
-        <div style={{ background: '#fff', border: '1px solid #EAECF0', borderRadius: '8px', padding: '16px' }}>
-          <div style={{ fontSize: '11px', color: '#667085', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Google Search Result Preview</div>
-          <div style={{ fontSize: '18px', color: '#1a0dab', fontWeight: 400, marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div style={{ background: '#fff', border: '1px solid #EAECF0', borderRadius: '6px', padding: '13px' }}>
+          <div style={{ fontSize: '9px', color: '#667085', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Google Search Result Preview</div>
+          <div style={{ fontSize: '14px', color: '#1a0dab', fontWeight: 400, marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {previewTitle || <em style={{ color: '#9CA3AF' }}>Enter a template above</em>}
           </div>
-          <div style={{ fontSize: '13px', color: '#006621', marginBottom: '4px' }}>specsit.com › products › ray-ban-aviator</div>
-          <div style={{ fontSize: '13px', color: '#545454', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+          <div style={{ fontSize: '10px', color: '#006621', marginBottom: '3px' }}>specsit.com › products › ray-ban-aviator</div>
+          <div style={{ fontSize: '10px', color: '#545454', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
             {previewDesc || <em style={{ color: '#9CA3AF' }}>Enter a description template above</em>}
           </div>
         </div>
 
         {/* Character counts */}
-        <div style={{ display: 'flex', gap: '20px', marginTop: '10px' }}>
-          <span style={{ fontSize: '11px', color: previewTitle.length > 60 ? '#F04438' : previewTitle.length > 50 ? '#F79009' : '#12B76A' }}>
+        <div style={{ display: 'flex', gap: '16px', marginTop: '8px' }}>
+          <span style={{ fontSize: '9px', color: previewTitle.length > 60 ? '#F04438' : previewTitle.length > 50 ? '#F79009' : '#12B76A' }}>
             Title: {previewTitle.length} chars {previewTitle.length > 60 ? '(too long)' : previewTitle.length > 50 ? '(good)' : '(short)'}
           </span>
-          <span style={{ fontSize: '11px', color: previewDesc.length > 160 ? '#F04438' : previewDesc.length > 120 ? '#12B76A' : '#F79009' }}>
+          <span style={{ fontSize: '9px', color: previewDesc.length > 160 ? '#F04438' : previewDesc.length > 120 ? '#12B76A' : '#F79009' }}>
             Description: {previewDesc.length} chars {previewDesc.length > 160 ? '(too long)' : previewDesc.length > 120 ? '(good)' : '(short)'}
           </span>
         </div>
       </div>
 
       {error && (
-        <div style={{ background: '#FEF3F2', border: '1px solid #FECDCA', borderRadius: '8px', padding: '12px 16px', color: '#B42318', fontSize: '13px', marginBottom: '16px' }}>
+        <div style={{ background: '#FEF3F2', border: '1px solid #FECDCA', borderRadius: '6px', padding: '12px 16px', color: '#B42318', fontSize: '10px', marginBottom: '13px' }}>
           {error}
         </div>
       )}
 
       {saved && (
-        <div style={{ background: '#ECFDF3', border: '1px solid #ABEFC6', borderRadius: '8px', padding: '12px 16px', color: '#067647', fontSize: '13px', marginBottom: '16px' }}>
+        <div style={{ background: '#ECFDF3', border: '1px solid #ABEFC6', borderRadius: '6px', padding: '12px 16px', color: '#067647', fontSize: '10px', marginBottom: '13px' }}>
           Settings saved successfully.
         </div>
       )}
@@ -232,10 +232,10 @@ const StoreSettings = () => {
         onClick={handleSave}
         disabled={saving}
         style={{
-          display: 'flex', alignItems: 'center', gap: '8px',
+          display: 'flex', alignItems: 'center', gap: '6px',
           background: saving ? '#D0D5DD' : '#7F56D9', color: '#fff',
-          border: 'none', borderRadius: '8px', padding: '10px 20px',
-          fontSize: '14px', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer',
+          border: 'none', borderRadius: '6px', padding: '10px 20px',
+          fontSize: '11px', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer',
         }}
       >
         <Save size={16} />

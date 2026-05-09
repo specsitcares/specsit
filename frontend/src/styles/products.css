@@ -20,24 +20,24 @@
 .product-listing-page {
   background-color: var(--plp-card-bg);
   min-height: 100vh;
-  margin: 0 100px !important; /* Precision header match */
-  padding: 0 32px 64px; 
+  margin: 0 80px !important; /* Precision header match */
+  padding: 0 26px 51px; 
   animation: plpFadeIn 0.4s ease;
 }
 
 /* ── Breadcrumbs & Header ───────────────────────────────── */
 .plp-header {
-  padding: 24px 0;
-  margin-bottom: 24px;
+  padding: 19px 0;
+  margin-bottom: 19px;
 }
 
 .breadcrumbs {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 6px;
+  margin-bottom: 10px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -60,102 +60,102 @@
 .plp-title-section h1 {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 800;
-  font-size: 60px;
-  line-height: 60px;
+  font-size: 48px;
+  line-height: 48px;
   letter-spacing: -3px;
   color: var(--plp-text);
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .plp-subtitle {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 500;
-  font-size: 16px;
-  line-height: 24px;
+  font-size: 13px;
+  line-height: 19px;
   color: var(--plp-text);
 }
 
 /* ── Layout Grid ──────────────────────────────────────── */
-/* Figma layout_NPHJGH: row, gap 64px, alignItems center */
+/* Figma layout_NPHJGH: row, gap 51px, alignItems center */
 .plp-layout {
   display: flex;
-  gap: 64px;
+  gap: 51px;
   align-items: flex-start;
 }
 
 /* ══════════════════════════════════════════════════════════
    SIDEBAR FILTERS — Figma Node 401:10766
-   layout_8OE2VM: column, padding 24px 28px, width 440,
-   fill_6THCM1: #FEFCFF, border-radius 12px,
-   effect_NSDOT4: boxShadow 1px 4px 20px rgba(0,0,0,0.1)
+   layout_8OE2VM: column, padding 19px 22px, width 440,
+   fill_6THCM1: #FEFCFF, border-radius 10px,
+   effect_NSDOT4: boxShadow 1px 3px 16px rgba(0,0,0,0.1)
    ══════════════════════════════════════════════════════════ */
 .filters-sidebar {
   flex: 0 0 25%;
   min-width: 0;
   background: var(--plp-card-bg);
-  padding: 24px 28px;
-  border-radius: 12px;
-  box-shadow: 1px 4px 20px 0px rgba(0, 0, 0, 0.1);
+  padding: 19px 22px;
+  border-radius: 10px;
+  box-shadow: 1px 3px 16px 0px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   align-self: flex-start;
 }
 
 /* ── Sidebar Header ──────────────────────────────────── */
-/* Figma layout_OTBQ95: column, gap 8px, padding-bottom 24px */
+/* Figma layout_OTBQ95: column, gap 6px, padding-bottom 19px */
 .filters-header {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding-bottom: 24px;
+  gap: 6px;
+  padding-bottom: 19px;
 }
 
-/* Figma style_ZKR89L: 18px/700 */
+/* Figma style_ZKR89L: 14px/700 */
 .filters-header h2 {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 700;
-  font-size: 18px;
-  line-height: 28px;
+  font-size: 14px;
+  line-height: 22px;
   color: var(--plp-text);
   margin: 0;
 }
 
-/* Figma style_LVKS4F: 12px/700, UPPER, tracking 1.2px */
+/* Figma style_LVKS4F: 10px/700, UPPER, tracking 1.2px */
 .filters-subtitle {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 700;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: 10px;
+  line-height: 13px;
   letter-spacing: 1.2px;
   text-transform: uppercase;
   color: var(--plp-accent);
 }
 
 /* ── Filter Groups Container ─────────────────────────── */
-/* Figma layout_6JTOV3: padding-top 32px */
+/* Figma layout_6JTOV3: padding-top 26px */
 .filter-groups-container {
-  padding-top: 32px;
+  padding-top: 26px;
 }
 
-/* Figma layout_1Y0TC1: gap 24px, padding-bottom 40px */
+/* Figma layout_1Y0TC1: gap 19px, padding-bottom 32px */
 .filter-groups-list {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  padding-bottom: 40px;
-  padding-right: 16px;
+  gap: 19px;
+  padding-bottom: 32px;
+  padding-right: 13px;
 }
 
 /* ── Individual Filter Group ─────────────────────────── */
-/* Figma layout_I1BEL9: padding-bottom 40px, bottom stroke */
+/* Figma layout_I1BEL9: padding-bottom 32px, bottom stroke */
 /* Figma fill_7U7TOY: rgba(205, 195, 209, 0.2) */
 .filter-group {
-  padding: 0 0 41px 0;
+  padding: 0 0 33px 0;
   border-bottom: 1px solid var(--plp-filter-border);
 }
 
 .filter-group:last-child {
   border-bottom: none;
-  padding-bottom: 40px;
+  padding-bottom: 32px;
 }
 
 /* ── Filter Group Header ─────────────────────────────── */
@@ -165,17 +165,17 @@
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
-  padding: 0 0 12px 0;
+  padding: 0 0 10px 0;
   user-select: none;
 }
 
-/* Figma style_OYISEF: 14px/700, h-[20px], lh-[20px] */
+/* Figma style_OYISEF: 11px/700, h-[16px], lh-[16px] */
 .filter-group-header h3 {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 700;
-  font-size: 14px;
-  line-height: 20px;
-  height: 20px;
+  font-size: 11px;
+  line-height: 16px;
+  height: 16px;
   color: var(--plp-text);
   margin: 0;
 }
@@ -189,28 +189,28 @@
 .filter-options {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding-top: 8px;
-  padding-bottom: 8px;
+  gap: 11px;
+  padding-top: 6px;
+  padding-bottom: 6px;
 }
 
 /* ── Pill Grid (Updated Figma Node 401:10256) ── */
 .filter-options-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  padding: 16px 0;
+  gap: 10px;
+  padding: 13px 0;
 }
 
 .filter-grid-pill {
   width: 100%;
-  height: 48px;
-  padding: 8px 12px;
-  border-radius: 4px;
+  height: 38px;
+  padding: 6px 10px;
+  border-radius: 3px;
   border: 1px solid #EFEDF0;
   background: transparent;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 500;
   color: var(--plp-text);
   cursor: pointer;
@@ -237,14 +237,14 @@
 .filter-swatch-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  padding: 16px 0;
+  gap: 10px;
+  padding: 13px 0;
 }
 
 .filter-color-swatch {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
   border: 1px solid #EFEDF0;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -254,7 +254,7 @@
 
 .filter-color-swatch:hover {
   transform: scale(1.1);
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.1);
 }
 
 .filter-color-swatch.active {
@@ -277,7 +277,7 @@
 .rating-filter-label {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .rating-stars-row {
@@ -288,18 +288,18 @@
 .filter-checkbox-item {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   cursor: pointer;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   color: var(--plp-text);
   line-height: 1.43;
 }
 
 .filter-checkbox-item input[type="checkbox"],
 .filter-checkbox-item input[type="radio"] {
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
   accent-color: var(--plp-accent);
   cursor: pointer;
   flex-shrink: 0;
@@ -315,13 +315,13 @@
 
 /* ══════════════════════════════════════════════════════════
    MAIN CONTENT AREA
-   Figma layout_TE9W66: column, gap 48px
+   Figma layout_TE9W66: column, gap 38px
    ══════════════════════════════════════════════════════════ */
 .plp-main-content {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 48px;
+  gap: 38px;
   min-width: 0;
 }
 
@@ -345,11 +345,11 @@
   gap: 0;
 }
 
-/* Figma style_6D832T: 14px/700/UPPER/letter-spacing 8.57% */
+/* Figma style_6D832T: 11px/700/UPPER/letter-spacing 8.57% */
 .sort-label {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 11px;
   line-height: 1.14;
   letter-spacing: 0.086em;
   text-transform: uppercase;
@@ -357,22 +357,22 @@
   white-space: nowrap;
 }
 
-/* Figma layout_B9XTMG: padding-left 16px */
+/* Figma layout_B9XTMG: padding-left 13px */
 .sort-select-wrapper {
-  padding-left: 16px;
+  padding-left: 13px;
 }
 
-/* Figma layout_S5ZYXA: 196x44, padding 12px 16px 12px 20px */
-/* Figma: radius 8px, bg #EFEDF0, style_UOG7RQ: 16px/700 */
+/* Figma layout_S5ZYXA: 196x44, padding 10px 13px 10px 16px */
+/* Figma: radius 6px, bg #EFEDF0, style_UOG7RQ: 13px/700 */
 .sort-select {
-  width: 196px;
-  height: 44px;
-  padding: 12px 16px 12px 20px;
-  border-radius: 8px;
+  width: 157px;
+  height: 35px;
+  padding: 10px 13px 10px 16px;
+  border-radius: 6px;
   background: var(--plp-border);
   border: none;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 700;
   line-height: 1.25;
   color: var(--plp-text);
@@ -380,49 +380,49 @@
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%23040205' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 16px center;
+  background-position: right 13px center;
 }
 
 /* ── Applied Filters Row ─────────────────────────────── */
-/* Figma layout_EQAUPY: padding-top 24px */
+/* Figma layout_EQAUPY: padding-top 19px */
 .applied-filters-row {
-  padding-top: 24px;
+  padding-top: 19px;
 }
 
-/* Figma layout_Z39ZY5: row, center, gap 12px */
+/* Figma layout_Z39ZY5: row, center, gap 10px */
 .applied-filters-inner {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
-/* Figma style_2NBNIG: 16px/700/UPPER/letter-spacing 7.5% */
+/* Figma style_2NBNIG: 13px/700/UPPER/letter-spacing 7.5% */
 .applied-label {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 700;
-  font-size: 16px;
+  font-size: 13px;
   line-height: 1;
   letter-spacing: 0.075em;
   text-transform: uppercase;
   color: var(--plp-text);
-  padding-right: 8px;
+  padding-right: 6px;
   white-space: nowrap;
 }
 
-/* Figma layout_ECV5HQ: padding 4px 16px 6px 12px, height 36px */
-/* Figma: radius 12px, fill #EBE3F2, style_17TTUT: 16px/700 */
+/* Figma layout_ECV5HQ: padding 3px 13px 5px 10px, height 29px */
+/* Figma: radius 10px, fill #EBE3F2, style_17TTUT: 13px/700 */
 .filter-pill {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   background: var(--plp-pill-bg);
   color: var(--plp-accent);
-  padding: 4px 16px 6px 12px;
-  height: 36px;
-  border-radius: 12px;
+  padding: 3px 13px 5px 10px;
+  height: 29px;
+  border-radius: 10px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 700;
   line-height: 1;
   white-space: nowrap;
@@ -432,7 +432,7 @@
   background: none;
   border: none;
   color: var(--plp-accent);
-  font-size: 18px;
+  font-size: 14px;
   cursor: pointer;
   padding: 0;
   display: flex;
@@ -445,17 +445,17 @@
   transform: scale(1.2);
 }
 
-/* Figma style_7RK7PE: 14px/700 */
+/* Figma style_7RK7PE: 11px/700 */
 .clear-all-link {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 700;
   line-height: 1.14;
   color: var(--plp-accent);
   background: none;
   border: none;
   cursor: pointer;
-  padding: 0 0 0 8px;
+  padding: 0 0 0 6px;
   text-decoration: none;
   transition: opacity 0.15s;
 }
@@ -467,12 +467,12 @@
 
 /* ══════════════════════════════════════════════════════════
    PRODUCT GRID
-   Figma layout_Z4MKST: 3 Column Grid, gap 64px (vertical) 32px (horizontal)
+   Figma layout_Z4MKST: 3 Column Grid, gap 51px (vertical) 26px (horizontal)
    ══════════════════════════════════════════════════════════ */
 .plp-product-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 64px 32px;
+  gap: 51px 26px;
   width: 100%;
 }
 
@@ -486,7 +486,7 @@
 .loading-state,
 .empty-state {
   text-align: center;
-  padding: 80px 0;
+  padding: 64px 0;
   font-family: 'Plus Jakarta Sans', sans-serif;
   color: var(--plp-muted);
 }
@@ -494,19 +494,19 @@
 .empty-state h2 {
   font-weight: 700;
   color: var(--plp-text);
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .reset-btn {
-  margin-top: 20px;
+  margin-top: 16px;
   background: var(--plp-accent);
   color: white;
   border: none;
-  padding: 12px 28px;
-  border-radius: 10px;
+  padding: 10px 22px;
+  border-radius: 8px;
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 11px;
   cursor: pointer;
   transition: opacity 0.2s;
 }
@@ -517,14 +517,14 @@
 .pagination {
   display: flex;
   justify-content: center;
-  gap: 8px;
-  padding-top: 24px;
+  gap: 6px;
+  padding-top: 19px;
 }
 
 .pagination-btn {
-  padding: 8px 16px;
+  padding: 6px 13px;
   border: 1px solid var(--plp-border);
-  border-radius: 8px;
+  border-radius: 6px;
   background: white;
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 600;
@@ -545,7 +545,7 @@
 
 /* ── Animations ───────────────────────────────────────── */
 @keyframes plpFadeIn {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
@@ -553,19 +553,19 @@
    RESPONSIVE
    ══════════════════════════════════════════════════════════ */
 @media (max-width: 1600px) {
-  .plp-product-grid .product-card { min-width: 280px; }
+  .plp-product-grid .product-card { min-width: 224px; }
 }
 
 @media (max-width: 1400px) {
-  .product-listing-page { padding: 0 60px 60px; }
-  .plp-layout { gap: 40px; }
+  .product-listing-page { padding: 0 48px 48px; }
+  .plp-layout { gap: 32px; }
 }
 
 @media (max-width: 1200px) {
-  .product-listing-page { padding: 0 40px 40px; }
-  .plp-layout { gap: 32px; }
+  .product-listing-page { padding: 0 32px 32px; }
+  .plp-layout { gap: 26px; }
   .plp-product-grid { grid-template-columns: repeat(2, 1fr); }
-  .plp-title-section h1 { font-size: 48px; letter-spacing: -2px; line-height: 52px; }
+  .plp-title-section h1 { font-size: 38px; letter-spacing: -2px; line-height: 42px; }
 }
 
 @media (max-width: 1024px) {
@@ -575,10 +575,10 @@
 }
 
 @media (max-width: 768px) {
-  .product-listing-page { padding: 0 20px 40px; }
-  .plp-title-section h1 { font-size: 36px; letter-spacing: -1px; line-height: 40px; }
+  .product-listing-page { padding: 0 16px 32px; }
+  .plp-title-section h1 { font-size: 29px; letter-spacing: -1px; line-height: 32px; }
   .plp-product-grid { 
     grid-template-columns: 1fr;
-    gap: 32px 16px;
+    gap: 26px 13px;
   }
 }

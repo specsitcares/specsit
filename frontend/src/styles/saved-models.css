@@ -4,19 +4,19 @@
 
 .face-model-card {
   display: flex;
-  gap: 32px;
+  gap: 26px;
   background: #fff;
   border: 1.5px solid var(--specsit-light-grey);
-  border-radius: 16px;
-  padding: 32px;
+  border-radius: 13px;
+  padding: 26px;
   align-items: flex-start;
 }
 
 .face-model-card__preview {
   flex-shrink: 0;
-  width: 200px;
-  height: 200px;
-  border-radius: 12px;
+  width: 160px;
+  height: 160px;
+  border-radius: 10px;
   overflow: hidden;
   background: var(--specsit-light-grey);
   display: flex;
@@ -43,18 +43,18 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 13px;
 }
 
 .face-model-card__title {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 800;
   color: var(--specsit-black);
   letter-spacing: -0.5px;
 }
 
 .face-model-card__meta {
-  font-size: 13px;
+  font-size: 10px;
   color: var(--specsit-body-grey);
   font-weight: 500;
 }
@@ -62,21 +62,21 @@
 /* PD block */
 .face-model-card__pd {
   background: var(--specsit-purple-light);
-  border-radius: 10px;
-  padding: 16px 20px;
+  border-radius: 8px;
+  padding: 13px 16px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 
 .face-model-pd__block {
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: 6px;
 }
 
 .face-model-pd__label {
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -84,14 +84,14 @@
 }
 
 .face-model-pd__value {
-  font-size: 24px;
+  font-size: 19px;
   font-weight: 800;
   color: var(--specsit-purple-primary);
   letter-spacing: -0.5px;
 }
 
 .face-model-pd__note {
-  font-size: 12px;
+  font-size: 10px;
   color: var(--specsit-purple-primary);
   opacity: 0.8;
   font-weight: 500;
@@ -101,33 +101,33 @@
 .face-model-card__benefits {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .face-model-benefit {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
+  gap: 6px;
+  font-size: 10px;
   font-weight: 500;
   color: var(--specsit-black);
 }
 
 .face-model-card__actions {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 @media (max-width: 700px) {
   .face-model-card {
     flex-direction: column;
-    padding: 20px;
-    gap: 20px;
+    padding: 16px;
+    gap: 16px;
   }
   .face-model-card__preview {
     width: 100%;
-    height: 200px;
+    height: 160px;
   }
 }

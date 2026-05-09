@@ -17,7 +17,7 @@
   overflow: hidden;
   background: #FEFCFF;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+  box-shadow: 0px 3px 3px 0px rgba(0, 0, 0, 0.25);
 }
 
 /* ── Hero Panel (Left) ───────────────────────────────────── */
@@ -44,7 +44,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 20px 40px 20px 52px;
+  padding: 16px 32px 16px 42px;
   /* tight — register has more fields */
   overflow-y: auto;
   min-height: 0;
@@ -56,10 +56,10 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
-  /* was 32px */
+  gap: 13px;
+  /* was 26px */
   width: 100%;
-  max-width: 440px;
+  max-width: 352px;
 }
 
 /* ── Branding ─────────────────────────────────────────────── */
@@ -75,8 +75,8 @@
 .rp-title {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 700;
-  font-size: 20px;
-  /* was 30px */
+  font-size: 16px;
+  /* was 24px */
   line-height: 1.2em;
   letter-spacing: -0.025em;
   text-align: center;
@@ -87,8 +87,8 @@
 .rp-subtitle {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 400;
-  font-size: 13px;
-  /* was 16px */
+  font-size: 10px;
+  /* was 13px */
   line-height: 1.4em;
   text-align: center;
   color: #040205;
@@ -108,23 +108,23 @@
   display: flex;
   flex-direction: row;
   align-items: stretch;
-  gap: 4px;
-  padding: 4px;
+  gap: 3px;
+  padding: 3px;
   background: #EFEDF0;
   border: 1px solid rgba(205, 195, 209, 0.1);
-  border-radius: 12px;
+  border-radius: 10px;
 }
 
 .rp-toggle-btn {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 7px 24px;
-  /* was 10px 32px */
-  border-radius: 10px;
+  padding: 6px 19px;
+  /* was 8px 26px */
+  border-radius: 8px;
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 600;
-  font-size: 13px;
+  font-size: 10px;
   line-height: 1.4em;
   text-align: center;
   text-decoration: none;
@@ -147,9 +147,9 @@
   width: 100%;
   background: #fef2f2;
   color: #b91c1c;
-  padding: 8px 14px;
-  border-radius: 8px;
-  font-size: 13px;
+  padding: 6px 11px;
+  border-radius: 6px;
+  font-size: 10px;
   font-weight: 500;
   border: 1px solid #fee2e2;
   animation: rpFadeIn 0.3s ease;
@@ -162,8 +162,8 @@
   flex-direction: column;
   align-items: stretch;
   align-self: stretch;
-  gap: 12px;
-  /* was 24px */
+  gap: 10px;
+  /* was 19px */
   width: 100%;
 }
 
@@ -171,8 +171,8 @@
 .rp-name-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  /* was 16px */
+  gap: 10px;
+  /* was 13px */
   align-self: stretch;
 }
 
@@ -181,15 +181,15 @@
   display: flex;
   flex-direction: column;
   align-self: stretch;
-  gap: 4px;
-  /* was 6px */
+  gap: 3px;
+  /* was 5px */
 }
 
 .rp-label {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 500;
-  font-size: 12px;
-  /* was 14px */
+  font-size: 10px;
+  /* was 11px */
   line-height: 1.4em;
   color: #040205;
   text-align: left;
@@ -198,17 +198,17 @@
 /* ── Input ────────────────────────────────────────────────── */
 .rp-input {
   width: 100%;
-  height: 40px;
-  /* was 48px */
-  padding: 9px 16px;
-  /* was 13.5px 20px */
+  height: 32px;
+  /* was 38px */
+  padding: 7px 13px;
+  /* was 11px 16px */
   background: #FEFCFF;
   border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  border-radius: 6px;
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 400;
-  font-size: 14px;
-  /* was 16px */
+  font-size: 11px;
+  /* was 13px */
   line-height: 1.3em;
   color: #040205;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -239,12 +239,12 @@
 }
 
 .rp-input--password {
-  padding-right: 44px;
+  padding-right: 35px;
 }
 
 .rp-eye-toggle {
   position: absolute;
-  right: 12px;
+  right: 10px;
   top: 50%;
   transform: translateY(-50%);
   background: none;
@@ -268,22 +268,22 @@
   justify-content: center;
   align-items: center;
   align-self: stretch;
-  height: 44px;
-  /* was 56px */
+  height: 35px;
+  /* was 45px */
   background: #68408D;
   color: #FEFCFF;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 700;
-  font-size: 14px;
-  /* was 16px */
+  font-size: 11px;
+  /* was 13px */
   line-height: 1.4em;
   text-align: center;
   cursor: pointer;
   box-shadow:
-    0px 4px 6px -4px rgba(79, 40, 116, 0.1),
-    0px 10px 15px -3px rgba(79, 40, 116, 0.1);
+    0px 3px 5px -3px rgba(79, 40, 116, 0.1),
+    0px 8px 12px -3px rgba(79, 40, 116, 0.1);
   transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
   position: relative;
   overflow: hidden;
@@ -293,8 +293,8 @@
   background: #7b4da8;
   transform: translateY(-1px);
   box-shadow:
-    0px 6px 10px -4px rgba(79, 40, 116, 0.18),
-    0px 14px 20px -3px rgba(79, 40, 116, 0.18);
+    0px 5px 8px -3px rgba(79, 40, 116, 0.18),
+    0px 11px 16px -3px rgba(79, 40, 116, 0.18);
 }
 
 .rp-submit-btn:active:not(:disabled) {
@@ -313,7 +313,7 @@
   align-items: center;
   align-self: stretch;
   padding: 2px 0;
-  /* was 8px 0 */
+  /* was 6px 0 */
 }
 
 .rp-divider-line {
@@ -324,10 +324,10 @@
 }
 
 .rp-divider-text {
-  padding: 0 12px;
+  padding: 0 10px;
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 600;
-  font-size: 11px;
+  font-size: 9px;
   line-height: 1.3em;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -340,8 +340,8 @@
   display: flex;
   flex-direction: row;
   align-self: stretch;
-  gap: 8px;
-  /* was 12px */
+  gap: 6px;
+  /* was 10px */
 }
 
 .rp-social-btn {
@@ -351,16 +351,16 @@
 
   width: 100%;
   align-items: center;
-  gap: 10px;
-  height: 40px;
-  /* was 48px */
-  padding: 0 48px;
+  gap: 8px;
+  height: 32px;
+  /* was 38px */
+  padding: 0 38px;
   border: 1px solid rgba(205, 195, 209, 0.3);
-  border-radius: 8px;
+  border-radius: 6px;
   background: transparent;
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 600;
-  font-size: 13px;
+  font-size: 10px;
   line-height: 1.4em;
   color: #040205;
   cursor: pointer;
@@ -386,7 +386,7 @@
 .rp-legal {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 400;
-  font-size: 11px;
+  font-size: 9px;
   line-height: 1.4em;
   color: #040205;
   text-align: center;
@@ -407,8 +407,8 @@
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 40px;
-  /* was 24px 48px */
+  padding: 10px 32px;
+  /* was 19px 38px */
   background: #FEFCFF;
   border-top: 1px solid rgba(205, 195, 209, 0.12);
   flex-shrink: 0;
@@ -417,14 +417,14 @@
 .rp-footer-brand {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 11px;
   color: #040205;
 }
 
 .rp-footer-copy {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 400;
-  font-size: 12px;
+  font-size: 10px;
   line-height: 1.4em;
   color: #71717A;
 }
@@ -432,13 +432,13 @@
 .rp-footer-links {
   display: flex;
   flex-direction: row;
-  gap: 24px;
+  gap: 19px;
 }
 
 .rp-footer-link {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 400;
-  font-size: 12px;
+  font-size: 10px;
   color: #71717A;
   text-decoration: none;
   transition: color 0.2s ease;
@@ -452,7 +452,7 @@
 @keyframes rpFadeIn {
   from {
     opacity: 0;
-    transform: translateY(-4px);
+    transform: translateY(-3px);
   }
 
   to {
@@ -464,7 +464,7 @@
 @keyframes rpSlideIn {
   from {
     opacity: 0;
-    transform: translateX(20px);
+    transform: translateX(16px);
   }
 
   to {
@@ -476,11 +476,11 @@
 /* ── Responsive ───────────────────────────────────────────── */
 @media (max-width: 1200px) {
   .rp-auth-panel {
-    padding: 16px 32px;
+    padding: 13px 26px;
   }
 
   .rp-auth-container {
-    gap: 12px;
+    gap: 10px;
   }
 }
 
@@ -490,7 +490,7 @@
   }
 
   .rp-auth-panel {
-    padding: 16px 24px;
+    padding: 13px 19px;
   }
 }
 
@@ -500,7 +500,7 @@
     max-height: none;
     overflow: visible;
     grid-template-columns: 1fr;
-    grid-template-rows: 180px 1fr auto;
+    grid-template-rows: 144px 1fr auto;
     grid-template-areas:
       "hero"
       "auth"
@@ -508,41 +508,41 @@
   }
 
   .rp-hero-panel {
-    height: 180px;
+    height: 144px;
   }
 
   .rp-auth-panel {
-    padding: 28px 24px;
+    padding: 22px 19px;
     align-items: flex-start;
   }
 
   .rp-name-row {
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: 10px;
   }
 
   .rp-footer {
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
     text-align: center;
-    padding: 12px 24px;
+    padding: 10px 19px;
   }
 
   .rp-footer-links {
-    gap: 16px;
+    gap: 13px;
   }
 
   .rp-social-btn {
-    padding: 0 24px;
+    padding: 0 19px;
   }
 }
 
 @media (max-width: 480px) {
   .rp-auth-panel {
-    padding: 20px 16px;
+    padding: 16px 13px;
   }
 
   .rp-title {
-    font-size: 20px;
+    font-size: 16px;
   }
 }

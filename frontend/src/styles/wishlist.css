@@ -3,22 +3,22 @@
    ============================================================ */
 
 .wishlist-page {
-  min-height: calc(100vh - 80px);
+  min-height: calc(100vh - 64px);
   background: var(--specsit-bg-white);
   font-family: 'Plus Jakarta Sans', sans-serif;
-  padding: 100px 120px;
+  padding: 80px 96px;
   display: flex;
   flex-direction: column;
-  gap: 64px;
+  gap: 51px;
 }
 
 /* ── Page title ──────────────────────────────────────────── */
 .wishlist-title {
-  font-size: 48px;
+  font-size: 38px;
   font-weight: 700;
   color: var(--specsit-black);
   letter-spacing: -1px;
-  line-height: 60px;
+  line-height: 48px;
   margin: 0;
 }
 
@@ -29,20 +29,20 @@
 /* ── Product grid ────────────────────────────────────────── */
 .wl-grid {
   display: grid;
-  grid-template-columns: repeat(4, 320px);
-  gap: 24px;
-  padding-bottom: 64px;
+  grid-template-columns: repeat(4, 256px);
+  gap: 19px;
+  padding-bottom: 51px;
 }
 
 /* ── Card ────────────────────────────────────────────────── */
 .wl-card {
   background: #FEFCFF;
   border: 1px solid #EFEDF0;
-  border-radius: 16px;
+  border-radius: 13px;
   display: flex;
   flex-direction: column;
-  padding: 17px;
-  width: 312px;
+  padding: 14px;
+  width: 250px;
   text-decoration: none;
   color: inherit;
   transition: box-shadow 0.2s, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -51,7 +51,7 @@
 }
 
 .wl-card:hover {
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
   transform: translateY(-2px);
 }
 
@@ -59,9 +59,9 @@
 .wl-card__img-wrap {
   position: relative;
   width: 100%;
-  height: 221px;
+  height: 177px;
   background: #FEFCFF;
-  border-radius: 8px;
+  border-radius: 6px;
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -73,7 +73,7 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
-  padding: 24px;
+  padding: 19px;
 }
 
 .wl-card__img-placeholder {
@@ -83,35 +83,35 @@
 /* "1-2 Hour Delivery" badge — top-left */
 .wl-card__delivery-badge {
   position: absolute;
-  top: 10px;
-  left: 16px;
+  top: 8px;
+  left: 13px;
   background: rgba(254, 252, 255, 0.85);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
   border: 1px solid var(--specsit-purple-light);
-  border-radius: 12px;
-  padding: 5.5px 13px;
-  font-size: 10px;
+  border-radius: 10px;
+  padding: 4px 10px;
+  font-size: 8px;
   font-weight: 700;
   color: var(--specsit-purple-primary);
   letter-spacing: 1px;
   text-transform: uppercase;
-  line-height: 15px;
+  line-height: 12px;
   white-space: nowrap;
 }
 
 /* Remove button — top-right X */
 .wl-card__remove-btn {
   position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 40px;
-  height: 40px;
+  top: 13px;
+  right: 13px;
+  width: 32px;
+  height: 32px;
   background: rgba(254, 252, 255, 0.85);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
   border: none;
-  border-radius: 12px;
+  border-radius: 10px;
   box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
   cursor: pointer;
   display: flex;
@@ -128,16 +128,16 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 10px 0 0;
+  gap: 3px;
+  padding: 8px 0 0;
 }
 
 .wl-card__name {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 400;
   color: var(--specsit-black);
   letter-spacing: -0.5px;
-  line-height: 28px;
+  line-height: 22px;
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -145,13 +145,13 @@
 }
 
 .wl-card__variant {
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 400;
   color: var(--specsit-body-grey);
   letter-spacing: 0.6px;
   text-transform: uppercase;
-  line-height: 16px;
-  margin: 0 0 8px;
+  line-height: 13px;
+  margin: 0 0 6px;
 }
 
 /* Price + Add to Cart row */
@@ -159,8 +159,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: 16px;
-  padding-bottom: 8px;
+  padding-top: 13px;
+  padding-bottom: 6px;
 }
 
 .wl-card__price-block {
@@ -170,21 +170,21 @@
 }
 
 .wl-card__price {
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 700;
   color: #040205;
-  line-height: 28px;
+  line-height: 22px;
 }
 
 .wl-card__price-sub {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
 }
 
 .wl-card__price-old {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 500;
   color: #71717A;
   text-decoration: line-through;
@@ -193,7 +193,7 @@
 
 .wl-card__price-disc {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 600;
   color: #68408D;
 }
@@ -201,15 +201,15 @@
 .wl-card__atc-btn {
   background: var(--specsit-purple-primary);
   border: none;
-  border-radius: 8px;
-  padding: 12px 24px;
+  border-radius: 6px;
+  padding: 10px 19px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 600;
   color: var(--specsit-bg-white);
   letter-spacing: 1.2px;
   text-transform: uppercase;
-  line-height: 16px;
+  line-height: 13px;
   cursor: pointer;
   transition: opacity 0.15s;
   white-space: nowrap;
@@ -223,16 +223,16 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
-  padding: 80px 0;
+  gap: 13px;
+  padding: 64px 0;
   text-align: center;
 }
 
 .wl-empty__icon {
-  width: 80px;
-  height: 80px;
+  width: 64px;
+  height: 64px;
   background: var(--specsit-light-grey);
-  border-radius: 20px;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -240,18 +240,18 @@
 }
 
 .wl-empty__title {
-  font-size: 24px;
+  font-size: 19px;
   font-weight: 700;
   color: var(--specsit-black);
   margin: 0;
 }
 
 .wl-empty__sub {
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 400;
   color: var(--specsit-body-grey);
   margin: 0;
-  max-width: 360px;
+  max-width: 288px;
 }
 
 .wl-empty__btn {
@@ -260,15 +260,15 @@
   background: var(--specsit-purple-primary);
   color: var(--specsit-bg-white);
   border: none;
-  border-radius: 8px;
-  padding: 14px 32px;
+  border-radius: 6px;
+  padding: 11px 26px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.5px;
   cursor: pointer;
   text-decoration: none;
-  margin-top: 8px;
+  margin-top: 6px;
   transition: opacity 0.15s;
 }
 
@@ -277,22 +277,22 @@
 /* ── Responsive ──────────────────────────────────────────── */
 @media (max-width: 1400px) {
   .wl-grid {
-    grid-template-columns: repeat(3, minmax(280px, 320px));
+    grid-template-columns: repeat(3, minmax(224px, 256px));
   }
 }
 
 @media (max-width: 1024px) {
-  .wishlist-page { padding: 64px 48px; gap: 40px; }
-  .wishlist-title { font-size: 36px; }
+  .wishlist-page { padding: 51px 38px; gap: 32px; }
+  .wishlist-title { font-size: 29px; }
   .wl-grid {
-    grid-template-columns: repeat(2, minmax(260px, 320px));
-    gap: 20px;
+    grid-template-columns: repeat(2, minmax(208px, 256px));
+    gap: 16px;
   }
 }
 
 @media (max-width: 640px) {
-  .wishlist-page { padding: 40px 20px; }
-  .wishlist-title { font-size: 28px; }
+  .wishlist-page { padding: 32px 16px; }
+  .wishlist-title { font-size: 22px; }
   .wl-grid {
     grid-template-columns: 1fr;
   }

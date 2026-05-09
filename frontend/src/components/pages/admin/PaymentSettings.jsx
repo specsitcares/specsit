@@ -3,8 +3,8 @@ import { Save, RefreshCw } from 'lucide-react';
 import apiClient from '../../../services/api';
 
 const field = {
-  label: { fontSize: '13px', fontWeight: 600, color: '#344054', marginBottom: '6px', display: 'block' },
-  hint:  { fontSize: '12px', color: '#667085', marginTop: '4px' },
+  label: { fontSize: '10px', fontWeight: 600, color: '#344054', marginBottom: '5px', display: 'block' },
+  hint:  { fontSize: '10px', color: '#667085', marginTop: '3px' },
 };
 
 const PaymentSettings = () => {
@@ -49,7 +49,7 @@ const PaymentSettings = () => {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', height: '200px', color: '#667085' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', height: '160px', color: '#667085' }}>
         <RefreshCw size={18} style={{ animation: 'spin 1s linear infinite' }} /> Loading…
       </div>
     );
@@ -60,19 +60,19 @@ const PaymentSettings = () => {
   const phase2 = exampleTotal - phase1;
 
   return (
-    <div style={{ maxWidth: '600px' }}>
-      <div style={{ marginBottom: '28px' }}>
-        <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#101828', margin: 0 }}>Payment Settings</h1>
-        <p style={{ fontSize: '14px', color: '#667085', marginTop: '4px' }}>
+    <div style={{ maxWidth: '480px' }}>
+      <div style={{ marginBottom: '22px' }}>
+        <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#101828', margin: 0 }}>Payment Settings</h1>
+        <p style={{ fontSize: '11px', color: '#667085', marginTop: '3px' }}>
           Control whether customers can pay in instalments and configure the split.
         </p>
       </div>
 
       {/* Toggle card */}
-      <div style={{ background: '#fff', border: '1px solid #EAECF0', borderRadius: '12px', padding: '20px 24px', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '24px' }}>
+      <div style={{ background: '#fff', border: '1px solid #EAECF0', borderRadius: '10px', padding: '20px 24px', marginBottom: '13px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '19px' }}>
         <div>
-          <div style={{ fontSize: '15px', fontWeight: 700, color: '#101828', marginBottom: '3px' }}>Partial Payment</div>
-          <div style={{ fontSize: '13px', color: '#667085' }}>
+          <div style={{ fontSize: '12px', fontWeight: 700, color: '#101828', marginBottom: '3px' }}>Partial Payment</div>
+          <div style={{ fontSize: '10px', color: '#667085' }}>
             {enabled
               ? 'Customers can pay a portion now and the balance before dispatch.'
               : 'Partial payment is hidden — customers must pay in full or choose COD.'}
@@ -84,8 +84,8 @@ const PaymentSettings = () => {
           aria-checked={enabled}
           style={{
             flexShrink: 0,
-            width: '48px', height: '26px',
-            borderRadius: '13px',
+            width: '38px', height: '21px',
+            borderRadius: '10px',
             border: 'none',
             background: enabled ? '#68408D' : '#D0D5DD',
             cursor: 'pointer',
@@ -97,8 +97,8 @@ const PaymentSettings = () => {
           <span style={{
             position: 'absolute',
             top: '3px',
-            left: enabled ? '25px' : '3px',
-            width: '20px', height: '20px',
+            left: enabled ? '20px' : '3px',
+            width: '16px', height: '16px',
             borderRadius: '50%',
             background: '#fff',
             boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
@@ -109,18 +109,18 @@ const PaymentSettings = () => {
 
       {/* Split config card — greyed out when disabled */}
       <div style={{
-        background: '#fff', border: '1px solid #EAECF0', borderRadius: '12px', padding: '24px', marginBottom: '20px',
+        background: '#fff', border: '1px solid #EAECF0', borderRadius: '10px', padding: '19px', marginBottom: '16px',
         opacity: enabled ? 1 : 0.45,
         pointerEvents: enabled ? 'auto' : 'none',
         transition: 'opacity 0.2s',
       }}>
-        <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#101828', margin: '0 0 4px' }}>Upfront Payment Percentage</h2>
-        <p style={{ fontSize: '13px', color: '#667085', margin: '0 0 20px' }}>
+        <h2 style={{ fontSize: '12px', fontWeight: 700, color: '#101828', margin: '0 0 4px' }}>Upfront Payment Percentage</h2>
+        <p style={{ fontSize: '10px', color: '#667085', margin: '0 0 20px' }}>
           The percentage of the order total charged immediately. The rest is collected before dispatch.
         </p>
 
-        <div style={{ marginBottom: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <div style={{ marginBottom: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '13px' }}>
             <input
               type="range"
               min={10}
@@ -131,7 +131,7 @@ const PaymentSettings = () => {
               onChange={e => setPct(Number(e.target.value))}
               style={{ flex: 1, accentColor: '#68408D', cursor: enabled ? 'pointer' : 'not-allowed' }}
             />
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: '80px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '3px', minWidth: '64px' }}>
               <input
                 type="number"
                 min={1}
@@ -140,53 +140,53 @@ const PaymentSettings = () => {
                 disabled={!enabled}
                 onChange={e => setPct(Number(e.target.value))}
                 style={{
-                  width: '60px', padding: '8px 10px', border: '1px solid #D0D5DD',
-                  borderRadius: '8px', fontSize: '15px', fontWeight: 700,
+                  width: '48px', padding: '8px 10px', border: '1px solid #D0D5DD',
+                  borderRadius: '6px', fontSize: '12px', fontWeight: 700,
                   color: '#101828', textAlign: 'center', fontFamily: 'inherit',
                   background: enabled ? '#fff' : '#F9FAFB',
                 }}
               />
-              <span style={{ fontSize: '15px', fontWeight: 700, color: '#101828' }}>%</span>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#101828' }}>%</span>
             </div>
           </div>
           <span style={field.hint}>Slider: 10–90% in 5% steps. Or type any whole number 1–99.</span>
         </div>
 
         {/* Live preview */}
-        <div style={{ background: '#F9FAFB', border: '1px solid #EAECF0', borderRadius: '10px', padding: '16px' }}>
-          <div style={{ fontSize: '12px', fontWeight: 600, color: '#667085', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px' }}>
+        <div style={{ background: '#F9FAFB', border: '1px solid #EAECF0', borderRadius: '8px', padding: '13px' }}>
+          <div style={{ fontSize: '10px', fontWeight: 600, color: '#667085', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px' }}>
             Preview — ₹{exampleTotal.toLocaleString('en-IN')} order
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            <div style={{ background: '#fff', border: '1px solid #D0D5DD', borderRadius: '8px', padding: '12px' }}>
-              <div style={{ fontSize: '11px', color: '#667085', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            <div style={{ background: '#fff', border: '1px solid #D0D5DD', borderRadius: '6px', padding: '10px' }}>
+              <div style={{ fontSize: '9px', color: '#667085', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 Pay Now ({pct}%)
               </div>
-              <div style={{ fontSize: '22px', fontWeight: 700, color: '#68408D' }}>
+              <div style={{ fontSize: '18px', fontWeight: 700, color: '#68408D' }}>
                 ₹{phase1.toLocaleString('en-IN')}
               </div>
-              <div style={{ fontSize: '12px', color: '#667085', marginTop: '2px' }}>Charged via Razorpay today</div>
+              <div style={{ fontSize: '10px', color: '#667085', marginTop: '2px' }}>Charged via Razorpay today</div>
             </div>
-            <div style={{ background: '#fff', border: '1px solid #D0D5DD', borderRadius: '8px', padding: '12px' }}>
-              <div style={{ fontSize: '11px', color: '#667085', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <div style={{ background: '#fff', border: '1px solid #D0D5DD', borderRadius: '6px', padding: '10px' }}>
+              <div style={{ fontSize: '9px', color: '#667085', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 Balance ({100 - pct}%)
               </div>
-              <div style={{ fontSize: '22px', fontWeight: 700, color: '#344054' }}>
+              <div style={{ fontSize: '18px', fontWeight: 700, color: '#344054' }}>
                 ₹{phase2.toLocaleString('en-IN')}
               </div>
-              <div style={{ fontSize: '12px', color: '#667085', marginTop: '2px' }}>Collected before dispatch</div>
+              <div style={{ fontSize: '10px', color: '#667085', marginTop: '2px' }}>Collected before dispatch</div>
             </div>
           </div>
         </div>
       </div>
 
       {error && (
-        <div style={{ background: '#FEF3F2', border: '1px solid #FECDCA', borderRadius: '8px', padding: '12px 16px', color: '#B42318', fontSize: '13px', marginBottom: '16px' }}>
+        <div style={{ background: '#FEF3F2', border: '1px solid #FECDCA', borderRadius: '6px', padding: '12px 16px', color: '#B42318', fontSize: '10px', marginBottom: '13px' }}>
           {error}
         </div>
       )}
       {saved && (
-        <div style={{ background: '#ECFDF3', border: '1px solid #ABEFC6', borderRadius: '8px', padding: '12px 16px', color: '#067647', fontSize: '13px', marginBottom: '16px' }}>
+        <div style={{ background: '#ECFDF3', border: '1px solid #ABEFC6', borderRadius: '6px', padding: '12px 16px', color: '#067647', fontSize: '10px', marginBottom: '13px' }}>
           Settings saved successfully.
         </div>
       )}
@@ -195,10 +195,10 @@ const PaymentSettings = () => {
         onClick={handleSave}
         disabled={saving}
         style={{
-          display: 'flex', alignItems: 'center', gap: '8px',
+          display: 'flex', alignItems: 'center', gap: '6px',
           background: saving ? '#D0D5DD' : '#68408D', color: '#fff',
-          border: 'none', borderRadius: '8px', padding: '10px 20px',
-          fontSize: '14px', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer',
+          border: 'none', borderRadius: '6px', padding: '10px 20px',
+          fontSize: '11px', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer',
         }}
       >
         <Save size={16} />

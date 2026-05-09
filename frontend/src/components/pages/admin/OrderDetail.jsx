@@ -155,9 +155,9 @@ const OrderDetail = ({ orderId, onBack }) => {
       }
     }
     if (qcOutcome === 'pass') {
-      await handleStatusUpdate('Ready for Dispatch');
+      await handleStatusUpdate(8);
     } else {
-      await handleStatusUpdate('Confirmed');
+      await handleStatusUpdate(4);
     }
     setQcModalOpen(false);
     setQcImageFile(null);
@@ -202,7 +202,7 @@ const OrderDetail = ({ orderId, onBack }) => {
       await apiClient.post(`/sales/orders/${orderId}/update_tracking/`, trackingPayload);
       setTracking(prev => ({ ...prev, ...trackingPayload }));
       setEtaMinutes(parseEtaMinutes(dispatchForm.eta));
-      await handleStatusUpdate('In Transit');
+      await handleStatusUpdate(9);
       setDispatchModalOpen(false);
       setDispatchForm({ booking_id: '', rider_name: '', rider_phone: '', vehicle_type: 'Bike', eta: '' });
     } catch (err) {
@@ -214,7 +214,7 @@ const OrderDetail = ({ orderId, onBack }) => {
 
 
   if (loading || fetchError || !order) return (
-    <div style={{ padding: '32px' }}>
+    <div style={{ padding: '26px' }}>
       <AdminLoadingState
         loading={loading}
         error={fetchError || (!loading && !order) ? true : false}
@@ -375,7 +375,7 @@ const OrderDetail = ({ orderId, onBack }) => {
       <div className="order-detail-inner">
 
         {/* Breadcrumb */}
-        <div className="breadcrumb-container" style={{ marginBottom: '20px' }}>
+        <div className="breadcrumb-container" style={{ marginBottom: '16px' }}>
           <span className="breadcrumb-item" onClick={onBack} style={{ cursor: 'pointer' }}>
             Order
           </span>

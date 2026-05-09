@@ -88,7 +88,7 @@ const ProductTable = () => {
   const renderRow = (p, idx) => (
     <tr key={p.id || idx} style={{ borderBottom: '1px solid #EAECF0', backgroundColor: '#fff' }}>
       <td style={{ padding: '16px 24px' }}>
-        <input type="checkbox" style={{ cursor: 'pointer', borderRadius: '4px', accentColor: '#7F56D9' }} />
+        <input type="checkbox" style={{ cursor: 'pointer', borderRadius: '3px', accentColor: '#7F56D9' }} />
       </td>
       <td style={{ padding: '16px 24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -98,26 +98,26 @@ const ProductTable = () => {
               : <Package size={24} color="#D0D5DD" />}
           </div>
           <div>
-            <div style={{ fontWeight: 700, color: '#101828', fontSize: '14px' }}>{p.title}</div>
-            <div style={{ fontSize: '12px', color: '#667085' }}>SKU: PRD-{p.id} {p.is_featured && <span style={{ color: '#FDB022' }}>★</span>}</div>
+            <div style={{ fontWeight: 700, color: '#101828', fontSize: '11px' }}>{p.title}</div>
+            <div style={{ fontSize: '10px', color: '#667085' }}>SKU: PRD-{p.id} {p.is_featured && <span style={{ color: '#FDB022' }}>★</span>}</div>
           </div>
         </div>
       </td>
       <td style={{ padding: '16px 24px' }}>
-        <span style={{ backgroundColor: '#F2F4F7', color: '#344054', padding: '4px 10px', borderRadius: '16px', fontSize: '12px', fontWeight: 600 }}>
+        <span style={{ backgroundColor: '#F2F4F7', color: '#344054', padding: '4px 10px', borderRadius: '13px', fontSize: '10px', fontWeight: 600 }}>
           {p.category_name || 'Sunglasses'}
         </span>
       </td>
       <td style={{ padding: '16px 24px' }}>
-        <span style={{ fontWeight: 600, color: '#475467', fontSize: '14px' }}>{p.brand_name || 'Ray-Ban'}</span>
+        <span style={{ fontWeight: 600, color: '#475467', fontSize: '11px' }}>{p.brand_name || 'Ray-Ban'}</span>
       </td>
       <td style={{ padding: '16px 24px' }}>
-        <div style={{ color: '#7F56D9', fontWeight: 700, fontSize: '14px' }}>₹{Number(p.base_price || 0).toLocaleString('en-IN')}</div>
+        <div style={{ color: '#7F56D9', fontWeight: 700, fontSize: '11px' }}>₹{Number(p.base_price || 0).toLocaleString('en-IN')}</div>
       </td>
       <td style={{ padding: '16px 24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
            <div style={{ width: 8, height: 8, borderRadius: '50%', background: p.is_active ? '#12B76A' : '#D0D5DD' }}></div>
-           <span style={{ fontSize: '14px', fontWeight: 600, color: p.is_active ? '#027A48' : '#344054' }}>
+           <span style={{ fontSize: '11px', fontWeight: 600, color: p.is_active ? '#027A48' : '#344054' }}>
              {p.is_active ? 'Published' : 'Draft'}
            </span>
         </div>
@@ -126,14 +126,14 @@ const ProductTable = () => {
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
           <div
             onClick={() => handleEditClick(p)}
-            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
             title="Edit Specifications"
           >
             <Edit2 size={16} />
           </div>
           <div
             onClick={() => handleDeleteClick(p.id)}
-            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
             title="Delete Product"
           >
             <Trash2 size={16} />
@@ -165,8 +165,8 @@ const ProductTable = () => {
       showFilters={showFilters}
       setShowFilters={setShowFilters}
       filterContent={
-        <div style={{ display: 'flex', gap: '16px' }}>
-           <div style={{ fontSize: '14px', color: '#667085' }}>No active filters available for catalog.</div>
+        <div style={{ display: 'flex', gap: '13px' }}>
+           <div style={{ fontSize: '11px', color: '#667085' }}>No active filters available for catalog.</div>
         </div>
       }
     />
