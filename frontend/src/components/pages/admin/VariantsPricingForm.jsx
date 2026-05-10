@@ -13,6 +13,7 @@ import '../../../styles/variants_pricing.css';
 const EMPTY_VARIANT = () => ({
   id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
   expanded: true,
+  sku: '',
   colorName: '',
   quantity: 0,
   colorMethod: 'code',
@@ -23,9 +24,18 @@ const EMPTY_VARIANT = () => ({
   cost_price: '',
   discount_percentage: '',
   images: [],
+  meta_title: '',
+  meta_description: '',
+  meta_auto: true,
 });
 
-const VariantsPricingForm = ({ formData, onFormDataChange, saving, errors = {}, onVariantRemoved, onImageRemoved }) => {
+const VariantsPricingForm = ({ formData, onFormDataChange, saving, errors = {}, onVariantRemoved, onImageRemoved, globalTemplates }) => {
+  const resolveTemplate = (tpl, variantName) => (tpl || '')
+    .replace(/{product_name}/g, formData.title || '')
+    .replace(/{variant_name}/g, variantName || 'Variant Name')
+    .replace(/{store_name}/g, globalTemplates?.store_name || 'SPECSIT')
+    .replace(/{brand}/g, '')
+    .replace(/{category}/g, '');
   // expanded state is purely local UI — doesn't need to live in parent
   const [expandedIds, setExpandedIds] = useState(() => {
     const ids = {};
@@ -175,6 +185,20 @@ const VariantsPricingForm = ({ formData, onFormDataChange, saving, errors = {}, 
                         <Trash2 size={16} /> Remove Variant
                       </button>
                     )}
+                  </div>
+
+                  <div className="form-field">
+                    <label className="form-field-label">SKU <span className="required-star">*</span></label>
+                    <input
+                      type="text"
+                      className="form-field-input"
+                      placeholder=""
+                      value={v.sku || ''}
+                      onChange={(e) => updateVariant(v.id, 'sku', e.target.value)}
+                    />
+                    <span style={{ fontSize: 11, color: '#9ca3af', marginTop: 2, display: 'block' }}>
+                      Unique identifier for this variant — used in orders and inventory.
+                    </span>
                   </div>
 
                   <div className="vp-row">
@@ -415,6 +439,80 @@ const VariantsPricingForm = ({ formData, onFormDataChange, saving, errors = {}, 
                         </div>
                       </div>
                     )}
+                  </div>
+
+                  {/* ── Meta Tags ── */}
+                  <div style={{ marginTop: '20px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                      <span style={{ fontSize: '13px', fontWeight: 600, color: '#101828' }}>Meta Tags</span>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button
+                          type="button"
+                          onClick={() => updateVariant(v.id, 'meta_auto', true)}
+                          style={{
+                            padding: '5px 14px', borderRadius: '6px', fontSize: '11px', fontWeight: 500,
+                            cursor: 'pointer', transition: 'all 0.15s',
+                            border: v.meta_auto !== false ? '1.5px solid #344054' : '1.5px solid #D0D5DD',
+                            background: v.meta_auto !== false ? '#fff' : '#fff',
+                            color: v.meta_auto !== false ? '#344054' : '#98A2B3',
+                          }}
+                        >
+                          pre-defined
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => updateVariant(v.id, 'meta_auto', false)}
+                          style={{
+                            padding: '5px 14px', borderRadius: '6px', fontSize: '11px', fontWeight: 500,
+                            cursor: 'pointer', transition: 'all 0.15s',
+                            border: v.meta_auto === false ? '1.5px solid #344054' : '1.5px solid #D0D5DD',
+                            background: '#fff',
+                            color: v.meta_auto === false ? '#344054' : '#98A2B3',
+                          }}
+                        >
+                          edit
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="form-field">
+                      <label className="form-field-label">Meta Title</label>
+                      {v.meta_auto !== false ? (
+                        <input
+                          readOnly
+                          className="form-field-input"
+                          style={{ color: '#697177', cursor: 'default', background: '#F9FAFB' }}
+                          value={resolveTemplate(globalTemplates?.meta_title_template || '{product_name} | {variant_name} | {store_name}', v.colorName)}
+                        />
+                      ) : (
+                        <input
+                          type="text"
+                          className="form-field-input"
+                          placeholder={resolveTemplate(globalTemplates?.meta_title_template || '{product_name} | {variant_name} | {store_name}', v.colorName)}
+                          value={v.meta_title || ''}
+                          onChange={(e) => updateVariant(v.id, 'meta_title', e.target.value)}
+                        />
+                      )}
+                    </div>
+
+                    <div className="form-field">
+                      <label className="form-field-label">Meta Description</label>
+                      {v.meta_auto !== false ? (
+                        <textarea
+                          readOnly
+                          className="form-field-textarea"
+                          style={{ color: '#697177', cursor: 'default', background: '#F9FAFB' }}
+                          value={resolveTemplate(globalTemplates?.meta_description_template || 'Buy {product_name} in {variant_name} at {store_name}. Shop premium eyewear online.', v.colorName)}
+                        />
+                      ) : (
+                        <textarea
+                          className="form-field-textarea"
+                          placeholder={resolveTemplate(globalTemplates?.meta_description_template || 'Buy {product_name} in {variant_name} at {store_name}. Shop premium eyewear online.', v.colorName)}
+                          value={v.meta_description || ''}
+                          onChange={(e) => updateVariant(v.id, 'meta_description', e.target.value)}
+                        />
+                      )}
+                    </div>
                   </div>
                 </div>
               )}

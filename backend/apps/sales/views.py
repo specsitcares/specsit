@@ -6,12 +6,13 @@ from django.db.models import Sum, Count, Q
 from django.utils import timezone
 import time
 from datetime import timedelta, datetime
-from .models import Order, OrderItem, Cart, Wishlist, Coupon, Shipment, LiveSession, OrderTracking, Payment
+from .models import Order, OrderItem, Cart, Wishlist, Coupon, Shipment, LiveSession, OrderTracking, Payment, ReturnRequest, WarrantyClaim
 from apps.catalog.models import Prescription, Variant
 from .serializers import (
     OrderSerializer, OrderItemSerializer, CartSerializer,
     WishlistSerializer, CouponSerializer, ShipmentSerializer,
     OrderTrackingSerializer, PaymentSerializer,
+    ReturnRequestSerializer, WarrantyClaimSerializer,
 )
 
 import csv
@@ -39,31 +40,36 @@ class OrderViewSet(viewsets.ModelViewSet):
             'items', 'items__variant', 'items__variant__product',
             'items__prescription', 'items__prescription__status',
             'items__lens',
-            'tracking', 'payments'
+            'tracking', 'payments',
+            'return_requests', 'warranty_claims',
         )
-        
+
         if not self.request.user.is_staff:
             return qs.filter(user=self.request.user).order_by('-created_at')
 
-        # Hide online-payment orders that haven't been paid yet — admin should
-        # never see or process an order before money is confirmed received.
-        # COD orders are excluded from this filter since their payment is always
-        # pending until delivery.
-        qs = qs.exclude(
-            payment_method__in=['complete_online', 'partial_payment'],
-            payment_status='pending',
-        )
-
-        # View Presets (Return/Warranty Window) - Auto applied from sidebar
+        # View Presets — filter by delivery_date (not created_at) so the window
+        # starts from when the customer actually received the order.
         view_preset = self.request.query_params.get('view_preset')
         if view_preset == 'returns':
-            # Logic: Orders within 10 days window
             ten_days_ago = timezone.now() - timedelta(days=10)
-            qs = qs.filter(created_at__gte=ten_days_ago)
+            qs = qs.filter(order_status='delivered', delivery_date__gte=ten_days_ago)
+            # Sub-tab filtering
+            return_tab = self.request.query_params.get('return_tab')
+            if return_tab == 'requests':
+                qs = qs.filter(return_requests__isnull=False).distinct()
+            elif return_tab == 'refund':
+                qs = qs.filter(return_requests__request_type='refund').distinct()
+            elif return_tab == 'replacement':
+                qs = qs.filter(return_requests__request_type='replacement').distinct()
         elif view_preset == 'warranty':
-            # Logic: Orders within 1 year window
             one_year_ago = timezone.now() - timedelta(days=365)
-            qs = qs.filter(created_at__gte=one_year_ago)
+            qs = qs.filter(order_status='delivered', delivery_date__gte=one_year_ago)
+            # Sub-tab filtering
+            warranty_tab = self.request.query_params.get('warranty_tab')
+            if warranty_tab == 'requests_received' or warranty_tab == 'claimed':
+                qs = qs.filter(warranty_claims__isnull=False).distinct()
+            elif warranty_tab == 'not_claimed':
+                qs = qs.filter(warranty_claims__isnull=True)
 
         # Manual Filtering for Admins
         status_id = self.request.query_params.get('status')
@@ -128,22 +134,17 @@ class OrderViewSet(viewsets.ModelViewSet):
 
         # 1. Base Queryset — mirrors get_queryset() so analytics match the table exactly
         qs = Order.objects.all()
-        if request.user.is_staff:
-            qs = qs.exclude(
-                payment_method__in=['complete_online', 'partial_payment'],
-                payment_status='pending',
-            )
-        else:
+        if not request.user.is_staff:
             qs = qs.filter(user=request.user)
 
         # View Presets
         view_preset = request.query_params.get('view_preset')
         if view_preset == 'returns':
             ten_days_ago = timezone.now() - timedelta(days=10)
-            qs = qs.filter(created_at__gte=ten_days_ago)
+            qs = qs.filter(order_status='delivered', delivery_date__gte=ten_days_ago)
         elif view_preset == 'warranty':
             one_year_ago = timezone.now() - timedelta(days=365)
-            qs = qs.filter(created_at__gte=one_year_ago)
+            qs = qs.filter(order_status='delivered', delivery_date__gte=one_year_ago)
             
         # On-page Search
         search = request.query_params.get('search')
@@ -209,14 +210,41 @@ class OrderViewSet(viewsets.ModelViewSet):
             'shipped': calc_delta(curr_metrics['shipped'], prev_metrics['shipped']),
         }
 
-        return Response({
+        response_data = {
             'total': total_count,
             'pending': pending_count,
             'processing': processing_count,
             'shipped': shipped_count,
             'trends': trends,
-            'trendPeriod': 'last period'
-        })
+            'trendPeriod': 'last period',
+        }
+
+        if view_preset == 'returns':
+            order_ids = list(qs.values_list('id', flat=True))
+            return_qs = ReturnRequest.objects.filter(order_id__in=order_ids)
+            refund_qs = return_qs.filter(request_type='refund')
+            replacement_qs = return_qs.filter(request_type='replacement')
+            total_refund = refund_qs.filter(status='refunded').aggregate(
+                total=Sum('refund_amount')
+            )['total'] or 0
+            response_data.update({
+                'return_requests_count': return_qs.values('order_id').distinct().count(),
+                'refund_count': refund_qs.values('order_id').distinct().count(),
+                'replacement_count': replacement_qs.values('order_id').distinct().count(),
+                'total_refund_amount': float(total_refund),
+            })
+        elif view_preset == 'warranty':
+            order_ids = list(qs.values_list('id', flat=True))
+            claim_qs = WarrantyClaim.objects.filter(order_id__in=order_ids)
+            claimed_count = claim_qs.values('order_id').distinct().count()
+            in_service_count = claim_qs.filter(status='in_service').count()
+            response_data.update({
+                'warranty_claimed_count': claimed_count,
+                'warranty_unclaimed_count': len(order_ids) - claimed_count,
+                'warranty_service_pending_count': in_service_count,
+            })
+
+        return Response(response_data)
 
     def perform_create(self, serializer):
         from django.db import transaction
@@ -683,6 +711,28 @@ class PaymentViewSet(viewsets.ModelViewSet):
         if order_id:
             qs = qs.filter(order_id=order_id)
         return qs
+
+class ReturnRequestViewSet(viewsets.ModelViewSet):
+    serializer_class = ReturnRequestSerializer
+    permission_classes = [permissions.IsAdminUser]
+
+    def get_queryset(self):
+        qs = ReturnRequest.objects.select_related('order').all()
+        order_id = self.request.query_params.get('order')
+        if order_id:
+            qs = qs.filter(order_id=order_id)
+        return qs.order_by('-created_at')
+
+class WarrantyClaimViewSet(viewsets.ModelViewSet):
+    serializer_class = WarrantyClaimSerializer
+    permission_classes = [permissions.IsAdminUser]
+
+    def get_queryset(self):
+        qs = WarrantyClaim.objects.select_related('order').all()
+        order_id = self.request.query_params.get('order')
+        if order_id:
+            qs = qs.filter(order_id=order_id)
+        return qs.order_by('-created_at')
 
 class AdminDashboardStatsView(views.APIView):
     permission_classes = [permissions.IsAdminUser]

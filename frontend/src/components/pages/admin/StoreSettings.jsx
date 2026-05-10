@@ -19,6 +19,7 @@ const field = {
 
 const PLACEHOLDERS = [
   { token: '{product_name}', desc: 'Full product title' },
+  { token: '{variant_name}', desc: 'Color / variant name' },
   { token: '{brand}',        desc: 'Brand / manufacturer name' },
   { token: '{category}',     desc: 'Product category' },
   { token: '{store_name}',   desc: 'Your store name' },
@@ -27,6 +28,7 @@ const PLACEHOLDERS = [
 const resolve = (template, preview) =>
   template
     .replace(/{product_name}/g, preview.product_name)
+    .replace(/{variant_name}/g, preview.variant_name)
     .replace(/{brand}/g,        preview.brand)
     .replace(/{category}/g,     preview.category)
     .replace(/{store_name}/g,   preview.store_name);
@@ -39,6 +41,7 @@ const StoreSettings = () => {
   });
   const [preview, setPreview] = useState({
     product_name: 'Ray-Ban Aviator Classic',
+    variant_name: 'Matte Black',
     brand: 'Ray-Ban',
     category: 'Sunglasses',
     store_name: '',
@@ -125,9 +128,8 @@ const StoreSettings = () => {
       <div style={{ background: '#fff', border: '1px solid #EAECF0', borderRadius: '10px', padding: '19px', marginBottom: '16px' }}>
         <h2 style={{ fontSize: '12px', fontWeight: 700, color: '#101828', margin: '0 0 4px' }}>SEO Meta Templates</h2>
         <p style={{ fontSize: '10px', color: '#667085', margin: '0 0 4px' }}>
-          These are the default <code style={{ background: '#F2F4F7', padding: '1px 5px', borderRadius: '3px' }}>&lt;title&gt;</code> and{' '}
-          <code style={{ background: '#F2F4F7', padding: '1px 5px', borderRadius: '3px' }}>&lt;meta description&gt;</code> applied to every product
-          that has "Use global template" enabled on its product form.
+          These templates define the <strong>pre-defined</strong> meta title and description shown on each variant's SEO section in the product form.
+          Use placeholders to personalise the output per variant.
         </p>
 
         {/* Placeholder guide */}
@@ -176,9 +178,10 @@ const StoreSettings = () => {
         </div>
 
         {/* Preview product inputs */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '13px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px', marginBottom: '13px' }}>
           {[
             { key: 'product_name', label: 'Product Name' },
+            { key: 'variant_name', label: 'Variant Name' },
             { key: 'brand',        label: 'Brand' },
             { key: 'category',     label: 'Category' },
           ].map(({ key, label }) => (

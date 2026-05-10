@@ -29,18 +29,22 @@ const Section = ({ title, children }) => (
 const ReviewSubmit = ({
   formData, categories, brands,
   confirmed, setConfirmed, errors,
-  useMetaTemplate, globalTemplates, resolveMetaTemplate,
 }) => {
   const getCategoryName = (id) => categories.find(c => c.id?.toString() === id?.toString())?.name || '—';
   const getBrandName    = (id) => brands.find(b => b.id?.toString() === id?.toString())?.name || '—';
 
-  const metaTitle = useMetaTemplate
-    ? resolveMetaTemplate?.(globalTemplates?.meta_title_template || '')
-    : formData.meta_title;
-
-  const metaDescription = useMetaTemplate
-    ? resolveMetaTemplate?.(globalTemplates?.meta_description_template || '')
-    : formData.meta_description;
+  const getResolvedMeta = (v) => {
+    if (v.meta_auto !== false) {
+      return {
+        title: `${formData.title || '—'} | ${v.colorName || 'Default'} | SPECSIT`,
+        description: `Buy ${formData.title || '—'} in ${v.colorName || 'Default'} at Specsit. Shop premium eyewear online.`,
+      };
+    }
+    return {
+      title: v.meta_title?.trim() || `${formData.title || '—'} | ${v.colorName || 'Default'} | SPECSIT`,
+      description: v.meta_description?.trim() || `Buy ${formData.title || '—'} in ${v.colorName || 'Default'} at Specsit. Shop premium eyewear online.`,
+    };
+  };
 
   return (
     <div style={{ fontFamily: 'Inter, sans-serif', padding: '0 8px' }}>
@@ -55,27 +59,34 @@ const ReviewSubmit = ({
         </div>
       </Section>
 
-      {/* ── Meta Tags ── */}
+      {/* ── Meta Tags (per variant) ── */}
       <Section title="Meta Tags (SEO)">
-        <div style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{
-            fontSize: '9px', fontWeight: 600, padding: '2px 8px', borderRadius: '10px',
-            background: useMetaTemplate ? '#F9F5FF' : '#F2F4F7',
-            color: useMetaTemplate ? '#6941C6' : '#344054',
-          }}>
-            {useMetaTemplate ? 'Global template' : 'Custom'}
-          </span>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '11px' }}>
-          <div>
-            <div style={S.label}>Meta Title</div>
-            <div style={{ ...S.value, fontSize: '10px' }}>{metaTitle || na}</div>
-          </div>
-          <div>
-            <div style={S.label}>Meta Description</div>
-            <div style={{ ...S.value, fontSize: '10px', lineHeight: 1.6 }}>{metaDescription || na}</div>
-          </div>
-        </div>
+        {(formData.variants || []).map((v, i) => {
+          const meta = getResolvedMeta(v);
+          return (
+            <div key={v.id || i} style={{ marginBottom: i < formData.variants.length - 1 ? '14px' : 0 }}>
+              <div style={{ fontSize: '9px', fontWeight: 600, color: '#667085', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div style={{ width: 10, height: 10, borderRadius: '50%', background: v.colorCode || '#D0D5DD', border: '1px solid #E4E7EC', flexShrink: 0 }} />
+                {v.colorName || `Variant ${i + 1}`}
+                {!v.meta_title?.trim() && (
+                  <span style={{ fontSize: '8px', fontWeight: 600, padding: '1px 6px', borderRadius: '8px', background: '#F2F4F7', color: '#667085' }}>
+                    auto
+                  </span>
+                )}
+              </div>
+              <div style={{ paddingLeft: '16px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div>
+                  <div style={S.label}>Meta Title</div>
+                  <div style={{ ...S.value, fontSize: '10px' }}>{meta.title}</div>
+                </div>
+                <div>
+                  <div style={S.label}>Meta Description</div>
+                  <div style={{ ...S.value, fontSize: '10px', lineHeight: 1.6 }}>{meta.description}</div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </Section>
 
       {/* ── Technical Specifications ── */}

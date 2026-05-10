@@ -20,6 +20,8 @@ class PaymentSettingsView(APIView):
     def get(self, request):
         config = PaymentGatewayConfig.objects.filter(name='razorpay', is_active=True).first()
         return Response({
+            'cod_enabled': config.cod_enabled if config else True,
+            'online_payment_enabled': config.online_payment_enabled if config else True,
             'partial_payment_enabled': config.partial_payment_enabled if config else True,
             'partial_payment_percentage': config.partial_payment_percentage if config else 50,
         })
@@ -33,12 +35,18 @@ class PaymentSettingsView(APIView):
                 raise ValueError
         except (ValueError, TypeError):
             return Response({'error': 'Percentage must be an integer between 1 and 99.'}, status=status.HTTP_400_BAD_REQUEST)
-        enabled = bool(request.data.get('partial_payment_enabled', True))
+        cod_enabled = bool(request.data.get('cod_enabled', True))
+        online_payment_enabled = bool(request.data.get('online_payment_enabled', True))
+        partial_enabled = bool(request.data.get('partial_payment_enabled', True))
         config, _ = PaymentGatewayConfig.objects.get_or_create(name='razorpay')
-        config.partial_payment_enabled = enabled
+        config.cod_enabled = cod_enabled
+        config.online_payment_enabled = online_payment_enabled
+        config.partial_payment_enabled = partial_enabled
         config.partial_payment_percentage = pct
-        config.save(update_fields=['partial_payment_enabled', 'partial_payment_percentage'])
+        config.save(update_fields=['cod_enabled', 'online_payment_enabled', 'partial_payment_enabled', 'partial_payment_percentage'])
         return Response({
+            'cod_enabled': config.cod_enabled,
+            'online_payment_enabled': config.online_payment_enabled,
             'partial_payment_enabled': config.partial_payment_enabled,
             'partial_payment_percentage': config.partial_payment_percentage,
         })

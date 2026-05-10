@@ -67,7 +67,9 @@ const OrderTable = ({ category = null, onViewDetails }) => {
           search: searchQuery,
           status: statusFilter,
           date_from: dateFilter.from,
-          date_to: dateFilter.to
+          date_to: dateFilter.to,
+          ...(category === 'returns' ? { return_tab: activeReturnTab } : {}),
+          ...(category === 'warranty' ? { warranty_tab: activeWarrantyTab } : {}),
         }
       });
       setOrderAnalytics(res.data);
@@ -117,7 +119,9 @@ const OrderTable = ({ category = null, onViewDetails }) => {
           search: searchQuery,
           status: statusFilter,
           date_from: dateFilter.from,
-          date_to: dateFilter.to
+          date_to: dateFilter.to,
+          ...(category === 'returns' ? { return_tab: activeReturnTab } : {}),
+          ...(category === 'warranty' ? { warranty_tab: activeWarrantyTab } : {}),
         }
       });
       const data = res.data;
@@ -141,14 +145,8 @@ const OrderTable = ({ category = null, onViewDetails }) => {
     setExpandedRows(prev => prev.includes(id) ? prev.filter(r => r !== id) : [...prev, id]);
 
   const handleEdit = (o) => {
-    if (category === 'returns') {
-      alert(`Opening Return Management for Order #LO-${String(o.id).padStart(7, '0')}`);
-      // Place for return specialized logic
-      return;
-    }
-    if (category === 'warranty') {
-      alert(`Opening Warranty Verification for Order #LO-${String(o.id).padStart(7, '0')}`);
-      // Place for warranty specialized logic
+    if (category === 'returns' || category === 'warranty') {
+      onViewDetails(o.id);
       return;
     }
     setSelectedOrder(o);
@@ -281,15 +279,15 @@ const OrderTable = ({ category = null, onViewDetails }) => {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '26px' }}>
         {(category === 'returns' ? [
           { title: 'Items in Return Window', value: orderAnalytics?.total ?? 0, trendValue: Math.abs(orderAnalytics?.trends?.total || 0), trend: (orderAnalytics?.trends?.total >= 0) ? 'up' : 'down', icon: <Package size={16} /> },
-          { title: 'Total Return Requests', value: orderAnalytics?.pending ?? 0, trendValue: Math.abs(orderAnalytics?.trends?.pending || 0), trend: (orderAnalytics?.trends?.pending >= 0) ? 'up' : 'down', icon: <Clock size={16} /> },
-          { title: 'Returns for Refund', value: orderAnalytics?.processing ?? 0, trendValue: Math.abs(orderAnalytics?.trends?.processing || 0), trend: (orderAnalytics?.trends?.processing >= 0) ? 'up' : 'down', icon: <CircleDollarSign size={16} /> },
-          { title: 'Returns for Replacement', value: 0, trendValue: 0, trend: 'up', icon: <RefreshCw size={16} /> },
-          { title: 'Total Refund Amount', value: `₹${((orderAnalytics?.processing || 0) * 1250).toLocaleString()}`, trendValue: 0, trend: 'up', icon: <Briefcase size={16} /> }
+          { title: 'Total Return Requests', value: orderAnalytics?.return_requests_count ?? 0, trendValue: 0, trend: 'up', icon: <Clock size={16} /> },
+          { title: 'Returns for Refund', value: orderAnalytics?.refund_count ?? 0, trendValue: 0, trend: 'up', icon: <CircleDollarSign size={16} /> },
+          { title: 'Returns for Replacement', value: orderAnalytics?.replacement_count ?? 0, trendValue: 0, trend: 'up', icon: <RefreshCw size={16} /> },
+          { title: 'Total Refund Amount', value: `₹${(orderAnalytics?.total_refund_amount || 0).toLocaleString('en-IN')}`, trendValue: 0, trend: 'up', icon: <Briefcase size={16} /> }
         ] : category === 'warranty' ? [
           { title: 'Total Warranty Window', value: orderAnalytics?.total ?? 0, trendValue: Math.abs(orderAnalytics?.trends?.total || 0), trend: (orderAnalytics?.trends?.total >= 0) ? 'up' : 'down', icon: <ShieldCheck size={16} /> },
-          { title: 'Warranty Claimed', value: 0, trendValue: 0, trend: 'up', icon: <Briefcase size={16} /> },
-          { title: 'Unclaimed Warranty', value: orderAnalytics?.total ?? 0, trendValue: Math.abs(orderAnalytics?.trends?.pending || 0), trend: 'down', icon: <Package size={16} /> },
-          { title: 'Service Pending', value: orderAnalytics?.processing ?? 0, trendValue: 5, trend: 'up', icon: <RefreshCw size={16} /> }
+          { title: 'Warranty Claimed', value: orderAnalytics?.warranty_claimed_count ?? 0, trendValue: 0, trend: 'up', icon: <Briefcase size={16} /> },
+          { title: 'Unclaimed Warranty', value: orderAnalytics?.warranty_unclaimed_count ?? 0, trendValue: 0, trend: 'down', icon: <Package size={16} /> },
+          { title: 'Service Pending', value: orderAnalytics?.warranty_service_pending_count ?? 0, trendValue: 0, trend: 'up', icon: <RefreshCw size={16} /> }
         ] : [
           { title: 'Total Orders', value: orderAnalytics?.total ?? 0, trendValue: Math.abs(orderAnalytics?.trends?.total || 0), trend: (orderAnalytics?.trends?.total >= 0) ? 'up' : 'down', icon: <Briefcase size={16} /> },
           { title: 'Pending', value: orderAnalytics?.pending ?? 0, trendValue: Math.abs(orderAnalytics?.trends?.pending || 0), trend: (orderAnalytics?.trends?.pending >= 0) ? 'up' : 'down', icon: <Clock size={16} /> },
@@ -640,50 +638,80 @@ const OrderTable = ({ category = null, onViewDetails }) => {
                     {/* Logic-Driven Granular Return Sub-tab Cells */}
                     {category === 'returns' ? (
                       <>
-                        {activeReturnTab === 'window' && (
-                          <>
-                            <td style={{ padding: '16px 24px' }}>
-                              <span style={{ backgroundColor: '#ECFDF3', color: '#027A48', padding: '4px 10px', borderRadius: '3px', fontSize: '10px', fontWeight: 600 }}>Active</span>
-                            </td>
-                            <td style={{ padding: '16px 24px', fontWeight: 700 }}>₹{Number(o.total_amount).toLocaleString('en-IN')}</td>
-                            <td style={{ padding: '16px 24px', color: '#667085' }}>{idx % 2 === 0 ? 'Defective' : 'Size Issue'}</td>
-                          </>
-                        )}
-                        {activeReturnTab === 'requests' && (
-                          <>
-                            <td style={{ padding: '16px 24px', color: '#667085' }}>{new Date(o.created_at).toLocaleDateString('en-GB')}</td>
-                            <td style={{ padding: '16px 24px', fontWeight: 600 }}>{idx % 2 === 0 ? 'Refund' : 'Replacement'}</td>
-                            <td style={{ padding: '16px 24px', color: '#667085' }}>4h 12m</td>
-                          </>
-                        )}
-                        {activeReturnTab === 'refund' && (
-                          <>
-                            <td style={{ padding: '16px 24px', color: '#667085' }}>{new Date(new Date(o.created_at).getTime() + 86400000).toLocaleDateString('en-GB')}</td>
-                            <td style={{ padding: '16px 24px', fontWeight: 700, color: '#12B76A' }}>₹{Number(o.total_amount).toLocaleString('en-IN')}</td>
-                            <td style={{ padding: '16px 24px' }}>
-                              <span style={{ backgroundColor: o.status_label === 'Refunded' ? '#ECFDF3' : '#FFFAEB', color: o.status_label === 'Refunded' ? '#027A48' : '#B54708', padding: '4px 10px', borderRadius: '3px', fontSize: '10px', fontWeight: 600 }}>
-                                {o.status_label === 'Refunded' ? 'Refunded' : 'Processing'}
+                        {activeReturnTab === 'window' && (() => {
+                          const rr = o.return_requests?.[0];
+                          return (
+                            <>
+                              <td style={{ padding: '16px 24px' }}>
+                                {rr ? (
+                                  <span style={{ backgroundColor: '#FFFAEB', color: '#B54708', padding: '4px 10px', borderRadius: '3px', fontSize: '10px', fontWeight: 600 }}>Requested</span>
+                                ) : (
+                                  <span style={{ backgroundColor: '#ECFDF3', color: '#027A48', padding: '4px 10px', borderRadius: '3px', fontSize: '10px', fontWeight: 600 }}>In Window</span>
+                                )}
+                              </td>
+                              <td style={{ padding: '16px 24px', fontWeight: 700 }}>₹{Number(o.total_amount).toLocaleString('en-IN')}</td>
+                              <td style={{ padding: '16px 24px', color: '#667085' }}>{rr ? rr.reason.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : '—'}</td>
+                            </>
+                          );
+                        })()}
+                        {activeReturnTab === 'requests' && (() => {
+                          const rr = o.return_requests?.[0];
+                          const waitMs = rr ? Date.now() - new Date(rr.created_at).getTime() : 0;
+                          const waitH = Math.floor(waitMs / 3600000);
+                          const waitM = Math.floor((waitMs % 3600000) / 60000);
+                          return (
+                            <>
+                              <td style={{ padding: '16px 24px', color: '#667085' }}>{rr ? new Date(rr.created_at).toLocaleDateString('en-GB') : '—'}</td>
+                              <td style={{ padding: '16px 24px', fontWeight: 600 }}>{rr ? (rr.request_type === 'refund' ? 'Refund' : 'Replacement') : '—'}</td>
+                              <td style={{ padding: '16px 24px', color: '#667085' }}>{rr ? `${waitH}h ${waitM}m` : '—'}</td>
+                            </>
+                          );
+                        })()}
+                        {activeReturnTab === 'refund' && (() => {
+                          const rr = o.return_requests?.find(r => r.request_type === 'refund');
+                          return (
+                            <>
+                              <td style={{ padding: '16px 24px', color: '#667085' }}>{rr?.refund_date ? new Date(rr.refund_date).toLocaleDateString('en-GB') : '—'}</td>
+                              <td style={{ padding: '16px 24px', fontWeight: 700, color: '#12B76A' }}>{rr?.refund_amount ? `₹${Number(rr.refund_amount).toLocaleString('en-IN')}` : '—'}</td>
+                              <td style={{ padding: '16px 24px' }}>
+                                {rr ? (
+                                  <span style={{ backgroundColor: rr.status === 'refunded' ? '#ECFDF3' : '#FFFAEB', color: rr.status === 'refunded' ? '#027A48' : '#B54708', padding: '4px 10px', borderRadius: '3px', fontSize: '10px', fontWeight: 600 }}>
+                                    {rr.status.charAt(0).toUpperCase() + rr.status.slice(1)}
+                                  </span>
+                                ) : '—'}
+                              </td>
+                            </>
+                          );
+                        })()}
+                        {activeReturnTab === 'replacement' && (() => {
+                          const rr = o.return_requests?.find(r => r.request_type === 'replacement');
+                          return (
+                            <>
+                              <td style={{ padding: '16px 24px', color: '#667085' }}>{rr ? new Date(rr.created_at).toLocaleDateString('en-GB') : '—'}</td>
+                              <td style={{ padding: '16px 24px', fontWeight: 600, color: '#7F56D9' }}>{rr?.replacement_sku || '—'}</td>
+                              <td style={{ padding: '16px 24px', color: '#667085', fontSize: '10px' }}>{rr?.replacement_tracking_id || '—'}</td>
+                            </>
+                          );
+                        })()}
+                      </>
+                    ) : category === 'warranty' ? (() => {
+                      const wc = o.warranty_claims?.[0];
+                      return (
+                        <>
+                          <td style={{ padding: '16px 24px' }}>
+                            {wc ? (
+                              <span style={{ backgroundColor: wc.status === 'completed' ? '#ECFDF3' : '#EFF8FF', color: wc.status === 'completed' ? '#027A48' : '#175CD3', padding: '4px 10px', borderRadius: '3px', fontSize: '10px', fontWeight: 600 }}>
+                                {wc.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
                               </span>
-                            </td>
-                          </>
-                        )}
-                        {activeReturnTab === 'replacement' && (
-                          <>
-                            <td style={{ padding: '16px 24px', color: '#667085' }}>{new Date(new Date(o.created_at).getTime() + 172800000).toLocaleDateString('en-GB')}</td>
-                            <td style={{ padding: '16px 24px', fontWeight: 600, color: '#7F56D9' }}>{o.items?.[0]?.variant_sku || 'SKU'}-REPL</td>
-                            <td style={{ padding: '16px 24px', color: '#667085', fontSize: '10px' }}>{o.id}REPL-TRACKING</td>
-                          </>
-                        )}
-                      </>
-                    ) : category === 'warranty' ? (
-                      <>
-                        <td style={{ padding: '16px 24px' }}>
-                          <span style={{ backgroundColor: '#ECFDF3', color: '#027A48', padding: '4px 10px', borderRadius: '3px', fontSize: '10px', fontWeight: 600 }}>In Window</span>
-                        </td>
-                        <td style={{ padding: '16px 24px', fontWeight: 700 }}>₹{Number(o.total_amount).toLocaleString('en-IN')}</td>
-                        <td style={{ padding: '16px 24px', color: '#667085' }}>Standard 1-Year</td>
-                      </>
-                    ) : (
+                            ) : (
+                              <span style={{ backgroundColor: '#ECFDF3', color: '#027A48', padding: '4px 10px', borderRadius: '3px', fontSize: '10px', fontWeight: 600 }}>In Window</span>
+                            )}
+                          </td>
+                          <td style={{ padding: '16px 24px', fontWeight: 700 }}>₹{Number(o.total_amount).toLocaleString('en-IN')}</td>
+                          <td style={{ padding: '16px 24px', color: '#667085' }}>{wc ? wc.issue_description.slice(0, 40) + (wc.issue_description.length > 40 ? '…' : '') : 'No claim raised'}</td>
+                        </>
+                      );
+                    })() : (
                       <>
                         <td style={{ padding: '16px 24px', color: '#667085' }}>{new Date(o.created_at).toLocaleDateString('en-GB')}</td>
                         <td style={{ padding: '16px 24px' }}>

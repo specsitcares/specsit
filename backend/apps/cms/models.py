@@ -4,12 +4,12 @@ class SiteSettings(models.Model):
     store_name = models.CharField(max_length=100, default='SpecsIt')
     meta_title_template = models.CharField(
         max_length=255,
-        default='{product_name} | SpecsIt',
-        help_text='Placeholders: {product_name}, {brand}, {category}, {store_name}'
+        default='{product_name} | {variant_name} | {store_name}',
+        help_text='Placeholders: {product_name}, {variant_name}, {brand}, {category}, {store_name}'
     )
     meta_description_template = models.TextField(
-        default='Buy {product_name} online at SpecsIt. Premium eyewear with fast delivery and best prices.',
-        help_text='Placeholders: {product_name}, {brand}, {category}, {store_name}'
+        default='Buy {product_name} in {variant_name} at {store_name}. Shop premium eyewear online.',
+        help_text='Placeholders: {product_name}, {variant_name}, {brand}, {category}, {store_name}'
     )
 
     class Meta:
@@ -20,16 +20,17 @@ class SiteSettings(models.Model):
         obj, _ = cls.objects.get_or_create(pk=1)
         return obj
 
-    def resolve(self, product_name='', brand='', category=''):
+    def resolve(self, product_name='', variant_name='', brand='', category=''):
         ctx = {
             'product_name': product_name,
+            'variant_name': variant_name,
             'brand': brand,
             'category': category,
             'store_name': self.store_name,
         }
         return {
-            'meta_title': self.meta_title_template.format(**ctx),
-            'meta_description': self.meta_description_template.format(**ctx),
+            'meta_title': self.meta_title_template.format_map(ctx),
+            'meta_description': self.meta_description_template.format_map(ctx),
         }
 
     def __str__(self):

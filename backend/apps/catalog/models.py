@@ -132,6 +132,10 @@ class Variant(models.Model):
     discount_start_date = models.DateField(null=True, blank=True)
     discount_end_date = models.DateField(null=True, blank=True)
     
+    # SEO Fields (per-variant)
+    meta_title = models.CharField(max_length=255, blank=True)
+    meta_description = models.TextField(blank=True)
+
     # VTO Assets
     vto_image_front = models.ImageField(upload_to='vto_assets/', blank=True, null=True)
     vto_video = models.FileField(upload_to='vto_assets/', blank=True, null=True)

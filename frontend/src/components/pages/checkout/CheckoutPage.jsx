@@ -72,8 +72,10 @@ const CheckoutPage = () => {
         '#LO-PAY-CXL': 'Payment was cancelled. You can retry or choose a different method.',
     };
 
-    // Partial payment settings (fetched from admin)
+    // Payment method settings (fetched from admin)
     const [partialPct, setPartialPct] = useState(50);
+    const [codEnabled, setCodEnabled] = useState(true);
+    const [onlineEnabled, setOnlineEnabled] = useState(true);
     const [partialPaymentEnabled, setPartialPaymentEnabled] = useState(true);
 
     // Breakdown based on method (using integer paise to avoid rounding errors)
@@ -94,8 +96,20 @@ const CheckoutPage = () => {
         }
         apiClient.get('/sales/payments/settings/')
             .then(res => {
-                setPartialPaymentEnabled(res.data.partial_payment_enabled ?? true);
+                const cod = res.data.cod_enabled ?? true;
+                const online = res.data.online_payment_enabled ?? true;
+                const partial = res.data.partial_payment_enabled ?? true;
+                setCodEnabled(cod);
+                setOnlineEnabled(online);
+                setPartialPaymentEnabled(partial);
                 setPartialPct(res.data.partial_payment_percentage || 50);
+                // Auto-select first available method if current default is disabled
+                setPaymentMethod(prev => {
+                    if (prev === 'complete_cod' && !cod) {
+                        return online ? 'complete_online' : partial ? 'partial_payment' : prev;
+                    }
+                    return prev;
+                });
             })
             .catch(() => {});
         const script = document.createElement('script');
@@ -829,18 +843,18 @@ const CheckoutPage = () => {
                             <h2 style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 14 }}>How would you like to pay?</h2>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                                 {[
-                                    {
+                                    ...(codEnabled ? [{
                                         value: 'complete_cod',
                                         title: 'Cash on Delivery',
                                         desc: 'Pay the full amount when your order arrives.',
                                         icon: '💵',
-                                    },
-                                    {
+                                    }] : []),
+                                    ...(onlineEnabled ? [{
                                         value: 'complete_online',
                                         title: 'Pay Online (Full)',
                                         desc: 'Pay the complete amount now via card, UPI, or net banking.',
                                         icon: '💳',
-                                    },
+                                    }] : []),
                                     ...(partialPaymentEnabled ? [{
                                         value: 'partial_payment',
                                         title: `Pay ${partialPct}% Now, ${100 - partialPct}% Later`,

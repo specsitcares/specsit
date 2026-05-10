@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from decimal import Decimal
-from .models import Order, OrderItem, Cart, Wishlist, Coupon, Shipment, OrderTracking, Payment
+from .models import Order, OrderItem, Cart, Wishlist, Coupon, Shipment, OrderTracking, Payment, ReturnRequest, WarrantyClaim
 from apps.catalog.core.models import MetadataItem
 from apps.catalog.serializers import PrescriptionSerializer, LensSerializer
 
@@ -82,8 +82,22 @@ class PaymentSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['payment_date', 'created_at', 'updated_at']
 
+class ReturnRequestSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ReturnRequest
+        fields = '__all__'
+        read_only_fields = ['created_at', 'updated_at']
+
+class WarrantyClaimSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WarrantyClaim
+        fields = '__all__'
+        read_only_fields = ['claimed_at', 'created_at', 'updated_at']
+
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
+    return_requests = ReturnRequestSerializer(many=True, read_only=True)
+    warranty_claims = WarrantyClaimSerializer(many=True, read_only=True)
     customer_name = serializers.ReadOnlyField(source='user.username')
     customer_email = serializers.ReadOnlyField(source='user.email')
     status_label = serializers.SerializerMethodField(read_only=True)
@@ -206,6 +220,7 @@ class OrderSerializer(serializers.ModelSerializer):
             'order_date', 'delivery_date', 'created_at', 'updated_at',
             'shipping_address_detail', 'billing_address_detail',
             'items', 'tracking', 'payments',
+            'return_requests', 'warranty_claims',
             'razorpay_order_id', 'razorpay_payment_id',
             'has_review', 'review_rating',
         ]

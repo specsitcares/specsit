@@ -7,8 +7,40 @@ const field = {
   hint:  { fontSize: '10px', color: '#667085', marginTop: '3px' },
 };
 
+const Toggle = ({ checked, onChange }) => (
+  <button
+    onClick={() => onChange(!checked)}
+    role="switch"
+    aria-checked={checked}
+    style={{
+      flexShrink: 0,
+      width: '38px', height: '21px',
+      borderRadius: '10px',
+      border: 'none',
+      background: checked ? '#68408D' : '#D0D5DD',
+      cursor: 'pointer',
+      position: 'relative',
+      transition: 'background 0.2s',
+      padding: 0,
+    }}
+  >
+    <span style={{
+      position: 'absolute',
+      top: '3px',
+      left: checked ? '20px' : '3px',
+      width: '16px', height: '16px',
+      borderRadius: '50%',
+      background: '#fff',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+      transition: 'left 0.2s',
+    }} />
+  </button>
+);
+
 const PaymentSettings = () => {
-  const [enabled, setEnabled] = useState(true);
+  const [codEnabled, setCodEnabled] = useState(true);
+  const [onlineEnabled, setOnlineEnabled] = useState(true);
+  const [partialEnabled, setPartialEnabled] = useState(true);
   const [pct, setPct] = useState(50);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -18,7 +50,9 @@ const PaymentSettings = () => {
   useEffect(() => {
     apiClient.get('/sales/payments/settings/')
       .then(res => {
-        setEnabled(res.data.partial_payment_enabled ?? true);
+        setCodEnabled(res.data.cod_enabled ?? true);
+        setOnlineEnabled(res.data.online_payment_enabled ?? true);
+        setPartialEnabled(res.data.partial_payment_enabled ?? true);
         setPct(res.data.partial_payment_percentage || 50);
       })
       .catch(() => setError('Failed to load payment settings.'))
@@ -35,7 +69,9 @@ const PaymentSettings = () => {
     setSaving(true);
     try {
       await apiClient.put('/sales/payments/settings/', {
-        partial_payment_enabled: enabled,
+        cod_enabled: codEnabled,
+        online_payment_enabled: onlineEnabled,
+        partial_payment_enabled: partialEnabled,
         partial_payment_percentage: Number(pct),
       });
       setSaved(true);
@@ -64,54 +100,54 @@ const PaymentSettings = () => {
       <div style={{ marginBottom: '22px' }}>
         <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#101828', margin: 0 }}>Payment Settings</h1>
         <p style={{ fontSize: '11px', color: '#667085', marginTop: '3px' }}>
-          Control whether customers can pay in instalments and configure the split.
+          Control which payment methods are available to customers at checkout.
         </p>
       </div>
 
-      {/* Toggle card */}
+      {/* COD toggle card */}
+      <div style={{ background: '#fff', border: '1px solid #EAECF0', borderRadius: '10px', padding: '20px 24px', marginBottom: '13px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '19px' }}>
+        <div>
+          <div style={{ fontSize: '12px', fontWeight: 700, color: '#101828', marginBottom: '3px' }}>Cash on Delivery (COD)</div>
+          <div style={{ fontSize: '10px', color: '#667085' }}>
+            {codEnabled
+              ? 'Customers can choose to pay cash upon delivery.'
+              : 'COD is hidden — customers cannot pay on delivery.'}
+          </div>
+        </div>
+        <Toggle checked={codEnabled} onChange={setCodEnabled} />
+      </div>
+
+      {/* Full online payment toggle card */}
+      <div style={{ background: '#fff', border: '1px solid #EAECF0', borderRadius: '10px', padding: '20px 24px', marginBottom: '13px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '19px' }}>
+        <div>
+          <div style={{ fontSize: '12px', fontWeight: 700, color: '#101828', marginBottom: '3px' }}>Full Online Payment</div>
+          <div style={{ fontSize: '10px', color: '#667085' }}>
+            {onlineEnabled
+              ? 'Customers can pay the full amount online via Razorpay.'
+              : 'Full online payment is hidden — customers cannot pay the full amount online.'}
+          </div>
+        </div>
+        <Toggle checked={onlineEnabled} onChange={setOnlineEnabled} />
+      </div>
+
+      {/* Partial payment toggle card */}
       <div style={{ background: '#fff', border: '1px solid #EAECF0', borderRadius: '10px', padding: '20px 24px', marginBottom: '13px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '19px' }}>
         <div>
           <div style={{ fontSize: '12px', fontWeight: 700, color: '#101828', marginBottom: '3px' }}>Partial Payment</div>
           <div style={{ fontSize: '10px', color: '#667085' }}>
-            {enabled
+            {partialEnabled
               ? 'Customers can pay a portion now and the balance before dispatch.'
               : 'Partial payment is hidden — customers must pay in full or choose COD.'}
           </div>
         </div>
-        <button
-          onClick={() => setEnabled(v => !v)}
-          role="switch"
-          aria-checked={enabled}
-          style={{
-            flexShrink: 0,
-            width: '38px', height: '21px',
-            borderRadius: '10px',
-            border: 'none',
-            background: enabled ? '#68408D' : '#D0D5DD',
-            cursor: 'pointer',
-            position: 'relative',
-            transition: 'background 0.2s',
-            padding: 0,
-          }}
-        >
-          <span style={{
-            position: 'absolute',
-            top: '3px',
-            left: enabled ? '20px' : '3px',
-            width: '16px', height: '16px',
-            borderRadius: '50%',
-            background: '#fff',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-            transition: 'left 0.2s',
-          }} />
-        </button>
+        <Toggle checked={partialEnabled} onChange={setPartialEnabled} />
       </div>
 
       {/* Split config card — greyed out when disabled */}
       <div style={{
         background: '#fff', border: '1px solid #EAECF0', borderRadius: '10px', padding: '19px', marginBottom: '16px',
-        opacity: enabled ? 1 : 0.45,
-        pointerEvents: enabled ? 'auto' : 'none',
+        opacity: partialEnabled ? 1 : 0.45,
+        pointerEvents: partialEnabled ? 'auto' : 'none',
         transition: 'opacity 0.2s',
       }}>
         <h2 style={{ fontSize: '12px', fontWeight: 700, color: '#101828', margin: '0 0 4px' }}>Upfront Payment Percentage</h2>
@@ -127,9 +163,9 @@ const PaymentSettings = () => {
               max={90}
               step={5}
               value={pct}
-              disabled={!enabled}
+              disabled={!partialEnabled}
               onChange={e => setPct(Number(e.target.value))}
-              style={{ flex: 1, accentColor: '#68408D', cursor: enabled ? 'pointer' : 'not-allowed' }}
+              style={{ flex: 1, accentColor: '#68408D', cursor: partialEnabled ? 'pointer' : 'not-allowed' }}
             />
             <div style={{ display: 'flex', alignItems: 'center', gap: '3px', minWidth: '64px' }}>
               <input
@@ -137,13 +173,13 @@ const PaymentSettings = () => {
                 min={1}
                 max={99}
                 value={pct}
-                disabled={!enabled}
+                disabled={!partialEnabled}
                 onChange={e => setPct(Number(e.target.value))}
                 style={{
                   width: '48px', padding: '8px 10px', border: '1px solid #D0D5DD',
                   borderRadius: '6px', fontSize: '12px', fontWeight: 700,
                   color: '#101828', textAlign: 'center', fontFamily: 'inherit',
-                  background: enabled ? '#fff' : '#F9FAFB',
+                  background: partialEnabled ? '#fff' : '#F9FAFB',
                 }}
               />
               <span style={{ fontSize: '12px', fontWeight: 700, color: '#101828' }}>%</span>

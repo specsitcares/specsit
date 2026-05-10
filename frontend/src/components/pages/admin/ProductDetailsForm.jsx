@@ -50,6 +50,7 @@ const GENDER_OPTIONS = [
 const DEFAULT_VARIANT = () => ({
   id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
   expanded: true,
+  sku: '',
   colorName: '',
   quantity: 0,
   colorMethod: 'code',
@@ -60,6 +61,9 @@ const DEFAULT_VARIANT = () => ({
   cost_price: '',
   discount_percentage: '',
   images: [],
+  meta_title: '',
+  meta_description: '',
+  meta_auto: true,
 });
 
 const ProductDetailsForm = ({ onBack, editProduct = null }) => {
@@ -71,7 +75,6 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [errors, setErrors] = useState({});
   const [confirmed, setConfirmed] = useState(false);
-  const [useMetaTemplate, setUseMetaTemplate] = useState(true);
   const [globalTemplates, setGlobalTemplates] = useState(null);
 
   // Track DB-side items removed in edit mode so we can DELETE them on submit
@@ -84,8 +87,6 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
     category: '',
     brand: '',
     short_description: '',
-    meta_title: '',
-    meta_description: '',
     frame_width: '',
     frame_type: '',
     frame_shape: '',
@@ -152,6 +153,9 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
                 preview: img.image,
                 file: null,
               })),
+              meta_title: v.meta_title || '',
+              meta_description: v.meta_description || '',
+              meta_auto: !v.meta_title,
               expanded: true,
             };
           };
@@ -160,15 +164,12 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
           // Step 2 form is pre-filled with the values that were saved last time.
           const firstVariant = (p.variants || [])[0] || {};
 
-          setUseMetaTemplate(p.use_meta_template !== false);
           setFormData({
             title: p.title || '',
             description: p.description || '',
             category: p.category?.id || p.category || '',
             brand: p.brand?.id || p.brand || '',
             short_description: p.short_description || '',
-            meta_title: p.meta_title || '',
-            meta_description: p.meta_description || '',
             frame_width: p.frame_width || '',
             frame_type: p.frame_type || '',
             frame_shape: p.frame_shape || '',
@@ -232,24 +233,8 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
     setDeletedImageIds(prev => [...prev, id]);
   };
 
-  const resolveMetaTemplate = (template) => {
-    const brandName = brands.find(b => b.id?.toString() === formData.brand?.toString())?.name || '';
-    const catName = categories.find(c => c.id?.toString() === formData.category?.toString())?.name || '';
-    return (template || '')
-      .replace(/{product_name}/g, formData.title || '')
-      .replace(/{brand}/g, brandName)
-      .replace(/{category}/g, catName)
-      .replace(/{store_name}/g, globalTemplates?.store_name || '');
-  };
-
   const buildProductPayload = (isActive = true) => {
     const firstVariant = formData.variants?.[0];
-    const metaTitle = useMetaTemplate
-      ? resolveMetaTemplate(globalTemplates?.meta_title_template || '')
-      : (formData.meta_title || '');
-    const metaDescription = useMetaTemplate
-      ? resolveMetaTemplate(globalTemplates?.meta_description_template || '')
-      : (formData.meta_description || '');
     return {
       title: formData.title,
       description: formData.description || formData.short_description || '',
@@ -265,9 +250,6 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
       selling_price: parseFloat(firstVariant?.selling_price) || parseFloat(firstVariant?.base_price) || 0,
       discount_percentage: 0,
       frame_only_mode: !!formData.frame_only_mode,
-      use_meta_template: useMetaTemplate,
-      meta_title: metaTitle,
-      meta_description: metaDescription,
       is_active: isActive,
     };
   };
@@ -315,8 +297,10 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
         const variantPayload = new FormData();
         variantPayload.append('product', productId);
 
-        const generatedSku = `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-        variantPayload.append('sku', v.sku || generatedSku);
+        if (!v.sku?.trim()) {
+          throw new Error(`SKU is required for variant "${v.colorName || `Variant ${variantIndex}`}".`);
+        }
+        variantPayload.append('sku', v.sku.trim());
         variantPayload.append('color', v.colorName || 'Default');
         variantPayload.append('lens_color', v.colorName || '');
         variantPayload.append('frame_color', v.colorName || '');
@@ -343,6 +327,17 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
         variantPayload.append('is_bogo', formData.isBogo ? 'true' : 'false');
         if (formData.discountStartDate) variantPayload.append('discount_start_date', formData.discountStartDate);
         if (formData.discountEndDate) variantPayload.append('discount_end_date', formData.discountEndDate);
+
+        const resolveTemplate = (tpl) => (tpl || '')
+          .replace(/{product_name}/g, formData.title || '')
+          .replace(/{variant_name}/g, v.colorName || 'Default')
+          .replace(/{store_name}/g, globalTemplates?.store_name || 'SPECSIT')
+          .replace(/{brand}/g, '')
+          .replace(/{category}/g, '');
+        const autoMetaTitle = resolveTemplate(globalTemplates?.meta_title_template || '{product_name} | {variant_name} | {store_name}');
+        const autoMetaDesc  = resolveTemplate(globalTemplates?.meta_description_template || 'Buy {product_name} in {variant_name} at {store_name}. Shop premium eyewear online.');
+        variantPayload.append('meta_title', v.meta_auto !== false ? autoMetaTitle : (v.meta_title?.trim() || autoMetaTitle));
+        variantPayload.append('meta_description', v.meta_auto !== false ? autoMetaDesc : (v.meta_description?.trim() || autoMetaDesc));
 
         let variantId;
         const isExisting = v.id && typeof v.id === 'number';
@@ -589,83 +584,6 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
                     />
                   </div>
 
-                  <div className="form-field">
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                      <label className="form-field-label" style={{ margin: 0 }}>Meta Tags (SEO)</label>
-                      <div style={{ display: 'flex', gap: '3px', background: '#F2F4F7', borderRadius: '6px', padding: '3px' }}>
-                        <button
-                          type="button"
-                          onClick={() => setUseMetaTemplate(true)}
-                          style={{
-                            padding: '5px 12px', borderRadius: '5px', border: 'none', fontSize: '10px',
-                            fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
-                            background: useMetaTemplate ? '#fff' : 'transparent',
-                            color: useMetaTemplate ? '#344054' : '#667085',
-                            boxShadow: useMetaTemplate ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                          }}
-                        >
-                          Use global template
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setUseMetaTemplate(false)}
-                          style={{
-                            padding: '5px 12px', borderRadius: '5px', border: 'none', fontSize: '10px',
-                            fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
-                            background: !useMetaTemplate ? '#fff' : 'transparent',
-                            color: !useMetaTemplate ? '#344054' : '#667085',
-                            boxShadow: !useMetaTemplate ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                          }}
-                        >
-                          Custom
-                        </button>
-                      </div>
-                    </div>
-
-                    {useMetaTemplate ? (
-                      globalTemplates ? (
-                        <>
-                          <div className="form-field">
-                            <label className="form-field-label">Meta Title</label>
-                            <input
-                              readOnly
-                              className="form-field-input"
-                              style={{ color: '#697177', cursor: 'default' }}
-                              value={resolveMetaTemplate(globalTemplates.meta_title_template)}
-                              placeholder="Enter product title above to preview"
-                            />
-                          </div>
-                          <div className="form-field">
-                            <label className="form-field-label">Meta Description</label>
-                            <textarea
-                              readOnly
-                              className="form-field-textarea"
-                              style={{ color: '#697177', cursor: 'default' }}
-                              value={resolveMetaTemplate(globalTemplates.meta_description_template)}
-                              placeholder="—"
-                            />
-                          </div>
-                        </>
-                      ) : null
-                    ) : (
-                      <>
-                        <input
-                          type="text"
-                          className="form-field-input"
-                          placeholder="e.g. Ray-Ban Aviator Classic | Buy Online"
-                          value={formData.meta_title}
-                          onChange={(e) => handleInputChange('meta_title', e.target.value)}
-                          style={{ marginBottom: '8px' }}
-                        />
-                        <textarea
-                          className="form-field-textarea"
-                          placeholder="A timeless model that combines great aviator styling with exceptional quality and comfort."
-                          value={formData.meta_description}
-                          onChange={(e) => handleInputChange('meta_description', e.target.value)}
-                        />
-                      </>
-                    )}
-                  </div>
                 </div>
 
                 <div className="form-sub-section">
@@ -739,6 +657,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
                 saving={saving}
                 onVariantRemoved={handleVariantRemoved}
                 onImageRemoved={handleImageRemoved}
+                globalTemplates={globalTemplates}
               />
             )}
 
@@ -750,9 +669,6 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
                 confirmed={confirmed}
                 setConfirmed={setConfirmed}
                 errors={errors}
-                useMetaTemplate={useMetaTemplate}
-                globalTemplates={globalTemplates}
-                resolveMetaTemplate={resolveMetaTemplate}
               />
             )}
           </div>
