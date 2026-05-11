@@ -299,15 +299,6 @@ const CheckoutPage = () => {
                 })
             );
 
-            // If any upload items lost their File (page refresh stripped it from localStorage),
-            // redirect to the prescription submission page so the customer can re-upload.
-            const hasMissingUploads = cart.some(item => item.rxMode === 'upload' && !(item.prescriptionFile instanceof File));
-            if (hasMissingUploads) {
-                clearCart();
-                navigate(`/prescription/submit/${localOrder.id}`, { replace: true });
-                return;
-            }
-
             if (paymentMethod === 'complete_cod') {
                 clearCart();
                 navigate(getPostOrderRoute(localOrder.id), { replace: true });

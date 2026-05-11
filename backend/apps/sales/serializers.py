@@ -122,37 +122,39 @@ class OrderSerializer(serializers.ModelSerializer):
         review = Review.objects.filter(order=obj, user=obj.user).first()
         return review.rating if review else None
 
+    ORDER_STATUS_LABELS = {
+        'pending': 'Pending', 'confirmed': 'Confirmed', 'preparing': 'Preparing',
+        'ready_to_dispatch': 'Ready for Dispatch', 'in_transit': 'In Transit',
+        'delivered': 'Delivered', 'cancelled': 'Cancelled',
+    }
+    STATUS_RANK = {
+        'pending': 0, 'confirmed': 1, 'preparing': 2,
+        'ready_to_dispatch': 3, 'in_transit': 4,
+        'delivered': 5, 'cancelled': 5,
+    }
+
     def get_status_label(self, obj):
-        STATUS_RANK = {
-            'pending': 0, 'confirmed': 1,
-            'ready_to_dispatch': 2, 'in_transit': 3,
-            'delivered': 4, 'cancelled': 4,
-        }
+        db_rank = self.STATUS_RANK.get(obj.order_status or '', 0)
         if obj.status:
             meta_mapped = self._label_to_order_status(obj.status.label)
-            db_rank = STATUS_RANK.get(obj.order_status or '', 0)
-            meta_rank = STATUS_RANK.get(meta_mapped or '', 0)
-            # If order_status is more advanced (e.g., delivered) but FK label is stale, use order_status
+            meta_rank = self.STATUS_RANK.get(meta_mapped or '', 0)
             if db_rank > meta_rank:
-                ORDER_STATUS_LABELS = {
-                    'pending': 'Pending', 'confirmed': 'Confirmed',
-                    'ready_to_dispatch': 'Ready for Dispatch', 'in_transit': 'In Transit',
-                    'delivered': 'Delivered', 'cancelled': 'Cancelled',
-                }
-                return ORDER_STATUS_LABELS.get(obj.order_status, obj.order_status or 'Pending')
+                return self.ORDER_STATUS_LABELS.get(obj.order_status, obj.order_status or 'Pending')
             return obj.status.label
-        return obj.order_status or 'Pending'
+        return self.ORDER_STATUS_LABELS.get(obj.order_status, obj.order_status or 'Pending')
 
     @staticmethod
     def _label_to_order_status(label):
         label = label.lower()
         if any(k in label for k in ['deliver', 'complet']):
             return 'delivered'
-        if any(k in label for k in ['transit', 'ship', 'dispatch']):
+        if any(k in label for k in ['transit', 'ship']):
             return 'in_transit'
-        if any(k in label for k in ['ready', 'pack']):
+        if any(k in label for k in ['ready', 'pack', 'dispatch']):
             return 'ready_to_dispatch'
-        if any(k in label for k in ['confirm', 'accept', 'prepar', 'quality', 'process']):
+        if any(k in label for k in ['prepar', 'quality']):
+            return 'preparing'
+        if any(k in label for k in ['confirm', 'accept', 'process']):
             return 'confirmed'
         if any(k in label for k in ['cancel', 'reject']):
             return 'cancelled'
@@ -162,18 +164,10 @@ class OrderSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        # Sync order_status from MetadataItem label only when the MetadataItem is
-        # equally or more progressed than the DB field — prevents reverting a
-        # correctly-set 'delivered' back to a stale 'in_transit' MetadataItem.
         if instance.status:
             mapped = self._label_to_order_status(instance.status.label)
-            STATUS_RANK = {
-                'pending': 0, 'confirmed': 1,
-                'ready_to_dispatch': 2, 'in_transit': 3,
-                'delivered': 4, 'cancelled': 4,
-            }
-            db_rank = STATUS_RANK.get(instance.order_status or '', 0)
-            meta_rank = STATUS_RANK.get(mapped or '', 0)
+            db_rank = self.STATUS_RANK.get(instance.order_status or '', 0)
+            meta_rank = self.STATUS_RANK.get(mapped or '', 0)
             if mapped and meta_rank > db_rank:
                 data['order_status'] = mapped
         return data

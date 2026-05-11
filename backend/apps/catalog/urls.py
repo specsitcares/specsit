@@ -17,7 +17,7 @@ router.register(r'collections', CollectionViewSet)
 
 # Eyewear Features
 router.register(r'lens-packages', LensPackageViewSet)
-router.register(r'lenses', LensViewSet)
+router.register(r'lenses', LensViewSet, basename='lens')
 router.register(r'prescriptions', PrescriptionViewSet, basename='prescription')
 router.register(r'user-face', UserFaceViewSet, basename='user-face')
 router.register(r'reviews', ReviewViewSet)

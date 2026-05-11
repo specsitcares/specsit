@@ -126,6 +126,35 @@ class OrderViewSet(viewsets.ModelViewSet):
             print(f"Fatal Export Error: {e}")
             return HttpResponse(f"Error: {str(e)}", status=500)
 
+    @staticmethod
+    def _get_status_meta(label, value):
+        from apps.catalog.core.models import MetadataGroup, MetadataItem as MI
+        group, _ = MetadataGroup.objects.get_or_create(name='Order Status')
+        meta, _ = MI.objects.get_or_create(
+            group=group, label=label,
+            defaults={'value': value, 'is_active': True},
+        )
+        return meta
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.order_status == 'pending':
+            lens_items = [
+                i for i in instance.items.select_related('lens', 'prescription__status').all()
+                if i.lens_id
+            ]
+            if lens_items and all(
+                i.prescription and i.prescription.status and
+                i.prescription.status.label == 'Approved'
+                for i in lens_items
+            ):
+                conf_meta = self._get_status_meta('Confirmed', 'confirmed')
+                Order.objects.filter(pk=instance.pk).update(
+                    order_status='confirmed', status=conf_meta
+                )
+                instance.refresh_from_db()
+        return super().retrieve(request, *args, **kwargs)
+
     @action(detail=False, methods=['get'])
     def analytics(self, request):
         from django.utils import timezone
@@ -163,34 +192,31 @@ class OrderViewSet(viewsets.ModelViewSet):
             except (ValueError, TypeError):
                 pass
 
-        # 2. Extract Context-Aware Counts
-        status_counts = qs.values('status__label').annotate(count=Count('id'))
-        
+        # 2. Extract Context-Aware Counts using order_status field
         total_count = qs.count()
-        def get_inclusive_count(keywords):
-            count = 0
-            for s in status_counts:
-                if s['status__label'] and any(k.lower() in s['status__label'].lower() for k in keywords):
-                    count += s['count']
-            return count
 
-        pending_count = get_inclusive_count(['Pending', 'Received'])
-        processing_count = get_inclusive_count(['Processing', 'Preparing', 'Quality', 'Ready', 'Accepted'])
-        shipped_count = get_inclusive_count(['Shipped'])
-        
+        # Pending  = lens not yet prepared (order not yet accepted/confirmed)
+        pending_count = qs.filter(order_status='pending').count()
+
+        # Processing = accepted through to in-transit (preparing → QC → ready → dispatched)
+        processing_count = qs.filter(
+            order_status__in=['confirmed', 'preparing', 'ready_to_dispatch', 'in_transit']
+        ).count()
+
+        # Delivered = fully delivered orders
+        shipped_count = qs.filter(order_status='delivered').count()
+
         # 3. Advanced Multi-Trend Calculation (Context-Aware Trends)
         last_30 = timezone.now() - timedelta(days=30)
         prev_30 = timezone.now() - timedelta(days=60)
 
         def get_all_metrics(queryset):
-            st_counts = queryset.values('status__label').annotate(count=Count('id'))
-            counts = {'total': queryset.count(), 'pending': 0, 'processing': 0, 'shipped': 0}
-            for s in st_counts:
-                lbl = (s['status__label'] or '').lower()
-                if any(k in lbl for k in ['pending', 'received']): counts['pending'] += s['count']
-                elif any(k in lbl for k in ['processing', 'preparing', 'quality', 'ready', 'accepted']): counts['processing'] += s['count']
-                elif 'shipped' in lbl: counts['shipped'] += s['count']
-            return counts
+            return {
+                'total':      queryset.count(),
+                'pending':    queryset.filter(order_status='pending').count(),
+                'processing': queryset.filter(order_status__in=['confirmed', 'preparing', 'ready_to_dispatch', 'in_transit']).count(),
+                'shipped':    queryset.filter(order_status='delivered').count(),
+            }
 
         # Filter the contextual queryset for current and previous periods
         curr_period_qs = qs.filter(created_at__gte=last_30)
@@ -329,6 +355,13 @@ class OrderViewSet(viewsets.ModelViewSet):
                 product = variant.product
                 product.stock_quantity = max(0, product.stock_quantity - item.quantity)
                 product.save(update_fields=['stock_quantity'])
+
+            # Auto-confirm frame-only orders (no lens, no prescription needed)
+            has_lens = order.items.filter(lens__isnull=False).exists()
+            has_prescription = order.items.filter(prescription__isnull=False).exists()
+            if not has_lens and not has_prescription:
+                conf_meta = OrderViewSet._get_status_meta('Confirmed', 'confirmed')
+                Order.objects.filter(pk=order.pk).update(order_status='confirmed', status=conf_meta)
 
             # 5. Create initial shipment record
             from .models import Shipment

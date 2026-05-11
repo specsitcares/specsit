@@ -145,7 +145,14 @@ const OrderConfirmationPage = () => {
     const fetchOrderDetails = async () => {
         try {
             const response = await apiClient.get(`/sales/orders/${orderId}/`);
-            setOrder(response.data);
+            const data = response.data;
+            setOrder(data);
+            if (hasDeferredRx) {
+                const alreadySubmitted = (data.items || []).some(
+                    item => item.prescription_status && item.prescription_status !== 'Pending'
+                );
+                if (alreadySubmitted) setRxStep(3);
+            }
         } catch (err) {
             console.error('Failed to fetch order:', err);
         } finally {
@@ -166,18 +173,14 @@ const OrderConfirmationPage = () => {
             const leftCyl = samePower ? rightCyl : (hasCyl ? parseFloat(powerForm.left_cyl) : 0);
             const leftAxis = samePower ? rightAxis : (hasCyl ? parseInt(powerForm.left_axis, 10) : 0);
 
-            await apiClient.post('/catalog/prescriptions/', {
-                patient_name: patientName,
-                od_sphere: rightSph,
-                od_cylinder: rightCyl,
-                od_axis: rightAxis,
-                os_sphere: leftSph,
-                os_cylinder: leftCyl,
-                os_axis: leftAxis,
-                od_add: 0,
-                os_add: 0,
-                vision_type: 'Single Vision',
+            await apiClient.post('/sales/prescriptions/manual/', {
                 order_id: orderId,
+                name: patientName,
+                vision_type: 'Single Vision',
+                rx: {
+                    od: { sph: rightSph, cyl: rightCyl, axis: rightAxis, add: 0 },
+                    os: { sph: leftSph,  cyl: leftCyl,  axis: leftAxis,  add: 0 },
+                },
             });
             setRxStep(3);
         } catch (err) {
@@ -190,18 +193,18 @@ const OrderConfirmationPage = () => {
     const handleUploadPdf = async (file) => {
         if (!file) return;
         setSubmitting(true);
+        setSubmitError('');
         try {
             const formData = new FormData();
             formData.append('prescription_file', file);
             formData.append('order_id', orderId);
-            formData.append('vision_type', 'Single Vision');
-            formData.append('patient_name', 'Patient');
-            await apiClient.post('/catalog/prescriptions/', formData);
-        } catch {
-            /* ignore errors — proceed to success screen */
+            await apiClient.post('/sales/prescriptions/upload/', formData);
+            setRxStep(3);
+        } catch (err) {
+            const msg = err.response?.data?.error || 'Upload failed. Please try again.';
+            setSubmitError(msg);
         } finally {
             setSubmitting(false);
-            setRxStep(3);
         }
     };
 
@@ -492,6 +495,9 @@ const OrderConfirmationPage = () => {
                                 />
                             </div>
 
+                            {submitError && (
+                                <p className="conf-submit-error">{submitError}</p>
+                            )}
                             <p className="conf-rx-disclaimer conf-rx-disclaimer--padded">
                                 Please note: If the prescription is not submitted within 15 days, your order will be automatically cancelled and a full refund will be processed.
                             </p>

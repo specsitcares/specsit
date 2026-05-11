@@ -63,11 +63,11 @@ export const CartProvider = ({ children }) => {
     const clearCart = () => setCart([]);
 
     // BUG 1 FIX — use resolveProductPrice so "0.00" strings don't short-circuit the chain
-    const cartTotal = cart.reduce((acc, item) => {
+    const cartTotal = Math.round(cart.reduce((acc, item) => {
         const productPrice = resolveProductPrice(item.product);
         const lensPrice    = item.lens ? parseFloat(item.lens.price || 0) : 0;
-        return acc + (productPrice + lensPrice) * item.quantity;
-    }, 0);
+        return acc + Math.round((productPrice + lensPrice) * 100) * item.quantity;
+    }, 0)) / 100;
 
     return (
         <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, clearCart, cartTotal, resolveProductPrice }}>

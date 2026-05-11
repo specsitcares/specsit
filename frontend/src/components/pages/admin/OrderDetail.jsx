@@ -68,21 +68,15 @@ const OrderDetail = ({ orderId, onBack }) => {
     }
   };
 
-  useEffect(() => { fetchOrder(); }, [orderId]);
+  useEffect(() => {
+    fetchOrder();
+    const interval = setInterval(fetchOrder, 15000);
+    return () => clearInterval(interval);
+  }, [orderId]);
 
-  const METADATA_TO_ORDER_STATUS = {
-    4: 'confirmed',
-    8: 'ready_to_dispatch',
-    9: 'in_transit',
-    10: 'delivered',
-  };
-
-  const handleStatusUpdate = async (nextStatusId) => {
+  const handleStatusUpdate = async (orderStatus) => {
     try {
-      const payload = { status: nextStatusId };
-      const orderStatus = METADATA_TO_ORDER_STATUS[nextStatusId];
-      if (orderStatus) payload.order_status = orderStatus;
-      await apiClient.patch(`/sales/orders/${orderId}/`, payload);
+      await apiClient.patch(`/sales/orders/${orderId}/`, { order_status: orderStatus });
       fetchOrder();
     } catch (err) {
       alert('Failed to update status. Please check your connection.');
@@ -155,9 +149,9 @@ const OrderDetail = ({ orderId, onBack }) => {
       }
     }
     if (qcOutcome === 'pass') {
-      await handleStatusUpdate(8);
+      await handleStatusUpdate('ready_to_dispatch');
     } else {
-      await handleStatusUpdate(4);
+      await handleStatusUpdate('preparing');
     }
     setQcModalOpen(false);
     setQcImageFile(null);
@@ -202,7 +196,7 @@ const OrderDetail = ({ orderId, onBack }) => {
       await apiClient.post(`/sales/orders/${orderId}/update_tracking/`, trackingPayload);
       setTracking(prev => ({ ...prev, ...trackingPayload }));
       setEtaMinutes(parseEtaMinutes(dispatchForm.eta));
-      await handleStatusUpdate(9);
+      await handleStatusUpdate('in_transit');
       setDispatchModalOpen(false);
       setDispatchForm({ booking_id: '', rider_name: '', rider_phone: '', vehicle_type: 'Bike', eta: '' });
     } catch (err) {
@@ -275,6 +269,16 @@ const OrderDetail = ({ orderId, onBack }) => {
   const deliveredAt         = formatDate(order.delivery_date || order.tracking?.actual_delivery_date);
 
   // ── Lifecycle steps ───────────────────────────────────────────────────────
+  const lensItems = order.items?.filter(item => item.lens) || [];
+  const isFrameOnly = lensItems.length === 0;
+
+  const rxStatuses = lensItems.map(i => (i.prescription_status || 'Pending Review').toLowerCase());
+  const allRxApproved  = lensItems.length > 0 && rxStatuses.every(s => s === 'approved');
+  const anyRxRejected  = rxStatuses.some(s => s === 'rejected');
+  const anyRxReupload  = rxStatuses.some(s => s.includes('reupload'));
+
+  const prescriptionBlocked = !isFrameOnly && !allRxApproved;
+
   // Use status_label (MetadataItem label string) to determine the step — avoids
   // depending on MetadataItem PKs which are auto-incremented and unpredictable.
   const labelToStepId = (label) => {
@@ -286,18 +290,21 @@ const OrderDetail = ({ orderId, onBack }) => {
     return 4;
   };
   const ORDER_STATUS_TO_ID = {
-    pending: 4, confirmed: 4, ready_to_dispatch: 8, in_transit: 9, delivered: 10,
+    pending: 3, confirmed: 4, preparing: 5, ready_to_dispatch: 8, in_transit: 9, delivered: 10,
   };
   const idFromOrderStatus = ORDER_STATUS_TO_ID[order.order_status] || 4;
   const idFromLabel = order.status_label ? labelToStepId(order.status_label) : 0;
-  const currentStatusId = Math.max(idFromLabel, idFromOrderStatus);
+  const currentStatusId = (() => {
+    if (prescriptionBlocked) return 3;
+    if (order.order_status === 'pending') return 4;
+    return Math.max(idFromLabel, idFromOrderStatus);
+  })();
 
-  // Prescription gate: every lens item must have an approved prescription
-  // before the lab can start preparing the glasses.
-  const lensItems = order.items?.filter(item => item.lens) || [];
-  const prescriptionBlocked =
-    lensItems.length > 0 &&
-    !lensItems.every(item => item.prescription_status === 'Approved');
+  const rxBlockMessage = anyRxRejected
+    ? 'Prescription rejected. Customer must upload a new prescription before this order can proceed.'
+    : anyRxReupload
+    ? 'Reupload requested. Waiting for customer to submit a new prescription.'
+    : 'Prescription is pending review. Approve it in the Prescriptions panel to advance this order.';
 
   const steps = [
     {
@@ -305,14 +312,19 @@ const OrderDetail = ({ orderId, onBack }) => {
       desc: 'Order placed and payment confirmed',
       time: orderPlacedAt || 'Just now',
       status: 'completed',
+      rxBlockMessage: prescriptionBlocked ? rxBlockMessage : null,
     },
     {
       title: 'Order Accepted',
       desc: isCOD
         ? 'COD order accepted for processing'
         : `Payment of ₹${fmt(paid)} confirmed`,
-      time: paymentConfirmedAt || orderPlacedAt || '—',
-      status: (currentStatusId >= 4 || order.created_at) ? 'completed' : 'upcoming',
+      time: currentStatusId >= 4
+        ? (paymentConfirmedAt || orderPlacedAt || '—')
+        : anyRxRejected ? 'Prescription rejected'
+        : anyRxReupload ? 'Awaiting reupload'
+        : 'Awaiting prescription approval',
+      status: currentStatusId >= 4 ? 'completed' : currentStatusId === 3 ? 'current' : 'upcoming',
     },
     {
       title: 'Preparing Glasses',
@@ -322,7 +334,7 @@ const OrderDetail = ({ orderId, onBack }) => {
       hasAction: currentStatusId === 4,
       blocked: currentStatusId === 4 && prescriptionBlocked,
       actionLabel: 'Mark as Prepared',
-      nextStatus: 'Preparing',
+      nextStatus: 'preparing',
     },
     {
       title: 'Quality Check',
@@ -411,7 +423,7 @@ const OrderDetail = ({ orderId, onBack }) => {
                     (step.showBookingId && step.bookingId) ||
                     step.showRiderCard;
                   const hasBtn = step.hasAction || (step.status === 'current' && step.isQC);
-                  const useColumnLayout = hasBtn || hasExpandedContent;
+                  const useColumnLayout = hasBtn || hasExpandedContent || !!step.rxBlockMessage;
 
                   return (
                     <div key={idx} className={`step-item ${step.status}`}>
@@ -482,6 +494,15 @@ const OrderDetail = ({ orderId, onBack }) => {
                             </div>
                           )}
 
+                          {/* Prescription block banner on Order Received */}
+                          {step.rxBlockMessage && (
+                            <div style={{ marginTop: 8, background: anyRxRejected ? '#fef2f2' : '#fffbeb', border: `1px solid ${anyRxRejected ? '#fca5a5' : '#fcd34d'}`, borderRadius: 8, padding: '8px 12px' }}>
+                              <span style={{ fontSize: 13, color: anyRxRejected ? '#991b1b' : '#92400e', lineHeight: 1.45 }}>
+                                {step.rxBlockMessage}
+                              </span>
+                            </div>
+                          )}
+
                           {/* Action button */}
                           {step.hasAction && (
                             step.blocked ? (
@@ -489,11 +510,6 @@ const OrderDetail = ({ orderId, onBack }) => {
                                 <button className="prepared-action-btn" disabled style={{ opacity: 0.45, cursor: 'not-allowed' }}>
                                   {step.actionLabel}
                                 </button>
-                                <div style={{ marginTop: 8, display: 'flex', alignItems: 'flex-start', gap: 6, background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: 8, padding: '8px 12px' }}>
-                                  <span style={{ fontSize: 13, color: '#92400e', lineHeight: 1.45 }}>
-                                    Prescription not yet approved. Review and approve the prescription before marking as prepared.
-                                  </span>
-                                </div>
                               </div>
                             ) : (
                               <button

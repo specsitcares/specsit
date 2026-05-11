@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import './LensSelectionAside.css';
+import apiClient from '../../../services/api';
 
 /* ════════════════════════════════════════════════════════
    ICONS
@@ -141,138 +142,19 @@ const Stepper = ({ current }) => (
 );
 
 /* ════════════════════════════════════════════════════════
-   HARDCODED LENS BRAND DATA
+   GROUP LENSES FROM API BY PACKAGE NAME
    ════════════════════════════════════════════════════════ */
-const LENS_BRANDS = [
-    {
-        id: 'zeiss',
-        logo: 'ZEISS',
-        logoBg: '#005598',
-        logoColor: '#FEFCFF',
-        name: 'ZEISS Precision',
-        tagline: 'German Engineering',
-        defaultOpen: true,
-        packages: [
-            {
-                id: 'zeiss_duravision',
-                name: 'Zeiss Duravision Platinum',
-                type: 'Anti-Reflective',
-                coating: 'Scratch Resistant',
-                features: ['🛡️ Ultimate Scratch Resistance', '✨ Ultra Low Reflection'],
-                price: 4500,
-                originalPrice: 5800,
-                badge: 'Top Rated',
-                warranty: '1 Year Warranty',
-            },
-            {
-                id: 'zeiss_blueguard',
-                name: 'Zeiss BlueGuard Lenses',
-                type: 'Blue Light Block',
-                coating: 'Blue Light Block',
-                features: ['💻 Digital Stress Relief', '👁️ Better Visual Comfort'],
-                price: 3200,
-                originalPrice: 4200,
-                warranty: '1 Year Warranty',
-            },
-        ],
-    },
-    {
-        id: 'essilor',
-        logo: 'ESSILOR',
-        logoBg: '#FEFCFF',
-        logoColor: '#040205',
-        logoBorder: '#EFEDF0',
-        name: 'Essilor Crizal',
-        tagline: 'The Global Standard',
-        defaultOpen: false,
-        packages: [
-            {
-                id: 'essilor_easy',
-                name: 'Crizal Easy UV',
-                type: 'UV Protection',
-                coating: 'Anti-Reflective',
-                features: ['🌟 Anti-Reflective Coating', '☀️ 100% UV Protection'],
-                price: 3800,
-                originalPrice: 5000,
-                badge: 'Best Value',
-                warranty: '1 Year Warranty',
-            },
-            {
-                id: 'essilor_rock',
-                name: 'Crizal Rock Lenses',
-                type: 'Scratch Resistant',
-                coating: 'Scratch Resistant',
-                features: ['🪨 Superior Scratch Resistance', '💧 Easy to Clean'],
-                price: 4200,
-                originalPrice: 5500,
-                warranty: '1 Year Warranty',
-            },
-        ],
-    },
-    {
-        id: 'hoya',
-        logo: 'HOYA',
-        logoBg: '#FEFCFF',
-        logoColor: '#040205',
-        logoBorder: '#EFEDF0',
-        name: 'Hoya Vision',
-        tagline: 'Advanced Technology',
-        defaultOpen: false,
-        packages: [
-            {
-                id: 'hoya_sync',
-                name: 'Hoya Sync III',
-                type: 'Near Vision',
-                coating: 'Anti-Fatigue',
-                features: ['👁️ Near Vision Support', '🔄 Reduced Eye Strain'],
-                price: 3500,
-                originalPrice: 4800,
-                warranty: '1 Year Warranty',
-            },
-            {
-                id: 'hoya_hilux',
-                name: 'Hoya Hilux Lenses',
-                type: 'Water Repellent',
-                coating: 'Water Repellent',
-                features: ['🌊 Water Repellent', '🛡️ Scratch Resistant'],
-                price: 2800,
-                originalPrice: 3800,
-                warranty: '1 Year Warranty',
-            },
-        ],
-    },
-    {
-        id: 'kodak',
-        logo: 'KODAK',
-        logoBg: '#FFD700',
-        logoColor: '#040205',
-        name: 'Kodak Lens',
-        tagline: 'Trust & Clarity',
-        defaultOpen: false,
-        packages: [
-            {
-                id: 'kodak_clean',
-                name: 'Kodak Clean&Clear',
-                type: 'Anti-Reflective',
-                coating: 'Smudge Resistant',
-                features: ['✨ Anti-Reflective Coating', '🛡️ Smudge Resistant'],
-                price: 2200,
-                originalPrice: 3000,
-                warranty: '1 Year Warranty',
-            },
-            {
-                id: 'kodak_unique',
-                name: 'Kodak Unique HD',
-                type: 'HD Vision',
-                coating: 'HD Clarity',
-                features: ['🔍 HD Vision Quality', '🌐 Wide Field of View'],
-                price: 2800,
-                originalPrice: 3800,
-                warranty: '1 Year Warranty',
-            },
-        ],
-    },
-];
+const groupLensesByPackage = (lenses) => {
+    const map = {};
+    lenses.forEach(lens => {
+        const pkgName = lens.package_name || 'Other';
+        if (!map[pkgName]) {
+            map[pkgName] = { id: pkgName, name: pkgName, packages: [] };
+        }
+        map[pkgName].packages.push(lens);
+    });
+    return Object.values(map);
+};
 
 /* ════════════════════════════════════════════════════════
    LENS PREVIEW — SVG placeholder (no expiring URLs)
@@ -297,30 +179,30 @@ const LensPreview = ({ selected }) => (
    LENS PACKAGE CARD
    ════════════════════════════════════════════════════════ */
 const LensPackageCard = ({ pkg, selected, onSelect, productBasePrice = 0 }) => {
-    const totalPrice = productBasePrice + pkg.price;
+    const features = Array.isArray(pkg.features) ? pkg.features : [];
+    const lensPrice = parseFloat(pkg.price || 0);
     return (
         <button
             className={`lsa-pkg-card${selected ? ' lsa-pkg-card--selected' : ''}`}
             onClick={() => onSelect(pkg.id)}
         >
-            {pkg.badge && (
-                <span className="lsa-pkg-card__badge">{pkg.badge}</span>
-            )}
             <div className="lsa-pkg-card__inner">
                 <LensPreview selected={selected} />
                 <div className="lsa-pkg-card__info">
                     <h4 className="lsa-pkg-card__name">{pkg.name}</h4>
-                    <ul className="lsa-pkg-card__features">
-                        {pkg.features.map((f, i) => (
-                            <li key={i}>{f}</li>
-                        ))}
-                    </ul>
+                    {pkg.description && (
+                        <p style={{ fontSize: 11, color: '#71717a', margin: '2px 0 4px' }}>{pkg.description}</p>
+                    )}
+                    {features.length > 0 && (
+                        <ul className="lsa-pkg-card__features">
+                            {features.map((f, i) => <li key={i}>{f}</li>)}
+                        </ul>
+                    )}
                     <div className="lsa-pkg-card__price-row">
                         <div className="lsa-pkg-card__price-stack">
-                            <span className="lsa-pkg-card__label">Frame + Lens</span>
+                            <span className="lsa-pkg-card__label">Lens Price</span>
                             <div className="lsa-pkg-card__prices">
-                                <span className="lsa-pkg-card__price">₹{pkg.price.toLocaleString('en-IN')}</span>
-                                <span className="lsa-pkg-card__original">₹{pkg.originalPrice.toLocaleString('en-IN')}</span>
+                                <span className="lsa-pkg-card__price">₹{lensPrice.toLocaleString('en-IN')}</span>
                             </div>
                         </div>
                         <div className={`lsa-pkg-card__chevron${selected ? ' lsa-pkg-card__chevron--selected' : ''}`}>
@@ -340,19 +222,12 @@ const BrandAccordion = ({ brand, isOpen, onToggle, selectedLens, onSelectLens, p
     <div className={`lsa-brand${isOpen ? ' lsa-brand--open' : ''}`}>
         <button className="lsa-brand__header" onClick={onToggle}>
             <div className="lsa-brand__header-left">
-                <div
-                    className="lsa-brand__logo"
-                    style={{
-                        background: brand.logoBg,
-                        color: brand.logoColor,
-                        border: brand.logoBorder ? `1px solid ${brand.logoBorder}` : 'none',
-                    }}
-                >
-                    {brand.logo}
+                <div className="lsa-brand__logo" style={{ background: '#EBE3F2', color: '#68408D' }}>
+                    {(brand.name || '').slice(0, 2).toUpperCase()}
                 </div>
                 <div className="lsa-brand__meta">
                     <span className="lsa-brand__name">{brand.name}</span>
-                    <span className="lsa-brand__tagline">{brand.tagline}</span>
+                    <span className="lsa-brand__tagline">{brand.packages.length} option{brand.packages.length !== 1 ? 's' : ''}</span>
                 </div>
             </div>
             <span className="lsa-brand__toggle-icon">
@@ -371,7 +246,6 @@ const BrandAccordion = ({ brand, isOpen, onToggle, selectedLens, onSelectLens, p
                         productBasePrice={productBasePrice}
                     />
                 ))}
-                <button className="lsa-more-lens">More Lens</button>
             </div>
         )}
     </div>
@@ -419,20 +293,40 @@ const StepPower = ({ selected, onSelect }) => (
 /* ════════════════════════════════════════════════════════
    STEP 2 — Lens Type (Accordion)
    ════════════════════════════════════════════════════════ */
-const StepLenses = ({ selectedLens, onSelectLens, productBasePrice }) => {
-    const [openBrand, setOpenBrand] = useState(
-        LENS_BRANDS.find(b => b.defaultOpen)?.id ?? LENS_BRANDS[0].id
-    );
+const StepLenses = ({ selectedLens, onSelectLens, productBasePrice, lensGroups, lensesLoading }) => {
+    const [openBrand, setOpenBrand] = useState(null);
+
+    useEffect(() => {
+        if (lensGroups.length > 0 && openBrand === null) {
+            setOpenBrand(lensGroups[0].id);
+        }
+    }, [lensGroups]);
 
     const toggleBrand = (brandId) => {
         setOpenBrand(prev => prev === brandId ? null : brandId);
     };
 
+    if (lensesLoading) {
+        return (
+            <div className="lsa-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 200 }}>
+                <div style={{ textAlign: 'center', color: '#71717a', fontSize: 13 }}>Loading lenses…</div>
+            </div>
+        );
+    }
+
+    if (lensGroups.length === 0) {
+        return (
+            <div className="lsa-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 200 }}>
+                <div style={{ textAlign: 'center', color: '#71717a', fontSize: 13 }}>No lenses available.</div>
+            </div>
+        );
+    }
+
     return (
         <div className="lsa-body lsa-body--lenses">
             <h2 className="lsa-heading">Select your Lens Type</h2>
             <div className="lsa-brands">
-                {LENS_BRANDS.map(brand => (
+                {lensGroups.map(brand => (
                     <BrandAccordion
                         key={brand.id}
                         brand={brand}
@@ -1058,7 +952,7 @@ const StepRx = ({ powerType, rx, onRxChange, rxMode, setRxMode, onUpload, upload
 const LensSelectionAside = ({ isOpen, onClose, product, onAddToCart }) => {
     const [step, setStep] = useState(0);
     const [powerType, setPowerType] = useState(null);
-    const [selectedLens, setSelectedLens] = useState(null);
+    const [selectedLensId, setSelectedLensId] = useState(null);
     const [rxMode, setRxMode] = useState(null);
     const [uploadedFile, setUploadedFile] = useState(null);
     const [rxMeta, setRxMeta] = useState({ samePower: false, hasCyl: true, name: '', phone: '', pd: '' });
@@ -1067,6 +961,24 @@ const LensSelectionAside = ({ isOpen, onClose, product, onAddToCart }) => {
         os: { sph: '', cyl: '', axis: '' },
         add: '',
     });
+
+    // Live lens data from API
+    const [allLenses, setAllLenses] = useState([]);
+    const [lensesLoading, setLensesLoading] = useState(false);
+
+    useEffect(() => {
+        if (!isOpen || allLenses.length > 0) return;
+        setLensesLoading(true);
+        apiClient.get('/catalog/lenses/', { params: { is_active: true } })
+            .then(res => {
+                const lenses = res.data.results || res.data;
+                setAllLenses(Array.isArray(lenses) ? lenses : []);
+            })
+            .catch(() => setAllLenses([]))
+            .finally(() => setLensesLoading(false));
+    }, [isOpen]);
+
+    const lensGroups = groupLensesByPackage(allLenses.filter(l => l.is_active !== false));
 
     const basePrice = parseFloat(product?.base_price ?? 0);
 
@@ -1085,7 +997,7 @@ const LensSelectionAside = ({ isOpen, onClose, product, onAddToCart }) => {
     const handleClose = () => {
         onClose();
         setTimeout(() => {
-            setStep(0); setPowerType(null); setSelectedLens(null);
+            setStep(0); setPowerType(null); setSelectedLensId(null);
             setRxMode(null); setUploadedFile(null);
             setRxMeta({ samePower: false, hasCyl: true, name: '', phone: '', pd: '' });
             setRx({ od: { sph: '', cyl: '', axis: '' }, os: { sph: '', cyl: '', axis: '' }, add: '' });
@@ -1093,32 +1005,24 @@ const LensSelectionAside = ({ isOpen, onClose, product, onAddToCart }) => {
     };
 
     const handleBack = () => {
-        // In manual/upload sub-views, Back clears rxMode (return to Rx options)
         if (step === 2 && rxMode !== null) { setRxMode(null); return; }
         if (step === 0) { handleClose(); return; }
-        // frame_only jumped step 0→2, go back to step 0
         if (step === 2 && powerType === 'frame_only') { setStep(0); return; }
         setStep(s => s - 1);
     };
 
     const handlePowerSelect = (id) => {
         setPowerType(id);
-        // Frame only has no lens step — jump straight to Rx
         if (id === 'frame_only') { setStep(2); return; }
         setStep(1);
     };
 
     const handleLensSelect = (id) => {
-        setSelectedLens(id);
+        setSelectedLensId(id);
     };
 
     const handleAddToCart = () => {
-        // Find the selected lens package object
-        let lensObj = null;
-        for (const brand of LENS_BRANDS) {
-            const pkg = brand.packages.find(p => p.id === selectedLens);
-            if (pkg) { lensObj = { ...pkg, brand: brand.name }; break; }
-        }
+        const lensObj = allLenses.find(l => l.id === selectedLensId) || null;
         const needsRx = powerType === 'with_power' || powerType === 'progressive';
         const prescriptionObj = needsRx && rxMode === 'manual'
             ? { ...rx, pd: rxMeta.pd, name: rxMeta.name, phone: rxMeta.phone }
@@ -1133,7 +1037,9 @@ const LensSelectionAside = ({ isOpen, onClose, product, onAddToCart }) => {
     };
 
     /* CTA config per step */
-    const rxReady = powerType === 'zero_power' || powerType === 'frame_only' || rxMode !== null;
+    const rxReady = powerType === 'zero_power' || powerType === 'frame_only' ||
+        (rxMode === 'manual' || rxMode === 'later') ||
+        (rxMode === 'upload' && !!uploadedFile);
     const cta = [
         {
             label: 'Continue to Lenses',
@@ -1145,7 +1051,7 @@ const LensSelectionAside = ({ isOpen, onClose, product, onAddToCart }) => {
         {
             label: 'Continue to Prescription',
             sub: 'NEXT: ENTER YOUR POWER',
-            disabled: !selectedLens,
+            disabled: !selectedLensId,
             action: () => setStep(2),
             style: {},
         },
@@ -1185,9 +1091,11 @@ const LensSelectionAside = ({ isOpen, onClose, product, onAddToCart }) => {
                     {step === 0 && <StepPower selected={powerType} onSelect={handlePowerSelect} />}
                     {step === 1 && (
                         <StepLenses
-                            selectedLens={selectedLens}
+                            selectedLens={selectedLensId}
                             onSelectLens={handleLensSelect}
                             productBasePrice={basePrice}
+                            lensGroups={lensGroups}
+                            lensesLoading={lensesLoading}
                         />
                     )}
                     {step === 2 && (

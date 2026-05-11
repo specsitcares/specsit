@@ -52,6 +52,7 @@ class Order(models.Model):
     ORDER_STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('confirmed', 'Confirmed'),
+        ('preparing', 'Preparing'),
         ('ready_to_dispatch', 'Ready to Dispatch'),
         ('in_transit', 'In Transit'),
         ('delivered', 'Delivered'),

@@ -305,9 +305,14 @@ class LensPackageViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAdminUser]
 
 class LensViewSet(viewsets.ModelViewSet):
-    queryset = Lens.objects.select_related('package', 'type').all()
     serializer_class = LensSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get_queryset(self):
+        qs = Lens.objects.select_related('package', 'type').all()
+        if not self.request.user or not self.request.user.is_staff:
+            qs = qs.filter(is_active=True)
+        return qs
 
 class PrescriptionViewSet(viewsets.ModelViewSet):
     serializer_class = PrescriptionSerializer
@@ -364,14 +369,21 @@ class PrescriptionViewSet(viewsets.ModelViewSet):
             prescription.review_notes = request.data.get('notes', '')
         prescription.save()
 
-        # When a prescription is approved, advance any linked order from 'pending' → 'confirmed'
-        # if every lens-requiring item on that order now has an approved prescription.
+        from apps.sales.models import Order
+        from apps.catalog.core.models import MetadataGroup, MetadataItem as MI
+
+        def _order_status_meta(label, value):
+            group, _ = MetadataGroup.objects.get_or_create(name='Order Status')
+            meta, _ = MI.objects.get_or_create(
+                group=group, label=label,
+                defaults={'value': value, 'is_active': True},
+            )
+            return meta
+
+        linked_orders = Order.objects.filter(items__prescription=prescription).distinct()
+
         if review_status == 'Approved':
-            from apps.sales.models import Order, OrderItem
-            from apps.catalog.core.models import MetadataGroup, MetadataItem as ConfMI
-            linked_orders = Order.objects.filter(
-                items__prescription=prescription
-            ).distinct()
+            # Advance pending → confirmed if ALL lens items on the order are now approved
             for order in linked_orders:
                 if order.order_status != 'pending':
                     continue
@@ -385,15 +397,16 @@ class PrescriptionViewSet(viewsets.ModelViewSet):
                     for i in lens_items
                 )
                 if all_approved:
-                    conf_group, _ = MetadataGroup.objects.get_or_create(name='Order Status')
-                    conf_meta, _ = ConfMI.objects.get_or_create(
-                        group=conf_group, label='Confirmed',
-                        defaults={'value': 'confirmed', 'is_active': True},
-                    )
                     Order.objects.filter(pk=order.pk).update(
                         order_status='confirmed',
-                        status=conf_meta,
+                        status=_order_status_meta('Confirmed', 'confirmed'),
                     )
+
+        elif review_status in ('Rejected', 'Reupload Requested'):
+            # Revert confirmed → pending so the order goes back to "Order Received"
+            linked_orders.filter(
+                order_status__in=['pending', 'confirmed']
+            ).update(order_status='pending', status=_order_status_meta('Pending', 'pending'))
 
         return Response(self.get_serializer(prescription).data)
 
