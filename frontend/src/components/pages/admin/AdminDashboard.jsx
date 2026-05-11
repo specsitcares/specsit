@@ -34,7 +34,7 @@ import '../../../styles/admin.css';
 const OrderDetailRoute = () => {
   const { orderId } = useParams();
   const navigate = useNavigate();
-  return <OrderDetail orderId={parseInt(orderId)} onBack={() => navigate('/admin/orders')} />;
+  return <OrderDetail orderId={parseInt(orderId)} onBack={() => navigate(-1)} />;
 };
 
 const ProductsRoute = () => {

@@ -1,17 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  LayoutGrid, ShoppingCart, Package, Box, CheckCircle,
+  ShoppingCart, Package, Box, CheckCircle,
   Truck, Users, BarChart2, Settings, ChevronDown, Columns, X,
 } from 'lucide-react';
 
 /* ── URL mapping for every sidebar sub-item ─────────────── */
 const SUB_URLS = {
-  // Dashboards
-  'Defaults':           '/admin',
-  'eCommerce':          '/admin',
-  'Projects':           '/admin',
-  'Marketing':          '/admin',
   // Orders
   'All Orders':         '/admin/orders',
   'Return Window':      '/admin/orders/returns',
@@ -26,13 +21,10 @@ const SUB_URLS = {
   // Inventory
   'Current Stock':      '/admin/inventory',
   'Low Stock':          '/admin/inventory/low',
-  'Restock Records':    '/admin/inventory',
   // Prescriptions
   'All Prescriptions':  '/admin/prescriptions',
-  'Review Needed':      '/admin/prescriptions',
   // Shipments
   'Track Shipments':    '/admin/shipments',
-  'Shipment Logs':      '/admin/shipments',
   // Customers
   'Customer Profiles':  '/admin/customers',
   'Reviews':            '/admin/customers/reviews',
@@ -40,18 +32,16 @@ const SUB_URLS = {
   'Inquiries':          '/admin/customers/inquiries',
   // Analytics
   'Sales Performance':  '/admin/analytics',
-  'Category Trends':    '/admin/analytics',
   // Settings
   'Store Settings':     '/admin/settings',
   'Payment Settings':   '/admin/settings/payment',
   'CMS Management':     '/admin/settings/cms',
   'Staff Roles':        '/admin/settings/staff',
-  'Profile':            '/admin/settings',
+  'Coupons':            '/admin/settings/coupons',
 };
 
 /* Base URL prefix for each parent section — used to detect active parent */
 const PARENT_PREFIX = {
-  'Dashboards':    ['/admin'],
   'Orders':        ['/admin/orders'],
   'Products':      ['/admin/products'],
   'Inventory':     ['/admin/inventory'],
@@ -79,15 +69,14 @@ const Badge = ({ count }) => {
 };
 
 const menuItems = [
-  { key: 'Dashboards',    label: 'Dashboards',       icon: LayoutGrid,   subs: ['Defaults', 'eCommerce', 'Projects', 'Marketing'] },
   { key: 'Orders',        label: 'Orders',            icon: ShoppingCart, subs: ['All Orders', 'Return Window', 'Warranty Window'] },
   { key: 'Products',      label: 'Products Catalog',  icon: Package,      subs: ['All Products', 'All Categories', 'All Brands', 'All Collections', 'All Variants', 'Manage Lenses'] },
-  { key: 'Inventory',     label: 'Inventory & Stock', icon: Box,          subs: ['Current Stock', 'Low Stock', 'Restock Records'] },
-  { key: 'Prescriptions', label: 'Prescriptions',     icon: CheckCircle,  subs: ['All Prescriptions', 'Review Needed'] },
-  { key: 'Shipments',     label: 'Shipments',         icon: Truck,        subs: ['Track Shipments', 'Shipment Logs'] },
+  { key: 'Inventory',     label: 'Inventory & Stock', icon: Box,          subs: ['Current Stock', 'Low Stock'] },
+  { key: 'Prescriptions', label: 'Prescriptions',     icon: CheckCircle,  subs: ['All Prescriptions'] },
+  { key: 'Shipments',     label: 'Shipments',         icon: Truck,        subs: ['Track Shipments'] },
   { key: 'Customers',     label: 'Customers',         icon: Users,        subs: ['Customer Profiles', 'Reviews', 'Face Captures', 'Inquiries'] },
-  { key: 'Analytics',     label: 'Analytics',         icon: BarChart2,    subs: ['Sales Performance', 'Category Trends'] },
-  { key: 'Settings',      label: 'Settings',          icon: Settings,     subs: ['Store Settings', 'Payment Settings', 'CMS Management', 'Staff Roles', 'Profile'] },
+  { key: 'Analytics',     label: 'Analytics',         icon: BarChart2,    subs: ['Sales Performance'] },
+  { key: 'Settings',      label: 'Settings',          icon: Settings,     subs: ['Store Settings', 'Payment Settings', 'CMS Management', 'Staff Roles', 'Coupons'] },
 ];
 
 const Sidebar = ({ onClose, isMobile, badges = {} }) => {
@@ -100,26 +89,23 @@ const Sidebar = ({ onClose, isMobile, badges = {} }) => {
     for (const item of menuItems) {
       const prefixes = PARENT_PREFIX[item.key] || [];
       for (const prefix of prefixes) {
-        if (prefix === '/admin' && item.key === 'Dashboards') {
-          if (path === '/admin' || path === '/admin/') return 'Dashboards';
-        } else if (path.startsWith(prefix + '/') || path === prefix) {
-          return item.key;
-        }
+        if (path.startsWith(prefix + '/') || path === prefix) return item.key;
       }
     }
-    return 'Dashboards';
+    return 'Orders';
   };
 
   const activeParent = getActiveParent();
 
-  /* Expand the active parent by default; user can toggle others */
   const [expanded, setExpanded] = useState(() => {
     const initial = {};
-    for (const item of menuItems) {
-      initial[item.key] = item.key === activeParent;
-    }
+    for (const item of menuItems) initial[item.key] = item.key === activeParent;
     return initial;
   });
+
+  useEffect(() => {
+    setExpanded(prev => ({ ...prev, [activeParent]: true }));
+  }, [activeParent]);
 
   const toggle = (key) => setExpanded(prev => ({ ...prev, [key]: !prev[key] }));
 
