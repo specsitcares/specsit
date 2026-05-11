@@ -647,7 +647,11 @@ class CouponViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
 class ShipmentViewSet(viewsets.ModelViewSet):
-    queryset = Shipment.objects.select_related('order', 'status').all()
+    queryset = Shipment.objects.select_related(
+        'order', 'order__shipping_address', 'order__tracking', 'status'
+    ).prefetch_related(
+        'order__items__variant__product'
+    ).all()
     serializer_class = ShipmentSerializer
     permission_classes = [permissions.IsAdminUser]
 

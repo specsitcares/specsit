@@ -1,15 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Download, Edit, Trash2, Truck, MoreVertical, ChevronLeft, ChevronRight, Package, MapPin, Edit2 } from 'lucide-react';
+import { Trash2, Truck, Package, MapPin } from 'lucide-react';
 import apiClient from '../../../services/api';
-import FormModal from './FormModal';
 import BaseAdminTable from './BaseAdminTable';
 
 const ShipmentTable = () => {
   const [shipments, setShipments] = useState([]);
   const [loading, setLoading]   = useState(true);
-  const [showForm, setShowForm]   = useState(false);
-  const [selectedShipment, setSelectedShipment] = useState(null);
-  const [formMode, setFormMode]   = useState('create');
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage]           = useState(1);
   const [perPage, setPerPage]     = useState(10);
@@ -52,41 +48,6 @@ const ShipmentTable = () => {
     { label: 'Delete Selected', variant: 'danger', icon: Trash2, onClick: bulkDelete },
   ];
 
-  const handleCreateClick = () => { setFormMode('create'); setSelectedShipment(null); setShowForm(true); };
-  const handleEditClick   = (s) => { setFormMode('edit');   setSelectedShipment(s);    setShowForm(true); };
-
-  const handleFormSubmit = async (formData) => {
-    try {
-      if (formMode === 'create') await apiClient.post('/sales/shipments/', formData);
-      else await apiClient.put(`/sales/shipments/${selectedShipment.id}/`, formData);
-      setShowForm(false);
-      fetchShipments();
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleFormDelete = async (id) => {
-    try {
-      await apiClient.delete(`/sales/shipments/${id}/`);
-      setShowForm(false);
-      fetchShipments();
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleDeleteClick = async (s) => {
-    if (!window.confirm(`Delete shipment for Order #LO-${String(s.order_id).padStart(7, '0')}?`)) return;
-    try {
-      await apiClient.delete(`/sales/shipments/${s.id}/`);
-      fetchShipments();
-    } catch (err) {
-      console.error(err);
-      alert('Failed to delete shipment.');
-    }
-  };
-
   const filtered = shipments.filter(s =>
     [s.tracking_id, s.carrier, s.order_id?.toString()].some(v => v?.toLowerCase().includes(searchQuery.toLowerCase()))
   );
@@ -101,82 +62,74 @@ const ShipmentTable = () => {
     return { bg: '#F9FAFB', text: '#344054', dot: '#98A2B3', border: '#EAECF0' };
   };
 
+  const paymentStatusStyle = (status) => {
+    const s = (status || '').toLowerCase();
+    if (s === 'completed' || s === 'paid') return { bg: '#ECFDF3', text: '#027A48', border: '#ABEFC6' };
+    if (s === 'pending')  return { bg: '#FFFAEB', text: '#B54708', border: '#FEDF89' };
+    if (s === 'failed')   return { bg: '#FEF3F2', text: '#B42318', border: '#FEE4E2' };
+    return { bg: '#F9FAFB', text: '#344054', border: '#EAECF0' };
+  };
+
   const columns = [
-    { label: 'Order ID', key: 'order_id', sortable: true },
-    { label: 'Carrier & Method', key: 'carrier', sortable: true },
-    { label: 'Tracking ID', key: 'tracking_id', sortable: true },
-    { label: 'Location/Status', key: 'status', sortable: true },
-    { label: 'Created', key: 'created', sortable: true },
-    { label: 'Action', key: 'action', align: 'right' }
+    { label: 'Order ID',      key: 'order_id',      sortable: true },
+    { label: 'Product',       key: 'product_names', sortable: false },
+    { label: 'Address (Pin)', key: 'pincode',        sortable: false },
+    { label: 'Delivery Date', key: 'delivery_date',  sortable: true },
+    { label: 'Tracking ID',   key: 'tracking_id',    sortable: true },
+    { label: 'Payment',       key: 'payment_status', sortable: true },
   ];
 
   const renderRow = (s, idx, { isSelected, onToggle } = {}) => {
-    const style = getStatusStyle(s.status_label);
+    const statusStyle = getStatusStyle(s.status_label);
+    const pmStyle     = paymentStatusStyle(s.order_payment_status);
+    const deliveryDate = s.estimated_delivery_date
+      ? new Date(s.estimated_delivery_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+      : '—';
     return (
       <tr key={s.id || idx} style={{ borderBottom: '1px solid #EAECF0', backgroundColor: isSelected ? '#F9F5FF' : '#fff' }}>
         <td style={{ padding: '16px 24px' }}>
           <input type="checkbox" checked={!!isSelected} onChange={onToggle} style={{ cursor: 'pointer', borderRadius: '3px', accentColor: '#7F56D9' }} />
         </td>
+        {/* Order ID */}
         <td style={{ padding: '16px 24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <Package size={14} color="#667085" />
-            <span style={{ fontWeight: 600, color: '#344054' }}>#LO-{String(s.order_id).padStart(7, '0')}</span>
+            <span style={{ fontWeight: 600, color: '#344054', fontSize: 12 }}>#LO-{String(s.order_id).padStart(7, '0')}</span>
           </div>
         </td>
+        {/* Product name */}
+        <td style={{ padding: '16px 24px', maxWidth: 180 }}>
+          <span style={{ fontSize: 12, color: '#101828', fontWeight: 500, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {s.product_names || '—'}
+          </span>
+        </td>
+        {/* Address / pincode */}
         <td style={{ padding: '16px 24px' }}>
-          <div>
-            <div style={{ fontWeight: 600, color: '#101828', fontSize: '11px' }}>{s.carrier || 'Standard'}</div>
-            <div style={{ fontSize: '10px', color: '#667085' }}>{s.method || 'Priority'}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#344054' }}>
+            <MapPin size={12} color="#667085" />
+            <span>{s.shipping_pincode || '—'}</span>
           </div>
         </td>
+        {/* Delivery date */}
+        <td style={{ padding: '16px 24px' }}>
+          <span style={{ fontSize: 12, color: '#344054' }}>{deliveryDate}</span>
+        </td>
+        {/* Tracking ID */}
         <td style={{ padding: '16px 24px' }}>
           <code style={{ background: '#F9FAFB', border: '1px solid #EAECF0', padding: '4px 8px', borderRadius: '5px', fontFamily: 'monospace', fontSize: '10px', color: '#344054', fontWeight: 600 }}>
             {s.tracking_id || 'AWAITING'}
           </code>
         </td>
+        {/* Payment status */}
         <td style={{ padding: '16px 24px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-             <span style={{
-               backgroundColor: style.bg,
-               color: style.text,
-               padding: '4px 10px',
-               borderRadius: '13px',
-               fontSize: '10px',
-               fontWeight: 600,
-               display: 'inline-flex',
-               alignItems: 'center',
-               gap: 6,
-               border: `1px solid ${style.border}`,
-               width: 'fit-content'
-             }}>
-               <span style={{ width: 6, height: 6, borderRadius: '50%', background: style.dot }}></span>
-               {s.status_label || 'Pending'}
-             </span>
-             <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '9px', color: '#667085', marginLeft: '3px' }}>
-                <MapPin size={10} /> Local Logistics Hub
-             </div>
-          </div>
-        </td>
-        <td style={{ padding: '16px 24px' }}>
-          <span style={{ fontSize: '10px', color: '#667085' }}>{new Date(s.created_at).toLocaleDateString()}</span>
-        </td>
-        <td style={{ padding: '16px 24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-            <div
-              onClick={() => handleEditClick(s)}
-              style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
-              title="Edit Shipment"
-            >
-              <Edit2 size={16} />
-            </div>
-            <div
-              onClick={() => handleDeleteClick(s)}
-              style={{ width: 32, height: 32, border: '1px solid #FEE4E2', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#FEF3F2', color: '#D92D20', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
-              title="Delete Shipment"
-            >
-              <Trash2 size={16} />
-            </div>
-          </div>
+          <span style={{
+            backgroundColor: pmStyle.bg, color: pmStyle.text,
+            border: `1px solid ${pmStyle.border}`,
+            padding: '3px 10px', borderRadius: 13,
+            fontSize: 10, fontWeight: 600, whiteSpace: 'nowrap',
+          }}>
+            {s.order_payment_status ? s.order_payment_status.charAt(0).toUpperCase() + s.order_payment_status.slice(1) : 'Pending'}
+          </span>
         </td>
       </tr>
     );
@@ -189,8 +142,6 @@ const ShipmentTable = () => {
         count={filtered.length}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        onAdd={handleCreateClick}
-        addLabel="Create Shipment"
         columns={columns}
         data={paginated}
         loading={loading}
@@ -213,22 +164,6 @@ const ShipmentTable = () => {
           </div>
         }
       />
-
-      <FormModal
-        isOpen={showForm} onClose={() => setShowForm(false)} onSubmit={handleFormSubmit}
-        onDelete={handleFormDelete} mode={formMode} title="Shipment"
-        fields={[
-          { name: 'order_id', label: 'Order ID', type: 'number', required: true },
-          { name: 'carrier', label: 'Carrier', type: 'text', required: true },
-          { name: 'method', label: 'Shipping Method', type: 'select', options: [
-            { label: 'Ground', value: 'Ground' }, { label: 'Express', value: 'Express' }, { label: 'Overnight', value: 'Overnight' }
-          ], required: true },
-          { name: 'tracking_id', label: 'Tracking ID', type: 'text', required: true },
-          { name: 'status', label: 'Status', type: 'select', options: [
-            { label: 'Pending', value: 'Pending' }, { label: 'In Transit', value: 'In Transit' }, { label: 'Delivered', value: 'Delivered' }
-          ], required: true }
-        ]}
-        initialData={selectedShipment || {}} />
     </>
   );
 };

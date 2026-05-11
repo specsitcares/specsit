@@ -356,12 +356,39 @@ class WishlistSerializer(serializers.ModelSerializer):
         read_only_fields = ['user', 'added_at']
 
 class ShipmentSerializer(serializers.ModelSerializer):
-    status_label = serializers.SerializerMethodField()
-    order_id = serializers.IntegerField(source='order.id', read_only=True)
+    status_label          = serializers.SerializerMethodField()
+    order_id              = serializers.IntegerField(source='order.id', read_only=True)
+    product_names         = serializers.SerializerMethodField()
+    shipping_pincode      = serializers.SerializerMethodField()
+    estimated_delivery_date = serializers.SerializerMethodField()
+    order_payment_status  = serializers.ReadOnlyField(source='order.payment_status')
 
     def get_status_label(self, obj):
         return obj.status.label if obj.status else None
 
+    def get_product_names(self, obj):
+        names = []
+        for item in obj.order.items.all():
+            if item.variant and item.variant.product:
+                names.append(item.variant.product.title)
+        return ', '.join(names) if names else '—'
+
+    def get_shipping_pincode(self, obj):
+        addr = obj.order.shipping_address
+        if addr:
+            return addr.pin_code
+        return obj.order.shipping_postal_code or '—'
+
+    def get_estimated_delivery_date(self, obj):
+        try:
+            return obj.order.tracking.estimated_delivery_date
+        except Exception:
+            return None
+
     class Meta:
         model = Shipment
-        fields = ['id', 'order', 'order_id', 'carrier', 'method', 'tracking_id', 'status', 'status_label', 'created_at']
+        fields = [
+            'id', 'order', 'order_id', 'carrier', 'method', 'tracking_id',
+            'status', 'status_label', 'created_at',
+            'product_names', 'shipping_pincode', 'estimated_delivery_date', 'order_payment_status',
+        ]

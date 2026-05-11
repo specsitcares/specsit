@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, FileText, RefreshCw, ChevronDown, ZoomIn, ZoomOut, Eye, X } from 'lucide-react';
 import apiClient from '../../../services/api';
-import FormModal from './FormModal';
 
 /* ─── helpers ──────────────────────────────────────────── */
 const timeAgo = (dateStr) => {
@@ -298,8 +297,64 @@ const ReuploadDrawer = ({ rx, onClose, onSend }) => {
   );
 };
 
+/* ─── Reject Reason Modal ──────────────────────────────── */
+const RejectModal = ({ onClose, onConfirm, saving }) => {
+  const [reason, setReason] = useState('');
+  const [error, setError]   = useState('');
+
+  const handleConfirm = () => {
+    if (!reason.trim()) { setError('Rejection reason is required.'); return; }
+    onConfirm(reason);
+  };
+
+  return (
+    <div
+      onClick={onClose}
+      style={{ position: 'fixed', inset: 0, zIndex: 1200, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{ background: '#fff', borderRadius: 12, padding: 24, width: 420, maxWidth: '90vw', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}
+      >
+        <h3 style={{ fontSize: 16, fontWeight: 600, color: '#0f172a', margin: '0 0 6px' }}>Reject Prescription</h3>
+        <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 14px' }}>Enter the reason for rejection.</p>
+        <textarea
+          value={reason}
+          onChange={e => { setReason(e.target.value); setError(''); }}
+          placeholder="Enter rejection reason..."
+          rows={4}
+          autoFocus
+          style={{
+            width: '100%', boxSizing: 'border-box',
+            padding: '10px', border: `1px solid ${error ? '#fca5a5' : '#d2d2d2'}`,
+            borderRadius: 6, fontSize: 13, color: '#0f172a',
+            resize: 'vertical', outline: 'none', fontFamily: 'inherit',
+          }}
+        />
+        {error && <div style={{ fontSize: 12, color: '#ef4444', marginTop: 6 }}>{error}</div>}
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
+          <button
+            onClick={onClose}
+            disabled={saving}
+            style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid #e2e8f0', background: '#fff', color: '#0f172a', fontSize: 13, cursor: 'pointer' }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={saving}
+            style={{ padding: '7px 14px', borderRadius: 6, border: 'none', background: '#ef4444', color: '#fff', fontSize: 13, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}
+          >
+            {saving ? 'Rejecting…' : 'Confirm Rejection'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 /* ─── Notes + Action buttons (shared by both paths) ───── */
-const NotesAndActions = ({ notes, setNotes, submit, saving, error, success, onReuploadClick }) => (
+const NotesAndActions = ({ notes, setNotes, submit, saving, error, success, onReuploadClick, onRejectClick }) => (
   <>
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       <label style={{ fontSize: 14, fontWeight: 500, color: '#0f172a', lineHeight: '16px' }}>
@@ -359,7 +414,7 @@ const NotesAndActions = ({ notes, setNotes, submit, saving, error, success, onRe
         Request reupload
       </button>
       <button
-        onClick={() => submit('Rejected')}
+        onClick={onRejectClick}
         disabled={saving}
         style={{
           flex: 1, padding: '10px 12px', borderRadius: 6,
@@ -383,6 +438,7 @@ const DetailPanel = ({ rx, onReviewed }) => {
   const [error, setError]           = useState('');
   const [success, setSuccess]       = useState('');
   const [showReupload, setShowReupload] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
   const [pdfLoadError, setPdfLoadError] = useState(false);
   const [pdfBlobUrl, setPdfBlobUrl] = useState(null);
 
@@ -392,6 +448,7 @@ const DetailPanel = ({ rx, onReviewed }) => {
     setSuccess('');
     setZoom(100);
     setShowReupload(false);
+    setShowRejectModal(false);
     setPdfLoadError(false);
     setPdfBlobUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null; });
   }, [rx.id]);
@@ -426,6 +483,25 @@ const DetailPanel = ({ rx, onReviewed }) => {
       onReviewed();
     } catch (err) {
       setError(err?.response?.data?.detail || 'Failed to save review.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRejectConfirm = async (reason) => {
+    setSaving(true);
+    setError('');
+    setSuccess('');
+    try {
+      await apiClient.patch(`/catalog/prescriptions/${rx.id}/review/`, {
+        status: 'Rejected',
+        notes: reason,
+      });
+      setSuccess('Prescription rejected successfully.');
+      setShowRejectModal(false);
+      onReviewed();
+    } catch (err) {
+      setError(err?.response?.data?.detail || 'Failed to reject prescription.');
     } finally {
       setSaving(false);
     }
@@ -546,7 +622,7 @@ const DetailPanel = ({ rx, onReviewed }) => {
                   <Eye size={14} /> Open PDF in new tab
                 </a>
               )}
-              <NotesAndActions notes={notes} setNotes={setNotes} submit={submit} saving={saving} error={error} success={success} onReuploadClick={() => setShowReupload(true)} />
+              <NotesAndActions notes={notes} setNotes={setNotes} submit={submit} saving={saving} error={error} success={success} onReuploadClick={() => setShowReupload(true)} onRejectClick={() => setShowRejectModal(true)} />
             </div>
           </>
         ) : (
@@ -617,18 +693,27 @@ const DetailPanel = ({ rx, onReviewed }) => {
               </div>
             </div>
 
-            <NotesAndActions notes={notes} setNotes={setNotes} submit={submit} saving={saving} error={error} success={success} onReuploadClick={() => setShowReupload(true)} />
+            <NotesAndActions notes={notes} setNotes={setNotes} submit={submit} saving={saving} error={error} success={success} onReuploadClick={() => setShowReupload(true)} onRejectClick={() => setShowRejectModal(true)} />
           </div>
         )}
 
       </div>
 
-      {/* Reupload drawer — rendered outside the scroll container so it overlays everything */}
+      {/* Reupload drawer */}
       {showReupload && (
         <ReuploadDrawer
           rx={rx}
           onClose={() => setShowReupload(false)}
           onSend={handleReuploadSend}
+        />
+      )}
+
+      {/* Reject reason modal */}
+      {showRejectModal && (
+        <RejectModal
+          onClose={() => setShowRejectModal(false)}
+          onConfirm={handleRejectConfirm}
+          saving={saving}
         />
       )}
     </div>
@@ -651,11 +736,6 @@ const PrescriptionTable = () => {
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('newest');
   const [selectedRx, setSelectedRx] = useState(null);
-
-  // form modal state (kept for add/edit)
-  const [showForm, setShowForm] = useState(false);
-  const [formMode, setFormMode] = useState('create');
-  const [editRx, setEditRx] = useState(null);
 
   const fetchPrescriptions = async () => {
     setLoading(true);
@@ -707,24 +787,6 @@ const PrescriptionTable = () => {
     !r.status_label || r.status_label.toLowerCase().includes('pending')
   ).length;
 
-  const handleFormSubmit = async (formData) => {
-    try {
-      if (formMode === 'create') await apiClient.post('/catalog/prescriptions/', formData);
-      else await apiClient.patch(`/catalog/prescriptions/${editRx.id}/`, formData);
-      setShowForm(false);
-      fetchPrescriptions();
-    } catch (err) { console.error(err); }
-  };
-
-  const handleFormDelete = async (id) => {
-    try {
-      await apiClient.delete(`/catalog/prescriptions/${id}/`);
-      setShowForm(false);
-      if (selectedRx?.id === id) setSelectedRx(null);
-      fetchPrescriptions();
-    } catch (err) { console.error(err); }
-  };
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 160px)', minHeight: 600, background: '#fefcff' }}>
 
@@ -744,17 +806,6 @@ const PrescriptionTable = () => {
             </span>
           )}
         </div>
-        <button
-          onClick={() => { setFormMode('create'); setEditRx(null); setShowForm(true); }}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            padding: '8px 16px', borderRadius: 8,
-            background: '#68408d', color: '#fff',
-            border: 'none', fontSize: 14, fontWeight: 500, cursor: 'pointer',
-          }}
-        >
-          + Add Prescription
-        </button>
       </div>
 
       <p style={{ margin: '6px 24px 0', fontSize: 14, color: '#697177' }}>
@@ -869,39 +920,6 @@ const PrescriptionTable = () => {
           )}
         </div>
       </div>
-
-      {/* ── Form Modal (create/edit) ── */}
-      {showForm && (
-        <FormModal
-          isOpen={showForm}
-          onClose={() => setShowForm(false)}
-          onSubmit={handleFormSubmit}
-          onDelete={handleFormDelete}
-          mode={formMode}
-          title="Prescription"
-          fields={[
-            {
-              name: 'vision_type', label: 'Vision Type', type: 'select',
-              options: [
-                { label: 'Single Vision', value: 'Single Vision' },
-                { label: 'Progressive', value: 'Progressive' },
-                { label: 'Bifocal', value: 'Bifocal' },
-                { label: 'Reading', value: 'Reading' },
-              ], required: true,
-            },
-            { name: 'pd_distance', label: 'PD Distance (mm)', type: 'number', required: true, step: 0.1, min: 0, max: 100 },
-            { name: 'od_sphere', label: 'OD Sphere', type: 'number', step: 0.25 },
-            { name: 'od_cylinder', label: 'OD Cylinder', type: 'number', step: 0.25 },
-            { name: 'od_axis', label: 'OD Axis', type: 'number', step: 1 },
-            { name: 'od_add', label: 'OD Add', type: 'number', step: 0.25 },
-            { name: 'os_sphere', label: 'OS Sphere', type: 'number', step: 0.25 },
-            { name: 'os_cylinder', label: 'OS Cylinder', type: 'number', step: 0.25 },
-            { name: 'os_axis', label: 'OS Axis', type: 'number', step: 1 },
-            { name: 'os_add', label: 'OS Add', type: 'number', step: 0.25 },
-          ]}
-          initialData={editRx || {}}
-        />
-      )}
 
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
