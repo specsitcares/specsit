@@ -24,6 +24,9 @@ class PaymentSettingsView(APIView):
             'online_payment_enabled': config.online_payment_enabled if config else True,
             'partial_payment_enabled': config.partial_payment_enabled if config else True,
             'partial_payment_percentage': config.partial_payment_percentage if config else 50,
+            'key_id': config.key_id if config else '',
+            'has_key_secret': bool(config and config.key_secret),
+            'is_sandbox': config.is_sandbox if config else True,
         })
 
     def put(self, request):
@@ -38,17 +41,29 @@ class PaymentSettingsView(APIView):
         cod_enabled = bool(request.data.get('cod_enabled', True))
         online_payment_enabled = bool(request.data.get('online_payment_enabled', True))
         partial_enabled = bool(request.data.get('partial_payment_enabled', True))
+        is_sandbox = bool(request.data.get('is_sandbox', True))
+        key_id = request.data.get('key_id', '').strip()
+        key_secret = request.data.get('key_secret', '').strip()
+
         config, _ = PaymentGatewayConfig.objects.get_or_create(name='razorpay')
         config.cod_enabled = cod_enabled
         config.online_payment_enabled = online_payment_enabled
         config.partial_payment_enabled = partial_enabled
         config.partial_payment_percentage = pct
-        config.save(update_fields=['cod_enabled', 'online_payment_enabled', 'partial_payment_enabled', 'partial_payment_percentage'])
+        config.is_sandbox = is_sandbox
+        if key_id:
+            config.key_id = key_id
+        if key_secret:
+            config.key_secret = key_secret
+        config.save()
         return Response({
             'cod_enabled': config.cod_enabled,
             'online_payment_enabled': config.online_payment_enabled,
             'partial_payment_enabled': config.partial_payment_enabled,
             'partial_payment_percentage': config.partial_payment_percentage,
+            'key_id': config.key_id,
+            'has_key_secret': bool(config.key_secret),
+            'is_sandbox': config.is_sandbox,
         })
 
 logger = logging.getLogger(__name__)

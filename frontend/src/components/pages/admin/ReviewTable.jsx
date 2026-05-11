@@ -3,9 +3,10 @@ import { Search, Star, User, CheckCircle, XCircle, Trash2, ChevronLeft, ChevronR
 import apiClient from '../../../services/api';
 
 const TABS = [
-  { key: 'all', label: 'All Reviews' },
-  { key: 'pending', label: 'Pending' },
+  { key: 'all',      label: 'All Reviews' },
+  { key: 'pending',  label: 'Pending' },
   { key: 'approved', label: 'Approved' },
+  { key: 'rejected', label: 'Rejected' },
 ];
 
 const StarRating = ({ value }) => (
@@ -16,18 +17,23 @@ const StarRating = ({ value }) => (
   </div>
 );
 
-const StatusBadge = ({ approved }) => (
-  <span style={{
-    background: approved ? '#ECFDF3' : '#FFFAEB',
-    color: approved ? '#027A48' : '#B54708',
-    border: `1px solid ${approved ? '#ABEFC6' : '#FEDF89'}`,
-    padding: '3px 10px', borderRadius: 16, fontSize: 11, fontWeight: 700,
-    display: 'inline-flex', alignItems: 'center', gap: 5,
-  }}>
-    <span style={{ width: 6, height: 6, borderRadius: '50%', background: approved ? '#12B76A' : '#F79009' }} />
-    {approved ? 'Approved' : 'Pending'}
-  </span>
-);
+const StatusBadge = ({ approved, rejected }) => {
+  const bg    = approved ? '#ECFDF3' : rejected ? '#FEF3F2' : '#FFFAEB';
+  const color = approved ? '#027A48' : rejected ? '#B42318' : '#B54708';
+  const bdr   = approved ? '#ABEFC6' : rejected ? '#FECACA' : '#FEDF89';
+  const dot   = approved ? '#12B76A' : rejected ? '#D92D20' : '#F79009';
+  const label = approved ? 'Approved' : rejected ? 'Rejected' : 'Pending';
+  return (
+    <span style={{
+      background: bg, color, border: `1px solid ${bdr}`,
+      padding: '3px 10px', borderRadius: 16, fontSize: 11, fontWeight: 700,
+      display: 'inline-flex', alignItems: 'center', gap: 5,
+    }}>
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: dot }} />
+      {label}
+    </span>
+  );
+};
 
 const PAGE_SIZE = 10;
 
@@ -52,8 +58,9 @@ const ReviewTable = () => {
     setLoading(true);
     try {
       const params = {};
-      if (tab === 'pending') params.is_approved = 'false';
+      if (tab === 'pending')  { params.is_approved = 'false'; params.is_rejected = 'false'; }
       if (tab === 'approved') params.is_approved = 'true';
+      if (tab === 'rejected') params.is_rejected = 'true';
       if (ratingFilter) params.rating = ratingFilter;
       const res = await apiClient.get('/catalog/reviews/', { params });
       setReviews(Array.isArray(res.data) ? res.data : (res.data.results || []));
@@ -74,7 +81,9 @@ const ReviewTable = () => {
     try {
       await apiClient.post(`/catalog/reviews/${id}/${action}/`);
       setReviews(prev => prev.map(r =>
-        r.id === id ? { ...r, is_approved: action === 'approve' } : r
+        r.id === id
+          ? { ...r, is_approved: action === 'approve', is_rejected: action === 'reject' }
+          : r
       ));
       showToast(`Review ${action === 'approve' ? 'approved' : 'rejected'} successfully`);
     } catch {
@@ -143,7 +152,8 @@ const ReviewTable = () => {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const pendingCount = reviews.filter(r => !r.is_approved).length;
+  const pendingCount  = reviews.filter(r => !r.is_approved && !r.is_rejected).length;
+  const rejectedCount = reviews.filter(r => r.is_rejected).length;
 
   return (
     <div style={{ background: '#F9FAFB', minHeight: '100vh', padding: '24px 28px', fontFamily: 'Inter, sans-serif' }}>
@@ -192,6 +202,11 @@ const ReviewTable = () => {
             {t.key === 'pending' && pendingCount > 0 && (
               <span style={{ marginLeft: 6, background: tab === 'pending' ? 'rgba(255,255,255,0.25)' : '#FEF3C7', color: tab === 'pending' ? '#fff' : '#B45309', borderRadius: 10, padding: '0 6px', fontSize: 11, fontWeight: 700 }}>
                 {pendingCount}
+              </span>
+            )}
+            {t.key === 'rejected' && rejectedCount > 0 && (
+              <span style={{ marginLeft: 6, background: tab === 'rejected' ? 'rgba(255,255,255,0.25)' : '#FEF3F2', color: tab === 'rejected' ? '#fff' : '#B42318', borderRadius: 10, padding: '0 6px', fontSize: 11, fontWeight: 700 }}>
+                {rejectedCount}
               </span>
             )}
           </button>
@@ -330,7 +345,7 @@ const ReviewTable = () => {
 
                     {/* Status */}
                     <td style={{ padding: '14px 16px' }}>
-                      <StatusBadge approved={r.is_approved} />
+                      <StatusBadge approved={r.is_approved} rejected={r.is_rejected} />
                     </td>
 
                     {/* Date */}

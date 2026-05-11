@@ -224,6 +224,6 @@ class ReviewSerializer(serializers.ModelSerializer):
             'id', 'username', 'product', 'product_name', 'order',
             'rating', 'review_title', 'review_text',
             'reviewer_display_name', 'review_images', 'is_verified_purchase',
-            'is_approved', 'created_at', 'updated_at'
+            'is_approved', 'is_rejected', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'username', 'created_at', 'updated_at', 'is_verified_purchase']

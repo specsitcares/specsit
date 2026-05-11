@@ -509,6 +509,12 @@ class ReviewViewSet(viewsets.ModelViewSet):
         elif is_approved == 'false':
             qs = qs.filter(is_approved=False)
 
+        is_rejected = params.get('is_rejected')
+        if is_rejected == 'true':
+            qs = qs.filter(is_rejected=True)
+        elif is_rejected == 'false':
+            qs = qs.filter(is_rejected=False)
+
         product_id = params.get('product')
         if product_id:
             qs = qs.filter(product_id=product_id)
@@ -585,14 +591,16 @@ class ReviewViewSet(viewsets.ModelViewSet):
     def approve(self, request, pk=None):
         review = self.get_object()
         review.is_approved = True
-        review.save()
+        review.is_rejected = False
+        review.save(update_fields=['is_approved', 'is_rejected'])
         return Response({'status': 'review approved'}, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
     def reject(self, request, pk=None):
         review = self.get_object()
         review.is_approved = False
-        review.save()
+        review.is_rejected = True
+        review.save(update_fields=['is_approved', 'is_rejected'])
         return Response({'status': 'review rejected'}, status=status.HTTP_200_OK)
 
 

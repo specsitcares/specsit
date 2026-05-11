@@ -29,7 +29,6 @@ const SUB_URLS = {
   'Customer Profiles':  '/admin/customers',
   'Reviews':            '/admin/customers/reviews',
   'Face Captures':      '/admin/customers/faces',
-  'Inquiries':          '/admin/customers/inquiries',
   // Analytics
   'Sales Performance':  '/admin/analytics',
   // Settings
@@ -75,7 +74,7 @@ const menuItems = [
   { key: 'Inventory',     label: 'Inventory & Stock', icon: Box,          subs: ['Current Stock'] },
   { key: 'Prescriptions', label: 'Prescriptions',     icon: CheckCircle,  subs: ['All Prescriptions'] },
   { key: 'Shipments',     label: 'Shipments',         icon: Truck,        subs: ['Track Shipments'] },
-  { key: 'Customers',     label: 'Customers',         icon: Users,        subs: ['Customer Profiles', 'Reviews', 'Face Captures', 'Inquiries'] },
+  { key: 'Customers',     label: 'Customers',         icon: Users,        subs: ['Customer Profiles', 'Reviews', 'Face Captures'] },
   { key: 'Analytics',     label: 'Analytics',         icon: BarChart2,    subs: ['Sales Performance'] },
   { key: 'Settings',      label: 'Settings',          icon: Settings,     subs: ['Store Settings', 'Payment Settings', 'CMS Management', 'Staff Roles'] },
 ];

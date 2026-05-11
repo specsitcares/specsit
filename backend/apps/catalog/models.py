@@ -243,6 +243,7 @@ class Review(models.Model):
     review_images = models.JSONField(default=list)
     is_verified_purchase = models.BooleanField(default=True)
     is_approved = models.BooleanField(default=False)
+    is_rejected = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, RefreshCw } from 'lucide-react';
+import { Save, RefreshCw, Eye, EyeOff } from 'lucide-react';
 import apiClient from '../../../services/api';
 
 const field = {
@@ -42,6 +42,11 @@ const PaymentSettings = () => {
   const [onlineEnabled, setOnlineEnabled] = useState(true);
   const [partialEnabled, setPartialEnabled] = useState(true);
   const [pct, setPct] = useState(50);
+  const [keyId, setKeyId] = useState('');
+  const [keySecret, setKeySecret] = useState('');
+  const [hasKeySecret, setHasKeySecret] = useState(false);
+  const [isSandbox, setIsSandbox] = useState(true);
+  const [showSecret, setShowSecret] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -54,6 +59,9 @@ const PaymentSettings = () => {
         setOnlineEnabled(res.data.online_payment_enabled ?? true);
         setPartialEnabled(res.data.partial_payment_enabled ?? true);
         setPct(res.data.partial_payment_percentage || 50);
+        setKeyId(res.data.key_id || '');
+        setHasKeySecret(res.data.has_key_secret || false);
+        setIsSandbox(res.data.is_sandbox ?? true);
       })
       .catch(() => setError('Failed to load payment settings.'))
       .finally(() => setLoading(false));
@@ -68,12 +76,18 @@ const PaymentSettings = () => {
     }
     setSaving(true);
     try {
-      await apiClient.put('/sales/payments/settings/', {
+      const payload = {
         cod_enabled: codEnabled,
         online_payment_enabled: onlineEnabled,
         partial_payment_enabled: partialEnabled,
         partial_payment_percentage: Number(pct),
-      });
+        is_sandbox: isSandbox,
+        key_id: keyId.trim(),
+      };
+      if (keySecret.trim()) payload.key_secret = keySecret.trim();
+      await apiClient.put('/sales/payments/settings/', payload);
+      setKeySecret('');
+      setHasKeySecret(true);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch {
@@ -213,6 +227,67 @@ const PaymentSettings = () => {
               <div style={{ fontSize: '10px', color: '#667085', marginTop: '2px' }}>Collected before dispatch</div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Razorpay API Keys card */}
+      <div style={{ background: '#fff', border: '1px solid #EAECF0', borderRadius: '10px', padding: '19px', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+          <h2 style={{ fontSize: '12px', fontWeight: 700, color: '#101828', margin: 0 }}>Razorpay API Keys</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: '10px', color: '#667085' }}>Sandbox mode</span>
+            <Toggle checked={isSandbox} onChange={setIsSandbox} />
+          </div>
+        </div>
+        <p style={{ fontSize: '10px', color: '#667085', margin: '0 0 16px' }}>
+          {isSandbox ? 'Using test keys — no real charges.' : 'Live mode — real transactions enabled.'}
+        </p>
+
+        {/* Key ID */}
+        <div style={{ marginBottom: '12px' }}>
+          <label style={field.label}>Key ID</label>
+          <input
+            type="text"
+            value={keyId}
+            onChange={e => setKeyId(e.target.value)}
+            placeholder="rzp_test_... or rzp_live_..."
+            style={{
+              width: '100%', boxSizing: 'border-box',
+              padding: '9px 12px', border: '1px solid #D0D5DD',
+              borderRadius: '6px', fontSize: '12px', color: '#101828',
+              fontFamily: 'monospace', outline: 'none', background: '#fff',
+            }}
+          />
+        </div>
+
+        {/* Key Secret */}
+        <div>
+          <label style={field.label}>
+            Key Secret
+            {hasKeySecret && <span style={{ fontWeight: 400, color: '#667085', marginLeft: 6 }}>(configured — leave blank to keep)</span>}
+          </label>
+          <div style={{ position: 'relative' }}>
+            <input
+              type={showSecret ? 'text' : 'password'}
+              value={keySecret}
+              onChange={e => setKeySecret(e.target.value)}
+              placeholder={hasKeySecret ? '••••••••••••••••' : 'Enter key secret...'}
+              style={{
+                width: '100%', boxSizing: 'border-box',
+                padding: '9px 36px 9px 12px', border: '1px solid #D0D5DD',
+                borderRadius: '6px', fontSize: '12px', color: '#101828',
+                fontFamily: 'monospace', outline: 'none', background: '#fff',
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowSecret(s => !s)}
+              style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#667085', display: 'flex', padding: 0 }}
+            >
+              {showSecret ? <EyeOff size={14} /> : <Eye size={14} />}
+            </button>
+          </div>
+          <span style={field.hint}>Stored securely. Never exposed in API responses.</span>
         </div>
       </div>
 

@@ -94,11 +94,11 @@ const CustomerTable = () => {
   const colorIdx     = (id) => id % avatarColors.length;
 
   const columns = [
-    { label: 'Customer', key: 'customer', sortable: true },
-    { label: 'Email', key: 'email', sortable: true },
-    { label: 'Role', key: 'role', sortable: true },
-    { label: 'Joined', key: 'joined', sortable: true },
-    { label: 'Action', key: 'action', align: 'right' }
+    { label: 'Customer',   key: 'customer',    sortable: true },
+    { label: 'Email',      key: 'email',        sortable: true },
+    { label: 'Total Bill', key: 'total_bill',   sortable: true },
+    { label: 'Joined',     key: 'joined',       sortable: true },
+    { label: 'Action',     key: 'action',       align: 'right' }
   ];
 
   const renderRow = (u, idx, { isSelected, onToggle } = {}) => (
@@ -133,21 +133,9 @@ const CustomerTable = () => {
         </div>
       </td>
       <td style={{ padding: '16px 24px' }}>
-        <span style={{
-          backgroundColor: u.is_staff ? '#F9F5FF' : '#F2F4F7',
-          color: u.is_staff ? '#6941C6' : '#414651',
-          padding: '4px 10px',
-          borderRadius: '13px',
-          fontSize: '10px',
-          fontWeight: 600,
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 6,
-          border: `1px solid ${u.is_staff ? '#E9D7FE' : '#D0D5DD'}`
-        }}>
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: u.is_staff ? '#7F56D9' : '#667085' }}></span>
-          {u.is_staff ? 'Admin' : 'Customer'}
-        </span>
+        <div style={{ fontSize: '12px', fontWeight: 600, color: '#101828' }}>
+          ₹{(u.total_spent || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </div>
       </td>
       <td style={{ padding: '16px 24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#475467', fontSize: '11px' }}>
