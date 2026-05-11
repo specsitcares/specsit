@@ -143,6 +143,7 @@
 /* Carousel viewport */
 .reco-carousel {
   overflow: hidden;
+  width: 100%;
 }
 
 .reco-track {
@@ -165,7 +166,7 @@
 
 .reco-card__img-wrap {
   width: 100%;
-  height: 198px;
+  height: 150px;
   border-radius: 5px;
   overflow: hidden;
   background: var(--specsit-light-grey);
@@ -177,7 +178,7 @@
 .reco-card__img-wrap img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .reco-card__img-placeholder {
@@ -650,5 +651,5 @@
   .ord-card__bottom { flex-wrap: wrap; }
   .ord-card__bottom-right { align-items: flex-start; }
   .reco-card { width: 176px; }
-  .reco-card__img-wrap { height: 144px; }
+  .reco-card__img-wrap { height: 120px; }
 }

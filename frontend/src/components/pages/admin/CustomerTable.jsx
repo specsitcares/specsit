@@ -183,7 +183,6 @@ const CustomerTable = () => {
         count={filtered.length}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        onAdd={handleCreateClick}
         addLabel="Add Customer"
         columns={columns}
         data={paginated}

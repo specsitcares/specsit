@@ -135,7 +135,6 @@ const UserFaceTable = () => {
         count={filtered.length}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        onAdd={handleCreateClick}
         addLabel="Capture New"
         columns={columns}
         data={paginated}

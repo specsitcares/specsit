@@ -17,12 +17,10 @@ const SUB_URLS = {
   'All Products':       '/admin/products',
   'All Categories':     '/admin/products/categories',
   'All Brands':         '/admin/products/brands',
-  'All Collections':    '/admin/products/collections',
-  'All Variants':       '/admin/products/variants',
   'Manage Lenses':      '/admin/products/lenses',
+  'Coupons':            '/admin/settings/coupons',
   // Inventory
   'Current Stock':      '/admin/inventory',
-  'Low Stock':          '/admin/inventory/low',
   // Prescriptions
   'All Prescriptions':  '/admin/prescriptions',
   // Shipments
@@ -39,7 +37,6 @@ const SUB_URLS = {
   'Payment Settings':   '/admin/settings/payment',
   'CMS Management':     '/admin/settings/cms',
   'Staff Roles':        '/admin/settings/staff',
-  'Coupons':            '/admin/settings/coupons',
 };
 
 /* Base URL prefix for each parent section — used to detect active parent */
@@ -74,13 +71,13 @@ const Badge = ({ count }) => {
 const menuItems = [
   { key: 'Dashboard',     label: 'Dashboard',         icon: LayoutGrid,   subs: ['Dashboard'] },
   { key: 'Orders',        label: 'Orders',            icon: ShoppingCart, subs: ['All Orders', 'Return Window', 'Warranty Window'] },
-  { key: 'Products',      label: 'Products Catalog',  icon: Package,      subs: ['All Products', 'All Categories', 'All Brands', 'All Collections', 'All Variants', 'Manage Lenses'] },
-  { key: 'Inventory',     label: 'Inventory & Stock', icon: Box,          subs: ['Current Stock', 'Low Stock'] },
+  { key: 'Products',      label: 'Products Catalog',  icon: Package,      subs: ['All Products', 'All Categories', 'All Brands', 'Manage Lenses', 'Coupons'] },
+  { key: 'Inventory',     label: 'Inventory & Stock', icon: Box,          subs: ['Current Stock'] },
   { key: 'Prescriptions', label: 'Prescriptions',     icon: CheckCircle,  subs: ['All Prescriptions'] },
   { key: 'Shipments',     label: 'Shipments',         icon: Truck,        subs: ['Track Shipments'] },
   { key: 'Customers',     label: 'Customers',         icon: Users,        subs: ['Customer Profiles', 'Reviews', 'Face Captures', 'Inquiries'] },
   { key: 'Analytics',     label: 'Analytics',         icon: BarChart2,    subs: ['Sales Performance'] },
-  { key: 'Settings',      label: 'Settings',          icon: Settings,     subs: ['Store Settings', 'Payment Settings', 'CMS Management', 'Staff Roles', 'Coupons'] },
+  { key: 'Settings',      label: 'Settings',          icon: Settings,     subs: ['Store Settings', 'Payment Settings', 'CMS Management', 'Staff Roles'] },
 ];
 
 const Sidebar = ({ onClose, isMobile, badges = {} }) => {

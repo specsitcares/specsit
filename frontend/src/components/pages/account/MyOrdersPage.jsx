@@ -71,7 +71,7 @@ const StatusBadge = ({ status, label }) => {
 };
 
 /* ── Recommendations carousel ──────────────────────────────── */
-const CARD_WIDTH = 280 + 20;
+const CARD_WIDTH = 224 + 16;
 
 const RecoSection = () => {
     const { addToCart } = useCart();

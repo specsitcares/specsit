@@ -278,14 +278,29 @@ class VariantImageViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
 class VariantViewSet(viewsets.ModelViewSet):
-    queryset = Variant.objects.select_related('product', 'product__category', 'product__brand').all().order_by('id')
+    queryset = Variant.objects.select_related('product', 'product__category', 'product__brand').all().order_by('-id')
     serializer_class = VariantSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
-        if self.request.user.is_staff:
-             return Variant.objects.all().order_by('id')
-        return Variant.objects.filter(stock__gt=0).order_by('id')
+        from django.db.models import Q
+        qs = Variant.objects.select_related('product', 'product__brand').prefetch_related('images')
+        if not self.request.user.is_staff:
+            qs = qs.filter(stock__gt=0)
+        product_type = self.request.query_params.get('product_type')
+        if product_type:
+            qs = qs.filter(product__product_type=product_type)
+        search = self.request.query_params.get('search')
+        if search:
+            qs = qs.filter(
+                Q(sku__icontains=search) |
+                Q(product__title__icontains=search) |
+                Q(color__icontains=search) |
+                Q(frame_color__icontains=search) |
+                Q(frame_size__icontains=search) |
+                Q(frame_material__icontains=search)
+            )
+        return qs.order_by('-id')
 
 class CollectionViewSet(viewsets.ModelViewSet):
     queryset = Collection.objects.prefetch_related('products').all().order_by('id')
