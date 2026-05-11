@@ -150,7 +150,10 @@ class UserViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAdminUser]
 
     def get_queryset(self):
-        return User.objects.filter(is_superuser=False)
+        is_staff = self.request.query_params.get('is_staff')
+        if is_staff == 'true':
+            return User.objects.filter(is_staff=True).order_by('id')
+        return User.objects.filter(is_superuser=False).order_by('id')
 
 class GoogleOAuthView(APIView):
     permission_classes = [permissions.AllowAny]

@@ -7,6 +7,7 @@ import BaseAdminTable from './BaseAdminTable';
 const EmployeeTable = () => {
   const [employees, setEmployees] = useState([]);
   const [adminUsers, setAdminUsers] = useState([]);
+  const [adminLoading, setAdminLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
@@ -36,19 +37,19 @@ const EmployeeTable = () => {
   }, []);
 
   const fetchEmployees = async () => {
-    try {
-      const [empRes, userRes] = await Promise.all([
-        apiClient.get('/accounts/employees/'),
-        apiClient.get('/accounts/users/'),
-      ]);
-      setEmployees(Array.isArray(empRes.data) ? empRes.data : empRes.data.results || []);
-      const allUsers = Array.isArray(userRes.data) ? userRes.data : userRes.data.results || [];
-      setAdminUsers(allUsers.filter(u => u.is_staff));
-    } catch (err) {
-      console.error("Failed to fetch staff data", err);
-    } finally {
-      setLoading(false);
-    }
+    // Fetch employees and admin users independently so one failure doesn't hide the other
+    apiClient.get('/accounts/employees/')
+      .then(res => setEmployees(Array.isArray(res.data) ? res.data : res.data.results || []))
+      .catch(err => console.error('Failed to fetch employees', err))
+      .finally(() => setLoading(false));
+
+    apiClient.get('/accounts/users/', { params: { is_staff: 'true' } })
+      .then(res => {
+        const list = Array.isArray(res.data) ? res.data : res.data.results || [];
+        setAdminUsers(list);
+      })
+      .catch(err => console.error('Failed to fetch admin users', err))
+      .finally(() => setAdminLoading(false));
   };
 
   const bulkDelete = async () => {
@@ -212,14 +213,25 @@ const EmployeeTable = () => {
         initialData={selectedEmployee || {}}
       />
 
-      {/* Admin Accounts section */}
-      {adminUsers.length > 0 && (
-        <div style={{ marginTop: 32 }}>
-          <div style={{ marginBottom: 12 }}>
-            <h2 style={{ fontSize: 16, fontWeight: 600, color: '#101828', margin: 0 }}>Admin Accounts</h2>
-            <p style={{ fontSize: 12, color: '#667085', margin: '4px 0 0' }}>Django staff users with admin access.</p>
-          </div>
-          <div style={{ background: '#fff', border: '1px solid #EAECF0', borderRadius: 10, overflow: 'hidden' }}>
+      {/* Admin Accounts section — always rendered */}
+      <div style={{ marginTop: 32 }}>
+        <div style={{ marginBottom: 12 }}>
+          <h2 style={{ fontSize: 16, fontWeight: 600, color: '#101828', margin: 0 }}>
+            Admin Accounts
+            {!adminLoading && (
+              <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 500, color: '#667085' }}>
+                ({adminUsers.length})
+              </span>
+            )}
+          </h2>
+          <p style={{ fontSize: 12, color: '#667085', margin: '4px 0 0' }}>Staff users with admin access to this panel.</p>
+        </div>
+        <div style={{ background: '#fff', border: '1px solid #EAECF0', borderRadius: 10, overflow: 'hidden' }}>
+          {adminLoading ? (
+            <div style={{ padding: '32px 20px', textAlign: 'center', fontSize: 13, color: '#9CA3AF' }}>Loading…</div>
+          ) : adminUsers.length === 0 ? (
+            <div style={{ padding: '32px 20px', textAlign: 'center', fontSize: 13, color: '#9CA3AF' }}>No admin accounts found.</div>
+          ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: '#F9FAFB', borderBottom: '1px solid #EAECF0' }}>
@@ -240,10 +252,10 @@ const EmployeeTable = () => {
                         </div>
                         <div>
                           <div style={{ fontWeight: 600, fontSize: 12, color: '#101828' }}>
-                            {u.first_name || u.username} {u.last_name || ''}
+                            {(u.first_name || u.username)}{u.last_name ? ` ${u.last_name}` : ''}
                           </div>
                           <span style={{ background: '#F9F5FF', color: '#6941C6', border: '1px solid #E9D7FE', padding: '1px 7px', borderRadius: 10, fontSize: 10, fontWeight: 600 }}>
-                            Admin
+                            {u.is_superuser ? 'Superadmin' : 'Admin'}
                           </span>
                         </div>
                       </div>
@@ -257,9 +269,9 @@ const EmployeeTable = () => {
                 ))}
               </tbody>
             </table>
-          </div>
+          )}
         </div>
-      )}
+      </div>
     </>
   );
 };
