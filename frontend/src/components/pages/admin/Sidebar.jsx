@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  ShoppingCart, Package, Box, CheckCircle,
+  LayoutGrid, ShoppingCart, Package, Box, CheckCircle,
   Truck, Users, BarChart2, Settings, ChevronDown, Columns, X,
 } from 'lucide-react';
 
 /* ── URL mapping for every sidebar sub-item ─────────────── */
 const SUB_URLS = {
+  // Dashboard
+  'Dashboard':          '/admin',
   // Orders
   'All Orders':         '/admin/orders',
   'Return Window':      '/admin/orders/returns',
@@ -42,6 +44,7 @@ const SUB_URLS = {
 
 /* Base URL prefix for each parent section — used to detect active parent */
 const PARENT_PREFIX = {
+  'Dashboard':     ['/admin'],
   'Orders':        ['/admin/orders'],
   'Products':      ['/admin/products'],
   'Inventory':     ['/admin/inventory'],
@@ -69,6 +72,7 @@ const Badge = ({ count }) => {
 };
 
 const menuItems = [
+  { key: 'Dashboard',     label: 'Dashboard',         icon: LayoutGrid,   subs: ['Dashboard'] },
   { key: 'Orders',        label: 'Orders',            icon: ShoppingCart, subs: ['All Orders', 'Return Window', 'Warranty Window'] },
   { key: 'Products',      label: 'Products Catalog',  icon: Package,      subs: ['All Products', 'All Categories', 'All Brands', 'All Collections', 'All Variants', 'Manage Lenses'] },
   { key: 'Inventory',     label: 'Inventory & Stock', icon: Box,          subs: ['Current Stock', 'Low Stock'] },
@@ -86,10 +90,11 @@ const Sidebar = ({ onClose, isMobile, badges = {} }) => {
 
   /* Determine which parent is active based on the current URL */
   const getActiveParent = () => {
+    if (path === '/admin' || path === '/admin/') return 'Dashboard';
     for (const item of menuItems) {
       const prefixes = PARENT_PREFIX[item.key] || [];
       for (const prefix of prefixes) {
-        if (path.startsWith(prefix + '/') || path === prefix) return item.key;
+        if (prefix !== '/admin' && (path.startsWith(prefix + '/') || path === prefix)) return item.key;
       }
     }
     return 'Orders';
