@@ -1,12 +1,76 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, AlertCircle, Trash2, CheckCircle, Info } from 'lucide-react';
-import '../../../styles/admin.css';
+import { X, AlertCircle, Trash2, CheckCircle } from 'lucide-react';
 
-/**
- * Reusable FormModal Component — Figma Design System
- * Handles Create/Edit/Delete operations for all admin tables
- */
+const S = {
+  overlay: {
+    position: 'fixed', inset: 0, zIndex: 1200,
+    background: 'rgba(16, 24, 40, 0.55)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    padding: '16px',
+  },
+  box: {
+    background: '#fff', borderRadius: '12px',
+    boxShadow: '0 20px 48px rgba(16,24,40,0.18), 0 8px 20px rgba(16,24,40,0.10)',
+    border: '1px solid #EAECF0',
+    width: '100%', maxWidth: '460px',
+    maxHeight: '90vh', display: 'flex', flexDirection: 'column',
+    overflow: 'hidden',
+  },
+  header: {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    padding: '18px 22px 16px',
+    borderBottom: '1px solid #EAECF0',
+    flexShrink: 0,
+  },
+  title: { fontSize: '14px', fontWeight: 700, color: '#101828', margin: 0, letterSpacing: '-0.07px' },
+  closeBtn: {
+    width: 32, height: 32, border: '1px solid #EAECF0', borderRadius: '8px',
+    background: '#fff', cursor: 'pointer', color: '#667085',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    flexShrink: 0, transition: 'background 0.15s',
+  },
+  body: { padding: '20px 22px', overflowY: 'auto', flex: 1 },
+  footer: {
+    display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8,
+    padding: '14px 22px', borderTop: '1px solid #EAECF0',
+    background: '#F9FAFB', flexShrink: 0,
+  },
+  label: { fontSize: '11px', fontWeight: 600, color: '#344054', display: 'block', marginBottom: 5 },
+  input: {
+    width: '100%', boxSizing: 'border-box',
+    padding: '9px 12px', border: '1px solid #D0D5DD',
+    borderRadius: '8px', fontSize: '12px', color: '#101828',
+    background: '#fff', outline: 'none', fontFamily: 'inherit',
+  },
+  btnPrimary: {
+    display: 'inline-flex', alignItems: 'center', gap: 6,
+    padding: '9px 18px', borderRadius: '8px', border: 'none',
+    background: '#68408D', color: '#fff',
+    fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+  },
+  btnOutline: {
+    display: 'inline-flex', alignItems: 'center', gap: 6,
+    padding: '9px 18px', borderRadius: '8px',
+    border: '1px solid #D0D5DD', background: '#fff', color: '#344054',
+    fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+    boxShadow: '0 1px 2px rgba(16,24,40,0.05)',
+  },
+  btnDanger: {
+    display: 'inline-flex', alignItems: 'center', gap: 6,
+    padding: '9px 18px', borderRadius: '8px',
+    border: '1px solid #FECDCA', background: '#fff', color: '#B42318',
+    fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+    boxShadow: '0 1px 2px rgba(16,24,40,0.05)',
+  },
+  btnDangerSolid: {
+    display: 'inline-flex', alignItems: 'center', gap: 6,
+    padding: '9px 18px', borderRadius: '8px', border: 'none',
+    background: '#D92D20', color: '#fff',
+    fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+  },
+};
+
 const FormModal = ({
   isOpen,
   onClose,
@@ -16,7 +80,6 @@ const FormModal = ({
   title = 'Item',
   fields = [],
   initialData = {},
-  loading = false,
   children,
 }) => {
   const [formData, setFormData] = useState({});
@@ -26,44 +89,29 @@ const FormModal = ({
   const [successMessage, setSuccessMessage] = useState('');
   const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
-  }, []);
+  useEffect(() => { setMounted(true); return () => setMounted(false); }, []);
 
-  // Initialize form data when modal opens
   useEffect(() => {
     if (isOpen) {
       if (mode === 'edit' && initialData && Object.keys(initialData).length > 0) {
         setFormData(initialData);
       } else {
-        const emptyData = {};
-        fields.forEach(field => {
-          emptyData[field.name] = field.defaultValue !== undefined ? field.defaultValue : '';
-        });
-        setFormData(emptyData);
+        const empty = {};
+        fields.forEach(f => { empty[f.name] = f.defaultValue !== undefined ? f.defaultValue : ''; });
+        setFormData(empty);
       }
       setErrors({});
       setSuccessMessage('');
       setShowDeleteConfirm(false);
     }
-    // Only re-run when these core state-triggering props change
-  }, [isOpen, mode]); 
+  }, [isOpen, mode]);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked, files } = e.target;
-    
-    if (type === 'checkbox') {
-      setFormData(prev => ({ ...prev, [name]: checked }));
-    } else if (type === 'file') {
-      setFormData(prev => ({ ...prev, [name]: files[0] }));
-    } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
-    }
-    
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
-    }
+    if (type === 'checkbox') setFormData(prev => ({ ...prev, [name]: checked }));
+    else if (type === 'file') setFormData(prev => ({ ...prev, [name]: files[0] }));
+    else setFormData(prev => ({ ...prev, [name]: value }));
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
   const handleSubmit = async (e) => {
@@ -71,19 +119,13 @@ const FormModal = ({
     setIsSubmitting(true);
     setErrors({});
     setSuccessMessage('');
-
     try {
       await onSubmit(formData);
       setSuccessMessage(`${title} ${mode === 'create' ? 'created' : 'updated'} successfully`);
-      setTimeout(() => {
-        onClose();
-      }, 1200);
+      setTimeout(() => onClose(), 1200);
     } catch (err) {
-      if (err.response?.data) {
-        setErrors(err.response.data);
-      } else {
-        setErrors({ general: err.message || 'An error occurred during save' });
-      }
+      if (err.response?.data) setErrors(err.response.data);
+      else setErrors({ general: err.message || 'An error occurred' });
     } finally {
       setIsSubmitting(false);
     }
@@ -94,12 +136,9 @@ const FormModal = ({
     try {
       await onDelete(initialData.id);
       setSuccessMessage(`${title} deleted successfully`);
-      setTimeout(() => {
-        setShowDeleteConfirm(false);
-        onClose();
-      }, 1200);
+      setTimeout(() => { setShowDeleteConfirm(false); onClose(); }, 1200);
     } catch (err) {
-      setErrors({ general: err.message || 'Failed to delete item' });
+      setErrors({ general: err.message || 'Failed to delete' });
     } finally {
       setIsSubmitting(false);
     }
@@ -107,134 +146,139 @@ const FormModal = ({
 
   if (!isOpen || !mounted) return null;
 
+  const inputStyle = (hasError) => ({
+    ...S.input,
+    borderColor: hasError ? '#F04438' : '#D0D5DD',
+  });
+
   const modalContent = (
-    <div className="form-modal-overlay" onClick={onClose}>
-      <div className="form-modal-box" onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
-        <div className="form-modal-header">
-          <h2 className="form-modal-title">
-            {showDeleteConfirm ? 'Confirm Deletion' : (mode === 'create' ? `Create New ${title}` : `Edit ${title}`)}
+    <div style={S.overlay} onClick={onClose}>
+      <div style={S.box} onClick={e => e.stopPropagation()}>
+
+        {/* ── Header ── */}
+        <div style={S.header}>
+          <h2 style={S.title}>
+            {showDeleteConfirm
+              ? 'Confirm Deletion'
+              : mode === 'create' ? `Create ${title}` : `Edit ${title}`}
           </h2>
-          <button className="form-modal-close" onClick={onClose} disabled={isSubmitting}>
-            <X size={18} />
+          <button style={S.closeBtn} onClick={onClose} disabled={isSubmitting}>
+            <X size={16} />
           </button>
         </div>
 
-        {/* Global Messages */}
+        {/* ── Flash messages ── */}
         {(successMessage || errors.general) && (
-          <div style={{ padding: '16px 24px 0' }}>
+          <div style={{ padding: '12px 22px 0' }}>
             {successMessage && (
-              <div className="badge badge-success" style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', justifyContent: 'flex-start' }}>
-                <CheckCircle size={16} />
-                <span>{successMessage}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 8, background: '#ECFDF3', border: '1px solid #ABEFC6', color: '#027A48', fontSize: 11, fontWeight: 500 }}>
+                <CheckCircle size={15} /> {successMessage}
               </div>
             )}
             {errors.general && (
-              <div className="badge badge-error" style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', justifyContent: 'flex-start' }}>
-                <AlertCircle size={16} />
-                <span>{errors.general}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 8, background: '#FEF3F2', border: '1px solid #FECDCA', color: '#B42318', fontSize: 11, fontWeight: 500 }}>
+                <AlertCircle size={15} /> {errors.general}
               </div>
             )}
           </div>
         )}
 
-        {/* Body */}
+        {/* ── Form body ── */}
         {!showDeleteConfirm ? (
-          <form onSubmit={handleSubmit}>
-            <div className="form-modal-body" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '13px' }}>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+            <div style={{ ...S.body, maxHeight: '58vh' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 {fields.map(field => {
                   if (field.readOnly && mode === 'create') return null;
-                  
                   const fieldError = errors[field.name];
                   const fieldValue = formData[field.name] !== undefined ? formData[field.name] : '';
 
                   return (
-                    <div key={field.name} className="form-group">
-                      <label className="form-label" htmlFor={field.name}>
+                    <div key={field.name}>
+                      <label style={S.label} htmlFor={field.name}>
                         {field.label || field.name}
-                        {field.required && <span style={{ color: 'var(--error-500)', marginLeft: '3px' }}>*</span>}
+                        {field.required && <span style={{ color: '#F04438', marginLeft: 3 }}>*</span>}
                       </label>
 
                       {field.type === 'textarea' ? (
                         <textarea
-                          id={field.name}
-                          name={field.name}
-                          className="form-input"
-                          style={{ minHeight: '64px', resize: 'vertical' }}
-                          value={fieldValue}
-                          onChange={handleInputChange}
+                          id={field.name} name={field.name}
+                          value={fieldValue} onChange={handleInputChange}
                           placeholder={field.placeholder || ''}
                           disabled={isSubmitting || field.readOnly}
+                          style={{ ...inputStyle(fieldError), minHeight: 80, resize: 'vertical' }}
                         />
                       ) : field.type === 'select' ? (
                         <select
-                          id={field.name}
-                          name={field.name}
-                          className="form-input form-select"
-                          value={fieldValue}
-                          onChange={handleInputChange}
+                          id={field.name} name={field.name}
+                          value={fieldValue} onChange={handleInputChange}
                           disabled={isSubmitting || field.readOnly}
+                          style={{ ...inputStyle(fieldError), appearance: 'none', cursor: 'pointer',
+                            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23667085' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
+                            backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center',
+                            paddingRight: 32,
+                          }}
                         >
                           <option value="">Select {field.label || field.name}</option>
                           {field.options?.map(opt => (
-                            <option key={opt.value} value={opt.value}>
-                              {opt.label}
-                            </option>
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
                           ))}
                         </select>
                       ) : field.type === 'checkbox' ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '3px' }}>
-                          <input
-                            type="checkbox"
-                            id={field.name}
-                            name={field.name}
-                            checked={!!fieldValue}
-                            onChange={handleInputChange}
-                            disabled={isSubmitting || field.readOnly}
-                            style={{ width: '13px', height: '13px', cursor: 'pointer' }}
-                          />
-                          <span className="form-label" style={{ fontWeight: 400, cursor: 'pointer' }} onClick={() => !field.readOnly && handleInputChange({ target: { name: field.name, type: 'checkbox', checked: !fieldValue } })}>
-                            {field.placeholder || 'Enable this feature'}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 2 }}>
+                          <div
+                            onClick={() => !field.readOnly && !isSubmitting && handleInputChange({ target: { name: field.name, type: 'checkbox', checked: !fieldValue } })}
+                            style={{
+                              width: 40, height: 22, borderRadius: 11, cursor: 'pointer',
+                              background: fieldValue ? '#68408D' : '#D0D5DD',
+                              position: 'relative', flexShrink: 0, transition: 'background 0.2s',
+                            }}
+                          >
+                            <span style={{
+                              position: 'absolute', top: 3,
+                              left: fieldValue ? 21 : 3,
+                              width: 16, height: 16, borderRadius: '50%',
+                              background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                              transition: 'left 0.2s',
+                            }} />
+                          </div>
+                          <span style={{ fontSize: 12, color: '#344054', cursor: 'pointer' }}
+                            onClick={() => !field.readOnly && !isSubmitting && handleInputChange({ target: { name: field.name, type: 'checkbox', checked: !fieldValue } })}>
+                            {field.placeholder || field.label}
                           </span>
                         </div>
                       ) : field.type === 'file' ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <div>
                           <input
-                            type="file"
-                            id={field.name}
-                            name={field.name}
-                            className="form-input"
+                            type="file" id={field.name} name={field.name}
                             onChange={handleInputChange}
                             accept={field.accept || '*/*'}
                             disabled={isSubmitting || field.readOnly}
+                            style={{ ...inputStyle(fieldError), padding: '7px 12px', cursor: 'pointer' }}
                           />
                           {mode === 'edit' && fieldValue && typeof fieldValue === 'string' && (
-                            <div style={{ fontSize: '9px', color: 'var(--gray-400)' }}>
-                              Current file: {fieldValue.split('/').pop()}
+                            <div style={{ fontSize: 10, color: '#667085', marginTop: 4 }}>
+                              Current: {fieldValue.split('/').pop()}
                             </div>
                           )}
                         </div>
                       ) : (
                         <input
                           type={field.type || 'text'}
-                          id={field.name}
-                          name={field.name}
-                          className="form-input"
-                          value={fieldValue}
-                          onChange={handleInputChange}
+                          id={field.name} name={field.name}
+                          value={fieldValue} onChange={handleInputChange}
                           placeholder={field.placeholder || ''}
                           disabled={isSubmitting || field.readOnly}
-                          step={field.step}
-                          min={field.min}
-                          max={field.max}
+                          step={field.step} min={field.min} max={field.max}
+                          style={inputStyle(fieldError)}
                         />
                       )}
 
                       {fieldError && (
-                        <span style={{ fontSize: '10px', color: 'var(--error-700)', display: 'flex', alignItems: 'center', gap: '3px', marginTop: '2px' }}>
-                          <AlertCircle size={12} /> {Array.isArray(fieldError) ? fieldError[0] : fieldError}
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4, fontSize: 10, color: '#B42318' }}>
+                          <AlertCircle size={11} />
+                          {Array.isArray(fieldError) ? fieldError[0] : fieldError}
+                        </div>
                       )}
                     </div>
                   );
@@ -243,54 +287,45 @@ const FormModal = ({
               {children}
             </div>
 
-            <div className="form-modal-footer">
-              <button type="button" className="btn btn-outline" onClick={onClose} disabled={isSubmitting}>
-                Cancel
-              </button>
-              
-              {mode === 'edit' && (
-                <button 
-                  type="button" 
-                  className="btn btn-danger" 
-                  style={{ marginRight: 'auto' }}
+            {/* ── Footer ── */}
+            <div style={S.footer}>
+              {mode === 'edit' && onDelete && (
+                <button
+                  type="button"
+                  style={{ ...S.btnDanger, marginRight: 'auto' }}
                   onClick={() => setShowDeleteConfirm(true)}
                   disabled={isSubmitting}
                 >
                   <Trash2 size={14} /> Delete
                 </button>
               )}
-
-              <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
-                {isSubmitting ? 'Saving...' : (mode === 'create' ? `Create ${title}` : `Save Changes`)}
+              <button type="button" style={{ ...S.btnOutline, opacity: isSubmitting ? 0.5 : 1 }} onClick={onClose} disabled={isSubmitting}>
+                Cancel
+              </button>
+              <button type="submit" style={{ ...S.btnPrimary, opacity: isSubmitting ? 0.7 : 1 }} disabled={isSubmitting}>
+                {isSubmitting ? 'Saving…' : mode === 'create' ? `Create ${title}` : 'Save Changes'}
               </button>
             </div>
           </form>
         ) : (
-          /* Delete Confirmation State */
-          <div className="form-modal-body">
-            <div style={{ textAlign: 'center', padding: '20px 0' }}>
-              <div style={{ 
-                width: '51px', height: '51px', borderRadius: '50%', background: 'var(--error-50)', 
-                color: 'var(--error-500)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                margin: '0 auto 16px'
-              }}>
-                <Trash2 size={32} />
+          /* ── Delete confirm ── */
+          <div>
+            <div style={{ ...S.body, textAlign: 'center', padding: '32px 22px' }}>
+              <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#FEF3F2', color: '#D92D20', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                <Trash2 size={26} />
               </div>
-              <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--gray-900)', marginBottom: '6px' }}>
-                Are you sure?
-              </h3>
-              <p style={{ color: 'var(--gray-500)', fontSize: '11px', maxWidth: '240px', margin: '0 auto 24px' }}>
-                You are about to delete this {title.toLowerCase()}. This action is permanent and cannot be undone.
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: '#101828', marginBottom: 8 }}>Delete {title}?</h3>
+              <p style={{ fontSize: 12, color: '#667085', maxWidth: 260, margin: '0 auto 24px', lineHeight: 1.6 }}>
+                This action is permanent and cannot be undone.
               </p>
-              
-              <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
-                <button className="btn btn-outline" style={{ minWidth: '80px' }} onClick={() => setShowDeleteConfirm(false)} disabled={isSubmitting}>
-                  Cancel
-                </button>
-                <button className="btn btn-danger" style={{ minWidth: '80px', background: 'var(--error-700)', color: 'white' }} onClick={handleDelete} disabled={isSubmitting}>
-                  {isSubmitting ? 'Deleting...' : 'Yes, Delete'}
-                </button>
-              </div>
+            </div>
+            <div style={{ ...S.footer, justifyContent: 'center' }}>
+              <button style={{ ...S.btnOutline, minWidth: 88, opacity: isSubmitting ? 0.5 : 1 }} onClick={() => setShowDeleteConfirm(false)} disabled={isSubmitting}>
+                Cancel
+              </button>
+              <button style={{ ...S.btnDangerSolid, minWidth: 88, opacity: isSubmitting ? 0.7 : 1 }} onClick={handleDelete} disabled={isSubmitting}>
+                {isSubmitting ? 'Deleting…' : 'Yes, Delete'}
+              </button>
             </div>
           </div>
         )}
