@@ -421,11 +421,13 @@ class OrderViewSet(viewsets.ModelViewSet):
         from .models import Shipment
 
         old_order_status = serializer.instance.order_status  # capture before save
+        explicit_order_status = 'order_status' in serializer.validated_data
         instance = serializer.save()
 
-        # Sync order_status CharField from MetadataItem status label using fuzzy
-        # keyword matching so any label wording in the DB resolves correctly.
-        if instance.status:
+        # Only sync order_status from MetadataItem label when order_status was NOT
+        # explicitly set in the request — prevents the label from overwriting a
+        # direct status update (e.g. patching order_status='preparing').
+        if instance.status and not explicit_order_status:
             label = instance.status.label.lower()
             if any(k in label for k in ['deliver', 'complet']):
                 mapped = 'delivered'
