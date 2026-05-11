@@ -9,9 +9,9 @@ import {
 import '../../../styles/lens_management.css';
 
 const LENS_PACKAGE_PRESETS = [
-  { name: 'Basic', price: 999, index: '1.5', features: ['Anti-Glare'], description: 'Standard protection' },
-  { name: 'Premium', price: 1999, index: '1.6', features: ['Blue Cut', 'Anti-Glare'], description: 'Blue light protection' },
-  { name: 'Ultra Thin', price: 2999, index: '1.67', features: ['Blue Cut', 'UV Protection'], description: 'High index clarity' },
+  { package_name: 'Basic', price: 999, index: '1.5', features: ['Anti-Glare'], description: 'Standard protection' },
+  { package_name: 'Premium', price: 1999, index: '1.6', features: ['Blue Cut', 'Anti-Glare'], description: 'Blue light protection' },
+  { package_name: 'Ultra Thin', price: 2999, index: '1.67', features: ['Blue Cut', 'UV Protection'], description: 'High index clarity' },
 ];
 
 const LENS_TYPE_FIELDS = [{ name: 'label', label: 'Type Name', required: true }];
@@ -155,13 +155,12 @@ const LensManagement = () => {
 
   const handleAddPackage = async (formData) => {
     try {
-      // If user selected a preset, we use its details
       await apiClient.post('/catalog/lenses/', {
         type: selectedType?.id,
         price: formData.price,
         index: formData.index || '1.5',
         is_active: true,
-        package_name: formData.name,
+        package_name: formData.package_name || formData.name,
         features: formData.features || [],
         description: formData.description || ''
       });
@@ -515,14 +514,12 @@ const LensManagement = () => {
           <div className="preset-buttons">
             {LENS_PACKAGE_PRESETS.map(p => (
               <button
-                key={p.name}
+                key={p.package_name}
                 type="button"
                 className="lm-preset-btn"
-                onClick={() => {
-                  handleAddPackage(p);
-                }}
+                onClick={() => handleAddPackage(p)}
               >
-                {p.name} (₹{p.price})
+                {p.package_name} (₹{p.price})
               </button>
             ))}
           </div>

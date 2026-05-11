@@ -6,7 +6,8 @@
   --brand-900: #42307D;
   --brand-50:  #F9F5FF;
   --brand-700: #6941C6;
-  
+  --brand-primary: #68408D;
+
   --gray-25:  #FCFCFD;
   --gray-50:  #F9FAFB;
   --gray-100: #F2F4F7;
@@ -14,11 +15,228 @@
   --gray-300: #D5D7DA;
   --gray-400: #A4A7AE;
   --gray-500: #717680;
+  --gray-600: #535862;
   --gray-700: #414651;
   --gray-900: #181D27;
 
+  --error-50:  #FEF3F2;
+  --error-500: #F04438;
+  --error-700: #B42318;
+
+  --success-50:  #ECFDF3;
+  --success-700: #027A48;
+
   --sidebar-w: 176px;
   --topbar-h: 45px;
+}
+
+/* ============================================================
+   FORM MODAL — Admin Panel Design System
+   Used by FormModal.jsx for all create/edit/delete dialogs
+   ============================================================ */
+
+.form-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(16, 24, 40, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+  padding: 16px;
+  backdrop-filter: blur(2px);
+}
+
+.form-modal-box {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 20px 48px rgba(16, 24, 40, 0.18), 0 8px 20px rgba(16, 24, 40, 0.1);
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #EAECF0;
+}
+
+.form-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px 16px;
+  border-bottom: 1px solid #EAECF0;
+  flex-shrink: 0;
+}
+
+.form-modal-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #101828;
+  margin: 0;
+  letter-spacing: -0.08px;
+}
+
+.form-modal-close {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border: 1px solid #EAECF0;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #667085;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.form-modal-close:hover { background: #F9FAFB; color: #344054; }
+.form-modal-close:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.form-modal-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.form-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 14px 24px;
+  border-top: 1px solid #EAECF0;
+  background: #F9FAFB;
+  flex-shrink: 0;
+}
+
+/* ── Form Elements ─────────────────────────────────────────── */
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.form-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #344054;
+  letter-spacing: 0.02em;
+}
+
+.form-input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid #D0D5DD;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #101828;
+  background: #fff;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-sizing: border-box;
+}
+
+.form-input:focus {
+  border-color: #68408D;
+  box-shadow: 0 0 0 3px rgba(104, 64, 141, 0.12);
+}
+
+.form-input:disabled {
+  background: #F9FAFB;
+  color: #98A2B3;
+  cursor: not-allowed;
+}
+
+.form-input::placeholder { color: #98A2B3; }
+
+.form-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23667085' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 32px;
+  cursor: pointer;
+}
+
+/* ── Buttons ───────────────────────────────────────────────── */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, opacity 0.15s;
+  white-space: nowrap;
+  font-family: inherit;
+  letter-spacing: 0.01em;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.btn-primary {
+  background: #68408D;
+  color: #fff;
+  border-color: #68408D;
+}
+
+.btn-primary:hover { background: #5a3478; border-color: #5a3478; }
+
+.btn-outline {
+  background: #fff;
+  color: #344054;
+  border-color: #D0D5DD;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+}
+
+.btn-outline:hover { background: #F9FAFB; }
+
+.btn-danger {
+  background: #fff;
+  color: #B42318;
+  border-color: #FECDCA;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+}
+
+.btn-danger:hover { background: #FEF3F2; border-color: #FDA29B; }
+
+/* ── Badges (success / error messages in modal) ───────────── */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.badge-success {
+  background: #ECFDF3;
+  color: #027A48;
+  border: 1px solid #ABEFC6;
+}
+
+.badge-error {
+  background: #FEF3F2;
+  color: #B42318;
+  border: 1px solid #FECDCA;
 }
 
 body {

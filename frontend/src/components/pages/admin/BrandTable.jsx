@@ -134,7 +134,7 @@ const BrandTable = () => {
             <Edit2 size={16} />
           </div>
           <div
-            onClick={() => handleEditClick(b)}
+            onClick={() => handleDeleteClick(b)}
             style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
             title="Delete Brand"
           >
