@@ -13,6 +13,7 @@ from .serializers import (
     WishlistSerializer, CouponSerializer, ShipmentSerializer,
     OrderTrackingSerializer, PaymentSerializer,
     ReturnRequestSerializer, WarrantyClaimSerializer,
+    OrderShipmentSerializer,
 )
 
 import csv
@@ -125,6 +126,46 @@ class OrderViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(f"Fatal Export Error: {e}")
             return HttpResponse(f"Error: {str(e)}", status=500)
+
+    @action(detail=False, methods=['get'], url_path='shipment_view')
+    def shipment_view(self, request):
+        """
+        Returns orders that are in the shipping lifecycle:
+        ready_to_dispatch, in_transit, or delivered.
+        Driven entirely from Order + OrderTracking — no Shipment row required.
+        """
+        if not request.user.is_staff:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        SHIPMENT_STATUSES = ['ready_to_dispatch', 'in_transit', 'delivered']
+
+        qs = Order.objects.filter(
+            order_status__in=SHIPMENT_STATUSES
+        ).select_related(
+            'user', 'shipping_address', 'tracking', 'shipment'
+        ).prefetch_related(
+            'items__variant__product'
+        ).order_by('-created_at')
+
+        # Optional filter by status
+        status_filter = request.query_params.get('order_status')
+        if status_filter and status_filter in SHIPMENT_STATUSES:
+            qs = qs.filter(order_status=status_filter)
+
+        # Optional search by order id or customer
+        search = request.query_params.get('search', '').strip()
+        if search:
+            qs = qs.filter(
+                Q(id__icontains=search) |
+                Q(user__username__icontains=search) |
+                Q(user__first_name__icontains=search) |
+                Q(user__last_name__icontains=search) |
+                Q(tracking__tracking_number__icontains=search) |
+                Q(shipment__tracking_id__icontains=search)
+            ).distinct()
+
+        serializer = OrderShipmentSerializer(qs, many=True, context={'request': request})
+        return Response(serializer.data)
 
     @staticmethod
     def _get_status_meta(label, value):

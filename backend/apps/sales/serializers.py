@@ -392,3 +392,103 @@ class ShipmentSerializer(serializers.ModelSerializer):
             'status', 'status_label', 'created_at',
             'product_names', 'shipping_pincode', 'estimated_delivery_date', 'order_payment_status',
         ]
+
+
+class OrderShipmentSerializer(serializers.ModelSerializer):
+    """
+    Lightweight serializer for the admin shipments view.
+    Driven by Order lifecycle — no Shipment row required.
+    """
+    order_id            = serializers.IntegerField(source='id', read_only=True)
+    product_names       = serializers.SerializerMethodField()
+    customer_name       = serializers.SerializerMethodField()
+    shipping_pincode    = serializers.SerializerMethodField()
+    shipping_city       = serializers.SerializerMethodField()
+    delivery_date       = serializers.SerializerMethodField()
+    tracking_id         = serializers.SerializerMethodField()
+    carrier             = serializers.SerializerMethodField()
+    order_status_label  = serializers.SerializerMethodField()
+
+    ORDER_STATUS_LABELS = {
+        'pending': 'Pending',
+        'confirmed': 'Confirmed',
+        'preparing': 'Preparing',
+        'ready_to_dispatch': 'Ready to Dispatch',
+        'in_transit': 'In Transit',
+        'delivered': 'Delivered',
+        'cancelled': 'Cancelled',
+    }
+
+    def get_product_names(self, obj):
+        names = [
+            item.variant.product.title
+            for item in obj.items.all()
+            if item.variant and item.variant.product
+        ]
+        return ', '.join(names) if names else '—'
+
+    def get_customer_name(self, obj):
+        if obj.user:
+            full = obj.user.get_full_name()
+            return full if full.strip() else obj.user.username
+        return 'Guest'
+
+    def get_shipping_pincode(self, obj):
+        if obj.shipping_address:
+            return obj.shipping_address.pin_code or '—'
+        return obj.shipping_postal_code or '—'
+
+    def get_shipping_city(self, obj):
+        if obj.shipping_address:
+            return obj.shipping_address.city or '—'
+        return obj.shipping_city or '—'
+
+    def get_delivery_date(self, obj):
+        # Prefer actual delivery date, then tracking estimated, then order.delivery_date
+        try:
+            if obj.tracking.actual_delivery_date:
+                return obj.tracking.actual_delivery_date
+            if obj.tracking.estimated_delivery_date:
+                return obj.tracking.estimated_delivery_date
+        except Exception:
+            pass
+        return obj.delivery_date
+
+    def get_tracking_id(self, obj):
+        # Prefer OrderTracking.tracking_number, fall back to Shipment.tracking_id
+        try:
+            if obj.tracking.tracking_number:
+                return obj.tracking.tracking_number
+        except Exception:
+            pass
+        try:
+            if obj.shipment.tracking_id:
+                return obj.shipment.tracking_id
+        except Exception:
+            pass
+        return None
+
+    def get_carrier(self, obj):
+        try:
+            if obj.tracking.courier_company:
+                return obj.tracking.courier_company
+        except Exception:
+            pass
+        try:
+            return obj.shipment.carrier or None
+        except Exception:
+            return None
+
+    def get_order_status_label(self, obj):
+        return self.ORDER_STATUS_LABELS.get(obj.order_status, obj.order_status or 'Pending')
+
+    class Meta:
+        model = Order
+        fields = [
+            'order_id', 'order_status', 'order_status_label',
+            'product_names', 'customer_name',
+            'shipping_pincode', 'shipping_city',
+            'delivery_date', 'tracking_id', 'carrier',
+            'payment_status', 'total_amount',
+            'order_date', 'created_at',
+        ]
