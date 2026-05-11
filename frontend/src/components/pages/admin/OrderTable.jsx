@@ -97,8 +97,6 @@ const OrderTable = ({ category = null, onViewDetails }) => {
 
   useEffect(() => {
     fetchOrders(); fetchMetadata(); fetchAnalytics();
-    const interval = setInterval(() => { fetchOrders(); fetchAnalytics(); }, 30000);
-    return () => clearInterval(interval);
   }, [page, perPage, searchQuery, statusFilter, dateFilter.from, dateFilter.to, category, activeWarrantyTab, activeReturnTab]);
 
   const fetchMetadata = async () => {

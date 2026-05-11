@@ -70,8 +70,6 @@ const OrderDetail = ({ orderId, onBack }) => {
 
   useEffect(() => {
     fetchOrder();
-    const interval = setInterval(fetchOrder, 15000);
-    return () => clearInterval(interval);
   }, [orderId]);
 
   const handleStatusUpdate = async (orderStatus) => {
