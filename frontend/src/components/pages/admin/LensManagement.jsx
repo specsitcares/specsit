@@ -16,8 +16,8 @@ const LENS_PACKAGE_PRESETS = [
 
 const LENS_TYPE_FIELDS = [{ name: 'label', label: 'Type Name', required: true }];
 
-const LENS_PACKAGE_BASE_FIELDS = [
-  { name: 'package_name', label: 'Package Name', required: true, helpText: 'e.g. Silver, Gold, Platinum' },
+const LENS_PACKAGE_FIELDS = [
+  { name: 'package_name', label: 'Package Name', required: true },
   { name: 'price', label: 'Price (₹)', type: 'number', required: true },
   {
     name: 'index', label: 'Lens Index', type: 'select', options: [
@@ -26,7 +26,7 @@ const LENS_PACKAGE_BASE_FIELDS = [
       { label: '1.67 High Index', value: '1.67' }
     ]
   },
-  { name: 'description', label: 'Description', type: 'textarea' }
+  { name: 'description', label: 'Description', type: 'textarea' },
 ];
 
 /**
@@ -105,7 +105,7 @@ const LensManagement = () => {
         package_name: editFormData.name,
         description: editFormData.description,
         features: editFormData.features,
-        brand: editFormData.brand || null,
+        brand: editFormData.brand ? Number(editFormData.brand) : null,
         category_ids: editFormData.categories,
       });
       await fetchData();
@@ -158,22 +158,17 @@ const LensManagement = () => {
     }
   };
 
-  const handlePresetSelect = (preset) => {
-    // This will be called from inside the Modal UI
-    // But since FormModal is generic, I'll pass a custom footer or handle it in the Submit
-  };
-
-  const handleAddPackage = async (formData) => {
+  const submitPackage = async (data) => {
     try {
       await apiClient.post('/catalog/lenses/', {
         type: selectedType?.id,
-        price: formData.price,
-        index: formData.index || '1.5',
+        price: data.price,
+        index: data.index || '1.5',
         is_active: true,
-        package_name: formData.package_name || formData.name,
-        features: formData.features || [],
-        description: formData.description || '',
-        brand: formData.brand || null,
+        package_name: data.package_name || data.name,
+        features: data.features || [],
+        description: data.description || '',
+        brand: data.brand ? Number(data.brand) : null,
         category_ids: newPackageCategoryIds,
       });
       setShowAddPackage(false);
@@ -183,6 +178,9 @@ const LensManagement = () => {
       console.error('Add package failed', err);
     }
   };
+
+  const handleAddPackage = (formData) => submitPackage(formData);
+  const handlePresetClick = (preset) => submitPackage(preset);
 
   useEffect(() => {
     if (selectedLens) {
@@ -226,8 +224,9 @@ const LensManagement = () => {
           <p>Add a new eyewear product to your catalog with precise specifications.</p>
         </div>
         <div className="lm-header-right">
-          <button className="lm-btn-solid" onClick={() => setShowAddType(true)}>Lens type</button>
-          <button className="lm-btn-solid" onClick={() => setShowAddPackage(true)}>Package</button>        </div>
+          <button className="lm-btn-solid" onClick={() => setShowAddType(true)}>+ Lens Type <span style={{ fontSize: 10, opacity: 0.7, fontWeight: 400 }}>(e.g. Single Vision)</span></button>
+          <button className="lm-btn-solid" onClick={() => setShowAddPackage(true)}>+ Package <span style={{ fontSize: 10, opacity: 0.7, fontWeight: 400 }}>(price, brand, category)</span></button>
+        </div>
       </div>
 
       <div className="lm-main-grid">
@@ -376,21 +375,63 @@ const LensManagement = () => {
                     }}
                   />
                 </div>
-                {lensBrands.length > 0 && (
-                  <div className="lm-form-row">
-                    <label>Brand</label>
-                    <div className="lm-select-box">
-                      <select
-                        value={editFormData.brand || ''}
-                        onChange={e => setEditFormData(prev => ({ ...prev, brand: e.target.value || null }))}
-                      >
-                        <option value="">— None —</option>
-                        {lensBrands.map(b => (
-                          <option key={b.id} value={b.id}>{b.name}</option>
-                        ))}
-                      </select>
-                      <ChevronDown size={14} className="select-arrow" />
-                    </div>
+              </div>
+
+              {/* Applicable Categories — above optical specs so it's prominent */}
+              <div className="lm-form-section">
+                <h4 className="lm-section-label">Applicable Frame Categories <span style={{ fontSize: 10, color: '#98A2B3', fontWeight: 400 }}>click to toggle</span></h4>
+                {lensCategories.length === 0 ? (
+                  <p style={{ fontSize: 11, color: '#98A2B3', margin: 0 }}>No categories available. Add them in Category Management → Frames tab.</p>
+                ) : (
+                  <div className="lm-chip-group">
+                    {lensCategories.map(c => {
+                      const selected = editFormData.categories.includes(c.id);
+                      return (
+                        <span
+                          key={c.id}
+                          onClick={() => {
+                            const next = selected
+                              ? editFormData.categories.filter(id => id !== c.id)
+                              : [...editFormData.categories, c.id];
+                            setEditFormData(prev => ({ ...prev, categories: next }));
+                          }}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 5,
+                            padding: '6px 14px', borderRadius: 20, fontSize: 11, cursor: 'pointer', fontWeight: 600,
+                            background: selected ? '#7F56D9' : '#fff',
+                            color: selected ? '#fff' : '#667085',
+                            border: `1.5px solid ${selected ? '#7F56D9' : '#D0D5DD'}`,
+                            transition: 'all 0.15s',
+                            userSelect: 'none',
+                          }}
+                        >
+                          {selected && <Check size={12} strokeWidth={3} />}
+                          {c.name}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Brand */}
+              <div className="lm-form-section">
+                <h4 className="lm-section-label">Brand</h4>
+                {lensBrands.length === 0 ? (
+                  <p style={{ fontSize: 11, color: '#98A2B3', margin: 0 }}>
+                    No lens brands yet. Go to <strong>Brand Management → Lenses for Frames</strong> tab to add one.
+                  </p>
+                ) : (
+                  <div className="lm-select-box">
+                    <select
+                      value={String(editFormData.brand || '')}
+                      onChange={e => setEditFormData(prev => ({ ...prev, brand: e.target.value }))}
+                      style={{ width: '100%' }}
+                    >
+                      <option value="">— None —</option>
+                      {lensBrands.map(b => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
+                    </select>
+                    <ChevronDown size={14} className="select-arrow" />
                   </div>
                 )}
               </div>
@@ -479,33 +520,6 @@ const LensManagement = () => {
                 )}
               </div>
 
-              {/* Categories */}
-              {lensCategories.length > 0 && (
-                <div className="lm-form-section">
-                  <h4 className="lm-section-label">Applicable Categories</h4>
-                  <div className="lm-chip-group">
-                    {lensCategories.map(c => {
-                      const selected = editFormData.categories.includes(c.id);
-                      return (
-                        <span
-                          key={c.id}
-                          className={`lm-form-chip ${selected ? 'active' : ''}`}
-                          onClick={() => {
-                            const next = selected
-                              ? editFormData.categories.filter(id => id !== c.id)
-                              : [...editFormData.categories, c.id];
-                            setEditFormData(prev => ({ ...prev, categories: next }));
-                          }}
-                        >
-                          {selected && <Check size={12} strokeWidth={3} />}
-                          {c.name}
-                        </span>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
               {/* Pricing Mode */}
               <div className="lm-pricing-mode">
                 <div
@@ -567,17 +581,24 @@ const LensManagement = () => {
         onSubmit={handleAddPackage}
         title="Lens Package"
         fields={[
-          ...LENS_PACKAGE_BASE_FIELDS,
-          ...(lensBrands.length > 0 ? [{
+          ...LENS_PACKAGE_FIELDS,
+          {
             name: 'brand', label: 'Brand', type: 'select',
-            options: lensBrands.map(b => ({ value: b.id, label: b.name }))
-          }] : []),
+            options: lensBrands.length > 0
+              ? lensBrands.map(b => ({ value: String(b.id), label: b.name }))
+              : [{ value: '', label: 'No lens brands added yet' }]
+          },
         ]}
       >
-        {lensCategories.length > 0 && (
-          <div style={{ padding: '0 24px 16px' }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#344054', marginBottom: 8 }}>Applicable Categories</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        <div style={{ padding: '0 22px 16px', borderTop: '1px solid #F2F4F7' }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: '#344054', marginBottom: 4, marginTop: 14 }}>
+            Applicable Frame Categories
+            <span style={{ fontSize: 10, color: '#98A2B3', fontWeight: 400, marginLeft: 6 }}>select one or more</span>
+          </div>
+          {lensCategories.length === 0 ? (
+            <p style={{ fontSize: 11, color: '#98A2B3', margin: 0 }}>No categories yet. Add Eyeglasses/Sunglasses in Category Management → Frames tab.</p>
+          ) : (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
               {lensCategories.map(c => {
                 const selected = newPackageCategoryIds.includes(c.id);
                 return (
@@ -585,21 +606,22 @@ const LensManagement = () => {
                     key={c.id}
                     onClick={() => setNewPackageCategoryIds(prev => selected ? prev.filter(id => id !== c.id) : [...prev, c.id])}
                     style={{
-                      padding: '4px 12px', borderRadius: 20, fontSize: 11, cursor: 'pointer', fontWeight: 500,
-                      background: selected ? '#F4EBFF' : '#F9FAFB',
-                      color: selected ? '#7F56D9' : '#667085',
-                      border: `1px solid ${selected ? '#D6BBFB' : '#EAECF0'}`,
-                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      display: 'inline-flex', alignItems: 'center', gap: 5,
+                      padding: '6px 14px', borderRadius: 20, fontSize: 11, cursor: 'pointer', fontWeight: 600,
+                      background: selected ? '#7F56D9' : '#fff',
+                      color: selected ? '#fff' : '#667085',
+                      border: `1.5px solid ${selected ? '#7F56D9' : '#D0D5DD'}`,
+                      transition: 'all 0.15s', userSelect: 'none',
                     }}
                   >
-                    {selected && <Check size={11} />}
+                    {selected && <Check size={11} strokeWidth={3} />}
                     {c.name}
                   </span>
                 );
               })}
             </div>
-          </div>
-        )}
+          )}
+        </div>
         <div className="lm-preset-strip">
           <p>Quick Add Presets:</p>
           <div className="preset-buttons">
@@ -608,7 +630,7 @@ const LensManagement = () => {
                 key={p.package_name}
                 type="button"
                 className="lm-preset-btn"
-                onClick={() => handleAddPackage(p)}
+                onClick={() => handlePresetClick(p)}
               >
                 {p.package_name} (₹{p.price})
               </button>
