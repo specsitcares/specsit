@@ -4,6 +4,18 @@ import apiClient from '../../../services/api';
 import FormModal from './FormModal';
 import BaseAdminTable from './BaseAdminTable';
 
+const CAT_TABS = [
+  { key: 'Frame',   label: 'Frames' },
+  { key: 'Lens',    label: 'Lenses for Frames' },
+  { key: 'Contact', label: 'Contact Lenses' },
+];
+
+const CAT_TYPE_OPTIONS = [
+  { value: 'Frame',   label: 'Frame' },
+  { value: 'Lens',    label: 'Lenses for Frames' },
+  { value: 'Contact', label: 'Contact Lenses' },
+];
+
 const CategoryTable = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -11,6 +23,7 @@ const CategoryTable = () => {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [formMode, setFormMode] = useState('create');
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState('Frame');
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
   const [showFilters, setShowFilters] = useState(false);
@@ -37,7 +50,7 @@ const CategoryTable = () => {
     { label: 'Delete Selected', variant: 'danger', icon: Trash2, onClick: bulkDelete },
   ];
 
-  const handleCreateClick = () => { setFormMode('create'); setSelectedCategory(null); setShowForm(true); };
+  const handleCreateClick = () => { setFormMode('create'); setSelectedCategory({ category_type: activeTab }); setShowForm(true); };
   const handleEditClick   = (c) => { setFormMode('edit');   setSelectedCategory(c);    setShowForm(true); };
   const handleDeleteClick = (c) => { setFormMode('edit');   setSelectedCategory(c);    setShowForm(true); };
 
@@ -69,9 +82,9 @@ const CategoryTable = () => {
     }
   };
 
-  const filtered = categories.filter(c =>
-    [c.name, c.slug, c.description].some(v => v?.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const filtered = categories
+    .filter(c => (c.category_type || 'Frame') === activeTab)
+    .filter(c => [c.name, c.slug, c.description].some(v => v?.toLowerCase().includes(searchQuery.toLowerCase())));
 
   const paginated = filtered.slice((page - 1) * perPage, page * perPage);
 
@@ -145,8 +158,32 @@ const CategoryTable = () => {
     </tr>
   );
 
+  const tabCounts = Object.fromEntries(CAT_TABS.map(t => [t.key, categories.filter(c => (c.category_type || 'Frame') === t.key).length]));
+
   return (
     <>
+      {/* Tab strip */}
+      <div style={{ display: 'flex', gap: 4, marginBottom: 16, background: '#F9FAFB', border: '1px solid #EAECF0', borderRadius: 8, padding: 4, width: 'fit-content' }}>
+        {CAT_TABS.map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => { setActiveTab(tab.key); setPage(1); setSearchQuery(''); }}
+            style={{
+              padding: '7px 16px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+              background: activeTab === tab.key ? '#fff' : 'transparent',
+              color: activeTab === tab.key ? '#7F56D9' : '#667085',
+              boxShadow: activeTab === tab.key ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+              display: 'flex', alignItems: 'center', gap: 6,
+            }}
+          >
+            {tab.label}
+            <span style={{ background: activeTab === tab.key ? '#F4EBFF' : '#F2F4F7', color: activeTab === tab.key ? '#7F56D9' : '#667085', borderRadius: 10, padding: '1px 7px', fontSize: 10 }}>
+              {tabCounts[tab.key]}
+            </span>
+          </button>
+        ))}
+      </div>
+
       <BaseAdminTable
         title="Product Categories"
         count={filtered.length}
@@ -178,14 +215,15 @@ const CategoryTable = () => {
       />
 
       <FormModal isOpen={showForm} onClose={() => setShowForm(false)} onSubmit={handleFormSubmit}
-        onDelete={handleFormDelete} mode={formMode} title="Category" 
+        onDelete={handleFormDelete} mode={formMode} title="Category"
         fields={[
-          { name: 'name', label: 'Category Name', type: 'text', required: true },
-          { name: 'description', label: 'Description', type: 'textarea' },
-          { name: 'parent', label: 'Parent Category', type: 'select', options: categories.filter(cat => cat.id !== selectedCategory?.id).map(cat => ({ value: cat.id, label: cat.name })) },
-          { name: 'image', label: 'Category Image', type: 'file' },
-          { name: 'is_active', label: 'Active', type: 'checkbox', defaultValue: true }
-        ]} 
+          { name: 'name',          label: 'Category Name', type: 'text',     required: true },
+          { name: 'category_type', label: 'Type',          type: 'select',   required: true, options: CAT_TYPE_OPTIONS },
+          { name: 'description',   label: 'Description',   type: 'textarea' },
+          { name: 'parent',        label: 'Parent Category', type: 'select', options: categories.filter(cat => cat.id !== selectedCategory?.id && (cat.category_type || 'Frame') === activeTab).map(cat => ({ value: cat.id, label: cat.name })) },
+          { name: 'image',         label: 'Category Image', type: 'file' },
+          { name: 'is_active',     label: 'Active',         type: 'checkbox', defaultValue: true },
+        ]}
         initialData={selectedCategory || {}} />
     </>
   );

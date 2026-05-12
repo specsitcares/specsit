@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, FileText, RefreshCw, ChevronDown, ZoomIn, ZoomOut, Eye, X } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import apiClient from '../../../services/api';
 
 /* ─── helpers ──────────────────────────────────────────── */
@@ -431,7 +432,7 @@ const NotesAndActions = ({ notes, setNotes, submit, saving, error, success, onRe
 );
 
 /* ─── Detail Panel ─────────────────────────────────────── */
-const DetailPanel = ({ rx, onReviewed }) => {
+const DetailPanel = ({ rx, onReviewed, autoOpenReupload, onAutoOpenReuploadDone }) => {
   const [notes, setNotes]           = useState(rx.review_notes || '');
   const [zoom, setZoom]             = useState(100);
   const [saving, setSaving]         = useState(false);
@@ -452,6 +453,13 @@ const DetailPanel = ({ rx, onReviewed }) => {
     setPdfLoadError(false);
     setPdfBlobUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null; });
   }, [rx.id]);
+
+  useEffect(() => {
+    if (autoOpenReupload) {
+      setShowReupload(true);
+      onAutoOpenReuploadDone?.();
+    }
+  }, [autoOpenReupload]);
 
   // Fetch PDF as a blob so the iframe uses a local blob URL —
   // this bypasses Django's X-Frame-Options: DENY header which blocks direct embedding.
@@ -730,12 +738,14 @@ const EmptyState = ({ message }) => (
 
 /* ─── Main Component ─────────────────────────────────────── */
 const PrescriptionTable = () => {
+  const location = useLocation();
   const [prescriptions, setPrescriptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('newest');
   const [selectedRx, setSelectedRx] = useState(null);
+  const [autoOpenReupload, setAutoOpenReupload] = useState(false);
 
   const fetchPrescriptions = async () => {
     setLoading(true);
@@ -755,6 +765,17 @@ const PrescriptionTable = () => {
   useEffect(() => {
     fetchPrescriptions();
   }, []);
+
+  // Auto-select prescription when redirected from offcanvas Flag Issue
+  useEffect(() => {
+    const selectOrderId = location.state?.selectOrderId;
+    if (!selectOrderId || prescriptions.length === 0) return;
+    const match = prescriptions.find(r => r.order_id === selectOrderId);
+    if (match) {
+      setSelectedRx(match);
+      setAutoOpenReupload(true);
+    }
+  }, [prescriptions, location.state?.selectOrderId]);
 
   const handleReviewed = async () => {
     await fetchPrescriptions();
@@ -914,6 +935,8 @@ const PrescriptionTable = () => {
               key={selectedRx.id}
               rx={selectedRx}
               onReviewed={handleReviewed}
+              autoOpenReupload={autoOpenReupload}
+              onAutoOpenReuploadDone={() => setAutoOpenReupload(false)}
             />
           ) : (
             <EmptyState message="Select a prescription to review" />

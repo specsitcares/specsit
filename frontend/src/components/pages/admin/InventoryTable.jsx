@@ -42,6 +42,19 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
     } catch (err) { console.error(err); }
   };
 
+  const handleToggleListed = async (v) => {
+    const newVal = !v.is_listed;
+    // Prevent listing a zero-stock variant
+    if (newVal && (v.stock ?? 0) <= 0) return;
+    setVariants(prev => prev.map(x => x.id === v.id ? { ...x, is_listed: newVal } : x));
+    try {
+      await apiClient.patch(`/catalog/variants/${v.id}/`, { is_listed: newVal });
+    } catch (err) {
+      // Roll back on failure
+      setVariants(prev => prev.map(x => x.id === v.id ? { ...x, is_listed: v.is_listed } : x));
+    }
+  };
+
   const bulkDelete = async () => {
     if (!window.confirm(`Delete ${selectedIds.size} variant(s)?`)) return;
     await Promise.all([...selectedIds].map(id => apiClient.delete(`/catalog/variants/${id}/`).catch(() => {})));
@@ -94,6 +107,7 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
     { label: 'Threshold',      key: 'threshold' },
     { label: 'Last Restocked', key: 'last_restocked' },
     { label: 'Last Sold',      key: 'last_sold' },
+    { label: 'Listed',         key: 'is_listed' },
     { label: 'Action',         key: 'action'  },
   ];
 
@@ -172,6 +186,29 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
           <span style={{ ...TXT }}>
             {v.last_sold ? new Date(v.last_sold).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
           </span>
+        </td>
+
+        {/* Listed toggle */}
+        <td style={{ ...CELL, minWidth: 80 }}>
+          <div
+            onClick={() => handleToggleListed(v)}
+            title={v.stock <= 0 ? 'Cannot list — stock is 0' : (v.is_listed ? 'Click to unlist' : 'Click to list')}
+            style={{
+              width: 36, height: 20, borderRadius: 10, position: 'relative', cursor: v.stock <= 0 ? 'not-allowed' : 'pointer',
+              background: v.is_listed ? '#7F56D9' : '#D0D5DD',
+              opacity: v.stock <= 0 ? 0.45 : 1,
+              transition: 'background 0.2s',
+              flexShrink: 0,
+              display: 'inline-block',
+            }}
+          >
+            <span style={{
+              position: 'absolute', top: 2, left: v.is_listed ? 18 : 2,
+              width: 16, height: 16, borderRadius: '50%', background: '#fff',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+              transition: 'left 0.2s',
+            }} />
+          </div>
         </td>
 
         {/* Action */}

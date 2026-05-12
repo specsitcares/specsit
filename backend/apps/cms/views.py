@@ -47,6 +47,8 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
         fields = ['store_name', 'meta_title_template', 'meta_description_template']
 
 class SiteSettingsView(APIView):
+    permission_classes = [AllowAny]
+
     def get(self, request):
         return Response(SiteSettingsSerializer(SiteSettings.get()).data)
 

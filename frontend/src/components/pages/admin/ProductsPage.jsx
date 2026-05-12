@@ -70,7 +70,7 @@ const DeleteModal = ({ target, onCancel, onConfirm }) => {
 const VariantRow = ({ v, onEdit, onDelete, productType }) => {
   const imgUrl = v.images?.[0]?.image || null;
   const color = v.color || v.frame_color || v.lens_color || '—';
-  const price = v.sale_price || v.price || '—';
+  const price = v.selling_price || v.base_price || v.sale_price || v.price || '—';
   return (
     <tr style={{ borderBottom: '1px solid #EAECF0', backgroundColor: '#fff' }}>
       <td style={{ padding: '14px 24px' }}>

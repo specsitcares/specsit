@@ -822,11 +822,12 @@ const ProductListingPage = () => {
                     ) : (
                         <>
                             <div className="plp-product-grid">
-                                {products.flatMap((p) =>
-                                    p.variants?.length > 0
-                                        ? p.variants.map(v => <VariantCard key={`v-${v.id}`} product={p} variant={v} />)
-                                        : [<VariantCard key={`p-${p.id}`} product={p} variant={null} />]
-                                )}
+                                {products.flatMap((p) => {
+                                    const listed = p.variants?.filter(v => v.is_listed && v.stock > 0) || [];
+                                    return listed.length > 0
+                                        ? listed.map(v => <VariantCard key={`v-${v.id}`} product={p} variant={v} />)
+                                        : [<VariantCard key={`p-${p.id}`} product={p} variant={null} />];
+                                })}
                             </div>
 
                             {/* Pagination */}

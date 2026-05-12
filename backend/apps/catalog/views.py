@@ -102,9 +102,11 @@ class CategoryViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
-        if self.request.user.is_staff:
-            return Category.objects.all().order_by('id')
-        return Category.objects.filter(is_active=True).order_by('id')
+        qs = Category.objects.all() if self.request.user.is_staff else Category.objects.filter(is_active=True)
+        category_type = self.request.query_params.get('category_type')
+        if category_type:
+            qs = qs.filter(category_type=category_type)
+        return qs.order_by('id')
 
 class BrandViewSet(viewsets.ModelViewSet):
     queryset = Brand.objects.all().order_by('id')
@@ -112,9 +114,11 @@ class BrandViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
-        if self.request.user.is_staff:
-            return Brand.objects.all().order_by('id')
-        return Brand.objects.filter(is_active=True).order_by('id')
+        qs = Brand.objects.all() if self.request.user.is_staff else Brand.objects.filter(is_active=True)
+        brand_type = self.request.query_params.get('brand_type')
+        if brand_type:
+            qs = qs.filter(brand_type=brand_type)
+        return qs.order_by('id')
 
 class ManufacturerViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Manufacturer.objects.all()
@@ -148,11 +152,15 @@ class ProductViewSet(viewsets.ModelViewSet):
             instance.delete()
 
     def get_queryset(self):
+        from django.db.models import Exists, OuterRef
         params = self.request.query_params
         if self.request.user.is_staff:
             queryset = Product.objects.filter(is_active=True).select_related('category', 'brand').prefetch_related('variants')
         else:
-            queryset = Product.objects.filter(is_active=True).select_related('category', 'brand').prefetch_related('variants')
+            listed = Variant.objects.filter(product=OuterRef('pk'), is_listed=True, stock__gt=0)
+            queryset = Product.objects.filter(is_active=True).filter(
+                Exists(listed)
+            ).select_related('category', 'brand').prefetch_related('variants')
 
         # Filter by product_type
         product_type = params.get('product_type')
@@ -286,7 +294,7 @@ class VariantViewSet(viewsets.ModelViewSet):
         from django.db.models import Q
         qs = Variant.objects.select_related('product', 'product__brand').prefetch_related('images')
         if not self.request.user.is_staff:
-            qs = qs.filter(stock__gt=0)
+            qs = qs.filter(stock__gt=0, is_listed=True)
         product_type = self.request.query_params.get('product_type')
         if product_type:
             qs = qs.filter(product__product_type=product_type)

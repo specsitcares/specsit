@@ -9,6 +9,7 @@ import {
 import apiClient from '../../../services/api';
 import FormModal from './FormModal';
 import AdminLoadingState from './AdminLoadingState';
+import PrescriptionOffcanvas from './PrescriptionOffcanvas';
 
 const STATUS_CLASS = {
   pending:               'badge-warning',
@@ -58,6 +59,7 @@ const OrderTable = ({ category = null, onViewDetails }) => {
   const [activeWarrantyTab, setActiveWarrantyTab] = useState('window'); // 'window', 'claimed', 'not_claimed'
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [qcLightbox, setQcLightbox] = useState(null);
+  const [rxOffcanvasOrder, setRxOffcanvasOrder] = useState(null);
 
   const fetchAnalytics = async () => {
     try {
@@ -760,9 +762,9 @@ const OrderTable = ({ category = null, onViewDetails }) => {
                     <td style={{ padding: '12px 16px', backgroundColor: expandedRows.includes(o.id) ? '#F5F3FF' : 'inherit' }}>
                       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
                         <div
-                          onClick={(e) => { e.stopPropagation(); onViewDetails(o.id); }}
+                          onClick={(e) => { e.stopPropagation(); setRxOffcanvasOrder(o); }}
                           style={{ width: '36px', height: '36px', backgroundColor: '#22C55E', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#ffffff', boxShadow: '0 1px 3px rgba(34,197,94,0.3)' }}
-                          title="View Details"
+                          title="Review Prescription"
                         >
                           <Check size={18} strokeWidth={3} />
                         </div>
@@ -963,6 +965,15 @@ const OrderTable = ({ category = null, onViewDetails }) => {
           initialData={selectedOrder ? { ...selectedOrder, status: selectedOrder.status } : {}}
         />
       </div>
+
+      {/* Prescription Offcanvas */}
+      {rxOffcanvasOrder && (
+        <PrescriptionOffcanvas
+          order={rxOffcanvasOrder}
+          onClose={() => setRxOffcanvasOrder(null)}
+          onApproved={(orderId) => { setRxOffcanvasOrder(null); onViewDetails(orderId); }}
+        />
+      )}
 
       {/* QC Image Lightbox */}
       {qcLightbox && (

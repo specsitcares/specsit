@@ -4,7 +4,7 @@ from .core.models import MetadataItem  # type: ignore
 from decimal import Decimal
 
 class Category(models.Model):
-    CATEGORY_TYPE_CHOICES = [('Lens', 'Lens'), ('Frame', 'Frame')]
+    CATEGORY_TYPE_CHOICES = [('Lens', 'Lenses for Frames'), ('Frame', 'Frame'), ('Contact', 'Contact Lenses')]
     name = models.CharField(max_length=100, unique=True)
     category_type = models.CharField(max_length=10, choices=CATEGORY_TYPE_CHOICES, default='Frame')
     description = models.TextField(blank=True)
@@ -16,10 +16,12 @@ class Category(models.Model):
     def __str__(self): return self.name
 
 class Brand(models.Model):
+    BRAND_TYPE_CHOICES = [('Frame', 'Frame'), ('Lens', 'Lenses for Frames'), ('Contact', 'Contact Lenses')]
     name = models.CharField(max_length=100, unique=True)
     label = models.CharField(max_length=100, blank=True)
     logo = models.ImageField(upload_to='brands/', blank=True, null=True)
     description = models.TextField(blank=True)
+    brand_type = models.CharField(max_length=10, choices=BRAND_TYPE_CHOICES, default='Frame')
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -131,7 +133,10 @@ class Variant(models.Model):
     is_bogo = models.BooleanField(default=False)
     discount_start_date = models.DateField(null=True, blank=True)
     discount_end_date = models.DateField(null=True, blank=True)
-    
+
+    # Storefront visibility — auto-cleared when stock hits 0; manually re-enabled by admin
+    is_listed = models.BooleanField(default=True)
+
     # SEO Fields (per-variant)
     meta_title = models.CharField(max_length=255, blank=True)
     meta_description = models.TextField(blank=True)
@@ -139,7 +144,12 @@ class Variant(models.Model):
     # VTO Assets
     vto_image_front = models.ImageField(upload_to='vto_assets/', blank=True, null=True)
     vto_video = models.FileField(upload_to='vto_assets/', blank=True, null=True)
-    
+
+    def save(self, *args, **kwargs):
+        if self.stock is not None and self.stock <= 0:
+            self.is_listed = False
+        super().save(*args, **kwargs)
+
     def __str__(self): return f"{self.product.title} [{self.sku}]"
 
 class VariantImage(models.Model):
@@ -166,12 +176,14 @@ class LensPackage(models.Model):
     description = models.TextField(blank=True)
     features = models.JSONField(default=list) # e.g. ["Anti-glare", "UV Protection"]
     is_active = models.BooleanField(default=True)
+    categories = models.ManyToManyField(Category, blank=True, related_name='lens_packages')
     def __str__(self): return self.name
 
 class Lens(models.Model):
     name = models.CharField(max_length=100, blank=True) # Optional override
     package = models.ForeignKey(LensPackage, on_delete=models.CASCADE, related_name='lenses')
     type = models.ForeignKey(MetadataItem, on_delete=models.SET_NULL, null=True, blank=True, limit_choices_to={'group__name': 'Lens Type'})
+    brand = models.ForeignKey(Brand, on_delete=models.SET_NULL, null=True, blank=True, related_name='lenses')
     price = models.DecimalField(max_digits=10, decimal_places=2)
     index = models.CharField(max_length=10, blank=True) # 1.5, 1.61, 1.67, 1.74
     is_active = models.BooleanField(default=True)

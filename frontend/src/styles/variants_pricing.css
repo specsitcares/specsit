@@ -89,7 +89,7 @@
 }
 
 .vp-variant-card {
-  border: 1px solid #E0E0E0;
+  border: 1px dashed #E0E0E0;
   border-radius: 6px;
   background: white;
   overflow: hidden;
@@ -133,16 +133,12 @@
   color: #68408D;
 }
 
-/* Figma: #FDFAFF bg, dashed border #68408D, padding 16px, gap 19px */
 .vp-variant-card-body {
   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 19px;
   background: #FDFAFF;
-  border: 1px dashed #68408D;
-  border-top: none;
-  border-radius: 0 0 5px 5px;
   animation: slideDown 0.3s ease-out;
 }
 

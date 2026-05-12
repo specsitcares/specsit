@@ -51,6 +51,7 @@ const DEFAULT_VARIANT = () => ({
   id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
   expanded: true,
   sku: '',
+  variantName: '',
   colorName: '',
   quantity: 0,
   colorMethod: 'code',
@@ -64,6 +65,14 @@ const DEFAULT_VARIANT = () => ({
   meta_title: '',
   meta_description: '',
   meta_auto: true,
+  frame_width: '',
+  frame_type: '',
+  frame_shape: '',
+  gender: 'Unisex',
+  frame_only_mode: false,
+  frame_material: '',
+  frame_size: 'Medium',
+  frame_weight: 'Standard',
 });
 
 const ProductDetailsForm = ({ onBack, editProduct = null }) => {
@@ -87,15 +96,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
     category: '',
     brand: '',
     short_description: '',
-    frame_width: '',
-    frame_type: '',
-    frame_shape: '',
-    gender: 'Unisex',
-    frame_only_mode: false,
     variants: [DEFAULT_VARIANT()],
-    frameMaterial: '',
-    frameSize: 'Medium',
-    frameWeight: 'Standard',
     taxPercent: '0',
     discountPercent: '0',
     isBogo: false,
@@ -118,15 +119,23 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
           requests.push(apiClient.get(`/catalog/products/${editProduct.id}/`));
         }
 
-        const results = await Promise.all(requests);
-        const [catRes, brandRes, settingsRes] = results;
+        const results = await Promise.allSettled(requests);
+        const [catResult, brandResult, settingsResult, productResult] = results;
 
-        setCategories(Array.isArray(catRes.data) ? catRes.data : (catRes.data.results || []));
-        setBrands(Array.isArray(brandRes.data) ? brandRes.data : (brandRes.data.results || []));
-        setGlobalTemplates(settingsRes.data);
+        if (catResult.status === 'fulfilled') {
+          const d = catResult.value.data;
+          setCategories(Array.isArray(d) ? d : (d.results || []));
+        }
+        if (brandResult.status === 'fulfilled') {
+          const d = brandResult.value.data;
+          setBrands(Array.isArray(d) ? d : (d.results || []));
+        }
+        if (settingsResult.status === 'fulfilled') {
+          setGlobalTemplates(settingsResult.value.data);
+        }
 
-        if (editProduct?.id && results[3]) {
-          const p = results[3].data;
+        if (editProduct?.id && productResult?.status === 'fulfilled') {
+          const p = productResult.value.data;
 
           const mapVariant = v => {
             const bp = parseFloat(v.base_price) || 0;
@@ -137,6 +146,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
             return {
               id: v.id,
               sku: v.sku,
+              variantName: '',
               colorName: v.color || '',
               quantity: v.stock || 0,
               colorMethod: v.color_selection_method || 'code',
@@ -157,6 +167,14 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
               meta_description: v.meta_description || '',
               meta_auto: !v.meta_title,
               expanded: true,
+              frame_width: p.frame_width || '',
+              frame_type: p.frame_type || '',
+              frame_shape: p.frame_shape || '',
+              gender: p.gender || 'Unisex',
+              frame_only_mode: p.frame_only_mode || false,
+              frame_material: v.frame_material || '',
+              frame_size: v.frame_size || 'Medium',
+              frame_weight: v.frame_weight || 'Standard',
             };
           };
 
@@ -170,16 +188,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
             category: p.category?.id || p.category || '',
             brand: p.brand?.id || p.brand || '',
             short_description: p.short_description || '',
-            frame_width: p.frame_width || '',
-            frame_type: p.frame_type || '',
-            frame_shape: p.frame_shape || '',
-            gender: p.gender || 'Unisex',
-            frame_only_mode: p.frame_only_mode || false,
             variants: (p.variants || []).map(mapVariant),
-            // Restore product-level Step 2 fields from first variant
-            frameMaterial: firstVariant.frame_material || '',
-            frameSize: firstVariant.frame_size || 'Medium',
-            frameWeight: firstVariant.frame_weight || 'Standard',
             taxPercent: firstVariant.tax_percent != null ? String(firstVariant.tax_percent) : '0',
             discountPercent: firstVariant.discount_percent != null ? String(firstVariant.discount_percent) : '0',
             isBogo: firstVariant.is_bogo || false,
@@ -242,14 +251,14 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
       category: parseInt(formData.category) || formData.category,
       brand: formData.brand ? parseInt(formData.brand) : null,
       product_type: 'frame',
-      frame_type: formData.frame_type,
-      frame_shape: formData.frame_shape,
-      frame_width: formData.frame_width,
-      gender: formData.gender,
+      frame_type: firstVariant?.frame_type || '',
+      frame_shape: firstVariant?.frame_shape || '',
+      frame_width: firstVariant?.frame_width || '',
+      gender: firstVariant?.gender || 'Unisex',
       base_price: parseFloat(firstVariant?.base_price) || 0,
       selling_price: parseFloat(firstVariant?.selling_price) || parseFloat(firstVariant?.base_price) || 0,
       discount_percentage: 0,
-      frame_only_mode: !!formData.frame_only_mode,
+      frame_only_mode: !!firstVariant?.frame_only_mode,
       is_active: isActive,
     };
   };
@@ -315,9 +324,9 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
           variantPayload.append('palette_image', v.paletteImage);
         }
 
-        variantPayload.append('frame_material', formData.frameMaterial || '');
-        variantPayload.append('frame_size', formData.frameSize || '');
-        variantPayload.append('frame_weight', formData.frameWeight || '');
+        variantPayload.append('frame_material', v.frame_material || '');
+        variantPayload.append('frame_size', v.frame_size || '');
+        variantPayload.append('frame_weight', v.frame_weight || '');
         variantPayload.append('stock', parseInt(v.quantity) || 0);
         variantPayload.append('base_price', parseFloat(v.base_price) || 0);
         variantPayload.append('selling_price', parseFloat(v.selling_price) || parseFloat(v.base_price) || 0);
@@ -521,131 +530,77 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
         <div className="product-form-body">
           <div className="product-form-content">
             {currentStep === 1 && (
-              <div className="product-form-columns">
-                <div className="form-sub-section">
-                  <div className="form-sub-section-title">
-                    <h3>General Information</h3>
-                    <hr className="title-divider" />
-                  </div>
-
-                  <div className="form-field">
-                    <label className="form-field-label">
-                      Product Title <span className="required-star">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      className={`form-field-input ${errors.title ? 'has-error' : ''}`}
-                      placeholder="e.g. Ray-Ban Aviator Classic"
-                      value={formData.title}
-                      onChange={(e) => handleInputChange('title', e.target.value)}
-                    />
-                    {errors.title && <span className="form-field-error"><AlertCircle size={12} /> {errors.title}</span>}
-                  </div>
-
-                  <div className="form-field-row">
-                    <div className="form-field">
-                      <label className="form-field-label">Category <span className="required-star">*</span></label>
-                      <div className="form-field-select-wrapper">
-                        <select
-                          value={formData.category}
-                          onChange={(e) => handleInputChange('category', e.target.value)}
-                          className={errors.category ? 'has-error' : ''}
-                        >
-                          <option value="">Select Category</option>
-                          {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                        </select>
-                        <span className="select-chevron"><ChevronDown size={16} /></span>
-                      </div>
-                      {errors.category && <span className="form-field-error"><AlertCircle size={12} /> {errors.category}</span>}
-                    </div>
-                    <div className="form-field">
-                      <label className="form-field-label">Manufacturer / Brand</label>
-                      <div className="form-field-select-wrapper">
-                        <select
-                          value={formData.brand}
-                          onChange={(e) => handleInputChange('brand', e.target.value)}
-                        >
-                          <option value="">Select Brand</option>
-                          {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                        </select>
-                        <span className="select-chevron"><ChevronDown size={16} /></span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="form-field">
-                    <label className="form-field-label">Short Description</label>
-                    <input
-                      type="text"
-                      className="form-field-input"
-                      placeholder="Iconic teardrop shape with crystal green lenses."
-                      value={formData.short_description}
-                      onChange={(e) => handleInputChange('short_description', e.target.value)}
-                    />
-                  </div>
-
+              <div className="form-sub-section">
+                <div className="form-sub-section-title">
+                  <h3>General Information</h3>
+                  <hr className="title-divider" />
                 </div>
 
-                <div className="form-sub-section">
-                  <div className="form-sub-section-title">
-                    <h3>Technical Specifications</h3>
-                    <hr className="title-divider" />
-                  </div>
+                <div className="form-field">
+                  <label className="form-field-label">
+                    Product Title <span className="required-star">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className={`form-field-input ${errors.title ? 'has-error' : ''}`}
+                    placeholder="e.g. Ray-Ban Aviator Classic"
+                    value={formData.title}
+                    onChange={(e) => handleInputChange('title', e.target.value)}
+                  />
+                  {errors.title && <span className="form-field-error"><AlertCircle size={12} /> {errors.title}</span>}
+                </div>
 
+                <div className="form-field-row">
                   <div className="form-field">
-                    <label className="form-field-label">Frame Width</label>
+                    <label className="form-field-label">Category <span className="required-star">*</span></label>
                     <div className="form-field-select-wrapper">
-                      <select value={formData.frame_width} onChange={(e) => handleInputChange('frame_width', e.target.value)}>
-                        {FRAME_WIDTH_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                      <select
+                        value={formData.category}
+                        onChange={(e) => handleInputChange('category', e.target.value)}
+                        className={errors.category ? 'has-error' : ''}
+                      >
+                        <option value="">Select Category</option>
+                        {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                      <span className="select-chevron"><ChevronDown size={16} /></span>
+                    </div>
+                    {errors.category && <span className="form-field-error"><AlertCircle size={12} /> {errors.category}</span>}
+                  </div>
+                  <div className="form-field">
+                    <label className="form-field-label">Manufacturer / Brand</label>
+                    <div className="form-field-select-wrapper">
+                      <select
+                        value={formData.brand}
+                        onChange={(e) => handleInputChange('brand', e.target.value)}
+                      >
+                        <option value="">Select Brand</option>
+                        {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                       </select>
                       <span className="select-chevron"><ChevronDown size={16} /></span>
                     </div>
                   </div>
+                </div>
 
-                  <div className="form-field-row-3">
-                    <div className="form-field">
-                      <label className="form-field-label">Frame Type</label>
-                      <div className="form-field-select-wrapper">
-                        <select value={formData.frame_type} onChange={(e) => handleInputChange('frame_type', e.target.value)}>
-                          {FRAME_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                        </select>
-                        <span className="select-chevron"><ChevronDown size={16} /></span>
-                      </div>
-                    </div>
-                    <div className="form-field">
-                      <label className="form-field-label">Frame Shape</label>
-                      <div className="form-field-select-wrapper">
-                        <select value={formData.frame_shape} onChange={(e) => handleInputChange('frame_shape', e.target.value)}>
-                          {FRAME_SHAPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                        </select>
-                        <span className="select-chevron"><ChevronDown size={16} /></span>
-                      </div>
-                    </div>
-                    <div className="form-field">
-                      <label className="form-field-label">Gender Target</label>
-                      <div className="form-field-select-wrapper">
-                        <select value={formData.gender} onChange={(e) => handleInputChange('gender', e.target.value)}>
-                          {GENDER_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                        </select>
-                        <span className="select-chevron"><ChevronDown size={16} /></span>
-                      </div>
-                    </div>
-                  </div>
+                <div className="form-field">
+                  <label className="form-field-label">Short Description</label>
+                  <input
+                    type="text"
+                    className="form-field-input"
+                    placeholder="Iconic teardrop shape with crystal green lenses."
+                    value={formData.short_description}
+                    onChange={(e) => handleInputChange('short_description', e.target.value)}
+                  />
+                </div>
 
-                  <div className="form-switch-row">
-                    <div className="form-switch-content">
-                      <span className="switch-label">Frame Only Mode</span>
-                      <span className="switch-description">Enable to bypass lens selection and sell frame only</span>
-                    </div>
-                    <label className="toggle-switch">
-                      <input
-                        type="checkbox"
-                        checked={formData.frame_only_mode}
-                        onChange={(e) => handleInputChange('frame_only_mode', e.target.checked)}
-                      />
-                      <span className="toggle-slider" />
-                    </label>
-                  </div>
+                <div className="form-field">
+                  <label className="form-field-label">Tax %</label>
+                  <input
+                    type="number"
+                    className="form-field-input"
+                    placeholder="0"
+                    value={formData.taxPercent || '0'}
+                    onChange={(e) => handleInputChange('taxPercent', e.target.value)}
+                  />
                 </div>
               </div>
             )}

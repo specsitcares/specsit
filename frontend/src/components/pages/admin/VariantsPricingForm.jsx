@@ -10,10 +10,47 @@ import {
 } from 'lucide-react';
 import '../../../styles/variants_pricing.css';
 
+const FRAME_WIDTH_OPTIONS = [
+  { value: '', label: 'Select frame width' },
+  { value: 'Small (115mm)', label: 'Small (115mm)' },
+  { value: 'Medium (130mm)', label: 'Medium (130mm)' },
+  { value: 'Large (140mm)', label: 'Large (140mm)' },
+  { value: 'Extra Large (150mm)', label: 'Extra Large (150mm)' },
+];
+
+const FRAME_TYPE_OPTIONS = [
+  { value: '', label: 'Select frame type' },
+  { value: 'Full Rim', label: 'Full Rim' },
+  { value: 'Half Rim', label: 'Half Rim' },
+  { value: 'Rimless', label: 'Rimless' },
+];
+
+const FRAME_SHAPE_OPTIONS = [
+  { value: '', label: 'Select frame shape' },
+  { value: 'Pilot / Aviator', label: 'Pilot / Aviator' },
+  { value: 'Round', label: 'Round' },
+  { value: 'Rectangle', label: 'Rectangle' },
+  { value: 'Wayfarer', label: 'Wayfarer' },
+  { value: 'Cat Eye', label: 'Cat Eye' },
+  { value: 'Clubmaster', label: 'Clubmaster' },
+  { value: 'Oval', label: 'Oval' },
+  { value: 'Square', label: 'Square' },
+  { value: 'Geometric', label: 'Geometric' },
+];
+
+const GENDER_OPTIONS = [
+  { value: '', label: 'Select gender' },
+  { value: 'Men', label: 'Men' },
+  { value: 'Women', label: 'Women' },
+  { value: 'Unisex', label: 'Unisex' },
+  { value: 'Kids', label: 'Kids' },
+];
+
 const EMPTY_VARIANT = () => ({
   id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
   expanded: true,
   sku: '',
+  variantName: '',
   colorName: '',
   quantity: 0,
   colorMethod: 'code',
@@ -27,6 +64,14 @@ const EMPTY_VARIANT = () => ({
   meta_title: '',
   meta_description: '',
   meta_auto: true,
+  frame_width: '',
+  frame_type: '',
+  frame_shape: '',
+  gender: 'Unisex',
+  frame_only_mode: false,
+  frame_material: '',
+  frame_size: 'Medium',
+  frame_weight: 'Standard',
 });
 
 const VariantsPricingForm = ({ formData, onFormDataChange, saving, errors = {}, onVariantRemoved, onImageRemoved, globalTemplates }) => {
@@ -187,18 +232,30 @@ const VariantsPricingForm = ({ formData, onFormDataChange, saving, errors = {}, 
                     )}
                   </div>
 
-                  <div className="form-field">
-                    <label className="form-field-label">SKU <span className="required-star">*</span></label>
-                    <input
-                      type="text"
-                      className="form-field-input"
-                      placeholder=""
-                      value={v.sku || ''}
-                      onChange={(e) => updateVariant(v.id, 'sku', e.target.value)}
-                    />
-                    <span style={{ fontSize: 11, color: '#9ca3af', marginTop: 2, display: 'block' }}>
-                      Unique identifier for this variant — used in orders and inventory.
-                    </span>
+                  <div className="vp-row">
+                    <div className="form-field">
+                      <label className="form-field-label">Variant Name</label>
+                      <input
+                        type="text"
+                        className="form-field-input"
+                        placeholder="e.g. Classic Tortoise"
+                        value={v.variantName || ''}
+                        onChange={(e) => updateVariant(v.id, 'variantName', e.target.value)}
+                      />
+                    </div>
+                    <div className="form-field">
+                      <label className="form-field-label">SKU <span className="required-star">*</span></label>
+                      <input
+                        type="text"
+                        className="form-field-input"
+                        placeholder=""
+                        value={v.sku || ''}
+                        onChange={(e) => updateVariant(v.id, 'sku', e.target.value)}
+                      />
+                      <span style={{ fontSize: 11, color: '#9ca3af', marginTop: 2, display: 'block' }}>
+                        Unique identifier for this variant.
+                      </span>
+                    </div>
                   </div>
 
                   <div className="vp-row">
@@ -308,7 +365,111 @@ const VariantsPricingForm = ({ formData, onFormDataChange, saving, errors = {}, 
                     )}
                   </div>
 
-                  <div className="vp-pricing-section-title" style={{ marginTop: '6px', marginBottom: '3px' }}>
+                  {/* ── Technical Specifications ── */}
+                  <div style={{ marginTop: '18px' }}>
+                    <div style={{ fontSize: '10px', fontWeight: '600', color: '#344054', marginBottom: '5px' }}>
+                      Technical Specifications
+                    </div>
+                    <hr style={{ border: 'none', borderTop: '1px solid #EAECF0', marginBottom: '12px' }} />
+
+                    <div className="vp-row">
+                      <div className="form-field">
+                        <label className="form-field-label">Frame Material</label>
+                        <input
+                          type="text"
+                          className="form-field-input"
+                          placeholder="e.g. Acetate"
+                          value={v.frame_material || ''}
+                          onChange={(e) => updateVariant(v.id, 'frame_material', e.target.value)}
+                        />
+                      </div>
+                      <div className="form-field">
+                        <label className="form-field-label">Frame Width</label>
+                        <div className="form-field-select-wrapper">
+                          <select value={v.frame_width || ''} onChange={(e) => updateVariant(v.id, 'frame_width', e.target.value)}>
+                            {FRAME_WIDTH_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                          </select>
+                          <span className="select-chevron"><ChevronDown size={14} /></span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="vp-row">
+                      <div className="form-field">
+                        <label className="form-field-label">Frame Type</label>
+                        <div className="form-field-select-wrapper">
+                          <select value={v.frame_type || ''} onChange={(e) => updateVariant(v.id, 'frame_type', e.target.value)}>
+                            {FRAME_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                          </select>
+                          <span className="select-chevron"><ChevronDown size={14} /></span>
+                        </div>
+                      </div>
+                      <div className="form-field">
+                        <label className="form-field-label">Frame Shape</label>
+                        <div className="form-field-select-wrapper">
+                          <select value={v.frame_shape || ''} onChange={(e) => updateVariant(v.id, 'frame_shape', e.target.value)}>
+                            {FRAME_SHAPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                          </select>
+                          <span className="select-chevron"><ChevronDown size={14} /></span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="vp-row">
+                      <div className="form-field">
+                        <label className="form-field-label">Frame Size</label>
+                        <div className="form-field-select-wrapper">
+                          <select value={v.frame_size || 'Medium'} onChange={(e) => updateVariant(v.id, 'frame_size', e.target.value)}>
+                            <option value="Small">Small</option>
+                            <option value="Medium">Medium</option>
+                            <option value="Large">Large</option>
+                          </select>
+                          <span className="select-chevron"><ChevronDown size={14} /></span>
+                        </div>
+                      </div>
+                      <div className="form-field">
+                        <label className="form-field-label">Frame Weight</label>
+                        <div className="form-field-select-wrapper">
+                          <select value={v.frame_weight || 'Standard'} onChange={(e) => updateVariant(v.id, 'frame_weight', e.target.value)}>
+                            <option value="Lightweight">Lightweight</option>
+                            <option value="Standard">Standard</option>
+                            <option value="Heavy">Heavy</option>
+                          </select>
+                          <span className="select-chevron"><ChevronDown size={14} /></span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="vp-row">
+                      <div className="form-field">
+                        <label className="form-field-label">Gender Target</label>
+                        <div className="form-field-select-wrapper">
+                          <select value={v.gender || 'Unisex'} onChange={(e) => updateVariant(v.id, 'gender', e.target.value)}>
+                            {GENDER_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                          </select>
+                          <span className="select-chevron"><ChevronDown size={14} /></span>
+                        </div>
+                      </div>
+                      <div className="form-field" style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '2px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '8px 0' }}>
+                          <div>
+                            <div style={{ fontSize: '12px', fontWeight: 500, color: '#344054' }}>Frame Only Mode</div>
+                            <div style={{ fontSize: '11px', color: '#9ca3af' }}>Bypass lens selection</div>
+                          </div>
+                          <label className="toggle-switch">
+                            <input
+                              type="checkbox"
+                              checked={v.frame_only_mode || false}
+                              onChange={(e) => updateVariant(v.id, 'frame_only_mode', e.target.checked)}
+                            />
+                            <span className="toggle-slider" />
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="vp-pricing-section-title" style={{ marginTop: '18px', marginBottom: '3px' }}>
                     <span style={{ fontSize: '10px', fontWeight: '600', color: '#344054' }}>Pricing</span>
                     <hr style={{ border: 'none', borderTop: '1px solid #EAECF0', marginTop: '5px' }} />
                   </div>
@@ -523,65 +684,6 @@ const VariantsPricingForm = ({ formData, onFormDataChange, saving, errors = {}, 
 
       {/* ──── Product-Level Fields ──── */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '19px', marginTop: '19px' }}>
-        <div className="form-field">
-          <label className="form-field-label">Frame Material</label>
-          <input
-            type="text"
-            className="form-field-input"
-            placeholder="e.g. Acetate"
-            value={formData.frameMaterial || ''}
-            onChange={(e) => updateProductField('frameMaterial', e.target.value)}
-          />
-        </div>
-
-        <div className="vp-row">
-          <div className="form-field">
-            <label className="form-field-label">Frame Sizes</label>
-            <div className="form-field-select-wrapper">
-              <select value={formData.frameSize || 'Medium'} onChange={(e) => updateProductField('frameSize', e.target.value)}>
-                <option value="Small">Small</option>
-                <option value="Medium">Medium</option>
-                <option value="Large">Large</option>
-              </select>
-              <span className="select-chevron"><ChevronDown size={14} /></span>
-            </div>
-          </div>
-          <div className="form-field">
-            <label className="form-field-label">Frame Weight</label>
-            <div className="form-field-select-wrapper">
-              <select value={formData.frameWeight || 'Standard'} onChange={(e) => updateProductField('frameWeight', e.target.value)}>
-                <option value="Lightweight">Lightweight</option>
-                <option value="Standard">Standard</option>
-                <option value="Heavy">Heavy</option>
-              </select>
-              <span className="select-chevron"><ChevronDown size={14} /></span>
-            </div>
-          </div>
-        </div>
-
-        <div className="vp-row">
-          <div className="form-field">
-            <label className="form-field-label">Tax %</label>
-            <input
-              type="number"
-              className="form-field-input"
-              placeholder="0"
-              value={formData.taxPercent || '0'}
-              onChange={(e) => updateProductField('taxPercent', e.target.value)}
-            />
-          </div>
-          <div className="form-field">
-            <label className="form-field-label">Discount %</label>
-            <input
-              type="number"
-              className="form-field-input"
-              placeholder="0"
-              value={formData.discountPercent || '0'}
-              onChange={(e) => updateProductField('discountPercent', e.target.value)}
-            />
-          </div>
-        </div>
-
         <div className="vp-marketing-box">
           <div
             className="vp-bogo-row"

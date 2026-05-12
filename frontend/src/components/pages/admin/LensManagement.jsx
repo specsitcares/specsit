@@ -16,7 +16,7 @@ const LENS_PACKAGE_PRESETS = [
 
 const LENS_TYPE_FIELDS = [{ name: 'label', label: 'Type Name', required: true }];
 
-const LENS_PACKAGE_FIELDS = [
+const LENS_PACKAGE_BASE_FIELDS = [
   { name: 'package_name', label: 'Package Name', required: true, helpText: 'e.g. Silver, Gold, Platinum' },
   { name: 'price', label: 'Price (₹)', type: 'number', required: true },
   {
@@ -40,6 +40,9 @@ const LensManagement = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [lensBrands, setLensBrands] = useState([]);
+  const [lensCategories, setLensCategories] = useState([]);
+  const [newPackageCategoryIds, setNewPackageCategoryIds] = useState([]);
 
   const [showAddType, setShowAddType] = useState(false);
   const [showAddPackage, setShowAddPackage] = useState(false);
@@ -53,16 +56,22 @@ const LensManagement = () => {
     is_active: true,
     features: [],
     compatibility: [],
-    pricing_mode: 'package'
+    pricing_mode: 'package',
+    brand: '',
+    categories: []
   });
 
   const fetchData = async () => {
     try {
-      // Fetch with filter to ensure we get the right group regardless of pagination
-      const groupsRes = await apiClient.get('/core/metadata-groups/?name=Lens Type');
+      const [groupsRes, lensesRes, brandsRes, catsRes] = await Promise.all([
+        apiClient.get('/core/metadata-groups/?name=Lens Type'),
+        apiClient.get('/catalog/lenses/?page_size=100'),
+        apiClient.get('/catalog/brands/?brand_type=Lens'),
+        apiClient.get('/catalog/categories/?category_type=Frame'),
+      ]);
+
       const items = groupsRes.data.results || groupsRes.data;
       const lensGroup = Array.isArray(items) ? items.find(g => g.name === 'Lens Type') : (items.name === 'Lens Type' ? items : null);
-
       if (lensGroup) {
         setLensTypes(lensGroup.items || []);
         if (!selectedType && lensGroup.items?.length > 0) {
@@ -70,9 +79,9 @@ const LensManagement = () => {
         }
       }
 
-      // Fetch more lenses to account for pagination (e.g. page_size=100)
-      const lensesRes = await apiClient.get('/catalog/lenses/?page_size=100');
       setLenses(lensesRes.data.results || lensesRes.data);
+      setLensBrands(brandsRes.data.results || brandsRes.data || []);
+      setLensCategories(catsRes.data.results || catsRes.data || []);
       setLoading(false);
     } catch (err) {
       console.error('Failed to fetch lens data', err);
@@ -93,10 +102,11 @@ const LensManagement = () => {
         price: editFormData.price,
         index: editFormData.index,
         is_active: editFormData.is_active,
-        // Flat fields for the enhanced Serializer
         package_name: editFormData.name,
         description: editFormData.description,
-        features: editFormData.features
+        features: editFormData.features,
+        brand: editFormData.brand || null,
+        category_ids: editFormData.categories,
       });
       await fetchData();
       alert('Package updated successfully');
@@ -162,9 +172,12 @@ const LensManagement = () => {
         is_active: true,
         package_name: formData.package_name || formData.name,
         features: formData.features || [],
-        description: formData.description || ''
+        description: formData.description || '',
+        brand: formData.brand || null,
+        category_ids: newPackageCategoryIds,
       });
       setShowAddPackage(false);
+      setNewPackageCategoryIds([]);
       await fetchData();
     } catch (err) {
       console.error('Add package failed', err);
@@ -181,7 +194,9 @@ const LensManagement = () => {
         is_active: selectedLens.is_active,
         features: selectedLens.features || [],
         compatibility: selectedLens.compatibility || ['Full Rim'],
-        pricing_mode: selectedLens.pricing_mode || 'package'
+        pricing_mode: selectedLens.pricing_mode || 'package',
+        brand: selectedLens.brand || '',
+        categories: (selectedLens.categories || []).map(c => c.id),
       });
     }
   }, [selectedLens]);
@@ -361,6 +376,23 @@ const LensManagement = () => {
                     }}
                   />
                 </div>
+                {lensBrands.length > 0 && (
+                  <div className="lm-form-row">
+                    <label>Brand</label>
+                    <div className="lm-select-box">
+                      <select
+                        value={editFormData.brand || ''}
+                        onChange={e => setEditFormData(prev => ({ ...prev, brand: e.target.value || null }))}
+                      >
+                        <option value="">— None —</option>
+                        {lensBrands.map(b => (
+                          <option key={b.id} value={b.id}>{b.name}</option>
+                        ))}
+                      </select>
+                      <ChevronDown size={14} className="select-arrow" />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Optical Specs */}
@@ -447,6 +479,33 @@ const LensManagement = () => {
                 )}
               </div>
 
+              {/* Categories */}
+              {lensCategories.length > 0 && (
+                <div className="lm-form-section">
+                  <h4 className="lm-section-label">Applicable Categories</h4>
+                  <div className="lm-chip-group">
+                    {lensCategories.map(c => {
+                      const selected = editFormData.categories.includes(c.id);
+                      return (
+                        <span
+                          key={c.id}
+                          className={`lm-form-chip ${selected ? 'active' : ''}`}
+                          onClick={() => {
+                            const next = selected
+                              ? editFormData.categories.filter(id => id !== c.id)
+                              : [...editFormData.categories, c.id];
+                            setEditFormData(prev => ({ ...prev, categories: next }));
+                          }}
+                        >
+                          {selected && <Check size={12} strokeWidth={3} />}
+                          {c.name}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {/* Pricing Mode */}
               <div className="lm-pricing-mode">
                 <div
@@ -504,11 +563,43 @@ const LensManagement = () => {
 
       <FormModal
         isOpen={showAddPackage}
-        onClose={() => setShowAddPackage(false)}
+        onClose={() => { setShowAddPackage(false); setNewPackageCategoryIds([]); }}
         onSubmit={handleAddPackage}
         title="Lens Package"
-        fields={LENS_PACKAGE_FIELDS}
+        fields={[
+          ...LENS_PACKAGE_BASE_FIELDS,
+          ...(lensBrands.length > 0 ? [{
+            name: 'brand', label: 'Brand', type: 'select',
+            options: lensBrands.map(b => ({ value: b.id, label: b.name }))
+          }] : []),
+        ]}
       >
+        {lensCategories.length > 0 && (
+          <div style={{ padding: '0 24px 16px' }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#344054', marginBottom: 8 }}>Applicable Categories</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {lensCategories.map(c => {
+                const selected = newPackageCategoryIds.includes(c.id);
+                return (
+                  <span
+                    key={c.id}
+                    onClick={() => setNewPackageCategoryIds(prev => selected ? prev.filter(id => id !== c.id) : [...prev, c.id])}
+                    style={{
+                      padding: '4px 12px', borderRadius: 20, fontSize: 11, cursor: 'pointer', fontWeight: 500,
+                      background: selected ? '#F4EBFF' : '#F9FAFB',
+                      color: selected ? '#7F56D9' : '#667085',
+                      border: `1px solid ${selected ? '#D6BBFB' : '#EAECF0'}`,
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                    }}
+                  >
+                    {selected && <Check size={11} />}
+                    {c.name}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        )}
         <div className="lm-preset-strip">
           <p>Quick Add Presets:</p>
           <div className="preset-buttons">
