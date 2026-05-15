@@ -795,7 +795,6 @@ const OrderDetail = ({ orderId, onBack }) => {
               </div>
             </div>
           </div>
-
         </div>
       </div>
 

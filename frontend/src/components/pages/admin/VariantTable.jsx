@@ -80,6 +80,7 @@ const VariantTable = () => {
 
   const columns = [
     { label: 'Product', key: 'product', sortable: true },
+    { label: 'Category', key: 'category', sortable: true },
     { label: 'Attributes', key: 'attributes' },
     { label: 'SKU Code', key: 'sku', sortable: true },
     { label: 'Inventory', key: 'inventory', sortable: true },
@@ -99,6 +100,9 @@ const VariantTable = () => {
           </div>
           <div style={{ fontWeight: 600, color: '#101828', fontSize: '11px' }}>{v.product_name || 'N/A'}</div>
         </div>
+      </td>
+      <td style={{ padding: '16px 24px' }}>
+        <span style={{ fontSize: '11px', color: '#475467' }}>{v.category_name || '—'}</span>
       </td>
       <td style={{ padding: '16px 24px' }}>
         <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>

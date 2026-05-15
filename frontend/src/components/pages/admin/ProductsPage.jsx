@@ -89,6 +89,7 @@ const VariantRow = ({ v, onEdit, onDelete, productType }) => {
         </div>
       </td>
       <td style={{ padding: '14px 24px', color: '#667085', fontSize: 13 }}>{v.brand_name || '—'}</td>
+      <td style={{ padding: '14px 24px', color: '#667085', fontSize: 13 }}>{v.category_name || '—'}</td>
       <td style={{ padding: '14px 24px', fontSize: 13 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {v.color_code && <span style={{ width: 12, height: 12, borderRadius: '50%', background: v.color_code, border: '1px solid #D0D5DD', flexShrink: 0 }} />}
@@ -144,9 +145,8 @@ const useVariantsTab = (productType) => {
     if (!deleteTarget) return;
     try {
       await apiClient.delete(`/catalog/variants/${deleteTarget.id}/`);
-      setVariants(prev => prev.filter(v => v.id !== deleteTarget.id));
-      setTotal(prev => prev - 1);
       setDeleteTarget(null);
+      fetch(); // Re-fetch to sync counts and data
     } catch { alert('Failed to delete variant'); }
   };
 
@@ -160,6 +160,7 @@ const LensesTab = ({ onAdd, onEdit }) => {
   const columns = [
     { label: 'Product / SKU', key: 'name' },
     { label: 'Brand', key: 'brand' },
+    { label: 'Category', key: 'category' },
     { label: 'Color', key: 'color' },
     { label: 'Stock', key: 'stock' },
     { label: 'Price', key: 'price' },
@@ -169,12 +170,13 @@ const LensesTab = ({ onAdd, onEdit }) => {
   return (
     <>
       <BaseAdminTable
-        title="Lenses"
-        subtitle={`${total} Variants`}
+        title="Contact Lenses"
+        count={total}
+        countLabel="Variants"
         searchQuery={searchQuery}
         onSearchChange={(v) => setSearchQuery(v)}
         onAdd={onAdd}
-        addLabel="+ Add Lens"
+        addLabel="+ Add Contact Lens"
         columns={columns}
         data={variants}
         loading={loading}
@@ -182,8 +184,8 @@ const LensesTab = ({ onAdd, onEdit }) => {
           <VariantRow key={v.id} v={v} productType="lens" onEdit={onEdit} onDelete={setDeleteTarget} />
         )}
         pagination={{ page, perPage, totalCount: total, onPageChange: setPage, onPerPageChange: (pp) => { setPerPage(pp); setPage(1); } }}
-        emptyMessage="No lens variants found"
-        emptyDescription="Add your first lens product to get started."
+        emptyMessage="No contact lens variants found"
+        emptyDescription="Add your first contact lens product to get started."
       />
       <DeleteModal target={deleteTarget} onCancel={() => setDeleteTarget(null)} onConfirm={confirmDelete} />
     </>
@@ -197,6 +199,7 @@ const FramesTab = ({ onAdd, onEdit }) => {
   const columns = [
     { label: 'Product / SKU', key: 'name' },
     { label: 'Brand', key: 'brand' },
+    { label: 'Category', key: 'category' },
     { label: 'Color', key: 'color' },
     { label: 'Size', key: 'size' },
     { label: 'Material', key: 'material' },
@@ -209,7 +212,8 @@ const FramesTab = ({ onAdd, onEdit }) => {
     <>
       <BaseAdminTable
         title="Frames"
-        subtitle={`${total} Variants`}
+        count={total}
+        countLabel="Variants"
         searchQuery={searchQuery}
         onSearchChange={(v) => setSearchQuery(v)}
         onAdd={onAdd}
@@ -249,7 +253,7 @@ const ProductsPage = ({ onAddNew, onEdit }) => {
     <div>
       {/* Pill-style tab switcher */}
       <div style={{ display: 'flex', background: '#F9FAFB', border: '1px solid #EAECF0', borderRadius: 8, padding: 2, width: 'fit-content', marginBottom: 20 }}>
-        <button style={tabStyle('lenses')} onClick={() => setActiveTab('lenses')}>Lenses</button>
+        <button style={tabStyle('lenses')} onClick={() => setActiveTab('lenses')}>Contact Lenses</button>
         <button style={tabStyle('frames')} onClick={() => setActiveTab('frames')}>Frames</button>
       </div>
 

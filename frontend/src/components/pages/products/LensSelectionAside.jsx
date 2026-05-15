@@ -142,18 +142,33 @@ const Stepper = ({ current }) => (
 );
 
 /* ════════════════════════════════════════════════════════
-   GROUP LENSES FROM API BY PACKAGE NAME
+   GROUP LENSES BY BRAND, THEN BY TYPE, THEN PACKAGES
    ════════════════════════════════════════════════════════ */
-const groupLensesByPackage = (lenses) => {
-    const map = {};
+const groupLensesByBrandAndTypeAndPackage = (lenses) => {
+    const brandMap = {};
+    
     lenses.forEach(lens => {
-        const pkgName = lens.package_name || 'Other';
-        if (!map[pkgName]) {
-            map[pkgName] = { id: pkgName, name: pkgName, packages: [] };
+        const brandName = lens.brand_name || 'Other';
+        const typeName = lens.type_label || 'General';
+        
+        if (!brandMap[brandName]) {
+            brandMap[brandName] = { id: brandName, name: brandName, types: {} };
         }
-        map[pkgName].packages.push(lens);
+        
+        if (!brandMap[brandName].types[typeName]) {
+            brandMap[brandName].types[typeName] = { id: typeName, name: typeName, lenses: [] };
+        }
+        
+        brandMap[brandName].types[typeName].lenses.push(lens);
     });
-    return Object.values(map);
+    
+    // Convert types object to array
+    const brands = Object.values(brandMap).map(brand => ({
+        ...brand,
+        types: Object.values(brand.types)
+    }));
+    
+    return brands;
 };
 
 /* ════════════════════════════════════════════════════════
@@ -189,7 +204,7 @@ const LensPackageCard = ({ pkg, selected, onSelect, productBasePrice = 0 }) => {
             <div className="lsa-pkg-card__inner">
                 <LensPreview selected={selected} />
                 <div className="lsa-pkg-card__info">
-                    <h4 className="lsa-pkg-card__name">{pkg.name}</h4>
+                    <h4 className="lsa-pkg-card__name">{pkg.package_name || pkg.name}</h4>
                     {pkg.description && (
                         <p style={{ fontSize: 11, color: '#71717a', margin: '2px 0 4px' }}>{pkg.description}</p>
                     )}
@@ -216,18 +231,18 @@ const LensPackageCard = ({ pkg, selected, onSelect, productBasePrice = 0 }) => {
 };
 
 /* ════════════════════════════════════════════════════════
-   BRAND ACCORDION
+   TYPE ACCORDION (nested under brand)
    ════════════════════════════════════════════════════════ */
-const BrandAccordion = ({ brand, isOpen, onToggle, selectedLens, onSelectLens, productBasePrice }) => (
-    <div className={`lsa-brand${isOpen ? ' lsa-brand--open' : ''}`}>
+const TypeAccordion = ({ type, isOpen, onToggle, selectedLens, onSelectLens, productBasePrice }) => (
+    <div className={`lsa-brand lsa-brand--type${isOpen ? ' lsa-brand--open' : ''}`} style={{ marginLeft: 12 }}>
         <button className="lsa-brand__header" onClick={onToggle}>
             <div className="lsa-brand__header-left">
-                <div className="lsa-brand__logo" style={{ background: '#EBE3F2', color: '#68408D' }}>
-                    {(brand.name || '').slice(0, 2).toUpperCase()}
+                <div className="lsa-brand__logo" style={{ background: '#F3E8FF', color: '#9333EA', fontSize: 11 }}>
+                    {(type.name || '').slice(0, 2).toUpperCase()}
                 </div>
                 <div className="lsa-brand__meta">
-                    <span className="lsa-brand__name">{brand.name}</span>
-                    <span className="lsa-brand__tagline">{brand.packages.length} option{brand.packages.length !== 1 ? 's' : ''}</span>
+                    <span className="lsa-brand__name" style={{ fontSize: 13 }}>{type.name}</span>
+                    <span className="lsa-brand__tagline">{type.lenses.length} package{type.lenses.length !== 1 ? 's' : ''}</span>
                 </div>
             </div>
             <span className="lsa-brand__toggle-icon">
@@ -237,7 +252,7 @@ const BrandAccordion = ({ brand, isOpen, onToggle, selectedLens, onSelectLens, p
 
         {isOpen && (
             <div className="lsa-brand__body">
-                {brand.packages.map(pkg => (
+                {type.lenses.map(pkg => (
                     <LensPackageCard
                         key={pkg.id}
                         pkg={pkg}
@@ -250,6 +265,53 @@ const BrandAccordion = ({ brand, isOpen, onToggle, selectedLens, onSelectLens, p
         )}
     </div>
 );
+
+/* ════════════════════════════════════════════════════════
+   BRAND ACCORDION (now contains types)
+   ════════════════════════════════════════════════════════ */
+const BrandAccordion = ({ brand, selectedLens, onSelectLens, productBasePrice }) => {
+    const [openBrand, setOpenBrand] = React.useState(false);
+    const [openTypes, setOpenTypes] = React.useState({});
+
+    const toggleType = (typeId) => {
+        setOpenTypes(prev => ({ ...prev, [typeId]: !prev[typeId] }));
+    };
+
+    return (
+        <div className={`lsa-brand${openBrand ? ' lsa-brand--open' : ''}`}>
+            <button className="lsa-brand__header" onClick={() => setOpenBrand(!openBrand)}>
+                <div className="lsa-brand__header-left">
+                    <div className="lsa-brand__logo" style={{ background: '#EBE3F2', color: '#68408D' }}>
+                        {(brand.name || '').slice(0, 2).toUpperCase()}
+                    </div>
+                    <div className="lsa-brand__meta">
+                        <span className="lsa-brand__name">{brand.name}</span>
+                        <span className="lsa-brand__tagline">{brand.types.length} lens type{brand.types.length !== 1 ? 's' : ''}</span>
+                    </div>
+                </div>
+                <span className="lsa-brand__toggle-icon">
+                    {openBrand ? <ChevronDown /> : <PlusIcon />}
+                </span>
+            </button>
+
+            {openBrand && (
+                <div className="lsa-brand__body">
+                    {brand.types.map(type => (
+                        <TypeAccordion
+                            key={type.id}
+                            type={type}
+                            isOpen={openTypes[type.id] || false}
+                            onToggle={() => toggleType(type.id)}
+                            selectedLens={selectedLens}
+                            onSelectLens={onSelectLens}
+                            productBasePrice={productBasePrice}
+                        />
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
 
 /* ════════════════════════════════════════════════════════
    STEP 1 — Power Type
@@ -294,18 +356,6 @@ const StepPower = ({ selected, onSelect }) => (
    STEP 2 — Lens Type (Accordion)
    ════════════════════════════════════════════════════════ */
 const StepLenses = ({ selectedLens, onSelectLens, productBasePrice, lensGroups, lensesLoading }) => {
-    const [openBrand, setOpenBrand] = useState(null);
-
-    useEffect(() => {
-        if (lensGroups.length > 0 && openBrand === null) {
-            setOpenBrand(lensGroups[0].id);
-        }
-    }, [lensGroups]);
-
-    const toggleBrand = (brandId) => {
-        setOpenBrand(prev => prev === brandId ? null : brandId);
-    };
-
     if (lensesLoading) {
         return (
             <div className="lsa-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 200 }}>
@@ -330,8 +380,6 @@ const StepLenses = ({ selectedLens, onSelectLens, productBasePrice, lensGroups, 
                     <BrandAccordion
                         key={brand.id}
                         brand={brand}
-                        isOpen={openBrand === brand.id}
-                        onToggle={() => toggleBrand(brand.id)}
                         selectedLens={selectedLens}
                         onSelectLens={onSelectLens}
                         productBasePrice={productBasePrice}
@@ -978,7 +1026,20 @@ const LensSelectionAside = ({ isOpen, onClose, product, onAddToCart }) => {
             .finally(() => setLensesLoading(false));
     }, [isOpen]);
 
-    const lensGroups = groupLensesByPackage(allLenses.filter(l => l.is_active !== false));
+    const categoryName = product?.category_name || product?.category?.name || '';
+    const isSunglasses = categoryName.toLowerCase().includes('sunglass') || 
+                        product?.title?.toLowerCase().includes('sunglass');
+
+    console.log(`[Lens Filter] Frame: "${product?.title}", Category: "${categoryName}", IsSunglasses: ${isSunglasses}`);
+
+    const lensGroups = groupLensesByBrandAndTypeAndPackage(
+        allLenses.filter(l => {
+            if (l.is_active === false) return false;
+            // Strict filter: if frame is sunglasses, show only is_for_sunglasses. Otherwise show is_for_eyeglasses.
+            if (isSunglasses) return l.is_for_sunglasses;
+            return l.is_for_eyeglasses;
+        })
+    );
 
     const basePrice = parseFloat(product?.base_price ?? 0);
 

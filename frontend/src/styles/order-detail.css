@@ -795,11 +795,6 @@
 }
 
 /* ── Responsive ── */
-@media (max-width: 1024px) {
-  .order-detail-grid {
-    grid-template-columns: 1fr;
-  }
-}
 
 /* ═══════════════════════════════════════
    DISPATCH MODAL

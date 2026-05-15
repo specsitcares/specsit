@@ -7,28 +7,34 @@ const fmt = (v) => (v !== null && v !== undefined && v !== '' ? String(v) : '—
 
 const PrescriptionOffcanvas = ({ order, onClose, onApproved }) => {
   const navigate = useNavigate();
-  const [rx, setRx]                 = useState(null);
-  const [loading, setLoading]       = useState(true);
-  const [saving, setSaving]         = useState(false);
-  const [pdfBlobUrl, setPdfBlobUrl] = useState(null);
-  const [showReject, setShowReject] = useState(false);
-  const [rejectReason, setRejectReason] = useState('');
-  const [rejectError, setRejectError]   = useState('');
+  const [prescriptions, setPrescriptions] = useState([]);
+  const [currentIndex, setCurrentIndex]   = useState(0);
+  const [loading, setLoading]             = useState(true);
+  const [saving, setSaving]               = useState(false);
+  const [pdfBlobUrl, setPdfBlobUrl]       = useState(null);
+  const [showReject, setShowReject]       = useState(false);
+  const [rejectReason, setRejectReason]   = useState('');
+  const [rejectError, setRejectError]     = useState('');
+  const [rejectMode, setRejectMode]       = useState('Rejected'); // 'Rejected' or 'Reupload Requested'
 
   useEffect(() => {
     if (!order) return;
     setLoading(true);
-    setRx(null);
+    setPrescriptions([]);
+    setCurrentIndex(0);
     setPdfBlobUrl(null);
-    apiClient.get('/catalog/prescriptions/', { params: { page_size: 100 } })
+    apiClient.get('/catalog/prescriptions/', { params: { order_id: order.id, page_size: 100 } })
       .then(res => {
         const list = Array.isArray(res.data) ? res.data : (res.data.results || []);
-        const found = list.find(p => p.order_id === order.id);
-        setRx(found || null);
+        // Double check filtering if API doesn't support order_id param yet
+        const filtered = list.filter(p => p.order_id === order.id);
+        setPrescriptions(filtered);
       })
-      .catch(() => setRx(null))
+      .catch(() => setPrescriptions([]))
       .finally(() => setLoading(false));
   }, [order?.id]);
+
+  const rx = prescriptions[currentIndex] || null;
 
   // Fetch PDF as blob to bypass X-Frame-Options
   useEffect(() => {
@@ -63,14 +69,22 @@ const PrescriptionOffcanvas = ({ order, onClose, onApproved }) => {
   };
 
   const handleReject = async () => {
-    if (!rejectReason.trim()) { setRejectError('Rejection reason is required.'); return; }
+    if (!rejectReason.trim()) { setRejectError('Reason is required.'); return; }
     setSaving(true);
     setRejectError('');
     try {
-      await apiClient.patch(`/catalog/prescriptions/${rx.id}/review/`, { status: 'Rejected', notes: rejectReason });
-      onClose();
+      await apiClient.patch(`/catalog/prescriptions/${rx.id}/review/`, { 
+        status: rejectMode, 
+        notes: rejectReason 
+      });
+      // Refresh only current RX or all? Let's refresh all to be safe
+      const res = await apiClient.get('/catalog/prescriptions/', { params: { order_id: order.id, page_size: 100 } });
+      const list = Array.isArray(res.data) ? res.data : (res.data.results || []);
+      setPrescriptions(list.filter(p => p.order_id === order.id));
+      setShowReject(false);
+      setSaving(false);
     } catch {
-      setRejectError('Failed to reject. Try again.');
+      setRejectError('Failed to update. Try again.');
       setSaving(false);
     }
   };
@@ -122,8 +136,28 @@ const PrescriptionOffcanvas = ({ order, onClose, onApproved }) => {
         <div style={{ background: '#f3f3f3', padding: '16px', display: 'flex', alignItems: 'flex-start', gap: 8, flexShrink: 0 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 18, fontWeight: 600, color: '#111827', fontFamily: 'Inter, sans-serif' }}>
-              Prescription for {orderId}
+              Prescription Review
             </div>
+            {prescriptions.length > 1 ? (
+              <div style={{ marginTop: 8 }}>
+                <select 
+                  value={currentIndex}
+                  onChange={(e) => setCurrentIndex(Number(e.target.value))}
+                  style={{
+                    width: '100%', padding: '6px 10px', borderRadius: 6,
+                    border: '1px solid #d2d2d2', fontSize: 13, background: '#fff'
+                  }}
+                >
+                  {prescriptions.map((p, i) => (
+                    <option key={p.id} value={i}>
+                      Prescription {i + 1}: {p.patient_name || 'Patient'} ({p.status_label || 'Pending'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <div style={{ fontSize: 14, color: '#4b5563', marginTop: 2 }}>{orderId}</div>
+            )}
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
               <User size={13} color="#64748b" />
               <span style={{ fontSize: 12, color: '#64748b', fontWeight: 500 }}>{customerName}</span>
@@ -217,6 +251,14 @@ const PrescriptionOffcanvas = ({ order, onClose, onApproved }) => {
                     <span style={{ fontWeight: 600, fontSize: 13, color: '#0f172a' }}>
                       {hasFile ? 'Uploaded Prescription' : 'Manually Entered Values'}
                     </span>
+                    <span style={{ 
+                      fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 12,
+                      background: rx.status_label === 'Approved' ? '#dcfce7' : rx.status_label === 'Rejected' ? '#fee2e2' : '#fef9c3',
+                      color: rx.status_label === 'Approved' ? '#166534' : rx.status_label === 'Rejected' ? '#991b1b' : '#854d0e',
+                      textTransform: 'uppercase'
+                    }}>
+                      {rx.status_label}
+                    </span>
                   </div>
 
                   {/* Table */}
@@ -278,11 +320,23 @@ const PrescriptionOffcanvas = ({ order, onClose, onApproved }) => {
         {/* Reject inline form */}
         {rx && showReject && (
           <div style={{ borderTop: '1px solid #e0e0e0', padding: '16px 20px', background: '#fff8f8', flexShrink: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', marginBottom: 8 }}>Rejection reason</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>Reason for {rejectMode}</div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button 
+                  onClick={() => setRejectMode('Rejected')}
+                  style={{ fontSize: 11, background: rejectMode === 'Rejected' ? '#ef4444' : '#fff', color: rejectMode === 'Rejected' ? '#fff' : '#ef4444', border: '1px solid #ef4444', padding: '2px 6px', borderRadius: 4, cursor: 'pointer' }}
+                >Reject</button>
+                <button 
+                  onClick={() => setRejectMode('Reupload Requested')}
+                  style={{ fontSize: 11, background: rejectMode === 'Reupload Requested' ? '#f59e0b' : '#fff', color: rejectMode === 'Reupload Requested' ? '#fff' : '#f59e0b', border: '1px solid #f59e0b', padding: '2px 6px', borderRadius: 4, cursor: 'pointer' }}
+                >Reupload</button>
+              </div>
+            </div>
             <textarea
               value={rejectReason}
               onChange={e => { setRejectReason(e.target.value); setRejectError(''); }}
-              placeholder="Enter reason for rejection…"
+              placeholder={`Enter reason for ${rejectMode.toLowerCase()}…`}
               rows={3}
               style={{
                 width: '100%', boxSizing: 'border-box', padding: '8px 10px',
@@ -301,9 +355,9 @@ const PrescriptionOffcanvas = ({ order, onClose, onApproved }) => {
               <button
                 onClick={handleReject}
                 disabled={saving}
-                style={{ flex: 1, padding: '8px', borderRadius: 6, border: 'none', background: '#ef4444', color: '#fff', fontSize: 13, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}
+                style={{ flex: 1, padding: '8px', borderRadius: 6, border: 'none', background: rejectMode === 'Rejected' ? '#ef4444' : '#f59e0b', color: '#fff', fontSize: 13, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}
               >
-                {saving ? 'Rejecting…' : 'Confirm Rejection'}
+                {saving ? 'Processing…' : 'Confirm Action'}
               </button>
             </div>
           </div>
@@ -315,16 +369,16 @@ const PrescriptionOffcanvas = ({ order, onClose, onApproved }) => {
             {/* Approve */}
             <button
               onClick={handleApprove}
-              disabled={saving}
+              disabled={saving || ['Approved', 'Rejected', 'Reupload Requested'].includes(rx.status_label)}
               style={{
                 width: '100%', padding: '10px 12px', borderRadius: 6, border: 'none',
-                background: saving ? '#9a6bbf' : '#68408d',
-                color: '#fefcff', fontSize: 16, fontWeight: 400, cursor: saving ? 'not-allowed' : 'pointer',
+                background: (saving || ['Approved', 'Rejected', 'Reupload Requested'].includes(rx.status_label)) ? '#cbd5e1' : '#68408d',
+                color: '#fefcff', fontSize: 16, fontWeight: 400, cursor: (saving || ['Approved', 'Rejected', 'Reupload Requested'].includes(rx.status_label)) ? 'not-allowed' : 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               }}
             >
               <Check size={20} strokeWidth={2} />
-              {saving ? 'Approving…' : 'Approve & continue'}
+              {saving ? 'Approving…' : rx.status_label === 'Approved' ? 'Already Approved' : 'Approve & continue'}
             </button>
 
             {/* Flag + Download + Reject */}
@@ -357,14 +411,15 @@ const PrescriptionOffcanvas = ({ order, onClose, onApproved }) => {
               </button>
               <button
                 onClick={() => setShowReject(r => !r)}
+                disabled={['Approved', 'Rejected', 'Reupload Requested'].includes(rx.status_label)}
                 style={{
                   flex: 1, padding: '10px 8px', borderRadius: 6,
-                  border: '1px solid #fca5a5', background: '#fff',
-                  color: '#ef4444', fontSize: 14, cursor: 'pointer',
+                  border: '1px solid #fca5a5', background: (['Approved', 'Rejected', 'Reupload Requested'].includes(rx.status_label)) ? '#f1f5f9' : '#fff',
+                  color: (['Approved', 'Rejected', 'Reupload Requested'].includes(rx.status_label)) ? '#94a3b8' : '#ef4444', fontSize: 14, cursor: (['Approved', 'Rejected', 'Reupload Requested'].includes(rx.status_label)) ? 'not-allowed' : 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                 }}
               >
-                Reject
+                {rx.status_label === 'Reupload Requested' ? 'Requested' : 'Reject / Issue'}
               </button>
             </div>
           </div>

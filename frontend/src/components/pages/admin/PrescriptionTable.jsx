@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, FileText, RefreshCw, ChevronDown, ZoomIn, ZoomOut, Eye, X } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import apiClient from '../../../services/api';
 
 /* ─── helpers ──────────────────────────────────────────── */
@@ -739,6 +739,7 @@ const EmptyState = ({ message }) => (
 /* ─── Main Component ─────────────────────────────────────── */
 const PrescriptionTable = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [prescriptions, setPrescriptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
@@ -778,7 +779,12 @@ const PrescriptionTable = () => {
   }, [prescriptions, location.state?.selectOrderId]);
 
   const handleReviewed = async () => {
-    await fetchPrescriptions();
+    const orderId = selectedRx?.order_id;
+    if (orderId) {
+      navigate(`/admin/orders/${orderId}`);
+    } else {
+      await fetchPrescriptions();
+    }
   };
 
   // Keep selectedRx in sync after a review action
