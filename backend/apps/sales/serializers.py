@@ -56,7 +56,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
             'id', 'variant', 'variant_name', 'variant_image', 'variant_sku', 'product_id',
             'quantity', 'unit_price', 'item_total', 'price_at_purchase', 'price',
             'lens_prescription_text', 'lens_pd',
-            'prescription_status', 'patient_name', 'prescription', 'lens',
+            'prescription_status', 'patient_name', 'prescription', 'lens', 'status',
             'created_at',
         ]
 

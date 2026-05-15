@@ -38,6 +38,7 @@ const BaseAdminTable = ({
   title,
   subtitle,
   count,
+  countLabel = 'Orders',
   searchQuery,
   onSearchChange,
   onSearchEnter,
@@ -116,7 +117,7 @@ const BaseAdminTable = ({
               )}
               {count !== undefined && (
                 <span style={{ backgroundColor: '#F4EBFF', color: '#7F56D9', fontSize: '10px', padding: '3px 12px', borderRadius: '16px', fontWeight: 600 }}>
-                  {count} Orders
+                  {count} {countLabel}
                 </span>
               )}
             </div>

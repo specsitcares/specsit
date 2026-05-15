@@ -606,6 +606,56 @@ class OrderViewSet(viewsets.ModelViewSet):
             'thank_you_url': f'/thank-you/{order.id}',
         })
 
+    @action(detail=True, methods=['patch'], url_path='items/(?P<item_id>[0-9]+)/status')
+    def update_item_status(self, request, pk=None, item_id=None):
+        """Update the status of a specific item within an order."""
+        if not request.user.is_staff:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+            
+        try:
+            order = self.get_object()
+            item = order.items.get(id=item_id)
+        except (Order.DoesNotExist, OrderItem.DoesNotExist):
+            return Response({'error': 'Item or Order not found'}, status=status.HTTP_404_NOT_FOUND)
+            
+        new_status = request.data.get('status')
+        if not new_status:
+            return Response({'error': 'Status is required'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        item.status = new_status
+        item.save()
+        
+        # Optional: Auto-update parent order status based on items
+        # e.g., if all items are 'delivered', parent becomes 'delivered'
+        all_items = order.items.all()
+        if all(i.status == 'delivered' for i in all_items):
+            if order.order_status != 'delivered':
+                from apps.catalog.core.models import MetadataGroup, MetadataItem as MI
+                group, _ = MetadataGroup.objects.get_or_create(name='Order Status')
+                delivered_meta, _ = MI.objects.get_or_create(
+                    group=group, label='Delivered',
+                    defaults={'value': 'delivered', 'is_active': True},
+                )
+                order.order_status = 'delivered'
+                order.status = delivered_meta
+                if not order.delivery_date:
+                    order.delivery_date = timezone.now()
+                order.save()
+        elif any(i.status in ['in_transit', 'delivered'] for i in all_items):
+            # If any item has moved forward, order is no longer just 'pending'
+            if order.order_status == 'pending':
+                from apps.catalog.core.models import MetadataGroup, MetadataItem as MI
+                group, _ = MetadataGroup.objects.get_or_create(name='Order Status')
+                processing_meta, _ = MI.objects.get_or_create(
+                    group=group, label='Confirmed',
+                    defaults={'value': 'confirmed', 'is_active': True},
+                )
+                order.order_status = 'confirmed'
+                order.status = processing_meta
+                order.save()
+
+        return Response(OrderItemSerializer(item).data)
+
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
     def update_tracking(self, request, pk=None):
         """Upsert tracking info for an order. Accepts multipart (for qc_image) or JSON."""

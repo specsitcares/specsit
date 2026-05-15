@@ -5,14 +5,12 @@ import FormModal from './FormModal';
 import BaseAdminTable from './BaseAdminTable';
 
 const CAT_TABS = [
-  { key: 'Frame',   label: 'Frames' },
-  { key: 'Lens',    label: 'Lenses for Frames' },
+  { key: 'Frame', label: 'Frames' },
   { key: 'Contact', label: 'Contact Lenses' },
 ];
 
 const CAT_TYPE_OPTIONS = [
-  { value: 'Frame',   label: 'Frame' },
-  { value: 'Lens',    label: 'Lenses for Frames' },
+  { value: 'Frame', label: 'Frame' },
   { value: 'Contact', label: 'Contact Lenses' },
 ];
 
@@ -41,7 +39,7 @@ const CategoryTable = () => {
 
   const bulkDelete = async () => {
     if (!window.confirm(`Delete ${selectedIds.size} categor${selectedIds.size === 1 ? 'y' : 'ies'}?`)) return;
-    await Promise.all([...selectedIds].map(id => apiClient.delete(`/catalog/categories/${id}/`).catch(() => {})));
+    await Promise.all([...selectedIds].map(id => apiClient.delete(`/catalog/categories/${id}/`).catch(() => { })));
     setSelectedIds(new Set());
     fetchCategories();
   };
@@ -51,8 +49,8 @@ const CategoryTable = () => {
   ];
 
   const handleCreateClick = () => { setFormMode('create'); setSelectedCategory({ category_type: activeTab }); setShowForm(true); };
-  const handleEditClick   = (c) => { setFormMode('edit');   setSelectedCategory(c);    setShowForm(true); };
-  const handleDeleteClick = (c) => { setFormMode('edit');   setSelectedCategory(c);    setShowForm(true); };
+  const handleEditClick = (c) => { setFormMode('edit'); setSelectedCategory(c); setShowForm(true); };
+  const handleDeleteClick = (c) => { setFormMode('edit'); setSelectedCategory(c); setShowForm(true); };
 
   const handleFormSubmit = async (formData) => {
     const data = new FormData();
@@ -187,6 +185,7 @@ const CategoryTable = () => {
       <BaseAdminTable
         title="Product Categories"
         count={filtered.length}
+        countLabel="Categories"
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         onAdd={handleCreateClick}
@@ -209,7 +208,7 @@ const CategoryTable = () => {
         setShowFilters={setShowFilters}
         filterContent={
           <div style={{ display: 'flex', gap: '13px' }}>
-             <div style={{ fontSize: '11px', color: '#667085' }}>No active filters available for categories.</div>
+            <div style={{ fontSize: '11px', color: '#667085' }}>No active filters available for categories.</div>
           </div>
         }
       />
@@ -217,12 +216,12 @@ const CategoryTable = () => {
       <FormModal isOpen={showForm} onClose={() => setShowForm(false)} onSubmit={handleFormSubmit}
         onDelete={handleFormDelete} mode={formMode} title="Category"
         fields={[
-          { name: 'name',          label: 'Category Name', type: 'text',     required: true },
-          { name: 'category_type', label: 'Type',          type: 'select',   required: true, options: CAT_TYPE_OPTIONS },
-          { name: 'description',   label: 'Description',   type: 'textarea' },
-          { name: 'parent',        label: 'Parent Category', type: 'select', options: categories.filter(cat => cat.id !== selectedCategory?.id && (cat.category_type || 'Frame') === activeTab).map(cat => ({ value: cat.id, label: cat.name })) },
-          { name: 'image',         label: 'Category Image', type: 'file' },
-          { name: 'is_active',     label: 'Active',         type: 'checkbox', defaultValue: true },
+          { name: 'name', label: 'Category Name', type: 'text', required: true },
+          { name: 'category_type', label: 'Type', type: 'select', required: true, options: CAT_TYPE_OPTIONS },
+          { name: 'description', label: 'Description', type: 'textarea' },
+          { name: 'parent', label: 'Parent Category', type: 'select', options: categories.filter(cat => cat.id !== selectedCategory?.id && (cat.category_type || 'Frame') === activeTab).map(cat => ({ value: cat.id, label: cat.name })) },
+          { name: 'image', label: 'Category Image', type: 'file' },
+          { name: 'is_active', label: 'Active', type: 'checkbox', defaultValue: true },
         ]}
         initialData={selectedCategory || {}} />
     </>

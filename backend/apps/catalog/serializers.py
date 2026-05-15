@@ -25,6 +25,7 @@ class VariantImageSerializer(serializers.ModelSerializer):
 class VariantSerializer(serializers.ModelSerializer):
     images = VariantImageSerializer(many=True, read_only=True)
     product_name = serializers.ReadOnlyField(source='product.title')
+    category_name = serializers.ReadOnlyField(source='product.category.name')
     brand_name   = serializers.SerializerMethodField()
 
     def get_brand_name(self, obj):
@@ -141,6 +142,8 @@ class LensSerializer(serializers.ModelSerializer):
             data['categories'] = list(instance.package.categories.values('id', 'name'))
         if instance.brand:
             data['brand_name'] = instance.brand.name
+        if instance.type:
+            data['type_label'] = instance.type.label
         return data
 
     def create(self, validated_data):

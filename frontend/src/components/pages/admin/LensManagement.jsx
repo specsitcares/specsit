@@ -1,33 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../../../services/api';
 import FormModal from './FormModal';
+
 import {
   Plus, Search, Check, Info, AlertCircle,
   ExternalLink, MessageSquare, Copy,
-  ChevronDown, Layers, Settings, Trash2
+  ChevronDown, Layers, Settings, Trash2, Trash
 } from 'lucide-react';
 import '../../../styles/lens_management.css';
 
-const LENS_PACKAGE_PRESETS = [
-  { package_name: 'Basic', price: 999, index: '1.5', features: ['Anti-Glare'], description: 'Standard protection' },
-  { package_name: 'Premium', price: 1999, index: '1.6', features: ['Blue Cut', 'Anti-Glare'], description: 'Blue light protection' },
-  { package_name: 'Ultra Thin', price: 2999, index: '1.67', features: ['Blue Cut', 'UV Protection'], description: 'High index clarity' },
-];
+
+
 
 const LENS_TYPE_FIELDS = [{ name: 'label', label: 'Type Name', required: true }];
 
-const LENS_PACKAGE_FIELDS = [
-  { name: 'package_name', label: 'Package Name', required: true },
-  { name: 'price', label: 'Price (₹)', type: 'number', required: true },
-  {
-    name: 'index', label: 'Lens Index', type: 'select', options: [
-      { label: '1.5 Standard', value: '1.5' },
-      { label: '1.6 Mid Index', value: '1.6' },
-      { label: '1.67 High Index', value: '1.67' }
-    ]
-  },
-  { name: 'description', label: 'Description', type: 'textarea' },
-];
+
 
 /**
  * LensManagement — High-Fidelity implementation based on Figma (node 273:15080)
@@ -42,10 +29,14 @@ const LensManagement = () => {
   const [error, setError] = useState(null);
   const [lensBrands, setLensBrands] = useState([]);
   const [lensCategories, setLensCategories] = useState([]);
-  const [newPackageCategoryIds, setNewPackageCategoryIds] = useState([]);
+
 
   const [showAddType, setShowAddType] = useState(false);
-  const [showAddPackage, setShowAddPackage] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [selectedPackages, setSelectedPackages] = useState(new Set());
+  const [selectAllChecked, setSelectAllChecked] = useState(false);
+  const [selectedTypes, setSelectedTypes] = useState(new Set());
+  const [selectAllTypesChecked, setSelectAllTypesChecked] = useState(false);
 
   // Form states for the Right Column
   const [editFormData, setEditFormData] = useState({
@@ -58,16 +49,19 @@ const LensManagement = () => {
     compatibility: [],
     pricing_mode: 'package',
     brand: '',
-    categories: []
+    categories: [],
+    is_for_sunglasses: false,
+    is_for_eyeglasses: true
   });
 
   const fetchData = async () => {
     try {
-      const [groupsRes, lensesRes, brandsRes, catsRes] = await Promise.all([
+      const [groupsRes, lensesRes, brandsRes, catsRes, pkgsRes] = await Promise.all([
         apiClient.get('/core/metadata-groups/?name=Lens Type'),
-        apiClient.get('/catalog/lenses/?page_size=100'),
+        apiClient.get('/catalog/lenses/?admin=true&page_size=200'),
         apiClient.get('/catalog/brands/?brand_type=Lens'),
         apiClient.get('/catalog/categories/?category_type=Frame'),
+        apiClient.get('/catalog/lens-packages/?admin=true')
       ]);
 
       const items = groupsRes.data.results || groupsRes.data;
@@ -107,6 +101,8 @@ const LensManagement = () => {
         features: editFormData.features,
         brand: editFormData.brand ? Number(editFormData.brand) : null,
         category_ids: editFormData.categories,
+        is_for_sunglasses: editFormData.is_for_sunglasses,
+        is_for_eyeglasses: editFormData.is_for_eyeglasses,
       });
       await fetchData();
       alert('Package updated successfully');
@@ -158,29 +154,176 @@ const LensManagement = () => {
     }
   };
 
-  const submitPackage = async (data) => {
+  const enterCreateMode = () => {
+    setSelectedLens(null);
+    setIsCreating(true);
+    setEditFormData({
+      name: '', price: '', description: '', index: '1.5', is_active: true,
+      features: [], compatibility: ['Full Rim'], pricing_mode: 'package',
+      brand: '', categories: []
+    });
+  };
+
+  const handleCreate = async () => {
+    if (!editFormData.name?.trim() || !editFormData.price) {
+      alert('Package Name and Price are required');
+      return;
+    }
     try {
       await apiClient.post('/catalog/lenses/', {
         type: selectedType?.id,
-        price: data.price,
-        index: data.index || '1.5',
-        is_active: true,
-        package_name: data.package_name || data.name,
-        features: data.features || [],
-        description: data.description || '',
-        brand: data.brand ? Number(data.brand) : null,
-        category_ids: newPackageCategoryIds,
+        price: editFormData.price,
+        index: editFormData.index || '1.5',
+        is_active: editFormData.is_active,
+        package_name: editFormData.name,
+        features: editFormData.features || [],
+        description: editFormData.description || '',
+        brand: editFormData.brand ? Number(editFormData.brand) : null,
+        category_ids: editFormData.categories,
+        is_for_sunglasses: editFormData.is_for_sunglasses,
+        is_for_eyeglasses: editFormData.is_for_eyeglasses,
       });
-      setShowAddPackage(false);
-      setNewPackageCategoryIds([]);
+      setIsCreating(false);
+      setEditFormData({
+        name: '', price: '', description: '', index: '1.5', is_active: true,
+        features: [], compatibility: ['Full Rim'], pricing_mode: 'package',
+        brand: '', categories: [], is_for_sunglasses: false, is_for_eyeglasses: true
+      });
       await fetchData();
+      alert('Package created successfully');
     } catch (err) {
-      console.error('Add package failed', err);
+      console.error('Create package failed', err);
+      setError('Failed to create package.');
     }
   };
 
-  const handleAddPackage = (formData) => submitPackage(formData);
-  const handlePresetClick = (preset) => submitPackage(preset);
+  // Bulk Selection Handlers
+  const togglePackageSelection = (lensId) => {
+    const newSelected = new Set(selectedPackages);
+    if (newSelected.has(lensId)) {
+      newSelected.delete(lensId);
+    } else {
+      newSelected.add(lensId);
+    }
+    setSelectedPackages(newSelected);
+    setSelectAllChecked(false);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectAllChecked) {
+      setSelectedPackages(new Set());
+      setSelectAllChecked(false);
+    } else {
+      const allIds = new Set(currentTypeLenses.map(l => l.id));
+      setSelectedPackages(allIds);
+      setSelectAllChecked(true);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedPackages.size === 0) return;
+    if (!window.confirm(`Delete ${selectedPackages.size} package(s)? This cannot be undone.`)) return;
+    
+    try {
+      const deletePromises = Array.from(selectedPackages).map(id =>
+        apiClient.delete(`/catalog/lenses/${id}/`)
+      );
+      await Promise.all(deletePromises);
+      setSelectedPackages(new Set());
+      setSelectAllChecked(false);
+      await fetchData();
+      alert(`${selectedPackages.size} package(s) deleted successfully`);
+    } catch (err) {
+      console.error('Bulk delete failed', err);
+      alert('Error deleting packages. Please try again.');
+    }
+  };
+
+  const handleBulkStatusChange = async (newStatus) => {
+    if (selectedPackages.size === 0) return;
+    
+    try {
+      const updatePromises = Array.from(selectedPackages).map(id =>
+        apiClient.patch(`/catalog/lenses/${id}/`, { is_active: newStatus })
+      );
+      await Promise.all(updatePromises);
+      setSelectedPackages(new Set());
+      setSelectAllChecked(false);
+      await fetchData();
+      alert(`${selectedPackages.size} package(s) ${newStatus ? 'activated' : 'deactivated'} successfully`);
+    } catch (err) {
+      console.error('Bulk status change failed', err);
+      alert('Error updating packages. Please try again.');
+    }
+  };
+
+  const handleBulkAssignCategory = async () => {
+    if (selectedPackages.size === 0) return;
+    
+    const categoryId = window.prompt('Enter category ID to assign (or leave blank to skip)');
+    if (!categoryId) return;
+    
+    try {
+      const updatePromises = Array.from(selectedPackages).map(id => {
+        const lens = lenses.find(l => l.id === id);
+        const currentCategories = lens?.categories?.map(c => c.id) || [];
+        const newCategories = [...currentCategories, parseInt(categoryId)];
+        return apiClient.patch(`/catalog/lenses/${id}/`, {
+          category_ids: [...new Set(newCategories)]
+        });
+      });
+      await Promise.all(updatePromises);
+      setSelectedPackages(new Set());
+      setSelectAllChecked(false);
+      await fetchData();
+      alert(`${selectedPackages.size} package(s) updated with category`);
+    } catch (err) {
+      console.error('Bulk assign category failed', err);
+      alert('Error assigning category. Please try again.');
+    }
+  };
+
+  // Lens Type Bulk Selection Handlers
+  const toggleTypeSelection = (typeId) => {
+    const newSelected = new Set(selectedTypes);
+    if (newSelected.has(typeId)) {
+      newSelected.delete(typeId);
+    } else {
+      newSelected.add(typeId);
+    }
+    setSelectedTypes(newSelected);
+    setSelectAllTypesChecked(false);
+  };
+
+  const toggleSelectAllTypes = () => {
+    if (selectAllTypesChecked) {
+      setSelectedTypes(new Set());
+      setSelectAllTypesChecked(false);
+    } else {
+      const allIds = new Set(filteredTypes.map(t => t.id));
+      setSelectedTypes(allIds);
+      setSelectAllTypesChecked(true);
+    }
+  };
+
+  const handleBulkDeleteTypes = async () => {
+    if (selectedTypes.size === 0) return;
+    if (!window.confirm(`Delete ${selectedTypes.size} lens type(s)? This cannot be undone.`)) return;
+    
+    try {
+      const deletePromises = Array.from(selectedTypes).map(id =>
+        apiClient.delete(`/core/metadata-items/${id}/`)
+      );
+      await Promise.all(deletePromises);
+      setSelectedTypes(new Set());
+      setSelectAllTypesChecked(false);
+      await fetchData();
+      alert(`${selectedTypes.size} lens type(s) deleted successfully`);
+    } catch (err) {
+      console.error('Bulk delete types failed', err);
+      alert('Error deleting lens types. Please try again.');
+    }
+  };
 
   useEffect(() => {
     if (selectedLens) {
@@ -195,6 +338,8 @@ const LensManagement = () => {
         pricing_mode: selectedLens.pricing_mode || 'package',
         brand: selectedLens.brand || '',
         categories: (selectedLens.categories || []).map(c => c.id),
+        is_for_sunglasses: selectedLens.is_for_sunglasses || false,
+        is_for_eyeglasses: selectedLens.is_for_eyeglasses !== false, // default to true
       });
     }
   }, [selectedLens]);
@@ -225,7 +370,7 @@ const LensManagement = () => {
         </div>
         <div className="lm-header-right">
           <button className="lm-btn-solid" onClick={() => setShowAddType(true)}>+ Lens Type <span style={{ fontSize: 10, opacity: 0.7, fontWeight: 400 }}>(e.g. Single Vision)</span></button>
-          <button className="lm-btn-solid" onClick={() => setShowAddPackage(true)}>+ Package <span style={{ fontSize: 10, opacity: 0.7, fontWeight: 400 }}>(price, brand, category)</span></button>
+          <button className="lm-btn-solid" onClick={enterCreateMode}>+ Package <span style={{ fontSize: 10, opacity: 0.7, fontWeight: 400 }}>(price, brand, category)</span></button>
         </div>
       </div>
 
@@ -245,30 +390,81 @@ const LensManagement = () => {
               />
             </div>
           </div>
+
+          {selectedTypes.size > 0 && (
+            <div style={{
+              display: 'flex', gap: 8, padding: '12px 16px', background: '#FAFBFC',
+              borderBottom: '1px solid #EAECF0', flexWrap: 'wrap'
+            }}>
+              <button
+                onClick={handleBulkDeleteTypes}
+                style={{
+                  display: 'flex', gap: 6, alignItems: 'center',
+                  padding: '6px 12px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                  background: '#FEE4E2', color: '#D92D20', border: 'none', cursor: 'pointer'
+                }}
+              >
+                <Trash size={14} /> Delete ({selectedTypes.size})
+              </button>
+              <button
+                onClick={() => { setSelectedTypes(new Set()); setSelectAllTypesChecked(false); }}
+                style={{
+                  padding: '6px 12px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                  background: 'white', color: '#667085', border: '1px solid #EAECF0', cursor: 'pointer'
+                }}
+              >
+                Clear
+              </button>
+            </div>
+          )}
+
           <div className="lm-item-list">
+            {filteredTypes.length > 0 && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px',
+                background: '#FAFBFC', borderBottom: '1px solid #EAECF0',
+                fontSize: 12, fontWeight: 600
+              }}>
+                <input
+                  type="checkbox"
+                  checked={selectAllTypesChecked}
+                  onChange={toggleSelectAllTypes}
+                  style={{ cursor: 'pointer' }}
+                />
+                <span>Select All ({filteredTypes.length})</span>
+              </div>
+            )}
             {filteredTypes.map(type => (
               <div
                 key={type.id}
                 className={`lm-type-card ${selectedType?.id === type.id ? 'active' : ''}`}
-                onClick={() => setSelectedType(type)}
+                style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}
               >
-                <div className="type-card-top">
-                  <span className="type-card-name">{type.label}</span>
-                  <div
-                    className={`lm-toggle-mini ${type.is_active ? 'active' : ''}`}
-                    onClick={(e) => handleStatusToggle(e, 'type', type.id, type.is_active)}
-                  >
-                    <div className="toggle-circle" />
+                <input
+                  type="checkbox"
+                  checked={selectedTypes.has(type.id)}
+                  onChange={(e) => { e.stopPropagation(); toggleTypeSelection(type.id); }}
+                  style={{ cursor: 'pointer', marginTop: 8, flexShrink: 0 }}
+                />
+                <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => setSelectedType(type)}>
+                  <div className="type-card-top">
+                    <span className="type-card-name">{type.label}</span>
+                    <div
+                      className={`lm-toggle-mini ${type.is_active ? 'active' : ''}`}
+                      onClick={(e) => handleStatusToggle(e, 'type', type.id, type.is_active)}
+                    >
+                      <div className="toggle-circle" />
+                    </div>
                   </div>
-                </div>
-                <span className="type-card-desc">
-                  {type.label === 'Single Vision' ? 'Standard single vision' :
-                    type.label === 'Zero Power' ? 'Non-prescription lenses' :
+                    <span className="type-card-desc">
+                    {type.label === 'Single Vision' ? 'Standard single vision' :
+                      type.label === 'Zero Power' ? 'Non-prescription lenses' :
                       type.label === 'Photochromic' ? 'Light adaptive lenses' : 'Standard lenses'}
-                </span>
-                <span className="type-card-meta">
-                  {lenses.filter(l => String(l.type) === String(type.id)).length} Packages
-                </span>
+                  </span>
+                  <span className="type-card-meta">
+                    {lenses.filter(l => String(l.type) === String(type.id)).length} Packages
+                  </span>
+                </div>
               </div>
             ))}
           </div>
@@ -281,49 +477,110 @@ const LensManagement = () => {
               <h2>Packages for "{selectedType?.label || 'Select Type'}"</h2>
               <ChevronDown size={18} />
             </div>
-            <button className="lm-add-link" onClick={() => setShowAddPackage(true)} disabled={!selectedType}>
-              <Plus size={16} /> Add Package
-            </button>
+            <div style={{ display: 'flex', gap: 10 }}>
+              {selectedPackages.size > 0 && (
+                <div style={{
+                  display: 'flex', gap: 6, alignItems: 'center',
+                  padding: '6px 12px', background: '#F3E8FF', borderRadius: 6,
+                  fontSize: 11, fontWeight: 600, color: '#6B46C1'
+                }}>
+                  {selectedPackages.size} selected
+                </div>
+              )}
+              <button className="lm-add-link" onClick={enterCreateMode} disabled={!selectedType}>
+                <Plus size={16} /> Add Package
+              </button>
+            </div>
           </div>
+          
+          {selectedPackages.size > 0 && (
+            <div style={{
+              display: 'flex', gap: 8, padding: '12px 16px', background: '#FAFBFC',
+              borderBottom: '1px solid #EAECF0', flexWrap: 'wrap'
+            }}>
+              <button
+                onClick={handleBulkDelete}
+                style={{
+                  display: 'flex', gap: 6, alignItems: 'center',
+                  padding: '6px 12px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                  background: '#FEE4E2', color: '#D92D20', border: 'none', cursor: 'pointer'
+                }}
+              >
+                <Trash size={14} /> Delete ({selectedPackages.size})
+              </button>
+              <button
+                onClick={() => { setSelectedPackages(new Set()); setSelectAllChecked(false); }}
+                style={{
+                  padding: '6px 12px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                  background: 'white', color: '#667085', border: '1px solid #EAECF0', cursor: 'pointer'
+                }}
+              >
+                Clear
+              </button>
+            </div>
+          )}
 
           <div className="lm-package-list">
+            {currentTypeLenses.length > 0 && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px',
+                background: '#FAFBFC', borderBottom: '1px solid #EAECF0',
+                fontSize: 12, fontWeight: 600
+              }}>
+                <input
+                  type="checkbox"
+                  checked={selectAllChecked}
+                  onChange={toggleSelectAll}
+                  style={{ cursor: 'pointer' }}
+                />
+                <span>Select All ({currentTypeLenses.length})</span>
+              </div>
+            )}
             {currentTypeLenses.length === 0 ? (
               <div className="lm-empty-mid">
                 <Layers size={48} className="empty-icon" />
                 <p>No packages found for this lens type.</p>
-                <button className="lm-btn-outline-full">Create First Package</button>
+                <button className="lm-btn-outline-full" onClick={enterCreateMode}>Create First Package</button>
               </div>
             ) : (
               currentTypeLenses.map(lens => (
                 <div
                   key={lens.id}
                   className={`lm-pkg-row-card ${selectedLens?.id === lens.id ? 'active' : ''}`}
-                  onClick={() => setSelectedLens(lens)}
+                  style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}
                 >
-                  <div className="pkg-row-header">
-                    <span className="pkg-row-name">{lens.package_name || lens.name}</span>
-                    <div className="pkg-row-actions">
-                      <div className="pkg-action-icons">
-                        <ExternalLink size={14} />
-                        <MessageSquare size={14} />
-                        <Copy size={14} />
-                        <Info size={14} />
-                      </div>
-                      <div
-                        className={`lm-toggle-mini ${lens.is_active ? 'active' : ''}`}
-                        onClick={(e) => handleStatusToggle(e, 'package', lens.id, lens.is_active)}
-                      >
-                        <div className="toggle-circle" />
+                  <input
+                    type="checkbox"
+                    checked={selectedPackages.has(lens.id)}
+                    onChange={(e) => { e.stopPropagation(); togglePackageSelection(lens.id); }}
+                    style={{ cursor: 'pointer', marginTop: 8, flexShrink: 0 }}
+                  />
+                  <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => { setSelectedLens(lens); setIsCreating(false); }}>
+                    <div className="pkg-row-header">
+                      <span className="pkg-row-name">{lens.package_name || lens.name}</span>
+                      <div className="pkg-row-actions">
+                        <div className="pkg-action-icons">
+                          <ExternalLink size={14} />
+                          <MessageSquare size={14} />
+                          <Copy size={14} />
+                          <Info size={14} />
+                        </div>
+                        <div
+                          className={`lm-toggle-mini ${lens.is_active ? 'active' : ''}`}
+                          onClick={(e) => handleStatusToggle(e, 'package', lens.id, lens.is_active)}
+                        >
+                          <div className="toggle-circle" />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="pkg-row-tags">
-                    {(lens.features || []).slice(0, 3).map(f => (
-                      <span key={f} className="pkg-chip">{f}</span>
-                    ))}
-                  </div>
-                  <div className="pkg-row-footer">
-                    <span>- 6.00 to +4.00 | Index: {lens.index || '1.5'}</span>
+                    <div className="pkg-row-tags">
+                      {(lens.features || []).slice(0, 3).map(f => (
+                        <span key={f} className="pkg-chip">{f}</span>
+                      ))}
+                    </div>
+                    <div className="pkg-row-footer">
+                      <span>- 6.00 to +4.00 | Index: {lens.index || '1.5'}</span>
+                    </div>
                   </div>
                 </div>
               ))
@@ -334,10 +591,10 @@ const LensManagement = () => {
         {/* ──── Right Column: Edit Form (273:15347) ──── */}
         <div className="lm-col-right">
           <div className="lm-col-header border-b">
-            <h3>{selectedLens ? `Edit Package: ${editFormData.name}` : 'Select a Package'}</h3>
+            <h3>{selectedLens ? `Edit Package: ${editFormData.name}` : isCreating ? 'Create New Package' : 'Select a Package'}</h3>
           </div>
 
-          {selectedLens ? (
+          {(selectedLens || isCreating) ? (
             <div className="lm-form-content">
               {/* Basic Info */}
               <div className="lm-form-section">
@@ -470,6 +727,27 @@ const LensManagement = () => {
                 </div>
               </div>
 
+              {/* Visibility / Type */}
+              <div className="lm-form-section">
+                <h4 className="lm-section-label">Lens Compatibility <span style={{ fontSize: 10, color: '#98A2B3', fontWeight: 400 }}>which frames can use this?</span></h4>
+                <div className="lm-chip-group">
+                  <span
+                    className={`lm-form-chip ${editFormData.is_for_eyeglasses ? 'active' : ''}`}
+                    onClick={() => setEditFormData(prev => ({ ...prev, is_for_eyeglasses: !prev.is_for_eyeglasses }))}
+                  >
+                    {editFormData.is_for_eyeglasses && <Check size={12} strokeWidth={3} />}
+                    For Eyeglasses
+                  </span>
+                  <span
+                    className={`lm-form-chip ${editFormData.is_for_sunglasses ? 'active' : ''}`}
+                    onClick={() => setEditFormData(prev => ({ ...prev, is_for_sunglasses: !prev.is_for_sunglasses }))}
+                  >
+                    {editFormData.is_for_sunglasses && <Check size={12} strokeWidth={3} />}
+                    For Sunglasses
+                  </span>
+                </div>
+              </div>
+
               {/* Features */}
               <div className="lm-form-section">
                 <h4 className="lm-section-label">Features</h4>
@@ -553,8 +831,10 @@ const LensManagement = () => {
                   </div>
                 </div>
                 <div className="lm-form-footer-btns">
-                  <button className="lm-btn-text" onClick={() => setSelectedLens(null)}>Cancel</button>
-                  <button className="lm-btn-solid" onClick={handleSave}>Save Changes</button>
+                  <button className="lm-btn-text" onClick={() => { setSelectedLens(null); setIsCreating(false); }}>Cancel</button>
+                  <button className="lm-btn-solid" onClick={selectedLens ? handleSave : handleCreate}>
+                    {selectedLens ? 'Save Changes' : 'Create Package'}
+                  </button>
                 </div>
               </div>
             </div>
@@ -575,69 +855,7 @@ const LensManagement = () => {
         fields={LENS_TYPE_FIELDS}
       />
 
-      <FormModal
-        isOpen={showAddPackage}
-        onClose={() => { setShowAddPackage(false); setNewPackageCategoryIds([]); }}
-        onSubmit={handleAddPackage}
-        title="Lens Package"
-        fields={[
-          ...LENS_PACKAGE_FIELDS,
-          {
-            name: 'brand', label: 'Brand', type: 'select',
-            options: lensBrands.length > 0
-              ? lensBrands.map(b => ({ value: String(b.id), label: b.name }))
-              : [{ value: '', label: 'No lens brands added yet' }]
-          },
-        ]}
-      >
-        <div style={{ padding: '0 22px 16px', borderTop: '1px solid #F2F4F7' }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: '#344054', marginBottom: 4, marginTop: 14 }}>
-            Applicable Frame Categories
-            <span style={{ fontSize: 10, color: '#98A2B3', fontWeight: 400, marginLeft: 6 }}>select one or more</span>
-          </div>
-          {lensCategories.length === 0 ? (
-            <p style={{ fontSize: 11, color: '#98A2B3', margin: 0 }}>No categories yet. Add Eyeglasses/Sunglasses in Category Management → Frames tab.</p>
-          ) : (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
-              {lensCategories.map(c => {
-                const selected = newPackageCategoryIds.includes(c.id);
-                return (
-                  <span
-                    key={c.id}
-                    onClick={() => setNewPackageCategoryIds(prev => selected ? prev.filter(id => id !== c.id) : [...prev, c.id])}
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 5,
-                      padding: '6px 14px', borderRadius: 20, fontSize: 11, cursor: 'pointer', fontWeight: 600,
-                      background: selected ? '#7F56D9' : '#fff',
-                      color: selected ? '#fff' : '#667085',
-                      border: `1.5px solid ${selected ? '#7F56D9' : '#D0D5DD'}`,
-                      transition: 'all 0.15s', userSelect: 'none',
-                    }}
-                  >
-                    {selected && <Check size={11} strokeWidth={3} />}
-                    {c.name}
-                  </span>
-                );
-              })}
-            </div>
-          )}
-        </div>
-        <div className="lm-preset-strip">
-          <p>Quick Add Presets:</p>
-          <div className="preset-buttons">
-            {LENS_PACKAGE_PRESETS.map(p => (
-              <button
-                key={p.package_name}
-                type="button"
-                className="lm-preset-btn"
-                onClick={() => handlePresetClick(p)}
-              >
-                {p.package_name} (₹{p.price})
-              </button>
-            ))}
-          </div>
-        </div>
-      </FormModal>
+
 
       {error && (
         <div className="lm-toast-error">

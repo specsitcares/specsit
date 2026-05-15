@@ -4,9 +4,7 @@ from .core.models import MetadataItem  # type: ignore
 from decimal import Decimal
 
 class Category(models.Model):
-    CATEGORY_TYPE_CHOICES = [('Lens', 'Lenses for Frames'), ('Frame', 'Frame'), ('Contact', 'Contact Lenses')]
     name = models.CharField(max_length=100, unique=True)
-    category_type = models.CharField(max_length=10, choices=CATEGORY_TYPE_CHOICES, default='Frame')
     description = models.TextField(blank=True)
     image = models.ImageField(upload_to='categories/', blank=True, null=True)
     parent = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='subcategories')
@@ -146,8 +144,6 @@ class Variant(models.Model):
     vto_video = models.FileField(upload_to='vto_assets/', blank=True, null=True)
 
     def save(self, *args, **kwargs):
-        if self.stock is not None and self.stock <= 0:
-            self.is_listed = False
         super().save(*args, **kwargs)
 
     def __str__(self): return f"{self.product.title} [{self.sku}]"

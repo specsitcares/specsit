@@ -48,16 +48,17 @@ class Coupon(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     def __str__(self): return self.code
 
+ORDER_STATUS_CHOICES = [
+    ('pending', 'Pending'),
+    ('confirmed', 'Confirmed'),
+    ('preparing', 'Preparing'),
+    ('ready_to_dispatch', 'Ready to Dispatch'),
+    ('in_transit', 'In Transit'),
+    ('delivered', 'Delivered'),
+    ('cancelled', 'Cancelled'),
+]
+
 class Order(models.Model):
-    ORDER_STATUS_CHOICES = [
-        ('pending', 'Pending'),
-        ('confirmed', 'Confirmed'),
-        ('preparing', 'Preparing'),
-        ('ready_to_dispatch', 'Ready to Dispatch'),
-        ('in_transit', 'In Transit'),
-        ('delivered', 'Delivered'),
-        ('cancelled', 'Cancelled'),
-    ]
     PAYMENT_STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('partial_paid', 'Partial Paid'),
@@ -128,6 +129,7 @@ class OrderItem(models.Model):
     price_at_purchase = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     lens_prescription_text = models.TextField(null=True, blank=True)
     lens_pd = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    status = models.CharField(max_length=30, choices=ORDER_STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True, null=True)
     def __str__(self): return f"Item for Order #{self.order.id}"
 

@@ -28,7 +28,7 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
 
   const fetchInventory = async () => {
     try {
-      const res = await apiClient.get('/catalog/variants/');
+      const res = await apiClient.get('/catalog/variants/?page_size=1000&admin=true');
       setVariants(Array.isArray(res.data) ? res.data : (res.data.results || []));
     } catch { } finally { setLoading(false); }
   };
@@ -44,8 +44,6 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
 
   const handleToggleListed = async (v) => {
     const newVal = !v.is_listed;
-    // Prevent listing a zero-stock variant
-    if (newVal && (v.stock ?? 0) <= 0) return;
     setVariants(prev => prev.map(x => x.id === v.id ? { ...x, is_listed: newVal } : x));
     try {
       await apiClient.patch(`/catalog/variants/${v.id}/`, { is_listed: newVal });
@@ -192,11 +190,9 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
         <td style={{ ...CELL, minWidth: 80 }}>
           <div
             onClick={() => handleToggleListed(v)}
-            title={v.stock <= 0 ? 'Cannot list — stock is 0' : (v.is_listed ? 'Click to unlist' : 'Click to list')}
             style={{
-              width: 36, height: 20, borderRadius: 10, position: 'relative', cursor: v.stock <= 0 ? 'not-allowed' : 'pointer',
+              width: 36, height: 20, borderRadius: 10, position: 'relative', cursor: 'pointer',
               background: v.is_listed ? '#7F56D9' : '#D0D5DD',
-              opacity: v.stock <= 0 ? 0.45 : 1,
               transition: 'background 0.2s',
               flexShrink: 0,
               display: 'inline-block',

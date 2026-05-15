@@ -103,9 +103,6 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = Category.objects.all() if self.request.user.is_staff else Category.objects.filter(is_active=True)
-        category_type = self.request.query_params.get('category_type')
-        if category_type:
-            qs = qs.filter(category_type=category_type)
         return qs.order_by('id')
 
 class BrandViewSet(viewsets.ModelViewSet):
@@ -152,15 +149,32 @@ class ProductViewSet(viewsets.ModelViewSet):
             instance.delete()
 
     def get_queryset(self):
-        from django.db.models import Exists, OuterRef
+        from django.db.models import Exists, OuterRef, Prefetch
         params = self.request.query_params
-        if self.request.user.is_staff:
-            queryset = Product.objects.filter(is_active=True).select_related('category', 'brand').prefetch_related('variants')
+        
+        # Base filter: Always hide inactive products unless explicitly requested by staff
+        is_active_filter = params.get('is_active')
+        if is_active_filter == 'false' and self.request.user.is_staff:
+            queryset = Product.objects.filter(is_active=False)
+        elif is_active_filter == 'all' and self.request.user.is_staff:
+            queryset = Product.objects.all()
         else:
+            queryset = Product.objects.filter(is_active=True)
+
+        # Variant filtering: Hide products without listed variants for customers.
+        # For staff, we also hide them by default on the website, but show them in the admin dashboard.
+        is_admin_request = self.request.user.is_staff and (params.get('product_type') or params.get('admin') == 'true')
+        
+        if not is_admin_request:
+            listed_variants = Variant.objects.filter(is_listed=True, stock__gt=0)
             listed = Variant.objects.filter(product=OuterRef('pk'), is_listed=True, stock__gt=0)
-            queryset = Product.objects.filter(is_active=True).filter(
-                Exists(listed)
-            ).select_related('category', 'brand').prefetch_related('variants')
+            queryset = queryset.filter(Exists(listed)).prefetch_related(
+                Prefetch('variants', queryset=listed_variants)
+            )
+        else:
+            queryset = queryset.prefetch_related('variants')
+
+        queryset = queryset.select_related('category', 'brand')
 
         # Filter by product_type
         product_type = params.get('product_type')
@@ -292,13 +306,25 @@ class VariantViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         from django.db.models import Q
-        qs = Variant.objects.select_related('product', 'product__brand').prefetch_related('images')
-        if not self.request.user.is_staff:
+        params = self.request.query_params
+        
+        # Always hide variants of inactive products
+        qs = Variant.objects.filter(product__is_active=True).select_related('product', 'product__brand').prefetch_related('images')
+        
+        # Filter listed/stock for customers. Staff in admin context sees everything.
+        is_staff = self.request.user.is_staff
+        is_admin_query = params.get('admin') == 'true' or params.get('product_type')
+        
+        # If it's a management action (PATCH/PUT/DELETE) or an explicit admin GET, show everything
+        if not (is_staff and (is_admin_query or self.action in ['partial_update', 'update', 'destroy'])):
             qs = qs.filter(stock__gt=0, is_listed=True)
-        product_type = self.request.query_params.get('product_type')
-        if product_type:
-            qs = qs.filter(product__product_type=product_type)
-        search = self.request.query_params.get('search')
+
+        # NEW: Filter by product type if requested (crucial for segregating frames vs contact lenses in UI)
+        ptype = params.get('product_type')
+        if ptype:
+            qs = qs.filter(product__product_type=ptype)
+            
+        search = params.get('search')
         if search:
             qs = qs.filter(
                 Q(sku__icontains=search) |
@@ -332,9 +358,28 @@ class LensViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
+        params = self.request.query_params
         qs = Lens.objects.select_related('package', 'type').all()
-        if not self.request.user or not self.request.user.is_staff:
+        
+        # Hide inactive lenses for customers. Staff in admin context/actions sees everything.
+        is_staff = self.request.user.is_staff
+        is_admin_query = params.get('admin') == 'true'
+        
+        if not (is_staff and (is_admin_query or self.action in ['partial_update', 'update', 'destroy'])):
             qs = qs.filter(is_active=True)
+
+        is_sunglasses = params.get('is_for_sunglasses')
+        if is_sunglasses == 'true':
+            qs = qs.filter(is_for_sunglasses=True)
+        elif is_sunglasses == 'false':
+            qs = qs.filter(is_for_sunglasses=False)
+
+        is_eyeglasses = params.get('is_for_eyeglasses')
+        if is_eyeglasses == 'true':
+            qs = qs.filter(is_for_eyeglasses=True)
+        elif is_eyeglasses == 'false':
+            qs = qs.filter(is_for_eyeglasses=False)
+            
         return qs
 
 class PrescriptionViewSet(viewsets.ModelViewSet):
