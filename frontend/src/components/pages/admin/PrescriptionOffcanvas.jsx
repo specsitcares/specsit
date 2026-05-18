@@ -5,6 +5,13 @@ import apiClient from '../../../services/api';
 
 const fmt = (v) => (v !== null && v !== undefined && v !== '' ? String(v) : '—');
 
+// Helper to safely convert status_label (string or object) to string
+const getStatusString = (status) => {
+  if (typeof status === 'string') return status;
+  if (status?.label && typeof status.label === 'string') return status.label;
+  return 'Pending Review';
+};
+
 const PrescriptionOffcanvas = ({ order, onClose, onApproved }) => {
   const navigate = useNavigate();
   const [prescriptions, setPrescriptions] = useState([]);
@@ -150,7 +157,7 @@ const PrescriptionOffcanvas = ({ order, onClose, onApproved }) => {
                 >
                   {prescriptions.map((p, i) => (
                     <option key={p.id} value={i}>
-                      Prescription {i + 1}: {p.patient_name || 'Patient'} ({p.status_label || 'Pending'})
+                      Prescription {i + 1}: {p.patient_name || 'Patient'} ({getStatusString(p.status_label) || 'Pending'})
                     </option>
                   ))}
                 </select>
@@ -253,11 +260,11 @@ const PrescriptionOffcanvas = ({ order, onClose, onApproved }) => {
                     </span>
                     <span style={{ 
                       fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 12,
-                      background: rx.status_label === 'Approved' ? '#dcfce7' : rx.status_label === 'Rejected' ? '#fee2e2' : '#fef9c3',
-                      color: rx.status_label === 'Approved' ? '#166534' : rx.status_label === 'Rejected' ? '#991b1b' : '#854d0e',
+                      background: getStatusString(rx.status_label) === 'Approved' ? '#dcfce7' : getStatusString(rx.status_label) === 'Rejected' ? '#fee2e2' : '#fef9c3',
+                      color: getStatusString(rx.status_label) === 'Approved' ? '#166534' : getStatusString(rx.status_label) === 'Rejected' ? '#991b1b' : '#854d0e',
                       textTransform: 'uppercase'
                     }}>
-                      {rx.status_label}
+                      {getStatusString(rx.status_label)}
                     </span>
                   </div>
 
@@ -369,16 +376,16 @@ const PrescriptionOffcanvas = ({ order, onClose, onApproved }) => {
             {/* Approve */}
             <button
               onClick={handleApprove}
-              disabled={saving || ['Approved', 'Rejected', 'Reupload Requested'].includes(rx.status_label)}
+              disabled={saving || ['Approved', 'Rejected', 'Reupload Requested'].includes(getStatusString(rx.status_label))}
               style={{
                 width: '100%', padding: '10px 12px', borderRadius: 6, border: 'none',
-                background: (saving || ['Approved', 'Rejected', 'Reupload Requested'].includes(rx.status_label)) ? '#cbd5e1' : '#68408d',
-                color: '#fefcff', fontSize: 16, fontWeight: 400, cursor: (saving || ['Approved', 'Rejected', 'Reupload Requested'].includes(rx.status_label)) ? 'not-allowed' : 'pointer',
+                background: (saving || ['Approved', 'Rejected', 'Reupload Requested'].includes(getStatusString(rx.status_label))) ? '#cbd5e1' : '#68408d',
+                color: '#fefcff', fontSize: 16, fontWeight: 400, cursor: (saving || ['Approved', 'Rejected', 'Reupload Requested'].includes(getStatusString(rx.status_label))) ? 'not-allowed' : 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               }}
             >
               <Check size={20} strokeWidth={2} />
-              {saving ? 'Approving…' : rx.status_label === 'Approved' ? 'Already Approved' : 'Approve & continue'}
+              {saving ? 'Approving…' : getStatusString(rx.status_label) === 'Approved' ? 'Already Approved' : 'Approve & continue'}
             </button>
 
             {/* Flag + Download + Reject */}
@@ -411,15 +418,15 @@ const PrescriptionOffcanvas = ({ order, onClose, onApproved }) => {
               </button>
               <button
                 onClick={() => setShowReject(r => !r)}
-                disabled={['Approved', 'Rejected', 'Reupload Requested'].includes(rx.status_label)}
+                disabled={['Approved', 'Rejected', 'Reupload Requested'].includes(getStatusString(rx.status_label))}
                 style={{
                   flex: 1, padding: '10px 8px', borderRadius: 6,
-                  border: '1px solid #fca5a5', background: (['Approved', 'Rejected', 'Reupload Requested'].includes(rx.status_label)) ? '#f1f5f9' : '#fff',
-                  color: (['Approved', 'Rejected', 'Reupload Requested'].includes(rx.status_label)) ? '#94a3b8' : '#ef4444', fontSize: 14, cursor: (['Approved', 'Rejected', 'Reupload Requested'].includes(rx.status_label)) ? 'not-allowed' : 'pointer',
+                  border: '1px solid #fca5a5', background: (['Approved', 'Rejected', 'Reupload Requested'].includes(getStatusString(rx.status_label))) ? '#f1f5f9' : '#fff',
+                  color: (['Approved', 'Rejected', 'Reupload Requested'].includes(getStatusString(rx.status_label))) ? '#94a3b8' : '#ef4444', fontSize: 14, cursor: (['Approved', 'Rejected', 'Reupload Requested'].includes(getStatusString(rx.status_label))) ? 'not-allowed' : 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                 }}
               >
-                {rx.status_label === 'Reupload Requested' ? 'Requested' : 'Reject / Issue'}
+                {getStatusString(rx.status_label) === 'Reupload Requested' ? 'Requested' : 'Reject / Issue'}
               </button>
             </div>
           </div>
