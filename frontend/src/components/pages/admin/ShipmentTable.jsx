@@ -52,13 +52,14 @@ const ShipmentTable = () => {
   };
 
   const columns = [
-    { label: 'Order ID',      key: 'order_id',      sortable: true },
-    { label: 'Product',       key: 'product_names', sortable: false },
-    { label: 'Address (Pin)', key: 'pincode',        sortable: false },
-    { label: 'Delivery Date', key: 'delivery_date',  sortable: true },
-    { label: 'Tracking ID',   key: 'tracking_id',    sortable: true },
-    { label: 'Status',        key: 'order_status',   sortable: true },
-    { label: 'Payment',       key: 'payment_status', sortable: true },
+    { label: 'Order ID',        key: 'order_id',      sortable: true },
+    { label: 'Product',         key: 'product_names', sortable: false },
+    { label: 'Address (Pin)',   key: 'pincode',        sortable: false },
+    { label: 'Delivery Date',   key: 'delivery_date',  sortable: true },
+    { label: 'Tracking ID',     key: 'tracking_id',    sortable: true },
+    { label: 'Carrier Company', key: 'carrier',        sortable: false },
+    { label: 'Status',          key: 'order_status',   sortable: true },
+    { label: 'Payment',         key: 'payment_status', sortable: true },
   ];
 
   const renderRow = (s, idx, { isSelected, onToggle } = {}) => {
@@ -104,6 +105,13 @@ const ShipmentTable = () => {
           <code style={{ background: '#F9FAFB', border: '1px solid #EAECF0', padding: '4px 8px', borderRadius: '5px', fontFamily: 'monospace', fontSize: '10px', color: '#344054', fontWeight: 600 }}>
             {s.tracking_id || 'AWAITING'}
           </code>
+        </td>
+        {/* Carrier Company */}
+        <td style={{ padding: '16px 24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <Truck size={13} color="#667085" />
+            <span style={{ fontSize: 12, color: '#344054' }}>{s.carrier || s.courier_company || '—'}</span>
+          </div>
         </td>
         {/* Order status */}
         <td style={{ padding: '16px 24px' }}>

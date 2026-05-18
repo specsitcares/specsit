@@ -17,7 +17,7 @@ const DashboardHome = ({ onOrderClick, onNavigate }) => {
    useEffect(() => {
       apiClient.get('/sales/admin/stats/')
          .then(res => setStatsData(res.data))
-         .catch(() => {});
+         .catch(() => { });
    }, []);
 
    useEffect(() => {
@@ -82,9 +82,9 @@ const DashboardHome = ({ onOrderClick, onNavigate }) => {
 
    const getAttentionTarget = (label) => {
       const l = label.toLowerCase();
-      if (l.includes('prescription'))                              return { view: 'Prescriptions', filter: null };
-      if (l.includes('running low') || l.includes('replenished')) return { view: 'Inventory',     filter: 'low' };
-      if (l.includes('out of stock') || l.includes('blocking'))   return { view: 'Inventory',     filter: 'out' };
+      if (l.includes('prescription')) return { view: 'Prescriptions', filter: null };
+      if (l.includes('running low') || l.includes('replenished')) return { view: 'Inventory', filter: 'low' };
+      if (l.includes('out of stock') || l.includes('blocking')) return { view: 'Inventory', filter: 'out' };
       return { view: 'Shipments', filter: null };
    };
 
@@ -97,34 +97,32 @@ const DashboardHome = ({ onOrderClick, onNavigate }) => {
                Live Activity
             </span>
          </div>
-
-         <div className="dh-stats-grid">
-            {statsList.map((s, idx) => {
-               const isUp = s.trend === 'up';
+         {/* ── Top KPI Stat Cards ── */}
+         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '26px' }}>
+            {statsList.map((stat, i) => {
+               const Icon = getStatIcon(stat.title);
+               const isUp = stat.trend === 'up';
                return (
-                  <div key={idx} className="dh-stat-card">
-                     <div className="dh-stat-card__top">
-                        <div className="dh-stat-card__top-left">
-                           <div className="dh-stat-card__icon-wrap">
-                              <ShoppingBag size={20} />
-                           </div>
-                           <p className="dh-stat-card__label">{s.title}</p>
+                  <div key={i} style={{ background: '#fff', border: '1px solid #EAECF0', borderRadius: '12px', padding: '16px 18px', boxShadow: '0 1px 2px rgba(16,24,40,0.05)' }}>
+                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: '#667085' }}>{stat.title}</span>
+                        <div style={{ width: 30, height: 30, background: '#F9F5FF', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7F56D9' }}>
+                           <Icon size={15} />
                         </div>
                      </div>
-                     <div className="dh-stat-card__bottom">
-                        <p className="dh-stat-card__value">{s.value}</p>
-                        <div className={`dh-stat-card__trend ${isUp ? 'dh-stat-card__trend--up' : 'dh-stat-card__trend--down'}`}>
-                           <span className="dh-stat-card__trend-arrow">
-                              {isUp ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                           </span>
-                           <span>{s.trendValue ? `${s.trendValue}%` : '–'}</span>
-                           <span className="dh-stat-card__trend-period">last period</span>
+                     <div style={{ fontSize: 22, fontWeight: 800, color: '#101828', marginBottom: 6 }}>{stat.value}</div>
+                     {stat.trendValue !== undefined && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                           {isUp ? <TrendingUp size={12} color="#12B76A" /> : <TrendingDown size={12} color="#F04438" />}
+                           <span style={{ fontSize: 10, fontWeight: 700, color: isUp ? '#12B76A' : '#F04438' }}>{stat.trendValue}</span>
+                           <span style={{ fontSize: 10, color: '#667085' }}>vs last period</span>
                         </div>
-                     </div>
+                     )}
                   </div>
                );
             })}
          </div>
+
 
          {attentionList.length > 0 && (
             <div style={{ marginBottom: '26px' }}>
@@ -287,7 +285,7 @@ const DashboardHome = ({ onOrderClick, onNavigate }) => {
             </div>
          </div>
 
-         <OrderTable category={null} onViewDetails={onOrderClick} />
+         <OrderTable category={null} onViewDetails={onOrderClick} hideKPIs={true} />
       </>
    );
 };
