@@ -4,6 +4,18 @@ import apiClient from '../../../services/api';
 import FormModal from './FormModal';
 import BaseAdminTable from './BaseAdminTable';
 
+const BRAND_TABS = [
+  { key: 'Frame',   label: 'Frames' },
+  { key: 'Lens',    label: 'Lenses for Frames' },
+  { key: 'Contact', label: 'Contact Lenses' },
+];
+
+const BRAND_TYPE_OPTIONS = [
+  { value: 'Frame',   label: 'Frame' },
+  { value: 'Lens',    label: 'Lenses for Frames' },
+  { value: 'Contact', label: 'Contact Lenses' },
+];
+
 const BrandTable = () => {
   const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -11,6 +23,7 @@ const BrandTable = () => {
   const [selectedBrand, setSelectedBrand] = useState(null);
   const [formMode, setFormMode] = useState('create');
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState('Frame');
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
   const [showFilters, setShowFilters] = useState(false);
@@ -37,7 +50,7 @@ const BrandTable = () => {
     { label: 'Delete Selected', variant: 'danger', icon: Trash2, onClick: bulkDelete },
   ];
 
-  const handleCreateClick = () => { setFormMode('create'); setSelectedBrand(null); setShowForm(true); };
+  const handleCreateClick = () => { setFormMode('create'); setSelectedBrand({ brand_type: activeTab }); setShowForm(true); };
   const handleEditClick   = (b) => { setFormMode('edit');   setSelectedBrand(b);    setShowForm(true); };
   const handleDeleteClick = (b) => { setFormMode('edit');   setSelectedBrand(b);    setShowForm(true); };
 
@@ -69,9 +82,9 @@ const BrandTable = () => {
     }
   };
 
-  const filtered = brands.filter(b =>
-    [b.name, b.slug, b.description].some(v => v?.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const filtered = brands
+    .filter(b => (b.brand_type || 'Frame') === activeTab)
+    .filter(b => [b.name, b.slug, b.description].some(v => v?.toLowerCase().includes(searchQuery.toLowerCase())));
 
   const paginated = filtered.slice((page - 1) * perPage, page * perPage);
 
@@ -86,7 +99,7 @@ const BrandTable = () => {
   const renderRow = (b, idx, { isSelected, onToggle } = {}) => (
     <tr key={b.id || idx} style={{ borderBottom: '1px solid #EAECF0', backgroundColor: isSelected ? '#F9F5FF' : '#fff' }}>
       <td style={{ padding: '16px 24px' }}>
-        <input type="checkbox" checked={!!isSelected} onChange={onToggle} style={{ cursor: 'pointer', borderRadius: '4px', accentColor: '#7F56D9' }} />
+        <input type="checkbox" checked={!!isSelected} onChange={onToggle} style={{ cursor: 'pointer', borderRadius: '3px', accentColor: '#7F56D9' }} />
       </td>
       <td style={{ padding: '16px 24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -94,16 +107,16 @@ const BrandTable = () => {
             {b.logo ? <img src={b.logo} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <Tag size={20} color="#D0D5DD" />}
           </div>
           <div>
-            <div style={{ fontWeight: 600, color: '#101828', fontSize: '14px' }}>{b.name}</div>
-            <div style={{ fontSize: '12px', color: '#667085' }}>#ID: {b.id}</div>
+            <div style={{ fontWeight: 600, color: '#101828', fontSize: '11px' }}>{b.name}</div>
+            <div style={{ fontSize: '10px', color: '#667085' }}>#ID: {b.id}</div>
           </div>
         </div>
       </td>
       <td style={{ padding: '16px 24px' }}>
-        <span style={{ fontFamily: 'monospace', fontSize: '12px', color: '#475467' }}>{b.slug}</span>
+        <span style={{ fontFamily: 'monospace', fontSize: '10px', color: '#475467' }}>{b.slug}</span>
       </td>
       <td style={{ padding: '16px 24px', maxWidth: 220 }}>
-        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '14px', color: '#667085' }}>
+        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '11px', color: '#667085' }}>
           {b.description || '—'}
         </div>
       </td>
@@ -112,8 +125,8 @@ const BrandTable = () => {
           backgroundColor: b.is_active ? '#ECFDF3' : '#F2F4F7',
           color: b.is_active ? '#027A48' : '#344054',
           padding: '4px 10px',
-          borderRadius: '16px',
-          fontSize: '12px',
+          borderRadius: '13px',
+          fontSize: '10px',
           fontWeight: 600,
           display: 'inline-flex',
           alignItems: 'center',
@@ -128,14 +141,14 @@ const BrandTable = () => {
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
           <div
             onClick={() => handleEditClick(b)}
-            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
             title="Edit Brand"
           >
             <Edit2 size={16} />
           </div>
           <div
-            onClick={() => handleEditClick(b)}
-            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+            onClick={() => handleDeleteClick(b)}
+            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
             title="Delete Brand"
           >
             <Trash2 size={16} />
@@ -145,8 +158,32 @@ const BrandTable = () => {
     </tr>
   );
 
+  const tabCounts = Object.fromEntries(BRAND_TABS.map(t => [t.key, brands.filter(b => (b.brand_type || 'Frame') === t.key).length]));
+
   return (
     <>
+      {/* Tab strip */}
+      <div style={{ display: 'flex', gap: 4, marginBottom: 16, background: '#F9FAFB', border: '1px solid #EAECF0', borderRadius: 8, padding: 4, width: 'fit-content' }}>
+        {BRAND_TABS.map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => { setActiveTab(tab.key); setPage(1); setSearchQuery(''); }}
+            style={{
+              padding: '7px 16px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+              background: activeTab === tab.key ? '#fff' : 'transparent',
+              color: activeTab === tab.key ? '#7F56D9' : '#667085',
+              boxShadow: activeTab === tab.key ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+              display: 'flex', alignItems: 'center', gap: 6,
+            }}
+          >
+            {tab.label}
+            <span style={{ background: activeTab === tab.key ? '#F4EBFF' : '#F2F4F7', color: activeTab === tab.key ? '#7F56D9' : '#667085', borderRadius: 10, padding: '1px 7px', fontSize: 10 }}>
+              {tabCounts[tab.key]}
+            </span>
+          </button>
+        ))}
+      </div>
+
       <BaseAdminTable
         title="Brand Management"
         count={filtered.length}
@@ -171,20 +208,21 @@ const BrandTable = () => {
         showFilters={showFilters}
         setShowFilters={setShowFilters}
         filterContent={
-          <div style={{ display: 'flex', gap: '16px' }}>
-             <div style={{ fontSize: '14px', color: '#667085' }}>No active filters available for brands.</div>
+          <div style={{ display: 'flex', gap: '13px' }}>
+             <div style={{ fontSize: '11px', color: '#667085' }}>No active filters available for brands.</div>
           </div>
         }
       />
 
       <FormModal isOpen={showForm} onClose={() => setShowForm(false)} onSubmit={handleFormSubmit}
-        onDelete={handleFormDelete} mode={formMode} title="Brand" 
+        onDelete={handleFormDelete} mode={formMode} title="Brand"
         fields={[
-          { name: 'name', label: 'Brand Name', type: 'text', required: true },
-          { name: 'description', label: 'Description', type: 'textarea' },
-          { name: 'logo', label: 'Brand Logo', type: 'file' },
-          { name: 'is_active', label: 'Active', type: 'checkbox', defaultValue: true }
-        ]} 
+          { name: 'name',       label: 'Brand Name',  type: 'text',     required: true },
+          { name: 'brand_type', label: 'Brand Type',  type: 'select',   required: true, options: BRAND_TYPE_OPTIONS },
+          { name: 'description',label: 'Description', type: 'textarea' },
+          { name: 'logo',       label: 'Brand Logo',  type: 'file' },
+          { name: 'is_active',  label: 'Active',      type: 'checkbox', defaultValue: true },
+        ]}
         initialData={selectedBrand || {}} />
     </>
   );

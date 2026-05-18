@@ -15,7 +15,7 @@
   min-height: 100vh;
   background: var(--spp-white);
   font-family: var(--spp-font);
-  padding: 60px 120px;
+  padding: 48px 96px;
   box-sizing: border-box;
 }
 
@@ -24,19 +24,19 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 48px;
+  gap: 6px;
+  margin-bottom: 38px;
 }
 
 .spp-icon-wrap {
-  width: 80px;
-  height: 80px;
+  width: 64px;
+  height: 64px;
   background: var(--spp-purple-light);
-  border-radius: 12px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .spp-page-title {
@@ -50,16 +50,16 @@
 }
 
 .spp-page-title--thankyou {
-  font-size: 60px;
+  font-size: 48px;
 }
 
 .spp-page-title--received {
-  font-size: 42px;
+  font-size: 34px;
   letter-spacing: -2px;
 }
 
 .spp-order-id {
-  font-size: 18px;
+  font-size: 14px;
   color: var(--spp-black);
   margin: 0;
   font-weight: 400;
@@ -73,7 +73,7 @@
 /* ── Two-column body ────────────────────────────────────── */
 .spp-body {
   display: flex;
-  gap: 48px;
+  gap: 38px;
   align-items: flex-start;
 }
 
@@ -83,7 +83,7 @@
 }
 
 .spp-right {
-  width: 380px;
+  width: 304px;
   flex-shrink: 0;
 }
 
@@ -91,12 +91,12 @@
 .spp-summary-card {
   background: var(--spp-white);
   border: 1px solid var(--spp-white);
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.03);
-  padding: 36px;
+  border-radius: 13px;
+  box-shadow: 0 3px 16px rgba(0,0,0,0.03);
+  padding: 29px;
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 22px;
 }
 
 .spp-summary-header {
@@ -106,7 +106,7 @@
 }
 
 .spp-summary-title {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--spp-black);
   margin: 0;
@@ -115,9 +115,9 @@
 
 .spp-summary-count {
   background: var(--spp-grey);
-  border-radius: 12px;
-  padding: 4px 12px;
-  font-size: 10px;
+  border-radius: 10px;
+  padding: 3px 10px;
+  font-size: 8px;
   font-weight: 700;
   color: var(--spp-black);
 }
@@ -125,19 +125,19 @@
 .spp-summary-items {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
 .spp-summary-item {
   display: flex;
-  gap: 14px;
+  gap: 11px;
   align-items: center;
 }
 
 .spp-summary-thumb {
-  width: 64px;
-  height: 64px;
-  border-radius: 8px;
+  width: 51px;
+  height: 51px;
+  border-radius: 6px;
   background: var(--spp-grey);
   overflow: hidden;
   flex-shrink: 0;
@@ -163,37 +163,37 @@
 }
 
 .spp-item-name {
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--spp-black);
   text-transform: uppercase;
   letter-spacing: 1.2px;
-  line-height: 16px;
+  line-height: 13px;
 }
 
 .spp-item-variant {
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 400;
   color: var(--spp-body-grey);
-  line-height: 15px;
+  line-height: 12px;
 }
 
 .spp-awaiting-badge {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   background: #fef3c7;
   border: 1px solid #f59e0b;
-  border-radius: 4px;
-  padding: 3px 8px;
-  font-size: 10px;
+  border-radius: 3px;
+  padding: 3px 6px;
+  font-size: 8px;
   font-weight: 600;
   color: #92400e;
-  margin-top: 4px;
+  margin-top: 3px;
 }
 
 .spp-item-price {
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--spp-black);
   white-space: nowrap;
@@ -202,23 +202,23 @@
 /* ── Pricing section ────────────────────────────────────── */
 .spp-summary-pricing {
   border-top: 1px solid var(--spp-white);
-  padding-top: 20px;
+  padding-top: 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .spp-price-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 13px;
+  font-size: 10px;
   color: var(--spp-black);
 }
 
 .spp-price-row--total {
   border-top: 1px solid var(--spp-white);
-  padding-top: 14px;
+  padding-top: 11px;
   margin-top: 2px;
 }
 
@@ -228,31 +228,31 @@
 
 .spp-price-label--upper {
   text-transform: uppercase;
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 700;
   letter-spacing: 1px;
   color: var(--spp-body-grey);
 }
 
 .spp-price-val {
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 500;
   color: var(--spp-black);
 }
 
 .spp-price-val--label {
-  font-size: 14px;
+  font-size: 11px;
   color: var(--spp-black);
 }
 
 .spp-price-val--free {
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--spp-purple);
 }
 
 .spp-price-total-label {
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1.2px;
@@ -260,7 +260,7 @@
 }
 
 .spp-price-total-val {
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 800;
   color: var(--spp-purple);
 }
@@ -268,11 +268,11 @@
 /* ── Deposit breakdown card ─────────────────────────────── */
 .spp-deposit-card {
   background: var(--spp-grey);
-  border-radius: 8px;
-  padding: 20px;
+  border-radius: 6px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 11px;
 }
 
 .spp-deposit-row {
@@ -282,7 +282,7 @@
 }
 
 .spp-deposit-title {
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.6px;
@@ -291,14 +291,14 @@
 }
 
 .spp-deposit-sub {
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 400;
   color: var(--spp-body-grey);
   margin: 0;
 }
 
 .spp-deposit-amount {
-  font-size: 24px;
+  font-size: 19px;
   font-weight: 800;
   color: var(--spp-black);
 }
@@ -308,12 +308,12 @@
   align-items: center;
   justify-content: space-between;
   border-top: 1px solid var(--spp-purple-light);
-  padding-top: 14px;
+  padding-top: 11px;
   opacity: 0.7;
 }
 
 .spp-balance-title {
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.6px;
@@ -322,14 +322,14 @@
 }
 
 .spp-balance-sub {
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 400;
   color: var(--spp-body-grey);
   margin: 0;
 }
 
 .spp-balance-amount {
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--spp-body-grey);
 }
@@ -338,11 +338,11 @@
 .spp-action-card {
   background: var(--spp-white);
   border: 1px solid var(--spp-grey);
-  border-radius: 8px;
-  padding: 32px;
+  border-radius: 6px;
+  padding: 26px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
 .spp-action-badge {
@@ -350,9 +350,9 @@
   align-items: center;
   background: #fef3c7;
   border: 1px solid #fbbf24;
-  border-radius: 4px;
-  padding: 4px 12px;
-  font-size: 10px;
+  border-radius: 3px;
+  padding: 3px 10px;
+  font-size: 8px;
   font-weight: 700;
   color: #92400e;
   letter-spacing: 0.5px;
@@ -361,7 +361,7 @@
 }
 
 .spp-action-title {
-  font-size: 28px;
+  font-size: 22px;
   font-weight: 700;
   color: var(--spp-black);
   margin: 0;
@@ -370,7 +370,7 @@
 }
 
 .spp-action-body {
-  font-size: 15px;
+  font-size: 12px;
   color: var(--spp-black);
   line-height: 1.6;
   margin: 0;
@@ -378,7 +378,7 @@
 
 .spp-action-btns {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
@@ -387,10 +387,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 14px 28px;
-  border-radius: 6px;
-  font-size: 15px;
+  gap: 6px;
+  padding: 11px 22px;
+  border-radius: 5px;
+  font-size: 12px;
   font-weight: 700;
   font-family: var(--spp-font);
   cursor: pointer;
@@ -435,7 +435,7 @@
 
 /* ── Action note ─────────────────────────────────────────── */
 .spp-action-note {
-  font-size: 12px;
+  font-size: 10px;
   font-style: italic;
   color: var(--spp-body-grey);
   line-height: 1.5;
@@ -443,28 +443,28 @@
 }
 
 .spp-action-note--indent {
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 /* ── Meta bar (15 days, 1-2hr) ───────────────────────────── */
 .spp-action-meta {
   display: flex;
-  gap: 32px;
-  padding-top: 20px;
+  gap: 26px;
+  padding-top: 16px;
   border-top: 1px solid var(--spp-grey);
 }
 
 .spp-meta-item {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   align-items: flex-start;
 }
 
 .spp-meta-icon {
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   background: var(--spp-grey);
-  border-radius: 8px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -472,14 +472,14 @@
 }
 
 .spp-meta-val {
-  font-size: 15px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--spp-black);
   margin: 0 0 2px;
 }
 
 .spp-meta-label {
-  font-size: 12px;
+  font-size: 10px;
   color: var(--spp-body-grey);
   margin: 0;
 }
@@ -488,18 +488,18 @@
 .spp-choose-col {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 19px;
 }
 
 .spp-back-btn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   background: var(--spp-grey);
   border: none;
-  border-radius: 8px;
-  padding: 8px 16px;
-  font-size: 13px;
+  border-radius: 6px;
+  padding: 6px 13px;
+  font-size: 10px;
   font-weight: 500;
   font-family: var(--spp-font);
   color: var(--spp-black);
@@ -514,18 +514,18 @@
 /* ── Help bar ────────────────────────────────────────────── */
 .spp-help-bar {
   background: #dcfce7;
-  border-radius: 10px;
-  padding: 14px 18px;
+  border-radius: 8px;
+  padding: 11px 14px;
   display: flex;
-  gap: 14px;
+  gap: 11px;
   align-items: center;
 }
 
 .spp-help-bar__icon {
-  width: 36px;
-  height: 36px;
+  width: 29px;
+  height: 29px;
   background: #16a34a;
-  border-radius: 8px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -533,14 +533,14 @@
 }
 
 .spp-help-bar__title {
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 700;
   color: #15803d;
   margin: 0 0 2px;
 }
 
 .spp-help-bar__link {
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 600;
   color: #15803d;
   background: none;
@@ -561,11 +561,11 @@
 .spp-option-card {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 20px 24px;
+  gap: 13px;
+  padding: 16px 19px;
   background: var(--spp-white);
   border: 1px solid var(--spp-grey);
-  border-radius: 10px;
+  border-radius: 8px;
   cursor: pointer;
   text-align: left;
   width: 100%;
@@ -579,10 +579,10 @@
 }
 
 .spp-option-card__icon {
-  width: 48px;
-  height: 48px;
+  width: 38px;
+  height: 38px;
   background: var(--spp-purple-light);
-  border-radius: 10px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -594,14 +594,14 @@
 }
 
 .spp-option-card__title {
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--spp-black);
-  margin: 0 0 4px;
+  margin: 0 0 3px;
 }
 
 .spp-option-card__sub {
-  font-size: 13px;
+  font-size: 10px;
   color: var(--spp-body-grey);
   margin: 0;
 }
@@ -610,24 +610,24 @@
 .spp-form-col {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 19px;
 }
 
 /* ── Manual form ─────────────────────────────────────────── */
 .spp-manual-form {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 19px;
 }
 
 .spp-manual-heading {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 
 .spp-manual-title {
-  font-size: 24px;
+  font-size: 19px;
   font-weight: 700;
   color: var(--spp-black);
   margin: 0;
@@ -635,7 +635,7 @@
 }
 
 .spp-manual-sub {
-  font-size: 14px;
+  font-size: 11px;
   color: var(--spp-body-grey);
   margin: 0;
   line-height: 1.5;
@@ -645,13 +645,13 @@
 .spp-toggles {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .spp-checkbox {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   cursor: pointer;
 }
 
@@ -663,10 +663,10 @@
 }
 
 .spp-checkbox__box {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   border: 1.5px solid #d1d5db;
-  border-radius: 4px;
+  border-radius: 3px;
   background: var(--spp-white);
   display: flex;
   align-items: center;
@@ -681,7 +681,7 @@
 }
 
 .spp-checkbox__label {
-  font-size: 14px;
+  font-size: 11px;
   color: var(--spp-black);
   font-weight: 500;
   user-select: none;
@@ -690,24 +690,24 @@
 /* ── Power grid ─────────────────────────────────────────── */
 .spp-power-grid {
   border: 1px solid var(--spp-grey);
-  border-radius: 10px;
+  border-radius: 8px;
   overflow: hidden;
 }
 
 .spp-grid-header {
   display: grid;
-  grid-template-columns: 100px 1fr 1fr 1fr;
+  grid-template-columns: 80px 1fr 1fr 1fr;
   background: var(--spp-grey);
   padding: 0;
 }
 
 .spp-grid-header:has(.spp-grid-hcell:nth-child(3):last-child) {
-  grid-template-columns: 100px 1fr 1fr;
+  grid-template-columns: 80px 1fr 1fr;
 }
 
 .spp-grid-hcell {
-  padding: 10px 16px;
-  font-size: 11px;
+  padding: 8px 13px;
+  font-size: 9px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -721,7 +721,7 @@
 
 .spp-grid-row {
   display: grid;
-  grid-template-columns: 100px 1fr 1fr 1fr;
+  grid-template-columns: 80px 1fr 1fr 1fr;
   align-items: center;
 }
 
@@ -730,14 +730,14 @@
 }
 
 .spp-grid-eye {
-  padding: 14px 16px;
+  padding: 11px 13px;
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
 .spp-grid-eye-main {
-  font-size: 13px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--spp-black);
   text-transform: uppercase;
@@ -745,26 +745,26 @@
 }
 
 .spp-grid-eye-sub {
-  font-size: 10px;
+  font-size: 8px;
   color: var(--spp-body-grey);
 }
 
 .spp-grid-cell {
-  padding: 10px 12px;
+  padding: 8px 10px;
   text-align: center;
   border-left: 1px solid var(--spp-grey);
 }
 
 .spp-grid-cell--axis {
-  padding: 8px 12px;
+  padding: 6px 10px;
 }
 
 .spp-grid-select {
   width: 100%;
-  padding: 8px 10px;
+  padding: 6px 8px;
   border: 1px solid var(--spp-grey);
-  border-radius: 6px;
-  font-size: 13px;
+  border-radius: 5px;
+  font-size: 10px;
   font-family: var(--spp-font);
   color: var(--spp-black);
   background: var(--spp-white);
@@ -781,10 +781,10 @@
 
 .spp-grid-axis {
   width: 100%;
-  padding: 8px 10px;
+  padding: 6px 8px;
   border: 1px solid var(--spp-grey);
-  border-radius: 6px;
-  font-size: 13px;
+  border-radius: 5px;
+  font-size: 10px;
   font-family: var(--spp-font);
   color: var(--spp-black);
   background: var(--spp-white);
@@ -801,17 +801,17 @@
 .spp-identity {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  gap: 16px;
 }
 
 .spp-field {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .spp-field__label {
-  font-size: 13px;
+  font-size: 10px;
   font-weight: 600;
   color: var(--spp-black);
 }
@@ -819,8 +819,8 @@
 .spp-field__input {
   border: none;
   border-bottom: 1.5px solid var(--spp-grey);
-  padding: 10px 0;
-  font-size: 14px;
+  padding: 8px 0;
+  font-size: 11px;
   font-family: var(--spp-font);
   color: var(--spp-black);
   background: transparent;
@@ -840,8 +840,8 @@
 .spp-help-link {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
+  gap: 6px;
+  font-size: 10px;
   color: var(--spp-body-grey);
 }
 
@@ -859,7 +859,7 @@
 .spp-upload-section {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
 .spp-upload-area {
@@ -867,10 +867,10 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 10px;
   border: 2px dashed var(--spp-purple-light);
-  border-radius: 12px;
-  padding: 48px 24px;
+  border-radius: 10px;
+  padding: 38px 19px;
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
   text-align: center;
@@ -888,26 +888,26 @@
 }
 
 .spp-upload-area__title {
-  font-size: 15px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--spp-black);
 }
 
 .spp-upload-area__name {
-  font-size: 15px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--spp-purple);
 }
 
 .spp-upload-area__sub {
-  font-size: 12px;
+  font-size: 10px;
   color: var(--spp-body-grey);
 }
 
 /* ── Submit row ──────────────────────────────────────────── */
 .spp-submit-row {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
 }
 
@@ -915,27 +915,27 @@
 .spp-success-card {
   background: var(--spp-white);
   border: 1px solid var(--spp-grey);
-  border-radius: 8px;
-  padding: 32px;
+  border-radius: 6px;
+  padding: 26px;
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 22px;
 }
 
 .spp-success-meta {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .spp-success-meta__row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .spp-success-meta__tag {
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1.2px;
@@ -943,7 +943,7 @@
 }
 
 .spp-success-delivery-title {
-  font-size: 30px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--spp-black);
   margin: 0;
@@ -952,19 +952,19 @@
 }
 
 .spp-success-delivery-body {
-  font-size: 15px;
+  font-size: 12px;
   color: var(--spp-black);
   line-height: 1.6;
   margin: 0;
-  max-width: 520px;
+  max-width: 416px;
 }
 
 /* ── Tracking row ────────────────────────────────────────── */
 .spp-success-tracking {
   display: flex;
   align-items: center;
-  gap: 32px;
-  padding: 16px 0;
+  gap: 26px;
+  padding: 13px 0;
   border-top: 1px solid var(--spp-grey);
   border-bottom: 1px solid var(--spp-grey);
   flex-wrap: wrap;
@@ -972,15 +972,15 @@
 
 .spp-success-tracking__left {
   display: flex;
-  gap: 14px;
+  gap: 11px;
   align-items: center;
 }
 
 .spp-success-tracking__icon {
-  width: 48px;
-  height: 48px;
+  width: 38px;
+  height: 38px;
   background: var(--spp-grey);
-  border-radius: 12px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -988,14 +988,14 @@
 }
 
 .spp-success-tracking__title {
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--spp-black);
   margin: 0 0 2px;
 }
 
 .spp-success-tracking__sub {
-  font-size: 12px;
+  font-size: 10px;
   color: var(--spp-black);
   margin: 0;
 }
@@ -1003,13 +1003,13 @@
 .spp-success-tracking__right {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 13px;
   flex: 1;
   flex-wrap: wrap;
 }
 
 .spp-courier {
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--spp-black);
 }
@@ -1017,12 +1017,12 @@
 .spp-contact-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   background: var(--spp-grey);
-  border-radius: 12px;
+  border-radius: 10px;
   border: none;
-  padding: 6px 12px;
-  font-size: 10px;
+  padding: 5px 10px;
+  font-size: 8px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -1034,20 +1034,20 @@
 /* ── Success actions ─────────────────────────────────────── */
 .spp-success-actions {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
 /* ── Responsive ──────────────────────────────────────────── */
 @media (max-width: 1100px) {
   .spp-page {
-    padding: 40px 40px;
+    padding: 32px 32px;
   }
 }
 
 @media (max-width: 768px) {
   .spp-page {
-    padding: 24px 16px;
+    padding: 19px 13px;
   }
 
   .spp-body {
@@ -1059,11 +1059,11 @@
   }
 
   .spp-page-title--thankyou {
-    font-size: 40px;
+    font-size: 32px;
   }
 
   .spp-page-title--received {
-    font-size: 30px;
+    font-size: 24px;
   }
 
   .spp-identity {
@@ -1072,6 +1072,6 @@
 
   .spp-action-meta {
     flex-direction: column;
-    gap: 16px;
+    gap: 13px;
   }
 }

@@ -140,12 +140,39 @@ const LensForm = ({ productId, onBack, onSaved }) => {
       data.append('is_active', form.is_active ? 'true' : 'false');
       if (form.product_image) data.append('product_image', form.product_image);
 
+      let productRes;
       if (isEdit) {
-        await apiClient.patch(`/catalog/products/${productId}/`, data, { headers: { 'Content-Type': 'multipart/form-data' } });
+        productRes = await apiClient.patch(`/catalog/products/${productId}/`, data, { headers: { 'Content-Type': 'multipart/form-data' } });
       } else {
-        await apiClient.post('/catalog/products/', data, { headers: { 'Content-Type': 'multipart/form-data' } });
+        productRes = await apiClient.post('/catalog/products/', data, { headers: { 'Content-Type': 'multipart/form-data' } });
       }
-      setToast({ type: 'success', msg: `Lens ${isEdit ? 'updated' : 'created'} successfully!` });
+      
+      const pId = isEdit ? productId : productRes.data.id;
+      
+      // Sync a default variant so it shows in Inventory and Products list
+      const variantData = {
+        product: pId,
+        sku: form.sku,
+        color: 'Standard',
+        stock: parseInt(form.stock_quantity) || 0,
+        base_price: form.base_price,
+        selling_price: form.selling_price,
+        is_active: form.is_active
+      };
+
+      // Check for existing variants if editing
+      if (isEdit) {
+        const vRes = await apiClient.get(`/catalog/variants/?product=${pId}`);
+        const existing = vRes.data.results || vRes.data;
+        if (existing.length > 0) {
+          await apiClient.patch(`/catalog/variants/${existing[0].id}/`, variantData);
+        } else {
+          await apiClient.post('/catalog/variants/', variantData);
+        }
+      } else {
+        await apiClient.post('/catalog/variants/', variantData);
+      }
+      setToast({ type: 'success', msg: `Contact Lens ${isEdit ? 'updated' : 'created'} successfully!` });
       setIsDirty(false);
       setTimeout(() => { setToast(null); onSaved && onSaved(); }, 1200);
     } catch (err) {
@@ -182,7 +209,7 @@ const LensForm = ({ productId, onBack, onSaved }) => {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
         <button onClick={handleCancel} style={{ background: '#f3f4f6', border: 'none', borderRadius: 8, padding: '8px 16px', cursor: 'pointer', fontSize: 14, color: '#374151', fontWeight: 500 }}>← Back</button>
-        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#111827' }}>{isEdit ? 'Edit Lens' : 'Add New Lens'}</h2>
+        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#111827' }}>{isEdit ? 'Edit Contact Lens' : 'Add New Contact Lens'}</h2>
       </div>
 
       <div style={{ maxWidth: 720, background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb', padding: 28 }}>
@@ -304,7 +331,7 @@ const LensForm = ({ productId, onBack, onSaved }) => {
           <button onClick={handleCancel} style={{ padding: '10px 24px', borderRadius: 8, border: '1px solid #d1d5db', cursor: 'pointer', background: '#fff', fontSize: 14, fontWeight: 500 }}>Cancel</button>
           <button onClick={handleSave} disabled={saving}
             style={{ padding: '10px 28px', borderRadius: 8, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', background: saving ? '#a78bfa' : '#7c3aed', color: '#fff', fontSize: 14, fontWeight: 600 }}>
-            {saving ? 'Saving...' : isEdit ? 'Save Changes' : 'Create Lens'}
+            {saving ? 'Saving...' : isEdit ? 'Save Changes' : 'Create Contact Lens'}
           </button>
         </div>
       </div>

@@ -102,9 +102,8 @@ class CategoryViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
-        if self.request.user.is_staff:
-            return Category.objects.all().order_by('id')
-        return Category.objects.filter(is_active=True).order_by('id')
+        qs = Category.objects.all() if self.request.user.is_staff else Category.objects.filter(is_active=True)
+        return qs.order_by('id')
 
 class BrandViewSet(viewsets.ModelViewSet):
     queryset = Brand.objects.all().order_by('id')
@@ -112,9 +111,11 @@ class BrandViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
-        if self.request.user.is_staff:
-            return Brand.objects.all().order_by('id')
-        return Brand.objects.filter(is_active=True).order_by('id')
+        qs = Brand.objects.all() if self.request.user.is_staff else Brand.objects.filter(is_active=True)
+        brand_type = self.request.query_params.get('brand_type')
+        if brand_type:
+            qs = qs.filter(brand_type=brand_type)
+        return qs.order_by('id')
 
 class ManufacturerViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Manufacturer.objects.all()
@@ -148,11 +149,32 @@ class ProductViewSet(viewsets.ModelViewSet):
             instance.delete()
 
     def get_queryset(self):
+        from django.db.models import Exists, OuterRef, Prefetch
         params = self.request.query_params
-        if self.request.user.is_staff:
-            queryset = Product.objects.filter(is_active=True).select_related('category', 'brand').prefetch_related('variants')
+        
+        # Base filter: Always hide inactive products unless explicitly requested by staff
+        is_active_filter = params.get('is_active')
+        if is_active_filter == 'false' and self.request.user.is_staff:
+            queryset = Product.objects.filter(is_active=False)
+        elif is_active_filter == 'all' and self.request.user.is_staff:
+            queryset = Product.objects.all()
         else:
-            queryset = Product.objects.filter(is_active=True).select_related('category', 'brand').prefetch_related('variants')
+            queryset = Product.objects.filter(is_active=True)
+
+        # Variant filtering: Hide products without listed variants for customers.
+        # For staff, we also hide them by default on the website, but show them in the admin dashboard.
+        is_admin_request = self.request.user.is_staff and (params.get('product_type') or params.get('admin') == 'true')
+        
+        if not is_admin_request:
+            listed_variants = Variant.objects.filter(is_listed=True, stock__gt=0)
+            listed = Variant.objects.filter(product=OuterRef('pk'), is_listed=True, stock__gt=0)
+            queryset = queryset.filter(Exists(listed)).prefetch_related(
+                Prefetch('variants', queryset=listed_variants)
+            )
+        else:
+            queryset = queryset.prefetch_related('variants')
+
+        queryset = queryset.select_related('category', 'brand')
 
         # Filter by product_type
         product_type = params.get('product_type')
@@ -278,14 +300,41 @@ class VariantImageViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
 class VariantViewSet(viewsets.ModelViewSet):
-    queryset = Variant.objects.select_related('product', 'product__category', 'product__brand').all().order_by('id')
+    queryset = Variant.objects.select_related('product', 'product__category', 'product__brand').all().order_by('-id')
     serializer_class = VariantSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
-        if self.request.user.is_staff:
-             return Variant.objects.all().order_by('id')
-        return Variant.objects.filter(stock__gt=0).order_by('id')
+        from django.db.models import Q
+        params = self.request.query_params
+        
+        # Always hide variants of inactive products
+        qs = Variant.objects.filter(product__is_active=True).select_related('product', 'product__brand').prefetch_related('images')
+        
+        # Filter listed/stock for customers. Staff in admin context sees everything.
+        is_staff = self.request.user.is_staff
+        is_admin_query = params.get('admin') == 'true' or params.get('product_type')
+        
+        # If it's a management action (PATCH/PUT/DELETE) or an explicit admin GET, show everything
+        if not (is_staff and (is_admin_query or self.action in ['partial_update', 'update', 'destroy'])):
+            qs = qs.filter(stock__gt=0, is_listed=True)
+
+        # NEW: Filter by product type if requested (crucial for segregating frames vs contact lenses in UI)
+        ptype = params.get('product_type')
+        if ptype:
+            qs = qs.filter(product__product_type=ptype)
+            
+        search = params.get('search')
+        if search:
+            qs = qs.filter(
+                Q(sku__icontains=search) |
+                Q(product__title__icontains=search) |
+                Q(color__icontains=search) |
+                Q(frame_color__icontains=search) |
+                Q(frame_size__icontains=search) |
+                Q(frame_material__icontains=search)
+            )
+        return qs.order_by('-id')
 
 class CollectionViewSet(viewsets.ModelViewSet):
     queryset = Collection.objects.prefetch_related('products').all().order_by('id')
@@ -305,9 +354,33 @@ class LensPackageViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAdminUser]
 
 class LensViewSet(viewsets.ModelViewSet):
-    queryset = Lens.objects.select_related('package', 'type').all()
     serializer_class = LensSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get_queryset(self):
+        params = self.request.query_params
+        qs = Lens.objects.select_related('package', 'type').all()
+        
+        # Hide inactive lenses for customers. Staff in admin context/actions sees everything.
+        is_staff = self.request.user.is_staff
+        is_admin_query = params.get('admin') == 'true'
+        
+        if not (is_staff and (is_admin_query or self.action in ['partial_update', 'update', 'destroy'])):
+            qs = qs.filter(is_active=True)
+
+        is_sunglasses = params.get('is_for_sunglasses')
+        if is_sunglasses == 'true':
+            qs = qs.filter(is_for_sunglasses=True)
+        elif is_sunglasses == 'false':
+            qs = qs.filter(is_for_sunglasses=False)
+
+        is_eyeglasses = params.get('is_for_eyeglasses')
+        if is_eyeglasses == 'true':
+            qs = qs.filter(is_for_eyeglasses=True)
+        elif is_eyeglasses == 'false':
+            qs = qs.filter(is_for_eyeglasses=False)
+            
+        return qs
 
 class PrescriptionViewSet(viewsets.ModelViewSet):
     serializer_class = PrescriptionSerializer
@@ -360,8 +433,49 @@ class PrescriptionViewSet(viewsets.ModelViewSet):
             )
             prescription.status = status_obj
 
-        prescription.review_notes = review_notes
+        if 'notes' in request.data:
+            prescription.review_notes = request.data.get('notes', '')
         prescription.save()
+
+        from apps.sales.models import Order
+        from apps.catalog.core.models import MetadataGroup, MetadataItem as MI
+
+        def _order_status_meta(label, value):
+            group, _ = MetadataGroup.objects.get_or_create(name='Order Status')
+            meta, _ = MI.objects.get_or_create(
+                group=group, label=label,
+                defaults={'value': value, 'is_active': True},
+            )
+            return meta
+
+        linked_orders = Order.objects.filter(items__prescription=prescription).distinct()
+
+        if review_status == 'Approved':
+            # Advance pending → confirmed if ALL lens items on the order are now approved
+            for order in linked_orders:
+                if order.order_status != 'pending':
+                    continue
+                items = order.items.select_related('lens', 'prescription__status').all()
+                lens_items = [i for i in items if i.lens_id]
+                if not lens_items:
+                    continue
+                all_approved = all(
+                    i.prescription and i.prescription.status and
+                    i.prescription.status.label == 'Approved'
+                    for i in lens_items
+                )
+                if all_approved:
+                    Order.objects.filter(pk=order.pk).update(
+                        order_status='confirmed',
+                        status=_order_status_meta('Confirmed', 'confirmed'),
+                    )
+
+        elif review_status in ('Rejected', 'Reupload Requested'):
+            # Revert confirmed → pending so the order goes back to "Order Received"
+            linked_orders.filter(
+                order_status__in=['pending', 'confirmed']
+            ).update(order_status='pending', status=_order_status_meta('Pending', 'pending'))
+
         return Response(self.get_serializer(prescription).data)
 
 class UserFaceViewSet(viewsets.ModelViewSet):
@@ -448,6 +562,12 @@ class ReviewViewSet(viewsets.ModelViewSet):
         elif is_approved == 'false':
             qs = qs.filter(is_approved=False)
 
+        is_rejected = params.get('is_rejected')
+        if is_rejected == 'true':
+            qs = qs.filter(is_rejected=True)
+        elif is_rejected == 'false':
+            qs = qs.filter(is_rejected=False)
+
         product_id = params.get('product')
         if product_id:
             qs = qs.filter(product_id=product_id)
@@ -524,14 +644,16 @@ class ReviewViewSet(viewsets.ModelViewSet):
     def approve(self, request, pk=None):
         review = self.get_object()
         review.is_approved = True
-        review.save()
+        review.is_rejected = False
+        review.save(update_fields=['is_approved', 'is_rejected'])
         return Response({'status': 'review approved'}, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
     def reject(self, request, pk=None):
         review = self.get_object()
         review.is_approved = False
-        review.save()
+        review.is_rejected = True
+        review.save(update_fields=['is_approved', 'is_rejected'])
         return Response({'status': 'review rejected'}, status=status.HTTP_200_OK)
 
 

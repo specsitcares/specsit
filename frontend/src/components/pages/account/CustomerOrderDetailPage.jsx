@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import apiClient from '../../../services/api';
 
@@ -69,7 +69,10 @@ const CustomerOrderDetailPage = () => {
   const [review, setReview] = useState(null);
   const [loading, setLoading] = useState(true);
   const [paymentLoading, setPaymentLoading] = useState(false);
-  const pollRef = useRef(null);
+  const [deliveryConfirming, setDeliveryConfirming] = useState(false);
+  const [deliveryConfirmOpen, setDeliveryConfirmOpen] = useState(false);
+  const [deliveryConfirmError, setDeliveryConfirmError] = useState(null);
+
 
   /* inject print css once */
   useEffect(() => {
@@ -103,8 +106,6 @@ const CustomerOrderDetailPage = () => {
       s.async = true;
       document.body.appendChild(s);
     }
-    pollRef.current = setInterval(() => fetchAll(true), 15000);
-    return () => clearInterval(pollRef.current);
   }, [orderId]);
 
   const handlePhase2Payment = async () => {
@@ -140,6 +141,20 @@ const CustomerOrderDetailPage = () => {
         new window.Razorpay(options).open();
       }
     } catch { alert('Could not initiate payment. Please try again.'); setPaymentLoading(false); }
+  };
+
+  const handleCustomerDeliveryConfirm = async () => {
+    setDeliveryConfirming(true);
+    setDeliveryConfirmError(null);
+    try {
+      await apiClient.post(`/sales/orders/${orderId}/mark_delivered/`);
+      setDeliveryConfirmOpen(false);
+      fetchAll(true);
+    } catch (e) {
+      setDeliveryConfirmError(e.response?.data?.detail || 'Could not confirm delivery. Please try again.');
+    } finally {
+      setDeliveryConfirming(false);
+    }
   };
 
   /* ── loading / error ──────────────────────────────────────── */
@@ -269,6 +284,16 @@ const CustomerOrderDetailPage = () => {
                       Rx: {item.lens_prescription_text}
                     </div>
                   )}
+                  {item.prescription && (
+                    <div style={{ fontSize: 11, color: '#7c3aed', background: '#f5f3ff', borderRadius: 6, padding: '4px 8px', display: 'inline-block', marginBottom: 4 }}>
+                      {item.prescription.prescription_file ? (
+                        <>Prescription: <a href={item.prescription.prescription_file} target="_blank" rel="noopener noreferrer" style={{ color: '#6d28d9', textDecoration: 'underline' }}>View uploaded file</a></>
+                      ) : (
+                        <>Rx: OD {item.prescription.od_sphere} / {item.prescription.od_cylinder} ×{item.prescription.od_axis}{item.prescription.os_sphere ? ` | OS ${item.prescription.os_sphere} / ${item.prescription.os_cylinder} ×${item.prescription.os_axis}` : ''}</>
+                      )}
+                      {item.prescription.status_label && <span style={{ marginLeft: 6, opacity: 0.7 }}>· {item.prescription.status_label}</span>}
+                    </div>
+                  )}
                   {/* per-item unit price */}
                   <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>
                     Unit price: {fmtPrice(item.unit_price || item.price_at_purchase)}
@@ -340,11 +365,43 @@ const CustomerOrderDetailPage = () => {
           </div>
 
           {order.order_status === 'in_transit' && (
-            <div style={{ marginTop: 14 }}>
+            <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
               <Link to={`/order-tracking/${orderId}`}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#7c3aed', color: '#fff', borderRadius: 8, padding: '9px 18px', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#7c3aed', color: '#fff', borderRadius: 8, padding: '9px 18px', fontSize: 13, fontWeight: 600, textDecoration: 'none', alignSelf: 'flex-start' }}>
                 Track Live Delivery →
               </Link>
+
+              {!deliveryConfirmOpen ? (
+                <button
+                  onClick={() => setDeliveryConfirmOpen(true)}
+                  style={{ alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 6, background: '#d1fae5', color: '#065f46', border: '1px solid #6ee7b7', borderRadius: 8, padding: '9px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                >
+                  ✓ I received my order
+                </button>
+              ) : (
+                <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#111827' }}>Confirm you received this order?</p>
+                  <p style={{ margin: 0, fontSize: 13, color: '#6b7280' }}>This will mark the order as delivered and unlock your review.</p>
+                  {deliveryConfirmError && (
+                    <p style={{ margin: 0, fontSize: 13, color: '#dc2626', fontWeight: 600 }}>{deliveryConfirmError}</p>
+                  )}
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      onClick={handleCustomerDeliveryConfirm}
+                      disabled={deliveryConfirming}
+                      style={{ background: '#065f46', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 18px', fontSize: 13, fontWeight: 700, cursor: deliveryConfirming ? 'not-allowed' : 'pointer', opacity: deliveryConfirming ? 0.7 : 1 }}
+                    >
+                      {deliveryConfirming ? 'Confirming…' : 'Yes, received'}
+                    </button>
+                    <button
+                      onClick={() => { setDeliveryConfirmOpen(false); setDeliveryConfirmError(null); }}
+                      style={{ background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: 8, padding: '9px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </Card>
@@ -402,7 +459,7 @@ const CustomerOrderDetailPage = () => {
             <div>
               <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Payment</div>
               <Row label="Method" value={(order.payment_method || '').replace(/_/g, ' ')} />
-              <Row label="Status" value={order.payment_status} />
+              <Row label="Status" value={{ pending: 'Pending', partial_paid: 'Partial Paid', paid: 'Paid', failed: 'Failed', refunded: 'Refunded' }[order.payment_status] || order.payment_status} />
               <Row label="Paid" value={fmtPrice(order.paid_amount)} />
               {parseFloat(order.balance_amount || 0) > 0 && (
                 <Row label="Balance Due" value={fmtPrice(order.balance_amount)} color="#dc2626" bold />

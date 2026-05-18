@@ -81,44 +81,44 @@ const UserFaceTable = () => {
   const renderRow = (face, idx, { isSelected, onToggle } = {}) => (
     <tr key={face.id || idx} style={{ borderBottom: '1px solid #EAECF0', backgroundColor: isSelected ? '#F9F5FF' : '#fff' }}>
       <td style={{ padding: '16px 24px' }}>
-        <input type="checkbox" checked={!!isSelected} onChange={onToggle} style={{ cursor: 'pointer', borderRadius: '4px', accentColor: '#7F56D9' }} />
+        <input type="checkbox" checked={!!isSelected} onChange={onToggle} style={{ cursor: 'pointer', borderRadius: '3px', accentColor: '#7F56D9' }} />
       </td>
       <td style={{ padding: '16px 24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#F4EBFF', color: '#7F56D9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <User size={16} />
           </div>
-          <div style={{ fontWeight: 600, color: '#101828', fontSize: '14px' }}>{face.user_name || 'N/A'}</div>
+          <div style={{ fontWeight: 600, color: '#101828', fontSize: '11px' }}>{face.user_name || 'N/A'}</div>
         </div>
       </td>
       <td style={{ padding: '16px 24px' }}>
         {face.image ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{ width: 60, height: 40, borderRadius: 8, overflow: 'hidden', border: '1px solid #EAECF0', background: '#F9FAFB' }}>
               <img src={face.image} alt="face" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             </div>
             <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#667085' }} title="View Fullsize"><Eye size={16}/></button>
           </div>
-        ) : <span style={{ color: '#667085', fontSize: '14px' }}>—</span>}
+        ) : <span style={{ color: '#667085', fontSize: '11px' }}>—</span>}
       </td>
       <td style={{ padding: '16px 24px' }}>
-        <span style={{ fontSize: '14px', fontWeight: 600, color: '#344054' }}>{face.pd_distance ? `${face.pd_distance}mm` : '—'}</span>
+        <span style={{ fontSize: '11px', fontWeight: 600, color: '#344054' }}>{face.pd_distance ? `${face.pd_distance}mm` : '—'}</span>
       </td>
       <td style={{ padding: '16px 24px' }}>
-        <span style={{ fontSize: '13px', color: '#667085' }}>{new Date(face.created_at).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })}</span>
+        <span style={{ fontSize: '10px', color: '#667085' }}>{new Date(face.created_at).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })}</span>
       </td>
       <td style={{ padding: '16px 24px' }}>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
           <div
             onClick={() => handleEditClick(face)}
-            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
             title="Edit Profile"
           >
             <Edit2 size={16} />
           </div>
           <div
             onClick={() => { setSelectedFace(face); setFormMode('edit'); setShowForm(true); }}
-            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
             title="Delete Profile"
           >
             <Trash2 size={16} />
@@ -135,7 +135,6 @@ const UserFaceTable = () => {
         count={filtered.length}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        onAdd={handleCreateClick}
         addLabel="Capture New"
         columns={columns}
         data={paginated}
@@ -154,8 +153,8 @@ const UserFaceTable = () => {
         showFilters={showFilters}
         setShowFilters={setShowFilters}
         filterContent={
-          <div style={{ display: 'flex', gap: '16px' }}>
-             <div style={{ fontSize: '14px', color: '#667085' }}>No active filters available for face profiles.</div>
+          <div style={{ display: 'flex', gap: '13px' }}>
+             <div style={{ fontSize: '11px', color: '#667085' }}>No active filters available for face profiles.</div>
           </div>
         }
       />

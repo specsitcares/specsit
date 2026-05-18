@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from decimal import Decimal
-from .models import Order, OrderItem, Cart, Wishlist, Coupon, Shipment, OrderTracking, Payment
+from .models import Order, OrderItem, Cart, Wishlist, Coupon, Shipment, OrderTracking, Payment, ReturnRequest, WarrantyClaim
 from apps.catalog.core.models import MetadataItem
 from apps.catalog.serializers import PrescriptionSerializer, LensSerializer
 
@@ -44,7 +44,11 @@ class OrderItemSerializer(serializers.ModelSerializer):
     def get_prescription_status(self, obj):
         if obj.prescription and obj.prescription.status:
             return obj.prescription.status.label
-        return 'N/A'
+        if obj.prescription:
+            return 'Pending Review'
+        if obj.lens:
+            return 'Awaiting Submission'
+        return 'Frame Only'
 
     class Meta:
         model = OrderItem
@@ -52,7 +56,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
             'id', 'variant', 'variant_name', 'variant_image', 'variant_sku', 'product_id',
             'quantity', 'unit_price', 'item_total', 'price_at_purchase', 'price',
             'lens_prescription_text', 'lens_pd',
-            'prescription_status', 'patient_name', 'prescription', 'lens',
+            'prescription_status', 'patient_name', 'prescription', 'lens', 'status',
             'created_at',
         ]
 
@@ -78,8 +82,22 @@ class PaymentSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['payment_date', 'created_at', 'updated_at']
 
+class ReturnRequestSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ReturnRequest
+        fields = '__all__'
+        read_only_fields = ['created_at', 'updated_at']
+
+class WarrantyClaimSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WarrantyClaim
+        fields = '__all__'
+        read_only_fields = ['claimed_at', 'created_at', 'updated_at']
+
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
+    return_requests = ReturnRequestSerializer(many=True, read_only=True)
+    warranty_claims = WarrantyClaimSerializer(many=True, read_only=True)
     customer_name = serializers.ReadOnlyField(source='user.username')
     customer_email = serializers.ReadOnlyField(source='user.email')
     status_label = serializers.SerializerMethodField(read_only=True)
@@ -104,19 +122,39 @@ class OrderSerializer(serializers.ModelSerializer):
         review = Review.objects.filter(order=obj, user=obj.user).first()
         return review.rating if review else None
 
+    ORDER_STATUS_LABELS = {
+        'pending': 'Pending', 'confirmed': 'Confirmed', 'preparing': 'Preparing',
+        'ready_to_dispatch': 'Ready for Dispatch', 'in_transit': 'In Transit',
+        'delivered': 'Delivered', 'cancelled': 'Cancelled',
+    }
+    STATUS_RANK = {
+        'pending': 0, 'confirmed': 1, 'preparing': 2,
+        'ready_to_dispatch': 3, 'in_transit': 4,
+        'delivered': 5, 'cancelled': 5,
+    }
+
     def get_status_label(self, obj):
-        return obj.status.label if obj.status else obj.order_status or 'Pending'
+        db_rank = self.STATUS_RANK.get(obj.order_status or '', 0)
+        if obj.status:
+            meta_mapped = self._label_to_order_status(obj.status.label)
+            meta_rank = self.STATUS_RANK.get(meta_mapped or '', 0)
+            if db_rank > meta_rank:
+                return self.ORDER_STATUS_LABELS.get(obj.order_status, obj.order_status or 'Pending')
+            return obj.status.label
+        return self.ORDER_STATUS_LABELS.get(obj.order_status, obj.order_status or 'Pending')
 
     @staticmethod
     def _label_to_order_status(label):
         label = label.lower()
         if any(k in label for k in ['deliver', 'complet']):
             return 'delivered'
-        if any(k in label for k in ['transit', 'ship', 'dispatch']):
+        if any(k in label for k in ['transit', 'ship']):
             return 'in_transit'
-        if any(k in label for k in ['ready', 'pack']):
+        if any(k in label for k in ['ready', 'pack', 'dispatch']):
             return 'ready_to_dispatch'
-        if any(k in label for k in ['confirm', 'accept', 'prepar', 'quality', 'process']):
+        if any(k in label for k in ['prepar', 'quality']):
+            return 'preparing'
+        if any(k in label for k in ['confirm', 'accept', 'process']):
             return 'confirmed'
         if any(k in label for k in ['cancel', 'reject']):
             return 'cancelled'
@@ -126,19 +164,11 @@ class OrderSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        # Sync order_status from MetadataItem label only when the MetadataItem is
-        # equally or more progressed than the DB field — prevents reverting a
-        # correctly-set 'delivered' back to a stale 'in_transit' MetadataItem.
         if instance.status:
             mapped = self._label_to_order_status(instance.status.label)
-            STATUS_RANK = {
-                'pending': 0, 'confirmed': 1,
-                'ready_to_dispatch': 2, 'in_transit': 3,
-                'delivered': 4, 'cancelled': 4,
-            }
-            db_rank = STATUS_RANK.get(instance.order_status or '', 0)
-            meta_rank = STATUS_RANK.get(mapped or '', 0)
-            if mapped and meta_rank >= db_rank:
+            db_rank = self.STATUS_RANK.get(instance.order_status or '', 0)
+            meta_rank = self.STATUS_RANK.get(mapped or '', 0)
+            if mapped and meta_rank > db_rank:
                 data['order_status'] = mapped
         return data
 
@@ -184,6 +214,7 @@ class OrderSerializer(serializers.ModelSerializer):
             'order_date', 'delivery_date', 'created_at', 'updated_at',
             'shipping_address_detail', 'billing_address_detail',
             'items', 'tracking', 'payments',
+            'return_requests', 'warranty_claims',
             'razorpay_order_id', 'razorpay_payment_id',
             'has_review', 'review_rating',
         ]
@@ -296,6 +327,11 @@ class WishlistSerializer(serializers.ModelSerializer):
     product_id = serializers.ReadOnlyField(source='variant.product.id')
     variant_image = serializers.SerializerMethodField()
     product_price = serializers.ReadOnlyField(source='variant.product.base_price')
+    product_selling_price = serializers.ReadOnlyField(source='variant.product.selling_price')
+    product_discount_percentage = serializers.ReadOnlyField(source='variant.product.discount_percentage')
+    variant_base_price = serializers.ReadOnlyField(source='variant.base_price')
+    variant_selling_price = serializers.ReadOnlyField(source='variant.selling_price')
+    variant_discount_percent = serializers.ReadOnlyField(source='variant.discount_percent')
     variant_color = serializers.ReadOnlyField(source='variant.color')
     variant_size = serializers.ReadOnlyField(source='variant.frame_size')
     variant_sku = serializers.ReadOnlyField(source='variant.sku')
@@ -313,17 +349,146 @@ class WishlistSerializer(serializers.ModelSerializer):
         model = Wishlist
         fields = [
             'id', 'user', 'variant', 'product_id', 'variant_name', 'variant_image',
-            'product_price', 'variant_color', 'variant_size', 'variant_sku', 'added_at'
+            'product_price', 'product_selling_price', 'product_discount_percentage',
+            'variant_base_price', 'variant_selling_price', 'variant_discount_percent',
+            'variant_color', 'variant_size', 'variant_sku', 'added_at'
         ]
         read_only_fields = ['user', 'added_at']
 
 class ShipmentSerializer(serializers.ModelSerializer):
-    status_label = serializers.SerializerMethodField()
-    order_id = serializers.IntegerField(source='order.id', read_only=True)
+    status_label          = serializers.SerializerMethodField()
+    order_id              = serializers.IntegerField(source='order.id', read_only=True)
+    product_names         = serializers.SerializerMethodField()
+    shipping_pincode      = serializers.SerializerMethodField()
+    estimated_delivery_date = serializers.SerializerMethodField()
+    order_payment_status  = serializers.ReadOnlyField(source='order.payment_status')
 
     def get_status_label(self, obj):
         return obj.status.label if obj.status else None
 
+    def get_product_names(self, obj):
+        names = []
+        for item in obj.order.items.all():
+            if item.variant and item.variant.product:
+                names.append(item.variant.product.title)
+        return ', '.join(names) if names else '—'
+
+    def get_shipping_pincode(self, obj):
+        addr = obj.order.shipping_address
+        if addr:
+            return addr.pin_code
+        return obj.order.shipping_postal_code or '—'
+
+    def get_estimated_delivery_date(self, obj):
+        try:
+            return obj.order.tracking.estimated_delivery_date
+        except Exception:
+            return None
+
     class Meta:
         model = Shipment
-        fields = ['id', 'order', 'order_id', 'carrier', 'method', 'tracking_id', 'status', 'status_label', 'created_at']
+        fields = [
+            'id', 'order', 'order_id', 'carrier', 'method', 'tracking_id',
+            'status', 'status_label', 'created_at',
+            'product_names', 'shipping_pincode', 'estimated_delivery_date', 'order_payment_status',
+        ]
+
+
+class OrderShipmentSerializer(serializers.ModelSerializer):
+    """
+    Lightweight serializer for the admin shipments view.
+    Driven by Order lifecycle — no Shipment row required.
+    """
+    order_id            = serializers.IntegerField(source='id', read_only=True)
+    product_names       = serializers.SerializerMethodField()
+    customer_name       = serializers.SerializerMethodField()
+    shipping_pincode    = serializers.SerializerMethodField()
+    shipping_city       = serializers.SerializerMethodField()
+    delivery_date       = serializers.SerializerMethodField()
+    tracking_id         = serializers.SerializerMethodField()
+    carrier             = serializers.SerializerMethodField()
+    order_status_label  = serializers.SerializerMethodField()
+
+    ORDER_STATUS_LABELS = {
+        'pending': 'Pending',
+        'confirmed': 'Confirmed',
+        'preparing': 'Preparing',
+        'ready_to_dispatch': 'Ready to Dispatch',
+        'in_transit': 'In Transit',
+        'delivered': 'Delivered',
+        'cancelled': 'Cancelled',
+    }
+
+    def get_product_names(self, obj):
+        names = [
+            item.variant.product.title
+            for item in obj.items.all()
+            if item.variant and item.variant.product
+        ]
+        return ', '.join(names) if names else '—'
+
+    def get_customer_name(self, obj):
+        if obj.user:
+            full = obj.user.get_full_name()
+            return full if full.strip() else obj.user.username
+        return 'Guest'
+
+    def get_shipping_pincode(self, obj):
+        if obj.shipping_address:
+            return obj.shipping_address.pin_code or '—'
+        return obj.shipping_postal_code or '—'
+
+    def get_shipping_city(self, obj):
+        if obj.shipping_address:
+            return obj.shipping_address.city or '—'
+        return obj.shipping_city or '—'
+
+    def get_delivery_date(self, obj):
+        # Prefer actual delivery date, then tracking estimated, then order.delivery_date
+        try:
+            if obj.tracking.actual_delivery_date:
+                return obj.tracking.actual_delivery_date
+            if obj.tracking.estimated_delivery_date:
+                return obj.tracking.estimated_delivery_date
+        except Exception:
+            pass
+        return obj.delivery_date
+
+    def get_tracking_id(self, obj):
+        # Prefer OrderTracking.tracking_number, fall back to Shipment.tracking_id
+        try:
+            if obj.tracking.tracking_number:
+                return obj.tracking.tracking_number
+        except Exception:
+            pass
+        try:
+            if obj.shipment.tracking_id:
+                return obj.shipment.tracking_id
+        except Exception:
+            pass
+        return None
+
+    def get_carrier(self, obj):
+        try:
+            if obj.tracking.courier_company:
+                return obj.tracking.courier_company
+        except Exception:
+            pass
+        try:
+            return obj.shipment.carrier or None
+        except Exception:
+            return None
+
+    def get_order_status_label(self, obj):
+        return self.ORDER_STATUS_LABELS.get(obj.order_status, obj.order_status or 'Pending')
+
+    class Meta:
+        model = Order
+        fields = [
+            'order_id', 'order_status', 'order_status_label',
+            'product_names', 'customer_name',
+            'shipping_pincode', 'shipping_city',
+            'delivery_date', 'tracking_id', 'carrier',
+            'payment_status', 'total_amount',
+            'order_date', 'created_at',
+        ]

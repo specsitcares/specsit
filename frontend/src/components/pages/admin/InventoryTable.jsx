@@ -24,13 +24,11 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
 
   useEffect(() => {
     fetchInventory();
-    const iv = setInterval(fetchInventory, 5000);
-    return () => clearInterval(iv);
   }, []);
 
   const fetchInventory = async () => {
     try {
-      const res = await apiClient.get('/catalog/variants/');
+      const res = await apiClient.get('/catalog/variants/?page_size=1000&admin=true');
       setVariants(Array.isArray(res.data) ? res.data : (res.data.results || []));
     } catch { } finally { setLoading(false); }
   };
@@ -42,6 +40,17 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
       setShowForm(false);
       fetchInventory();
     } catch (err) { console.error(err); }
+  };
+
+  const handleToggleListed = async (v) => {
+    const newVal = !v.is_listed;
+    setVariants(prev => prev.map(x => x.id === v.id ? { ...x, is_listed: newVal } : x));
+    try {
+      await apiClient.patch(`/catalog/variants/${v.id}/`, { is_listed: newVal });
+    } catch (err) {
+      // Roll back on failure
+      setVariants(prev => prev.map(x => x.id === v.id ? { ...x, is_listed: v.is_listed } : x));
+    }
   };
 
   const bulkDelete = async () => {
@@ -96,11 +105,12 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
     { label: 'Threshold',      key: 'threshold' },
     { label: 'Last Restocked', key: 'last_restocked' },
     { label: 'Last Sold',      key: 'last_sold' },
+    { label: 'Listed',         key: 'is_listed' },
     { label: 'Action',         key: 'action'  },
   ];
 
-  const CELL = { padding: '0 16px', height: 64, verticalAlign: 'middle' };
-  const TXT  = { fontSize: 16, color: '#040205', fontWeight: 400 };
+  const CELL = { padding: '0 13px', height: 51, verticalAlign: 'middle' };
+  const TXT  = { fontSize: 13, color: '#040205', fontWeight: 400 };
 
   const renderRow = (v) => {
     const imgSrc    = getImage(v);
@@ -111,7 +121,7 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
       <tr key={v.id} style={{ borderBottom: '1px solid #e0e0e0', background: isSelected ? '#F9F5FF' : '#fff' }}>
 
         {/* Checkbox — handled by BaseAdminTable via isSelected/onToggle but we wire it manually */}
-        <td style={{ ...CELL, width: 44 }}>
+        <td style={{ ...CELL, width: 35 }}>
           <input
             type="checkbox"
             checked={isSelected}
@@ -127,62 +137,83 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
         </td>
 
         {/* Product */}
-        <td style={{ ...CELL, minWidth: 220 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 4, border: '1px solid #e0e0e0', overflow: 'hidden', flexShrink: 0, background: '#fafafa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {imgSrc ? <img src={imgSrc} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Package size={18} color="#D0D5DD" />}
+        <td style={{ ...CELL, minWidth: 176 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 3, border: '1px solid #e0e0e0', overflow: 'hidden', flexShrink: 0, background: '#fafafa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {imgSrc ? <img src={imgSrc} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Package size={14} color="#D0D5DD" />}
             </div>
             <div>
               <div style={{ ...TXT, fontWeight: 500 }}>{v.product_name || '—'}</div>
-              <div style={{ fontSize: 14, color: '#697177', marginTop: 2 }}>Brand: {v.brand_name || '—'}</div>
+              <div style={{ fontSize: 11, color: '#697177', marginTop: 2 }}>Brand: {v.brand_name || '—'}</div>
             </div>
           </div>
         </td>
 
         {/* SKU */}
-        <td style={{ ...CELL, minWidth: 140 }}>
+        <td style={{ ...CELL, minWidth: 112 }}>
           <span style={{ ...TXT, fontFamily: 'monospace' }}>{v.sku || '—'}</span>
         </td>
 
         {/* Variant */}
-        <td style={{ ...CELL, minWidth: 130 }}>
+        <td style={{ ...CELL, minWidth: 104 }}>
           <span style={{ ...TXT }}>{v.color || 'Standard'}</span>
         </td>
 
         {/* Current Stock */}
-        <td style={{ ...CELL, minWidth: 120 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ width: 20, height: 20, borderRadius: '50%', background: dot, flexShrink: 0, display: 'inline-block' }} />
+        <td style={{ ...CELL, minWidth: 96 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ width: 16, height: 16, borderRadius: '50%', background: dot, flexShrink: 0, display: 'inline-block' }} />
             <span style={{ ...TXT }}>{v.stock ?? 0}</span>
           </div>
         </td>
 
         {/* Threshold */}
-        <td style={{ ...CELL, minWidth: 100 }}>
+        <td style={{ ...CELL, minWidth: 80 }}>
           <span style={{ ...TXT }}>{threshold}</span>
         </td>
 
         {/* Last Restocked */}
-        <td style={{ ...CELL, minWidth: 140 }}>
+        <td style={{ ...CELL, minWidth: 112 }}>
           <span style={{ ...TXT }}>
             {v.last_restocked ? new Date(v.last_restocked).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
           </span>
         </td>
 
         {/* Last Sold */}
-        <td style={{ ...CELL, minWidth: 120 }}>
+        <td style={{ ...CELL, minWidth: 96 }}>
           <span style={{ ...TXT }}>
             {v.last_sold ? new Date(v.last_sold).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
           </span>
         </td>
 
+        {/* Listed toggle */}
+        <td style={{ ...CELL, minWidth: 80 }}>
+          <div
+            onClick={() => handleToggleListed(v)}
+            style={{
+              width: 36, height: 20, borderRadius: 10, position: 'relative', cursor: 'pointer',
+              background: v.is_listed ? '#7F56D9' : '#D0D5DD',
+              transition: 'background 0.2s',
+              flexShrink: 0,
+              display: 'inline-block',
+            }}
+          >
+            <span style={{
+              position: 'absolute', top: 2, left: v.is_listed ? 18 : 2,
+              width: 16, height: 16, borderRadius: '50%', background: '#fff',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+              transition: 'left 0.2s',
+            }} />
+          </div>
+        </td>
+
         {/* Action */}
-        <td style={{ ...CELL, minWidth: 180 }}>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={() => handleEditClick(v)} style={{ minWidth: 80, padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: 6, background: '#f7f7f7', fontSize: 16, color: '#0f172a', cursor: 'pointer' }}>
+        <td style={{ ...CELL, minWidth: 144 }}>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button onClick={() => handleEditClick(v)} style={{ minWidth: 64, padding: '6px 10px', border: '1px solid #e2e8f0', borderRadius: 5, background: '#f7f7f7', fontSize: 13, color: '#0f172a', cursor: 'pointer' }}>
               Adjust
             </button>
-            <button style={{ minWidth: 80, padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: 6, background: '#fff', fontSize: 16, color: '#0f172a', cursor: 'pointer' }}>
+            <button style={{ minWidth: 64, padding: '6px 10px', border: '1px solid #e2e8f0', borderRadius: 5, background: '#fff', fontSize: 13, color: '#0f172a', cursor: 'pointer' }}>
               Restock
             </button>
           </div>
@@ -197,25 +228,25 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
     <div style={{ fontFamily: 'Inter, sans-serif' }}>
 
       {/* Title */}
-      <h1 style={{ fontSize: 24, fontWeight: 700, color: '#040205', marginBottom: 20 }}>
+      <h1 style={{ fontSize: 19, fontWeight: 700, color: '#040205', marginBottom: 16 }}>
         Inventory Management
       </h1>
 
       {/* KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 24, marginBottom: 28 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 19, marginBottom: 22 }}>
         {statCards.map(({ label, value, Icon, trend }, i) => (
-          <div key={i} style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: 12, padding: 20 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div style={{ width: 40, height: 40, background: '#F9F5FF', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon size={20} color="#7F56D9" />
-                </div>
-                <span style={{ fontSize: 16, fontWeight: 500, color: '#697177' }}>{label}</span>
-              </div>
+          <div key={i} style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: 10, padding: 16 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <span style={{ fontSize: 28, fontWeight: 700, color: '#040205', lineHeight: '32px' }}>{value}</span>
+                <div style={{ width: 32, height: 32, background: '#F9F5FF', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon size={16} color="#7F56D9" />
+                </div>
+                <span style={{ fontSize: 13, fontWeight: 500, color: '#697177' }}>{label}</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <span style={{ fontSize: 22, fontWeight: 700, color: '#040205', lineHeight: '22px' }}>{value}</span>
                 {trend && (
-                  <span style={{ fontSize: 13, fontWeight: 600, color: trend === 'up' ? '#147f27' : '#931334', display: 'flex', alignItems: 'center', gap: 3 }}>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: trend === 'up' ? '#147f27' : '#931334', display: 'flex', alignItems: 'center', gap: 3 }}>
                     {trend === 'up' ? '↗' : '↘'} vs last period
                   </span>
                 )}

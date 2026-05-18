@@ -200,7 +200,7 @@ const FaceCapture = ({ onCaptureComplete }) => {
                         : 'Align your face within the oval.'}
                 </p>
                 
-                <div className="mode-toggle" style={{marginBottom: '20px'}}>
+                <div className="mode-toggle" style={{marginBottom: '16px'}}>
                     <button 
                         onClick={() => setMode('pd')} 
                         className={mode === 'pd' ? 'active' : ''}
@@ -239,21 +239,21 @@ const FaceCapture = ({ onCaptureComplete }) => {
                     <div className="ai-result-card" style={{
                         backgroundColor: '#f0fdf4',
                         border: '2px solid #22c55e',
-                        borderRadius: '8px',
-                        padding: '15px',
-                        marginTop: '15px',
+                        borderRadius: '6px',
+                        padding: '12px',
+                        marginTop: '12px',
                         textAlign: 'center'
                     }}>
                         <p style={{margin: '0 0 10px 0', fontWeight: 'bold'}}>🤖 AI Measurement Complete</p>
-                        <div style={{fontSize: '24px', fontWeight: 'bold', color: '#16a34a', marginBottom: '8px'}}>
+                        <div style={{fontSize: '19px', fontWeight: 'bold', color: '#16a34a', marginBottom: '6px'}}>
                             {aiResult.pd_mm} mm
                         </div>
-                        <p style={{margin: '8px 0', fontSize: '14px'}}>
+                        <p style={{margin: '8px 0', fontSize: '11px'}}>
                             Confidence: <strong>{aiResult.confidence}</strong><br/>
                             Range: {aiResult.range.min} - {aiResult.range.max} mm
                         </p>
                         {aiResult.confidence === 'low' && (
-                            <p style={{margin: '8px 0', fontSize: '12px', color: '#dc2626'}}>
+                            <p style={{margin: '8px 0', fontSize: '10px', color: '#dc2626'}}>
                                 ⚠️ Low confidence. Consider re-capturing with better lighting.
                             </p>
                         )}
@@ -266,7 +266,7 @@ const FaceCapture = ({ onCaptureComplete }) => {
                             <button onClick={capturePhoto} className="btn-capture" disabled={!!error}>
                                 Capture Photo
                             </button>
-                            <small style={{display: 'block', textAlign: 'center', marginTop: '8px', color: '#666'}}>
+                            <small style={{display: 'block', textAlign: 'center', marginTop: '6px', color: '#666'}}>
                                 ✨ AI will automatically measure your PD after capture
                             </small>
                         </>
@@ -277,7 +277,7 @@ const FaceCapture = ({ onCaptureComplete }) => {
                                     onClick={handleMeasureWithAI} 
                                     className="btn-proceed" 
                                     disabled={aiMeasuring || saving}
-                                    style={{marginBottom: '10px'}}
+                                    style={{marginBottom: '8px'}}
                                 >
                                     {aiMeasuring ? "🤖 Measuring..." : "🤖 Measure with AI"}
                                 </button>

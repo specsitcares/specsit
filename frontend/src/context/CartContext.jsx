@@ -26,17 +26,18 @@ export const CartProvider = ({ children }) => {
 
     // BUG 3 FIX — accept the variant the user actually selected instead of always
     // picking variants[0]. Falls back to variants[0] for callers that don't pass it.
-    const addToCart = (product, lens = null, prescription = null, prescriptionPdfUrl = null, rxMode = null, selectedVariant = null) => {
+    const addToCart = (product, lens = null, prescription = null, prescriptionPdfUrl = null, rxMode = null, selectedVariant = null, prescriptionFile = null) => {
         const variant = selectedVariant || product.variants?.[0] || null;
         const newItem = {
             id: `${product.id}-${variant?.id || 'no-var'}-${lens?.id || 'no-lens'}-${
-                prescription ? 'rx' : prescriptionPdfUrl ? 'pdf' : rxMode === 'later' ? 'later' : 'no-rx'
+                prescription ? 'rx' : prescriptionPdfUrl ? 'pdf' : rxMode ? rxMode : 'no-rx'
             }`,
             product,
             variant,
             lens,
             prescription,
             prescription_pdf_url: prescriptionPdfUrl,
+            prescriptionFile,
             rxMode,
             quantity: 1,
         };
@@ -62,11 +63,11 @@ export const CartProvider = ({ children }) => {
     const clearCart = () => setCart([]);
 
     // BUG 1 FIX — use resolveProductPrice so "0.00" strings don't short-circuit the chain
-    const cartTotal = cart.reduce((acc, item) => {
+    const cartTotal = Math.round(cart.reduce((acc, item) => {
         const productPrice = resolveProductPrice(item.product);
         const lensPrice    = item.lens ? parseFloat(item.lens.price || 0) : 0;
-        return acc + (productPrice + lensPrice) * item.quantity;
-    }, 0);
+        return acc + Math.round((productPrice + lensPrice) * 100) * item.quantity;
+    }, 0)) / 100;
 
     return (
         <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, clearCart, cartTotal, resolveProductPrice }}>

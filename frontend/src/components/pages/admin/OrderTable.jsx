@@ -8,13 +8,29 @@ import {
 } from 'lucide-react';
 import apiClient from '../../../services/api';
 import FormModal from './FormModal';
+import AdminLoadingState from './AdminLoadingState';
+import PrescriptionOffcanvas from './PrescriptionOffcanvas';
 
 const STATUS_CLASS = {
-  approved: 'badge-success',
-  completed: 'badge-success',
-  pending: 'badge-warning',
-  cancelled: 'badge-error',
-  shipped: 'badge-info',
+  pending:               'badge-warning',
+  confirmed:             'badge-warning',
+  preparing:             'badge-info',
+  processing:            'badge-info',
+  'ready for dispatch':  'badge-info',
+  'in transit':          'badge-info',
+  shipped:               'badge-info',
+  delivering:            'badge-info',
+  delivered:             'badge-success',
+  completed:             'badge-success',
+  cancelled:             'badge-error',
+};
+
+const STATUS_BADGE_STYLE = {
+  'badge-success': { bg: '#ECFDF3', color: '#039855' },
+  'badge-warning': { bg: '#FFFAEB', color: '#B54708' },
+  'badge-error':   { bg: '#FEF3F2', color: '#D1242F' },
+  'badge-info':    { bg: '#EFF8FF', color: '#175CD3' },
+  'badge-neutral': { bg: '#F2F4F7', color: '#344054' },
 };
 
 const getStatusClass = (label) =>
@@ -43,6 +59,7 @@ const OrderTable = ({ category = null, onViewDetails }) => {
   const [activeWarrantyTab, setActiveWarrantyTab] = useState('window'); // 'window', 'claimed', 'not_claimed'
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [qcLightbox, setQcLightbox] = useState(null);
+  const [rxOffcanvasOrder, setRxOffcanvasOrder] = useState(null);
 
   const fetchAnalytics = async () => {
     try {
@@ -52,7 +69,9 @@ const OrderTable = ({ category = null, onViewDetails }) => {
           search: searchQuery,
           status: statusFilter,
           date_from: dateFilter.from,
-          date_to: dateFilter.to
+          date_to: dateFilter.to,
+          ...(category === 'returns' ? { return_tab: activeReturnTab } : {}),
+          ...(category === 'warranty' ? { warranty_tab: activeWarrantyTab } : {}),
         }
       });
       setOrderAnalytics(res.data);
@@ -80,15 +99,7 @@ const OrderTable = ({ category = null, onViewDetails }) => {
 
   useEffect(() => {
     fetchOrders(); fetchMetadata(); fetchAnalytics();
-
-    // Auto-refresh every 30 seconds for Real-Time data feel
-    const interval = setInterval(() => {
-      fetchOrders();
-      fetchAnalytics();
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [page, perPage, searchQuery, statusFilter, dateFilter, category, activeWarrantyTab, activeReturnTab]);
+  }, [page, perPage, searchQuery, statusFilter, dateFilter.from, dateFilter.to, category, activeWarrantyTab, activeReturnTab]);
 
   const fetchMetadata = async () => {
     try {
@@ -108,19 +119,11 @@ const OrderTable = ({ category = null, onViewDetails }) => {
           view_preset: category,
           ordering: '-created_at',
           search: searchQuery,
-          status: category === 'returns' ? (
-            activeReturnTab === 'requests' ? 'pending' :
-              activeReturnTab === 'refund' ? 'processing' :
-                activeReturnTab === 'replacement' ? 'shipped' :
-                  statusFilter
-          ) : category === 'warranty' ? (
-            activeWarrantyTab === 'requests_received' ? 'pending' :
-              activeWarrantyTab === 'claimed' ? 'delivered' :
-                activeWarrantyTab === 'not_claimed' ? 'processing,shipped' :
-                  statusFilter
-          ) : statusFilter,
+          status: statusFilter,
           date_from: dateFilter.from,
-          date_to: dateFilter.to
+          date_to: dateFilter.to,
+          ...(category === 'returns' ? { return_tab: activeReturnTab } : {}),
+          ...(category === 'warranty' ? { warranty_tab: activeWarrantyTab } : {}),
         }
       });
       const data = res.data;
@@ -144,14 +147,8 @@ const OrderTable = ({ category = null, onViewDetails }) => {
     setExpandedRows(prev => prev.includes(id) ? prev.filter(r => r !== id) : [...prev, id]);
 
   const handleEdit = (o) => {
-    if (category === 'returns') {
-      alert(`Opening Return Management for Order #LO-${String(o.id).padStart(7, '0')}`);
-      // Place for return specialized logic
-      return;
-    }
-    if (category === 'warranty') {
-      alert(`Opening Warranty Verification for Order #LO-${String(o.id).padStart(7, '0')}`);
-      // Place for warranty specialized logic
+    if (category === 'returns' || category === 'warranty') {
+      onViewDetails(o.id);
       return;
     }
     setSelectedOrder(o);
@@ -272,8 +269,8 @@ const OrderTable = ({ category = null, onViewDetails }) => {
   useEffect(() => { setGoToInputVal(String(page)); }, [page]);
 
   if (loading) return (
-    <div className="flex items-center justify-center h-64">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+    <div style={{ padding: '19px' }}>
+      <AdminLoadingState loading={true} label="orders" colWidths={['30%', '15%', '12%', '12%', '12%', '10%', '9%']} />
     </div>
   );
 
@@ -281,103 +278,103 @@ const OrderTable = ({ category = null, onViewDetails }) => {
     <div className="orders-page-container-v3" style={{ padding: '0px' }}>
 
       {/* Analytics Cards Row (Visual Parity) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginBottom: '32px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '26px' }}>
         {(category === 'returns' ? [
-          { title: 'Items in Return Window', value: orderAnalytics?.total ?? 0, trendValue: Math.abs(orderAnalytics?.trends?.total || 0), trend: (orderAnalytics?.trends?.total >= 0) ? 'up' : 'down', icon: <Package size={20} /> },
-          { title: 'Total Return Requests', value: orderAnalytics?.pending ?? 0, trendValue: Math.abs(orderAnalytics?.trends?.pending || 0), trend: (orderAnalytics?.trends?.pending >= 0) ? 'up' : 'down', icon: <Clock size={20} /> },
-          { title: 'Returns for Refund', value: orderAnalytics?.processing ?? 0, trendValue: Math.abs(orderAnalytics?.trends?.processing || 0), trend: (orderAnalytics?.trends?.processing >= 0) ? 'up' : 'down', icon: <CircleDollarSign size={20} /> },
-          { title: 'Returns for Replacement', value: 0, trendValue: 0, trend: 'up', icon: <RefreshCw size={20} /> },
-          { title: 'Total Refund Amount', value: `₹${((orderAnalytics?.processing || 0) * 1250).toLocaleString()}`, trendValue: 0, trend: 'up', icon: <Briefcase size={20} /> }
+          { title: 'Items in Return Window', value: orderAnalytics?.total ?? 0, trendValue: Math.abs(orderAnalytics?.trends?.total || 0), trend: (orderAnalytics?.trends?.total >= 0) ? 'up' : 'down', icon: <Package size={16} /> },
+          { title: 'Total Return Requests', value: orderAnalytics?.return_requests_count ?? 0, trendValue: 0, trend: 'up', icon: <Clock size={16} /> },
+          { title: 'Returns for Refund', value: orderAnalytics?.refund_count ?? 0, trendValue: 0, trend: 'up', icon: <CircleDollarSign size={16} /> },
+          { title: 'Returns for Replacement', value: orderAnalytics?.replacement_count ?? 0, trendValue: 0, trend: 'up', icon: <RefreshCw size={16} /> },
+          { title: 'Total Refund Amount', value: `₹${(orderAnalytics?.total_refund_amount || 0).toLocaleString('en-IN')}`, trendValue: 0, trend: 'up', icon: <Briefcase size={16} /> }
         ] : category === 'warranty' ? [
-          { title: 'Total Warranty Window', value: orderAnalytics?.total ?? 0, trendValue: Math.abs(orderAnalytics?.trends?.total || 0), trend: (orderAnalytics?.trends?.total >= 0) ? 'up' : 'down', icon: <ShieldCheck size={20} /> },
-          { title: 'Warranty Claimed', value: 0, trendValue: 0, trend: 'up', icon: <Briefcase size={20} /> },
-          { title: 'Unclaimed Warranty', value: orderAnalytics?.total ?? 0, trendValue: Math.abs(orderAnalytics?.trends?.pending || 0), trend: 'down', icon: <Package size={20} /> },
-          { title: 'Service Pending', value: orderAnalytics?.processing ?? 0, trendValue: 5, trend: 'up', icon: <RefreshCw size={20} /> }
+          { title: 'Total Warranty Window', value: orderAnalytics?.total ?? 0, trendValue: Math.abs(orderAnalytics?.trends?.total || 0), trend: (orderAnalytics?.trends?.total >= 0) ? 'up' : 'down', icon: <ShieldCheck size={16} /> },
+          { title: 'Warranty Claimed', value: orderAnalytics?.warranty_claimed_count ?? 0, trendValue: 0, trend: 'up', icon: <Briefcase size={16} /> },
+          { title: 'Unclaimed Warranty', value: orderAnalytics?.warranty_unclaimed_count ?? 0, trendValue: 0, trend: 'down', icon: <Package size={16} /> },
+          { title: 'Service Pending', value: orderAnalytics?.warranty_service_pending_count ?? 0, trendValue: 0, trend: 'up', icon: <RefreshCw size={16} /> }
         ] : [
-          { title: 'Total Orders', value: orderAnalytics?.total ?? 0, trendValue: Math.abs(orderAnalytics?.trends?.total || 0), trend: (orderAnalytics?.trends?.total >= 0) ? 'up' : 'down', icon: <Briefcase size={20} /> },
-          { title: 'Pending', value: orderAnalytics?.pending ?? 0, trendValue: Math.abs(orderAnalytics?.trends?.pending || 0), trend: (orderAnalytics?.trends?.pending >= 0) ? 'up' : 'down', icon: <Clock size={20} /> },
-          { title: 'Processing', value: orderAnalytics?.processing ?? 0, trendValue: Math.abs(orderAnalytics?.trends?.processing || 0), trend: (orderAnalytics?.trends?.processing >= 0) ? 'up' : 'down', icon: <RefreshCw size={20} /> },
-          { title: 'Shipped', value: orderAnalytics?.shipped ?? 0, trendValue: Math.abs(orderAnalytics?.trends?.shipped || 0), trend: (orderAnalytics?.trends?.shipped >= 0) ? 'up' : 'down', icon: <Truck size={20} /> }
+          { title: 'Total Orders', value: orderAnalytics?.total ?? 0, trendValue: Math.abs(orderAnalytics?.trends?.total || 0), trend: (orderAnalytics?.trends?.total >= 0) ? 'up' : 'down', icon: <Briefcase size={16} /> },
+          { title: 'Pending', value: orderAnalytics?.pending ?? 0, trendValue: Math.abs(orderAnalytics?.trends?.pending || 0), trend: (orderAnalytics?.trends?.pending >= 0) ? 'up' : 'down', icon: <Clock size={16} /> },
+          { title: 'Processing', value: orderAnalytics?.processing ?? 0, trendValue: Math.abs(orderAnalytics?.trends?.processing || 0), trend: (orderAnalytics?.trends?.processing >= 0) ? 'up' : 'down', icon: <RefreshCw size={16} /> },
+          { title: 'Shipped', value: orderAnalytics?.shipped ?? 0, trendValue: Math.abs(orderAnalytics?.trends?.shipped || 0), trend: (orderAnalytics?.trends?.shipped >= 0) ? 'up' : 'down', icon: <Truck size={16} /> }
         ]).map((c, i) => (
-          <div key={i} style={{ backgroundColor: '#fff', border: '1px solid #EAECF0', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)', position: 'relative' }}>
+          <div key={i} style={{ backgroundColor: '#fff', border: '1px solid #EAECF0', borderRadius: '10px', padding: '16px', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)', position: 'relative' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start' }}>
-              <div style={{ width: '40px', height: '40px', backgroundColor: '#F9F5FF', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7F56D9' }}>
-                {c.icon || <Briefcase size={20} />}
+              <div style={{ width: '32px', height: '32px', backgroundColor: '#F9F5FF', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7F56D9' }}>
+                {c.icon || <Briefcase size={16} />}
               </div>
             </div>
-            <div style={{ marginTop: '16px' }}>
-              <div style={{ color: '#667085', fontSize: '14px', fontWeight: 600 }}>{c.title}</div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '4px' }}>
-                <div style={{ fontSize: '24px', fontWeight: 700, color: '#101828' }}>{c.value}</div>
+            <div style={{ marginTop: '13px' }}>
+              <div style={{ color: '#667085', fontSize: '11px', fontWeight: 600 }}>{c.title}</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '3px' }}>
+                <div style={{ fontSize: '19px', fontWeight: 700, color: '#101828' }}>{c.value}</div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '8px' }}>
-                <span style={{ fontSize: '12px', color: c.trend === 'up' ? '#12B76A' : '#F04438', display: 'flex', alignItems: 'center', gap: 2, fontWeight: 700 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '3px', marginTop: '6px' }}>
+                <span style={{ fontSize: '10px', color: c.trend === 'up' ? '#12B76A' : '#F04438', display: 'flex', alignItems: 'center', gap: 2, fontWeight: 700 }}>
                   {c.trend === 'up' ? '↗' : '↘'} {c.trendValue}%
                 </span>
-                <span style={{ fontSize: '11px', color: '#667085', fontWeight: 500 }}>{orderAnalytics?.trendPeriod || 'last period'}</span>
+                <span style={{ fontSize: '9px', color: '#667085', fontWeight: 500 }}>{orderAnalytics?.trendPeriod || 'last period'}</span>
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="orders-table-card-v2" style={{ backgroundColor: '#fff', border: '1px solid #EAECF0', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(16, 24, 40, 0.1), 0 1px 2px rgba(16, 24, 40, 0.06)' }}>
+      <div className="orders-table-card-v2" style={{ backgroundColor: '#fff', border: '1px solid #EAECF0', borderRadius: '13px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(16, 24, 40, 0.1), 0 1px 2px rgba(16, 24, 40, 0.06)' }}>
         {/* Table Header Section (Inline-Styled for Guaranteed Alignment) */}
         <div style={{ padding: '20px 24px', borderBottom: '1px solid #EAECF0', backgroundColor: '#fff' }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '13px' }}>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#101828', margin: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#101828', margin: 0 }}>
                 {category === 'returns' ? 'Returns & Replacements' : category === 'warranty' ? 'Orders (Warranty Window)' : 'Recent Orders'}
               </h3>
               {category === 'returns' && (
-                <div style={{ display: 'flex', background: '#F9FAFB', border: '1px solid #EAECF0', borderRadius: '8px', padding: '2px', marginLeft: '12px' }}>
+                <div style={{ display: 'flex', background: '#F9FAFB', border: '1px solid #EAECF0', borderRadius: '6px', padding: '2px', marginLeft: '10px' }}>
                   <button
                     onClick={() => setActiveReturnTab('window')}
-                    style={{ padding: '6px 14px', borderRadius: '6px', fontSize: '13px', fontWeight: 600, border: 'none', background: activeReturnTab === 'window' ? '#fff' : 'transparent', color: activeReturnTab === 'window' ? '#7F56D9' : '#667085', boxShadow: activeReturnTab === 'window' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none', cursor: 'pointer' }}
+                    style={{ padding: '6px 14px', borderRadius: '5px', fontSize: '10px', fontWeight: 600, border: 'none', background: activeReturnTab === 'window' ? '#fff' : 'transparent', color: activeReturnTab === 'window' ? '#7F56D9' : '#667085', boxShadow: activeReturnTab === 'window' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none', cursor: 'pointer' }}
                   >In Window</button>
                   <button
                     onClick={() => setActiveReturnTab('requests')}
-                    style={{ padding: '6px 14px', borderRadius: '6px', fontSize: '13px', fontWeight: 600, border: 'none', background: activeReturnTab === 'requests' ? '#fff' : 'transparent', color: activeReturnTab === 'requests' ? '#7F56D9' : '#667085', boxShadow: activeReturnTab === 'requests' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none', cursor: 'pointer' }}
+                    style={{ padding: '6px 14px', borderRadius: '5px', fontSize: '10px', fontWeight: 600, border: 'none', background: activeReturnTab === 'requests' ? '#fff' : 'transparent', color: activeReturnTab === 'requests' ? '#7F56D9' : '#667085', boxShadow: activeReturnTab === 'requests' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none', cursor: 'pointer' }}
                   >Requests</button>
                   <button
                     onClick={() => setActiveReturnTab('refund')}
-                    style={{ padding: '6px 14px', borderRadius: '6px', fontSize: '13px', fontWeight: 600, border: 'none', background: activeReturnTab === 'refund' ? '#fff' : 'transparent', color: activeReturnTab === 'refund' ? '#7F56D9' : '#667085', boxShadow: activeReturnTab === 'refund' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none', cursor: 'pointer' }}
+                    style={{ padding: '6px 14px', borderRadius: '5px', fontSize: '10px', fontWeight: 600, border: 'none', background: activeReturnTab === 'refund' ? '#fff' : 'transparent', color: activeReturnTab === 'refund' ? '#7F56D9' : '#667085', boxShadow: activeReturnTab === 'refund' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none', cursor: 'pointer' }}
                   >Refund</button>
                   <button
                     onClick={() => setActiveReturnTab('replacement')}
-                    style={{ padding: '6px 14px', borderRadius: '6px', fontSize: '13px', fontWeight: 600, border: 'none', background: activeReturnTab === 'replacement' ? '#fff' : 'transparent', color: activeReturnTab === 'replacement' ? '#7F56D9' : '#667085', boxShadow: activeReturnTab === 'replacement' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none', cursor: 'pointer' }}
+                    style={{ padding: '6px 14px', borderRadius: '5px', fontSize: '10px', fontWeight: 600, border: 'none', background: activeReturnTab === 'replacement' ? '#fff' : 'transparent', color: activeReturnTab === 'replacement' ? '#7F56D9' : '#667085', boxShadow: activeReturnTab === 'replacement' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none', cursor: 'pointer' }}
                   >Replacement</button>
                 </div>
               )}
               {category === 'warranty' && (
-                <div style={{ display: 'flex', background: '#F9FAFB', border: '1px solid #EAECF0', borderRadius: '8px', padding: '2px', marginLeft: '12px' }}>
+                <div style={{ display: 'flex', background: '#F9FAFB', border: '1px solid #EAECF0', borderRadius: '6px', padding: '2px', marginLeft: '10px' }}>
                   <button
                     onClick={() => setActiveWarrantyTab('window')}
-                    style={{ padding: '6px 14px', borderRadius: '6px', fontSize: '13px', fontWeight: 600, border: 'none', background: activeWarrantyTab === 'window' ? '#fff' : 'transparent', color: activeWarrantyTab === 'window' ? '#7F56D9' : '#667085', boxShadow: activeWarrantyTab === 'window' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none', cursor: 'pointer' }}
+                    style={{ padding: '6px 14px', borderRadius: '5px', fontSize: '10px', fontWeight: 600, border: 'none', background: activeWarrantyTab === 'window' ? '#fff' : 'transparent', color: activeWarrantyTab === 'window' ? '#7F56D9' : '#667085', boxShadow: activeWarrantyTab === 'window' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none', cursor: 'pointer' }}
                   >In Window</button>
                   <button
                     onClick={() => setActiveWarrantyTab('requests_received')}
-                    style={{ padding: '6px 14px', borderRadius: '6px', fontSize: '13px', fontWeight: 600, border: 'none', background: activeWarrantyTab === 'requests_received' ? '#fff' : 'transparent', color: activeWarrantyTab === 'requests_received' ? '#7F56D9' : '#667085', boxShadow: activeWarrantyTab === 'requests_received' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none', cursor: 'pointer' }}
+                    style={{ padding: '6px 14px', borderRadius: '5px', fontSize: '10px', fontWeight: 600, border: 'none', background: activeWarrantyTab === 'requests_received' ? '#fff' : 'transparent', color: activeWarrantyTab === 'requests_received' ? '#7F56D9' : '#667085', boxShadow: activeWarrantyTab === 'requests_received' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none', cursor: 'pointer' }}
                   >Requests Received</button>
                   <button
                     onClick={() => setActiveWarrantyTab('not_claimed')}
-                    style={{ padding: '6px 14px', borderRadius: '6px', fontSize: '13px', fontWeight: 600, border: 'none', background: activeWarrantyTab === 'not_claimed' ? '#fff' : 'transparent', color: activeWarrantyTab === 'not_claimed' ? '#7F56D9' : '#667085', boxShadow: activeWarrantyTab === 'not_claimed' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none', cursor: 'pointer' }}
+                    style={{ padding: '6px 14px', borderRadius: '5px', fontSize: '10px', fontWeight: 600, border: 'none', background: activeWarrantyTab === 'not_claimed' ? '#fff' : 'transparent', color: activeWarrantyTab === 'not_claimed' ? '#7F56D9' : '#667085', boxShadow: activeWarrantyTab === 'not_claimed' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none', cursor: 'pointer' }}
                   >Not Claimed</button>
                   <button
                     onClick={() => setActiveWarrantyTab('claimed')}
-                    style={{ padding: '6px 14px', borderRadius: '6px', fontSize: '13px', fontWeight: 600, border: 'none', background: activeWarrantyTab === 'claimed' ? '#fff' : 'transparent', color: activeWarrantyTab === 'claimed' ? '#7F56D9' : '#667085', boxShadow: activeWarrantyTab === 'claimed' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none', cursor: 'pointer' }}
+                    style={{ padding: '6px 14px', borderRadius: '5px', fontSize: '10px', fontWeight: 600, border: 'none', background: activeWarrantyTab === 'claimed' ? '#fff' : 'transparent', color: activeWarrantyTab === 'claimed' ? '#7F56D9' : '#667085', boxShadow: activeWarrantyTab === 'claimed' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none', cursor: 'pointer' }}
                   >Claimed</button>
                 </div>
               )}
-              <span style={{ backgroundColor: '#F9F5FF', color: '#7F56D9', fontSize: '12px', padding: '2px 10px', borderRadius: '16px', fontWeight: 600, border: '1px solid #F4EBFF' }}>
+              <span style={{ backgroundColor: '#F9F5FF', color: '#7F56D9', fontSize: '10px', padding: '2px 10px', borderRadius: '13px', fontWeight: 600, border: '1px solid #F4EBFF' }}>
                 {totalOrders} Orders
               </span>
             </div>
 
-            <div className="table-actions-container" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px' }}>
+            <div className="table-actions-container" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
               {/* Search Box */}
-              <div className="table-search-box" style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: '1', minWidth: '40px', maxWidth: '320px' }}>
+              <div className="table-search-box" style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: '1', minWidth: '32px', maxWidth: '256px' }}>
                 <Search size={18} style={{ position: 'absolute', left: 14, color: '#667085', pointerEvents: 'none' }} />
                 <input
                   type="text"
@@ -391,8 +388,8 @@ const OrderTable = ({ category = null, onViewDetails }) => {
                     width: '100%',
                     padding: '10px 48px 10px 42px',
                     border: '1px solid #D0D5DD',
-                    borderRadius: '8px',
-                    fontSize: '14px',
+                    borderRadius: '6px',
+                    fontSize: '11px',
                     backgroundColor: '#fff',
                     outline: 'none',
                     fontWeight: 500,
@@ -400,8 +397,8 @@ const OrderTable = ({ category = null, onViewDetails }) => {
                     boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)'
                   }}
                 />
-                <div className="desktop-only" style={{ position: 'absolute', right: 12, display: 'flex', alignItems: 'center', gap: 4, padding: '2px 6px', border: '1px solid #D0D5DD', borderRadius: '6px', backgroundColor: '#fff', fontSize: '12px', color: '#667085', fontWeight: 600 }}>
-                  <span style={{ fontSize: '10px' }}>⌘</span> L
+                <div className="desktop-only" style={{ position: 'absolute', right: 12, display: 'flex', alignItems: 'center', gap: 4, padding: '2px 6px', border: '1px solid #D0D5DD', borderRadius: '5px', backgroundColor: '#fff', fontSize: '10px', color: '#667085', fontWeight: 600 }}>
+                  <span style={{ fontSize: '8px' }}>⌘</span> L
                 </div>
               </div>
 
@@ -409,15 +406,15 @@ const OrderTable = ({ category = null, onViewDetails }) => {
               <button
                 onClick={() => setShowFilters(!showFilters)}
                 className="btn-collapse-on-search"
-                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', border: '1px solid #D0D5DD', borderRadius: '8px', backgroundColor: showFilters ? '#F9FAFB' : '#fff', fontSize: '14px', fontWeight: 600, color: '#344054', cursor: 'pointer', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', border: '1px solid #D0D5DD', borderRadius: '6px', backgroundColor: showFilters ? '#F9FAFB' : '#fff', fontSize: '11px', fontWeight: 600, color: '#344054', cursor: 'pointer', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
               >
                 <Filter size={18} color="#667085" />
-                <span className="desktop-only">Filter</span> {statusFilter && <span style={{ width: '6px', height: '6px', borderRadius: 'full', backgroundColor: '#7F56D9' }}></span>}
+                <span className="desktop-only">Filter</span> {statusFilter && <span style={{ width: '5px', height: '5px', borderRadius: 'full', backgroundColor: '#7F56D9' }}></span>}
               </button>
 
               <button
                 className="btn-collapse-on-search"
-                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', border: '1px solid #D0D5DD', borderRadius: '8px', backgroundColor: '#fff', fontSize: '14px', fontWeight: 600, color: '#344054', cursor: 'pointer', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', border: '1px solid #D0D5DD', borderRadius: '6px', backgroundColor: '#fff', fontSize: '11px', fontWeight: 600, color: '#344054', cursor: 'pointer', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
                 onClick={handleExport}
               >
                 <Download size={18} color="#667085" />
@@ -436,16 +433,16 @@ const OrderTable = ({ category = null, onViewDetails }) => {
             display: 'flex',
             flexWrap: 'wrap',
             alignItems: 'flex-end',
-            gap: '16px',
+            gap: '13px',
             animation: 'slideDown 0.2s ease-out'
           }}>
-            <div style={{ flex: '1', minWidth: '200px' }}>
-              <label style={{ display: 'block', textTransform: 'uppercase', fontSize: '10px', fontWeight: 800, color: '#667085', marginBottom: '6px', letterSpacing: '0.05em' }}>Filter by Status</label>
+            <div style={{ flex: '1', minWidth: '160px' }}>
+              <label style={{ display: 'block', textTransform: 'uppercase', fontSize: '8px', fontWeight: 800, color: '#667085', marginBottom: '5px', letterSpacing: '0.05em' }}>Filter by Status</label>
               <div className="relative group" style={{ position: 'relative' }}>
                 <select
                   value={statusFilter}
                   onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-                  style={{ width: '100%', padding: '10px 32px 10px 12px', border: '1px solid #D0D5DD', borderRadius: '8px', fontSize: '14px', fontWeight: 600, appearance: 'none', background: 'white', outline: 'none' }}
+                  style={{ width: '100%', padding: '10px 32px 10px 12px', border: '1px solid #D0D5DD', borderRadius: '6px', fontSize: '11px', fontWeight: 600, appearance: 'none', background: 'white', outline: 'none' }}
                 >
                   <option value="">All Statuses</option>
                   {statusOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
@@ -454,37 +451,37 @@ const OrderTable = ({ category = null, onViewDetails }) => {
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '12px', flex: '2', minWidth: '320px' }}>
+            <div style={{ display: 'flex', gap: '10px', flex: '2', minWidth: '256px' }}>
               <div style={{ flex: '1' }}>
-                <label style={{ display: 'block', textTransform: 'uppercase', fontSize: '10px', fontWeight: 800, color: '#667085', marginBottom: '6px', letterSpacing: '0.05em' }}>Date From</label>
+                <label style={{ display: 'block', textTransform: 'uppercase', fontSize: '8px', fontWeight: 800, color: '#667085', marginBottom: '5px', letterSpacing: '0.05em' }}>Date From</label>
                 <input
                   type="date"
                   value={dateFilter.from}
                   onChange={(e) => { setDateFilter({ ...dateFilter, from: e.target.value }); setPage(1); }}
-                  style={{ width: '100%', padding: '9px 12px', border: '1px solid #D0D5DD', borderRadius: '8px', fontSize: '14px', fontWeight: 500, outline: 'none' }}
+                  style={{ width: '100%', padding: '9px 12px', border: '1px solid #D0D5DD', borderRadius: '6px', fontSize: '11px', fontWeight: 500, outline: 'none' }}
                 />
               </div>
               <div style={{ flex: '1' }}>
-                <label style={{ display: 'block', textTransform: 'uppercase', fontSize: '10px', fontWeight: 800, color: '#667085', marginBottom: '6px', letterSpacing: '0.05em' }}>Date To</label>
+                <label style={{ display: 'block', textTransform: 'uppercase', fontSize: '8px', fontWeight: 800, color: '#667085', marginBottom: '5px', letterSpacing: '0.05em' }}>Date To</label>
                 <input
                   type="date"
                   value={dateFilter.to}
                   onChange={(e) => { setDateFilter({ ...dateFilter, to: e.target.value }); setPage(1); }}
-                  style={{ width: '100%', padding: '9px 12px', border: '1px solid #D0D5DD', borderRadius: '8px', fontSize: '14px', fontWeight: 500, outline: 'none' }}
+                  style={{ width: '100%', padding: '9px 12px', border: '1px solid #D0D5DD', borderRadius: '6px', fontSize: '11px', fontWeight: 500, outline: 'none' }}
                 />
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div style={{ display: 'flex', gap: '6px' }}>
               <button
                 onClick={() => { setStatusFilter(''); setDateFilter({ from: '', to: '' }); }}
-                style={{ padding: '10px 16px', background: '#fff', border: '1px solid #D0D5DD', borderRadius: '8px', fontSize: '14px', fontWeight: 600, color: '#344054', cursor: 'pointer' }}
+                style={{ padding: '10px 16px', background: '#fff', border: '1px solid #D0D5DD', borderRadius: '6px', fontSize: '11px', fontWeight: 600, color: '#344054', cursor: 'pointer' }}
               >
                 Reset
               </button>
               <button
                 onClick={() => setShowFilters(false)}
-                style={{ padding: '10px 16px', background: '#7F56D9', border: '1px solid #7F56D9', borderRadius: '8px', fontSize: '14px', fontWeight: 600, color: '#fff', cursor: 'pointer' }}
+                style={{ padding: '10px 16px', background: '#7F56D9', border: '1px solid #7F56D9', borderRadius: '6px', fontSize: '11px', fontWeight: 600, color: '#fff', cursor: 'pointer' }}
               >
                 Apply Filters
               </button>
@@ -513,69 +510,69 @@ const OrderTable = ({ category = null, onViewDetails }) => {
           <table className="figma-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#fff', borderBottom: '1px solid #EAECF0' }}>
-                <th style={{ padding: '12px 24px', width: 40, textAlign: 'left' }}>
+                <th style={{ padding: '10px 16px', width: 40, textAlign: 'left' }}>
                   <input type="checkbox"
                     checked={orders.length > 0 && orders.every(o => selectedIds.has(o.id))}
                     ref={el => { if (el) el.indeterminate = orders.some(o => selectedIds.has(o.id)) && !orders.every(o => selectedIds.has(o.id)); }}
                     onChange={e => e.target.checked ? setSelectedIds(new Set(orders.map(o => o.id))) : setSelectedIds(new Set())}
-                    style={{ cursor: 'pointer', borderRadius: '4px', accentColor: '#7F56D9' }}
+                    style={{ cursor: 'pointer', borderRadius: '3px', accentColor: '#7F56D9' }}
                   />
                 </th>
-                <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'left', textTransform: 'capitalize' }}>
+                <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left', textTransform: 'capitalize' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>Order <ArrowUpDown size={12} /></div>
                 </th>
-                <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'left', textTransform: 'capitalize' }}>Customer Name</th>
-                <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'left', textTransform: 'capitalize' }}>Items</th>
+                <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left', textTransform: 'capitalize' }}>Customer Name</th>
+                <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left', textTransform: 'capitalize' }}>Items</th>
 
                 {/* Granular Return Sub-tab Headers */}
                 {category === 'returns' ? (
                   <>
                     {activeReturnTab === 'window' && (
                       <>
-                        <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Refund Status</th>
-                        <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Refund Amount</th>
-                        <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Return Reason</th>
+                        <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Refund Status</th>
+                        <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Refund Amount</th>
+                        <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Return Reason</th>
                       </>
                     )}
                     {activeReturnTab === 'requests' && (
                       <>
-                        <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Date Raised</th>
-                        <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Request For</th>
-                        <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Wait Time</th>
+                        <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Date Raised</th>
+                        <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Request For</th>
+                        <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Wait Time</th>
                       </>
                     )}
                     {activeReturnTab === 'refund' && (
                       <>
-                        <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Refunded Date</th>
-                        <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Amount Refunded</th>
-                        <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Refund Status</th>
+                        <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Refunded Date</th>
+                        <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Amount Refunded</th>
+                        <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Refund Status</th>
                       </>
                     )}
                     {activeReturnTab === 'replacement' && (
                       <>
-                        <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Repl. Date</th>
-                        <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Replaced SKU</th>
-                        <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Tracking ID</th>
+                        <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Repl. Date</th>
+                        <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Replaced SKU</th>
+                        <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Tracking ID</th>
                       </>
                     )}
                   </>
                 ) : category === 'warranty' ? (
                   <>
-                    <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Warranty Status</th>
-                    <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Purchase Amount</th>
-                    <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Protection Plan</th>
+                    <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Warranty Status</th>
+                    <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Purchase Amount</th>
+                    <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Protection Plan</th>
                   </>
                 ) : (
                   <>
-                    <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Date</th>
-                    <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Prescription</th>
-                    <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Total</th>
-                    <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>QC</th>
+                    <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Date</th>
+                    <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Prescription</th>
+                    <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Total</th>
+                    <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>QC</th>
                   </>
                 )}
 
-                <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'left', textTransform: 'capitalize' }}>Status</th>
-                <th style={{ padding: '12px 24px', fontSize: '12px', color: '#667085', fontWeight: 600, textAlign: 'right' }}>action</th>
+                <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left', textTransform: 'capitalize' }}>Status</th>
+                <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'right' }}>action</th>
               </tr>
             </thead>
             <tbody style={{ backgroundColor: '#fff' }}>
@@ -587,7 +584,7 @@ const OrderTable = ({ category = null, onViewDetails }) => {
                         <Package size={24} />
                       </div>
                       <div style={{ fontWeight: 600, color: '#101828' }}>No orders yet</div>
-                      <div style={{ fontSize: '14px', color: '#667085' }}>Orders will appear here once they are added.</div>
+                      <div style={{ fontSize: '11px', color: '#667085' }}>Orders will appear here once they are added.</div>
                     </div>
                   </td>
                 </tr>
@@ -595,38 +592,38 @@ const OrderTable = ({ category = null, onViewDetails }) => {
                 <React.Fragment key={o.id || idx}>
                   {/* Main Order Row */}
                   <tr
-                    onClick={() => toggleRow(o.id)}
+                    onClick={() => o.items?.length > 1 ? toggleRow(o.id) : onViewDetails(o.id)}
                     style={{ cursor: 'pointer', borderBottom: '1px solid #EAECF0', backgroundColor: expandedRows.includes(o.id) ? '#F9F5FF' : '#fff', transition: 'background 0.2s' }}
                   >
-                    <td style={{ padding: '16px 24px', backgroundColor: expandedRows.includes(o.id) ? '#F9F5FF' : 'inherit' }}>
+                    <td style={{ padding: '12px 16px', backgroundColor: expandedRows.includes(o.id) ? '#F5F3FF' : 'inherit' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div onClick={(e) => { e.stopPropagation(); toggleRow(o.id); }} style={{ color: '#667085', cursor: 'pointer' }}>
-                          {expandedRows.includes(o.id) ? <ChevronDown size={14} strokeWidth={3} /> : <ChevronRight size={14} strokeWidth={3} />}
+                        <div onClick={(e) => { e.stopPropagation(); o.items?.length > 1 ? toggleRow(o.id) : onViewDetails(o.id); }} style={{ color: '#667085', cursor: 'pointer', width: 14 }}>
+                          {o.items?.length > 1 && (expandedRows.includes(o.id) ? <ChevronDown size={14} strokeWidth={3} /> : <ChevronRight size={14} strokeWidth={3} />)}
                         </div>
                         <input type="checkbox"
                           checked={selectedIds.has(o.id)}
                           onChange={(e) => toggleSelectOrder(o.id, e)}
                           onClick={(e) => e.stopPropagation()}
-                          style={{ cursor: 'pointer', borderRadius: '4px', accentColor: '#7F56D9' }}
+                          style={{ cursor: 'pointer', borderRadius: '3px', accentColor: '#7F56D9' }}
                         />
                       </div>
                     </td>
-                    <td style={{ padding: '16px 24px', backgroundColor: expandedRows.includes(o.id) ? '#F9F5FF' : 'inherit' }}>
+                    <td style={{ padding: '12px 16px', backgroundColor: expandedRows.includes(o.id) ? '#F5F3FF' : 'inherit' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <div>
-                          <div style={{ fontWeight: 700, color: '#344054', fontSize: '14px' }}>
+                          <div style={{ fontWeight: 700, color: '#101828', fontSize: '13px' }}>
                             #LO-{String(o.id).padStart(7, '0')}
-                            {o.items?.length > 1 && <span style={{ marginLeft: 6, backgroundColor: '#F4EBFF', color: '#7F56D9', fontSize: '11px', padding: '1px 6px', borderRadius: '16px', fontWeight: 700 }}>{o.items.length}</span>}
+                            {o.items?.length > 1 && <span style={{ marginLeft: 6, backgroundColor: '#F4EBFF', color: '#7F56D9', fontSize: '9px', padding: '1px 6px', borderRadius: '13px', fontWeight: 700 }}>{o.items.length}</span>}
                           </div>
                         </div>
                       </div>
                     </td>
-                    <td style={{ padding: '16px 24px', fontWeight: 600, color: '#101828', backgroundColor: expandedRows.includes(o.id) ? '#F9F5FF' : 'inherit' }}>
+                    <td style={{ padding: '12px 16px', fontWeight: 600, fontSize: '13px', color: '#101828', backgroundColor: expandedRows.includes(o.id) ? '#F5F3FF' : 'inherit' }}>
                       {o.customer_name || 'Walking Customer'}
                     </td>
-                    <td style={{ padding: '16px 24px', backgroundColor: expandedRows.includes(o.id) ? '#F9F5FF' : 'inherit' }}>
+                    <td style={{ padding: '12px 16px', backgroundColor: expandedRows.includes(o.id) ? '#F5F3FF' : 'inherit' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div style={{ width: 40, height: 40, border: '1px solid #EAECF0', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F9FAFB', overflow: 'hidden' }}>
+                        <div style={{ width: 40, height: 40, border: '1px solid #EAECF0', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F9FAFB', overflow: 'hidden' }}>
                           {o.items?.[0]?.variant_image ? (
                             <img src={o.items[0].variant_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           ) : (
@@ -634,8 +631,8 @@ const OrderTable = ({ category = null, onViewDetails }) => {
                           )}
                         </div>
                         <div>
-                          <div style={{ fontWeight: 500, color: '#344054', fontSize: '14px' }}>{o.items?.[0]?.variant_name || o.items?.[0]?.variant_sku || 'Standard Glasses'}</div>
-                          <div style={{ fontSize: '12px', color: '#667085' }}>{o.items?.[0]?.lens_desc || 'No Description'}</div>
+                          <div style={{ fontWeight: 600, color: '#101828', fontSize: '13px' }}>{o.items?.[0]?.variant_name || o.items?.[0]?.variant_sku || 'Standard Glasses'}</div>
+                          <div style={{ fontSize: '11px', color: '#667085', marginTop: 2 }}>{o.items?.[0]?.lens_desc || 'No Description'}</div>
                         </div>
                       </div>
                     </td>
@@ -643,59 +640,97 @@ const OrderTable = ({ category = null, onViewDetails }) => {
                     {/* Logic-Driven Granular Return Sub-tab Cells */}
                     {category === 'returns' ? (
                       <>
-                        {activeReturnTab === 'window' && (
-                          <>
-                            <td style={{ padding: '16px 24px' }}>
-                              <span style={{ backgroundColor: '#ECFDF3', color: '#027A48', padding: '4px 10px', borderRadius: '4px', fontSize: '12px', fontWeight: 600 }}>Active</span>
-                            </td>
-                            <td style={{ padding: '16px 24px', fontWeight: 700 }}>₹{Number(o.total_amount).toLocaleString('en-IN')}</td>
-                            <td style={{ padding: '16px 24px', color: '#667085' }}>{idx % 2 === 0 ? 'Defective' : 'Size Issue'}</td>
-                          </>
-                        )}
-                        {activeReturnTab === 'requests' && (
-                          <>
-                            <td style={{ padding: '16px 24px', color: '#667085' }}>{new Date(o.created_at).toLocaleDateString('en-GB')}</td>
-                            <td style={{ padding: '16px 24px', fontWeight: 600 }}>{idx % 2 === 0 ? 'Refund' : 'Replacement'}</td>
-                            <td style={{ padding: '16px 24px', color: '#667085' }}>4h 12m</td>
-                          </>
-                        )}
-                        {activeReturnTab === 'refund' && (
-                          <>
-                            <td style={{ padding: '16px 24px', color: '#667085' }}>{new Date(new Date(o.created_at).getTime() + 86400000).toLocaleDateString('en-GB')}</td>
-                            <td style={{ padding: '16px 24px', fontWeight: 700, color: '#12B76A' }}>₹{Number(o.total_amount).toLocaleString('en-IN')}</td>
-                            <td style={{ padding: '16px 24px' }}>
-                              <span style={{ backgroundColor: o.status_label === 'Refunded' ? '#ECFDF3' : '#FFFAEB', color: o.status_label === 'Refunded' ? '#027A48' : '#B54708', padding: '4px 10px', borderRadius: '4px', fontSize: '12px', fontWeight: 600 }}>
-                                {o.status_label === 'Refunded' ? 'Refunded' : 'Processing'}
+                        {activeReturnTab === 'window' && (() => {
+                          const rr = o.return_requests?.[0];
+                          return (
+                            <>
+                              <td style={{ padding: '12px 16px' }}>
+                                {rr ? (
+                                  <span style={{ backgroundColor: '#FFFAEB', color: '#B54708', padding: '5px 12px', borderRadius: '100px', fontSize: '12px', fontWeight: 600 }}>Requested</span>
+                                ) : (
+                                  <span style={{ backgroundColor: '#ECFDF3', color: '#027A48', padding: '5px 12px', borderRadius: '100px', fontSize: '12px', fontWeight: 600 }}>In Window</span>
+                                )}
+                              </td>
+                              <td style={{ padding: '12px 16px', fontWeight: 700, fontSize: '13px', whiteSpace: 'nowrap' }}>₹{Number(o.total_amount).toLocaleString('en-IN')}</td>
+                              <td style={{ padding: '12px 16px', color: '#667085' }}>{rr ? rr.reason.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : '—'}</td>
+                            </>
+                          );
+                        })()}
+                        {activeReturnTab === 'requests' && (() => {
+                          const rr = o.return_requests?.[0];
+                          const waitMs = rr ? Date.now() - new Date(rr.created_at).getTime() : 0;
+                          const waitH = Math.floor(waitMs / 3600000);
+                          const waitM = Math.floor((waitMs % 3600000) / 60000);
+                          return (
+                            <>
+                              <td style={{ padding: '12px 16px', color: '#667085' }}>{rr ? new Date(rr.created_at).toLocaleDateString('en-GB') : '—'}</td>
+                              <td style={{ padding: '12px 16px', fontWeight: 600 }}>{rr ? (rr.request_type === 'refund' ? 'Refund' : 'Replacement') : '—'}</td>
+                              <td style={{ padding: '12px 16px', color: '#667085' }}>{rr ? `${waitH}h ${waitM}m` : '—'}</td>
+                            </>
+                          );
+                        })()}
+                        {activeReturnTab === 'refund' && (() => {
+                          const rr = o.return_requests?.find(r => r.request_type === 'refund');
+                          return (
+                            <>
+                              <td style={{ padding: '12px 16px', color: '#667085' }}>{rr?.refund_date ? new Date(rr.refund_date).toLocaleDateString('en-GB') : '—'}</td>
+                              <td style={{ padding: '12px 16px', fontWeight: 700, color: '#12B76A' }}>{rr?.refund_amount ? `₹${Number(rr.refund_amount).toLocaleString('en-IN')}` : '—'}</td>
+                              <td style={{ padding: '12px 16px' }}>
+                                {rr ? (
+                                  <span style={{ backgroundColor: rr.status === 'refunded' ? '#ECFDF3' : '#FFFAEB', color: rr.status === 'refunded' ? '#027A48' : '#B54708', padding: '5px 12px', borderRadius: '100px', fontSize: '12px', fontWeight: 600 }}>
+                                    {rr.status.charAt(0).toUpperCase() + rr.status.slice(1)}
+                                  </span>
+                                ) : '—'}
+                              </td>
+                            </>
+                          );
+                        })()}
+                        {activeReturnTab === 'replacement' && (() => {
+                          const rr = o.return_requests?.find(r => r.request_type === 'replacement');
+                          return (
+                            <>
+                              <td style={{ padding: '12px 16px', color: '#667085' }}>{rr ? new Date(rr.created_at).toLocaleDateString('en-GB') : '—'}</td>
+                              <td style={{ padding: '12px 16px', fontWeight: 600, color: '#7F56D9' }}>{rr?.replacement_sku || '—'}</td>
+                              <td style={{ padding: '12px 16px', color: '#667085', fontSize: '10px' }}>{rr?.replacement_tracking_id || '—'}</td>
+                            </>
+                          );
+                        })()}
+                      </>
+                    ) : category === 'warranty' ? (() => {
+                      const wc = o.warranty_claims?.[0];
+                      return (
+                        <>
+                          <td style={{ padding: '12px 16px' }}>
+                            {wc ? (
+                              <span style={{ backgroundColor: wc.status === 'completed' ? '#ECFDF3' : '#EFF8FF', color: wc.status === 'completed' ? '#027A48' : '#175CD3', padding: '5px 12px', borderRadius: '100px', fontSize: '12px', fontWeight: 600 }}>
+                                {wc.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
                               </span>
-                            </td>
-                          </>
-                        )}
-                        {activeReturnTab === 'replacement' && (
-                          <>
-                            <td style={{ padding: '16px 24px', color: '#667085' }}>{new Date(new Date(o.created_at).getTime() + 172800000).toLocaleDateString('en-GB')}</td>
-                            <td style={{ padding: '16px 24px', fontWeight: 600, color: '#7F56D9' }}>{o.items?.[0]?.variant_sku || 'SKU'}-REPL</td>
-                            <td style={{ padding: '16px 24px', color: '#667085', fontSize: '12px' }}>{o.id}REPL-TRACKING</td>
-                          </>
-                        )}
-                      </>
-                    ) : category === 'warranty' ? (
+                            ) : (
+                              <span style={{ backgroundColor: '#ECFDF3', color: '#027A48', padding: '5px 12px', borderRadius: '100px', fontSize: '12px', fontWeight: 600 }}>In Window</span>
+                            )}
+                          </td>
+                          <td style={{ padding: '12px 16px', fontWeight: 700, fontSize: '13px', whiteSpace: 'nowrap' }}>₹{Number(o.total_amount).toLocaleString('en-IN')}</td>
+                          <td style={{ padding: '12px 16px', color: '#667085' }}>{wc ? wc.issue_description.slice(0, 40) + (wc.issue_description.length > 40 ? '…' : '') : 'No claim raised'}</td>
+                        </>
+                      );
+                    })() : (
                       <>
-                        <td style={{ padding: '16px 24px' }}>
-                          <span style={{ backgroundColor: '#ECFDF3', color: '#027A48', padding: '4px 10px', borderRadius: '4px', fontSize: '12px', fontWeight: 600 }}>In Window</span>
+                        <td style={{ padding: '12px 16px', color: '#667085', fontSize: '13px', whiteSpace: 'nowrap' }}>{new Date(o.created_at).toLocaleDateString('en-GB')}</td>
+                        <td style={{ padding: '12px 16px' }}>
+                          {(() => {
+                            const ps = (o.items?.[0]?.prescription_status || 'Frame Only');
+                            const psl = ps.toLowerCase();
+                            const bg = psl === 'approved' ? '#ECFDF3' : psl === 'frame only' ? '#F2F4F7' : '#FFFAEB';
+                            const color = psl === 'approved' ? '#027A48' : psl === 'frame only' ? '#344054' : '#B54708';
+                            return (
+                              <span style={{ backgroundColor: bg, color, padding: '5px 12px', borderRadius: '100px', fontSize: '12px', fontWeight: 600, whiteSpace: 'nowrap', display: 'inline-block' }}>
+                                {ps}
+                              </span>
+                            );
+                          })()}
                         </td>
-                        <td style={{ padding: '16px 24px', fontWeight: 700 }}>₹{Number(o.total_amount).toLocaleString('en-IN')}</td>
-                        <td style={{ padding: '16px 24px', color: '#667085' }}>Standard 1-Year</td>
-                      </>
-                    ) : (
-                      <>
-                        <td style={{ padding: '16px 24px', color: '#667085' }}>{new Date(o.created_at).toLocaleDateString('en-GB')}</td>
-                        <td style={{ padding: '16px 24px' }}>
-                          <span style={{ backgroundColor: (o.items?.[0]?.prescription_status || 'N/A').toLowerCase() === 'approved' ? '#ECFDF3' : '#FFFAEB', color: (o.items?.[0]?.prescription_status || 'N/A').toLowerCase() === 'approved' ? '#027A48' : '#B54708', padding: '4px 10px', borderRadius: '4px', fontSize: '12px', fontWeight: 600 }}>
-                            {o.items?.[0]?.prescription_status || 'N/A'}
-                          </span>
-                        </td>
-                        <td style={{ padding: '16px 24px', fontWeight: 700 }}>₹{Number(o.total_amount).toLocaleString('en-IN')}</td>
-                        <td style={{ padding: '16px 24px' }}>
+                        <td style={{ padding: '12px 16px', fontWeight: 700, fontSize: '13px', whiteSpace: 'nowrap' }}>₹{Number(o.total_amount).toLocaleString('en-IN')}</td>
+                        <td style={{ padding: '12px 16px' }}>
                           {o.tracking?.qc_image_url ? (
                             <img
                               src={o.tracking.qc_image_url}
@@ -705,49 +740,58 @@ const OrderTable = ({ category = null, onViewDetails }) => {
                               title="View QC image"
                             />
                           ) : (
-                            <span style={{ backgroundColor: '#FFFAEB', color: '#B54708', padding: '4px 10px', borderRadius: '4px', fontSize: '12px', fontWeight: 600 }}>Pending</span>
+                            <span style={{ backgroundColor: '#FFFAEB', color: '#B54708', padding: '5px 12px', borderRadius: '100px', fontSize: '12px', fontWeight: 600 }}>Pending</span>
                           )}
                         </td>
                       </>
                     )}
-                    <td style={{ padding: '16px 24px', backgroundColor: expandedRows.includes(o.id) ? '#F9F5FF' : 'inherit' }}>
+                    <td style={{ padding: '12px 16px', backgroundColor: expandedRows.includes(o.id) ? '#F5F3FF' : 'inherit' }}>
                       <span style={{
-                        backgroundColor: getStatusClass(o.status_label) === 'badge-success' ? '#ECFDF3' : getStatusClass(o.status_label) === 'badge-warning' ? '#FFFAEB' : getStatusClass(o.status_label) === 'badge-error' ? '#FEF3F2' : '#F2F4F7',
-                        color: getStatusClass(o.status_label) === 'badge-success' ? '#039855' : getStatusClass(o.status_label) === 'badge-warning' ? '#B54708' : getStatusClass(o.status_label) === 'badge-error' ? '#D1242F' : '#344054',
-                        padding: '6px 14px',
-                        borderRadius: '6px',
-                        fontSize: '13px',
+                        backgroundColor: STATUS_BADGE_STYLE[getStatusClass(o.status_label)].bg,
+                        color: STATUS_BADGE_STYLE[getStatusClass(o.status_label)].color,
+                        padding: '5px 12px',
+                        borderRadius: '100px',
+                        fontSize: '12px',
                         fontWeight: 600,
-                        display: 'inline-block'
+                        display: 'inline-block',
+                        whiteSpace: 'nowrap',
                       }}>
                         {o.status_label || 'Pending'}
                       </span>
                     </td>
-                    <td style={{ padding: '16px 24px', backgroundColor: expandedRows.includes(o.id) ? '#F9F5FF' : 'inherit' }}>
-                      <div style={{ display: 'flex', justifyContent: 'flex-start', gap: '8px' }}>
+                    <td style={{ padding: '12px 16px', backgroundColor: expandedRows.includes(o.id) ? '#F5F3FF' : 'inherit' }}>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
                         <div
-                          onClick={(e) => { e.stopPropagation(); onViewDetails(o.id); }}
-                          style={{ width: '40px', height: '40px', backgroundColor: '#32D583', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#ffffff', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
-                          title="View Details"
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            const ps = (o.items?.[0]?.prescription_status || 'Frame Only').toLowerCase();
+                            if (ps === 'approved' || ps === 'frame only') {
+                              onViewDetails(o.id);
+                            } else {
+                              setRxOffcanvasOrder(o);
+                            }
+                          }}
+                          style={{ width: '36px', height: '36px', backgroundColor: '#22C55E', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#ffffff', boxShadow: '0 1px 3px rgba(34,197,94,0.3)' }}
+                          title="Review Prescription"
                         >
-                          <Check size={20} strokeWidth={3} />
+                          <Check size={18} strokeWidth={3} />
                         </div>
                         <div
                           onClick={(e) => { e.stopPropagation(); handleDelete(o); }}
-                          style={{ width: '40px', height: '40px', backgroundColor: '#ffffff', border: '1px solid #EAECF0', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#F04438', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+                          style={{ width: '36px', height: '36px', backgroundColor: '#ffffff', border: '1px solid #EAECF0', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#F04438', boxShadow: '0 1px 2px rgba(16,24,40,0.05)' }}
                           title="Delete Order"
                         >
-                          <Trash2 size={20} />
+                          <Trash2 size={18} />
                         </div>
                       </div>
                     </td>
                   </tr>
 
-                  {/* Sub-row Expanded detail (Pixel-Perfect Alignment & Grid Refactor) */}
-                  {expandedRows.includes(o.id) && (
-                    <tr style={{ background: '#F9FAFB' }}>
-                      <td colSpan={10} style={{ padding: '12px 24px' }}>
-                        <div style={{ backgroundColor: '#ffffff', border: '1px solid #EAECF0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                  {/* Sub-row Expanded detail — only for orders with multiple items */}
+                  {o.items?.length > 1 && expandedRows.includes(o.id) && (
+                    <tr style={{ background: '#F5F3FF' }}>
+                      <td colSpan={10} style={{ padding: '8px 16px' }}>
+                        <div style={{ backgroundColor: '#ffffff', border: '1px solid #DDD6FE', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(124,58,237,0.08)' }}>
                           {(o.items || []).length > 0 ? (o.items?.map((item, si) => (
                             <div
                               key={item.id || si}
@@ -762,12 +806,15 @@ const OrderTable = ({ category = null, onViewDetails }) => {
                             >
                               <div style={{ width: 80 }}></div>
 
-                              <div style={{ padding: '16px 0', fontWeight: 600, color: '#101828', fontSize: '14px' }}>
-                                {item.patient_name || item.customer_name || o.customer_name}
+                              <div style={{ padding: '10px 0', fontWeight: 600, color: '#101828', fontSize: '11px' }}>
+                                {(() => {
+                                  const fromText = item.lens_prescription_text?.match(/Patient:\s*([^|]+)/)?.[1]?.trim();
+                                  return item.patient_name || item.prescription?.patient_name || fromText || <span style={{ color: '#9ca3af', fontWeight: 400 }}>—</span>;
+                                })()}
                               </div>
 
-                              <div style={{ padding: '16px 0', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <div style={{ width: '40px', height: '40px', border: '1px solid #EAECF0', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F9FAFB', flexShrink: 0, overflow: 'hidden' }}>
+                              <div style={{ padding: '10px 0', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div style={{ width: '32px', height: '32px', border: '1px solid #EAECF0', borderRadius: '5px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F9FAFB', flexShrink: 0, overflow: 'hidden' }}>
                                   {item.variant_image ? (
                                     <img src={item.variant_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                   ) : (
@@ -775,47 +822,48 @@ const OrderTable = ({ category = null, onViewDetails }) => {
                                   )}
                                 </div>
                                 <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                                  <div style={{ fontSize: '14px', fontWeight: 600, color: '#344054', lineHeight: 1.2, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{item.variant_name || item.variant_sku || 'Glasses Frame'}</div>
-                                  <div style={{ fontSize: '12px', color: '#667085', marginTop: '2px' }}>{item.lens_desc || 'Standard Edition'}</div>
+                                  <div style={{ fontSize: '13px', fontWeight: 600, color: '#101828', lineHeight: 1.2, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{item.variant_name || item.variant_sku || 'Glasses Frame'}</div>
+                                  <div style={{ fontSize: '11px', color: '#667085', marginTop: '2px' }}>{item.lens_desc || 'Standard Edition'}</div>
                                 </div>
                               </div>
 
-                              <div style={{ padding: '16px 0', display: 'flex', justifyContent: 'flex-start' }}>
-                                <span style={{
-                                  backgroundColor: (item.prescription_status || item.status || '').toLowerCase() === 'approved' ? '#ECFDF3' : '#FFFAEB',
-                                  color: (item.prescription_status || item.status || '').toLowerCase() === 'approved' ? '#027A48' : '#B54708',
-                                  padding: '4px 10px',
-                                  borderRadius: '16px',
-                                  fontSize: '11px',
-                                  fontWeight: 700,
-                                  border: `1px solid ${(item.prescription_status || item.status || '').toLowerCase() === 'approved' ? '#D1FADF' : '#FEDF89'}`
-                                }}>
-                                  {item.prescription_status || item.status || 'Pending'}
-                                </span>
+                              <div style={{ padding: '10px 0', display: 'flex', justifyContent: 'flex-start' }}>
+                                {(() => {
+                                  const ps = item.prescription_status || item.status || 'Frame Only';
+                                  const psl = ps.toLowerCase();
+                                  const bg = psl === 'approved' ? '#ECFDF3' : psl === 'frame only' ? '#F2F4F7' : '#FFFAEB';
+                                  const color = psl === 'approved' ? '#027A48' : psl === 'frame only' ? '#344054' : '#B54708';
+                                  const border = psl === 'approved' ? '#D1FADF' : psl === 'frame only' ? '#EAECF0' : '#FEDF89';
+                                  return (
+                                    <span style={{ backgroundColor: bg, color, padding: '4px 10px', borderRadius: '100px', fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                                      {ps}
+                                    </span>
+                                  );
+                                })()}
                               </div>
 
-                              <div style={{ padding: '16px 0', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: '#101828', fontSize: '15px' }}>
+                              <div style={{ padding: '10px 0', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, color: '#101828', fontSize: '12px' }}>
                                 ₹{Number(item.price || item.unit_price || item.price_at_purchase || 0).toLocaleString('en-IN')}
                                 <div
                                   onClick={(e) => { e.stopPropagation(); handleDownloadPDF(o); }}
-                                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F04438', color: '#ffffff', padding: '4px', borderRadius: '4px', cursor: 'pointer' }}
+                                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F04438', color: '#ffffff', padding: '3px', borderRadius: '3px', cursor: 'pointer' }}
                                   title="Download Item PDF"
                                 >
                                   <FileDown size={12} strokeWidth={2.5} />
                                 </div>
                               </div>
 
-                              <div style={{ padding: '16px 24px', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                              <div style={{ padding: '10px 0', display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
                                 <button
                                   onClick={(e) => { e.stopPropagation(); handleEdit(o); }}
-                                  style={{ width: '36px', height: '36px', border: '1px solid #EAECF0', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085' }}
+                                  style={{ width: '29px', height: '29px', border: '1px solid #EAECF0', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085' }}
                                 >
                                   <Edit2 size={16} />
                                 </button>
                               </div>
                             </div>
                           ))) : (
-                            <div style={{ padding: '32px', textAlign: 'center', color: '#667085', fontSize: '14px' }}>
+                            <div style={{ padding: '26px', textAlign: 'center', color: '#667085', fontSize: '11px' }}>
                               No item details found for this order.
                             </div>
                           )}
@@ -830,14 +878,14 @@ const OrderTable = ({ category = null, onViewDetails }) => {
         </div>
 
         {/* Premium Pagination Strip */}
-        <div style={{ padding: '16px 24px', borderTop: '1px solid #EAECF0', backgroundColor: '#fff', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '14px', fontWeight: 600, color: '#344054' }}>
+        <div style={{ padding: '16px 24px', borderTop: '1px solid #EAECF0', backgroundColor: '#fff', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: '13px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '11px', fontWeight: 600, color: '#344054' }}>
             <span>Rows per Page</span>
             <div style={{ position: 'relative' }}>
               <select
                 value={perPage}
                 onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }}
-                style={{ padding: '8px 32px 8px 12px', border: '1px solid #D0D5DD', borderRadius: '8px', fontSize: '14px', fontWeight: 600, backgroundColor: '#fff', appearance: 'none', cursor: 'pointer', outline: 'none', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+                style={{ padding: '8px 32px 8px 12px', border: '1px solid #D0D5DD', borderRadius: '6px', fontSize: '11px', fontWeight: 600, backgroundColor: '#fff', appearance: 'none', cursor: 'pointer', outline: 'none', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
               >
                 <option value={10}>10</option>
                 <option value={20}>20</option>
@@ -851,7 +899,7 @@ const OrderTable = ({ category = null, onViewDetails }) => {
             <button
               disabled={page === 1}
               onClick={() => setPage(page - 1)}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '14px', color: page === 1 ? '#D0D5DD' : '#344054', fontWeight: 600, cursor: page === 1 ? 'default' : 'pointer', background: 'none', border: '1px solid #D0D5DD', borderRadius: '8px', padding: '6px 12px', outline: 'none' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '11px', color: page === 1 ? '#D0D5DD' : '#344054', fontWeight: 600, cursor: page === 1 ? 'default' : 'pointer', background: 'none', border: '1px solid #D0D5DD', borderRadius: '6px', padding: '6px 12px', outline: 'none' }}
             >
               <ChevronLeft size={16} /> Prev
             </button>
@@ -862,7 +910,7 @@ const OrderTable = ({ category = null, onViewDetails }) => {
                   key={i}
                   onClick={() => typeof n === 'number' && setPage(n)}
                   style={{
-                    width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px',
+                    width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '5px',
                     background: page === n ? '#F4EBFF' : 'transparent',
                     color: page === n ? '#7F56D9' : '#475467',
                     fontWeight: page === n ? 700 : 500,
@@ -877,7 +925,7 @@ const OrderTable = ({ category = null, onViewDetails }) => {
             <button
               disabled={page >= totalPages || totalPages === 0}
               onClick={() => setPage(p => p + 1)}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '14px', color: (page >= totalPages || totalPages === 0) ? '#D0D5DD' : '#344054', fontWeight: 600, cursor: (page >= totalPages || totalPages === 0) ? 'default' : 'pointer', background: 'none', border: '1px solid #D0D5DD', borderRadius: '8px', padding: '6px 12px', outline: 'none' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '11px', color: (page >= totalPages || totalPages === 0) ? '#D0D5DD' : '#344054', fontWeight: 600, cursor: (page >= totalPages || totalPages === 0) ? 'default' : 'pointer', background: 'none', border: '1px solid #D0D5DD', borderRadius: '6px', padding: '6px 12px', outline: 'none' }}
             >
               Next <ChevronRight size={16} />
             </button>
@@ -885,12 +933,12 @@ const OrderTable = ({ category = null, onViewDetails }) => {
             <span style={{ color: '#D0D5DD', margin: '0 8px' }}>/</span>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: '14px', color: '#344054', fontWeight: 600 }}>Go to Page</span>
+              <span style={{ fontSize: '11px', color: '#344054', fontWeight: 600 }}>Go to Page</span>
               <input
                 type="text"
                 value={goToInputVal}
                 onChange={(e) => setGoToInputVal(e.target.value)}
-                style={{ width: '40px', padding: '6px', border: '1px solid #D0D5DD', borderRadius: '8px', textAlign: 'center', fontSize: '14px', fontWeight: 600 }}
+                style={{ width: '32px', padding: '5px', border: '1px solid #D0D5DD', borderRadius: '6px', textAlign: 'center', fontSize: '11px', fontWeight: 600 }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     const p = parseInt(goToInputVal);
@@ -909,7 +957,7 @@ const OrderTable = ({ category = null, onViewDetails }) => {
             </div>
           </div>
 
-          <div style={{ fontSize: '14px', fontWeight: 500, color: '#475467' }}>
+          <div style={{ fontSize: '11px', fontWeight: 500, color: '#475467' }}>
             {totalOrders === 0 ? 'Showing 0 of 0' : `Showing ${(page - 1) * perPage + 1} - ${Math.min(page * perPage, totalOrders)} of ${totalOrders}`}
           </div>
         </div>
@@ -925,6 +973,15 @@ const OrderTable = ({ category = null, onViewDetails }) => {
           initialData={selectedOrder ? { ...selectedOrder, status: selectedOrder.status } : {}}
         />
       </div>
+
+      {/* Prescription Offcanvas */}
+      {rxOffcanvasOrder && (
+        <PrescriptionOffcanvas
+          order={rxOffcanvasOrder}
+          onClose={() => setRxOffcanvasOrder(null)}
+          onApproved={(orderId) => { setRxOffcanvasOrder(null); onViewDetails(orderId); }}
+        />
+      )}
 
       {/* QC Image Lightbox */}
       {qcLightbox && (

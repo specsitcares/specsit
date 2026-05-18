@@ -4,7 +4,7 @@
 
 .announcement-bar {
   background: #68408D;
-  padding: 6.75px 16px 7.75px 16px;
+  padding: 5px 13px 6px 13px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -24,7 +24,7 @@
 .announcement-text {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 700;
-  font-size: 11px;
+  font-size: 9px;
   line-height: 1.5;
   letter-spacing: 1.1px;
   text-transform: uppercase;
@@ -39,7 +39,7 @@
 
 @media (max-width: 768px) {
   .announcement-text {
-    font-size: 10px;
+    font-size: 8px;
     letter-spacing: 0.8px;
     white-space: normal;
     overflow: visible;

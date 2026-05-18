@@ -50,6 +50,8 @@ const GENDER_OPTIONS = [
 const DEFAULT_VARIANT = () => ({
   id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
   expanded: true,
+  sku: '',
+  variantName: '',
   colorName: '',
   quantity: 0,
   colorMethod: 'code',
@@ -57,8 +59,20 @@ const DEFAULT_VARIANT = () => ({
   paletteImage: null,
   base_price: '',
   selling_price: '',
+  cost_price: '',
   discount_percentage: '',
   images: [],
+  meta_title: '',
+  meta_description: '',
+  meta_auto: true,
+  frame_width: '',
+  frame_type: '',
+  frame_shape: '',
+  gender: 'Unisex',
+  frame_only_mode: false,
+  frame_material: '',
+  frame_size: 'Medium',
+  frame_weight: 'Standard',
 });
 
 const ProductDetailsForm = ({ onBack, editProduct = null }) => {
@@ -70,7 +84,6 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [errors, setErrors] = useState({});
   const [confirmed, setConfirmed] = useState(false);
-  const [useMetaTemplate, setUseMetaTemplate] = useState(true);
   const [globalTemplates, setGlobalTemplates] = useState(null);
 
   // Track DB-side items removed in edit mode so we can DELETE them on submit
@@ -83,18 +96,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
     category: '',
     brand: '',
     short_description: '',
-    meta_title: '',
-    meta_description: '',
-    cost_price: '',
-    frame_width: '',
-    frame_type: '',
-    frame_shape: '',
-    gender: 'Unisex',
-    frame_only_mode: false,
     variants: [DEFAULT_VARIANT()],
-    frameMaterial: '',
-    frameSize: 'Medium',
-    frameWeight: 'Standard',
     taxPercent: '0',
     discountPercent: '0',
     isBogo: false,
@@ -117,15 +119,23 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
           requests.push(apiClient.get(`/catalog/products/${editProduct.id}/`));
         }
 
-        const results = await Promise.all(requests);
-        const [catRes, brandRes, settingsRes] = results;
+        const results = await Promise.allSettled(requests);
+        const [catResult, brandResult, settingsResult, productResult] = results;
 
-        setCategories(Array.isArray(catRes.data) ? catRes.data : (catRes.data.results || []));
-        setBrands(Array.isArray(brandRes.data) ? brandRes.data : (brandRes.data.results || []));
-        setGlobalTemplates(settingsRes.data);
+        if (catResult.status === 'fulfilled') {
+          const d = catResult.value.data;
+          setCategories(Array.isArray(d) ? d : (d.results || []));
+        }
+        if (brandResult.status === 'fulfilled') {
+          const d = brandResult.value.data;
+          setBrands(Array.isArray(d) ? d : (d.results || []));
+        }
+        if (settingsResult.status === 'fulfilled') {
+          setGlobalTemplates(settingsResult.value.data);
+        }
 
-        if (editProduct?.id && results[3]) {
-          const p = results[3].data;
+        if (editProduct?.id && productResult?.status === 'fulfilled') {
+          const p = productResult.value.data;
 
           const mapVariant = v => {
             const bp = parseFloat(v.base_price) || 0;
@@ -136,6 +146,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
             return {
               id: v.id,
               sku: v.sku,
+              variantName: '',
               colorName: v.color || '',
               quantity: v.stock || 0,
               colorMethod: v.color_selection_method || 'code',
@@ -145,13 +156,25 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
                 : null,
               base_price: v.base_price || '',
               selling_price: v.selling_price || '',
+              cost_price: v.cost_price || '',
               discount_percentage: discPct,
               images: (v.images || []).map(img => ({
                 id: img.id,
                 preview: img.image,
                 file: null,
               })),
+              meta_title: v.meta_title || '',
+              meta_description: v.meta_description || '',
+              meta_auto: !v.meta_title,
               expanded: true,
+              frame_width: p.frame_width || '',
+              frame_type: p.frame_type || '',
+              frame_shape: p.frame_shape || '',
+              gender: p.gender || 'Unisex',
+              frame_only_mode: p.frame_only_mode || false,
+              frame_material: v.frame_material || '',
+              frame_size: v.frame_size || 'Medium',
+              frame_weight: v.frame_weight || 'Standard',
             };
           };
 
@@ -159,26 +182,13 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
           // Step 2 form is pre-filled with the values that were saved last time.
           const firstVariant = (p.variants || [])[0] || {};
 
-          setUseMetaTemplate(p.use_meta_template !== false);
           setFormData({
             title: p.title || '',
             description: p.description || '',
             category: p.category?.id || p.category || '',
             brand: p.brand?.id || p.brand || '',
             short_description: p.short_description || '',
-            meta_title: p.meta_title || '',
-            meta_description: p.meta_description || '',
-            cost_price: p.cost_price || '',
-            frame_width: p.frame_width || '',
-            frame_type: p.frame_type || '',
-            frame_shape: p.frame_shape || '',
-            gender: p.gender || 'Unisex',
-            frame_only_mode: p.frame_only_mode || false,
             variants: (p.variants || []).map(mapVariant),
-            // Restore product-level Step 2 fields from first variant
-            frameMaterial: firstVariant.frame_material || '',
-            frameSize: firstVariant.frame_size || 'Medium',
-            frameWeight: firstVariant.frame_weight || 'Standard',
             taxPercent: firstVariant.tax_percent != null ? String(firstVariant.tax_percent) : '0',
             discountPercent: firstVariant.discount_percent != null ? String(firstVariant.discount_percent) : '0',
             isBogo: firstVariant.is_bogo || false,
@@ -232,24 +242,8 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
     setDeletedImageIds(prev => [...prev, id]);
   };
 
-  const resolveMetaTemplate = (template) => {
-    const brandName = brands.find(b => b.id?.toString() === formData.brand?.toString())?.name || '';
-    const catName = categories.find(c => c.id?.toString() === formData.category?.toString())?.name || '';
-    return (template || '')
-      .replace(/{product_name}/g, formData.title || '')
-      .replace(/{brand}/g, brandName)
-      .replace(/{category}/g, catName)
-      .replace(/{store_name}/g, globalTemplates?.store_name || '');
-  };
-
   const buildProductPayload = (isActive = true) => {
     const firstVariant = formData.variants?.[0];
-    const metaTitle = useMetaTemplate
-      ? resolveMetaTemplate(globalTemplates?.meta_title_template || '')
-      : (formData.meta_title || '');
-    const metaDescription = useMetaTemplate
-      ? resolveMetaTemplate(globalTemplates?.meta_description_template || '')
-      : (formData.meta_description || '');
     return {
       title: formData.title,
       description: formData.description || formData.short_description || '',
@@ -257,18 +251,14 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
       category: parseInt(formData.category) || formData.category,
       brand: formData.brand ? parseInt(formData.brand) : null,
       product_type: 'frame',
-      frame_type: formData.frame_type,
-      frame_shape: formData.frame_shape,
-      frame_width: formData.frame_width,
-      gender: formData.gender,
+      frame_type: firstVariant?.frame_type || '',
+      frame_shape: firstVariant?.frame_shape || '',
+      frame_width: firstVariant?.frame_width || '',
+      gender: firstVariant?.gender || 'Unisex',
       base_price: parseFloat(firstVariant?.base_price) || 0,
       selling_price: parseFloat(firstVariant?.selling_price) || parseFloat(firstVariant?.base_price) || 0,
       discount_percentage: 0,
-      cost_price: parseFloat(formData.cost_price) || 0,
-      frame_only_mode: !!formData.frame_only_mode,
-      use_meta_template: useMetaTemplate,
-      meta_title: metaTitle,
-      meta_description: metaDescription,
+      frame_only_mode: !!firstVariant?.frame_only_mode,
       is_active: isActive,
     };
   };
@@ -316,8 +306,10 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
         const variantPayload = new FormData();
         variantPayload.append('product', productId);
 
-        const generatedSku = `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-        variantPayload.append('sku', v.sku || generatedSku);
+        if (!v.sku?.trim()) {
+          throw new Error(`SKU is required for variant "${v.colorName || `Variant ${variantIndex}`}".`);
+        }
+        variantPayload.append('sku', v.sku.trim());
         variantPayload.append('color', v.colorName || 'Default');
         variantPayload.append('lens_color', v.colorName || '');
         variantPayload.append('frame_color', v.colorName || '');
@@ -332,17 +324,29 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
           variantPayload.append('palette_image', v.paletteImage);
         }
 
-        variantPayload.append('frame_material', formData.frameMaterial || '');
-        variantPayload.append('frame_size', formData.frameSize || '');
-        variantPayload.append('frame_weight', formData.frameWeight || '');
+        variantPayload.append('frame_material', v.frame_material || '');
+        variantPayload.append('frame_size', v.frame_size || '');
+        variantPayload.append('frame_weight', v.frame_weight || '');
         variantPayload.append('stock', parseInt(v.quantity) || 0);
         variantPayload.append('base_price', parseFloat(v.base_price) || 0);
         variantPayload.append('selling_price', parseFloat(v.selling_price) || parseFloat(v.base_price) || 0);
+        variantPayload.append('cost_price', parseFloat(v.cost_price) || 0);
         variantPayload.append('tax_percent', parseFloat(formData.taxPercent) || 0);
         variantPayload.append('discount_percent', parseFloat(formData.discountPercent) || 0);
         variantPayload.append('is_bogo', formData.isBogo ? 'true' : 'false');
         if (formData.discountStartDate) variantPayload.append('discount_start_date', formData.discountStartDate);
         if (formData.discountEndDate) variantPayload.append('discount_end_date', formData.discountEndDate);
+
+        const resolveTemplate = (tpl) => (tpl || '')
+          .replace(/{product_name}/g, formData.title || '')
+          .replace(/{variant_name}/g, v.colorName || 'Default')
+          .replace(/{store_name}/g, globalTemplates?.store_name || 'SPECSIT')
+          .replace(/{brand}/g, '')
+          .replace(/{category}/g, '');
+        const autoMetaTitle = resolveTemplate(globalTemplates?.meta_title_template || '{product_name} | {variant_name} | {store_name}');
+        const autoMetaDesc  = resolveTemplate(globalTemplates?.meta_description_template || 'Buy {product_name} in {variant_name} at {store_name}. Shop premium eyewear online.');
+        variantPayload.append('meta_title', v.meta_auto !== false ? autoMetaTitle : (v.meta_title?.trim() || autoMetaTitle));
+        variantPayload.append('meta_description', v.meta_auto !== false ? autoMetaDesc : (v.meta_description?.trim() || autoMetaDesc));
 
         let variantId;
         const isExisting = v.id && typeof v.id === 'number';
@@ -465,7 +469,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
           <button
             className="pf-btn pf-btn-ghost"
             onClick={onBack}
-            style={{ border: 'none', padding: '0', marginBottom: '8px', color: '#697177' }}
+            style={{ border: 'none', padding: '0', marginBottom: '6px', color: '#697177' }}
           >
             <ArrowLeft size={16} /> Back to Products
           </button>
@@ -526,223 +530,77 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
         <div className="product-form-body">
           <div className="product-form-content">
             {currentStep === 1 && (
-              <div className="product-form-columns">
-                <div className="form-sub-section">
-                  <div className="form-sub-section-title">
-                    <h3>General Information</h3>
-                    <hr className="title-divider" />
-                  </div>
+              <div className="form-sub-section">
+                <div className="form-sub-section-title">
+                  <h3>General Information</h3>
+                  <hr className="title-divider" />
+                </div>
 
+                <div className="form-field">
+                  <label className="form-field-label">
+                    Product Title <span className="required-star">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className={`form-field-input ${errors.title ? 'has-error' : ''}`}
+                    placeholder="e.g. Ray-Ban Aviator Classic"
+                    value={formData.title}
+                    onChange={(e) => handleInputChange('title', e.target.value)}
+                  />
+                  {errors.title && <span className="form-field-error"><AlertCircle size={12} /> {errors.title}</span>}
+                </div>
+
+                <div className="form-field-row">
                   <div className="form-field">
-                    <label className="form-field-label">
-                      Product Title <span className="required-star">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      className={`form-field-input ${errors.title ? 'has-error' : ''}`}
-                      placeholder="e.g. Ray-Ban Aviator Classic"
-                      value={formData.title}
-                      onChange={(e) => handleInputChange('title', e.target.value)}
-                    />
-                    {errors.title && <span className="form-field-error"><AlertCircle size={12} /> {errors.title}</span>}
-                  </div>
-
-                  <div className="form-field-row">
-                    <div className="form-field">
-                      <label className="form-field-label">Category <span className="required-star">*</span></label>
-                      <div className="form-field-select-wrapper">
-                        <select
-                          value={formData.category}
-                          onChange={(e) => handleInputChange('category', e.target.value)}
-                          className={errors.category ? 'has-error' : ''}
-                        >
-                          <option value="">Select Category</option>
-                          {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                        </select>
-                        <span className="select-chevron"><ChevronDown size={16} /></span>
-                      </div>
-                      {errors.category && <span className="form-field-error"><AlertCircle size={12} /> {errors.category}</span>}
+                    <label className="form-field-label">Category <span className="required-star">*</span></label>
+                    <div className="form-field-select-wrapper">
+                      <select
+                        value={formData.category}
+                        onChange={(e) => handleInputChange('category', e.target.value)}
+                        className={errors.category ? 'has-error' : ''}
+                      >
+                        <option value="">Select Category</option>
+                        {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                      <span className="select-chevron"><ChevronDown size={16} /></span>
                     </div>
-                    <div className="form-field">
-                      <label className="form-field-label">Manufacturer / Brand</label>
-                      <div className="form-field-select-wrapper">
-                        <select
-                          value={formData.brand}
-                          onChange={(e) => handleInputChange('brand', e.target.value)}
-                        >
-                          <option value="">Select Brand</option>
-                          {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                        </select>
-                        <span className="select-chevron"><ChevronDown size={16} /></span>
-                      </div>
-                    </div>
+                    {errors.category && <span className="form-field-error"><AlertCircle size={12} /> {errors.category}</span>}
                   </div>
-
                   <div className="form-field">
-                    <label className="form-field-label">Short Description</label>
-                    <input
-                      type="text"
-                      className="form-field-input"
-                      placeholder="Iconic teardrop shape with crystal green lenses."
-                      value={formData.short_description}
-                      onChange={(e) => handleInputChange('short_description', e.target.value)}
-                    />
-                  </div>
-
-                  <div className="form-field">
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                      <label className="form-field-label" style={{ margin: 0 }}>Meta Tags (SEO)</label>
-                      <div style={{ display: 'flex', gap: '3px', background: '#F2F4F7', borderRadius: '8px', padding: '3px' }}>
-                        <button
-                          type="button"
-                          onClick={() => setUseMetaTemplate(true)}
-                          style={{
-                            padding: '5px 12px', borderRadius: '6px', border: 'none', fontSize: '12px',
-                            fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
-                            background: useMetaTemplate ? '#fff' : 'transparent',
-                            color: useMetaTemplate ? '#344054' : '#667085',
-                            boxShadow: useMetaTemplate ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                          }}
-                        >
-                          Use global template
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setUseMetaTemplate(false)}
-                          style={{
-                            padding: '5px 12px', borderRadius: '6px', border: 'none', fontSize: '12px',
-                            fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
-                            background: !useMetaTemplate ? '#fff' : 'transparent',
-                            color: !useMetaTemplate ? '#344054' : '#667085',
-                            boxShadow: !useMetaTemplate ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                          }}
-                        >
-                          Custom
-                        </button>
-                      </div>
+                    <label className="form-field-label">Manufacturer / Brand</label>
+                    <div className="form-field-select-wrapper">
+                      <select
+                        value={formData.brand}
+                        onChange={(e) => handleInputChange('brand', e.target.value)}
+                      >
+                        <option value="">Select Brand</option>
+                        {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                      </select>
+                      <span className="select-chevron"><ChevronDown size={16} /></span>
                     </div>
-
-                    {useMetaTemplate ? (
-                      globalTemplates ? (
-                        <>
-                          <div className="form-field">
-                            <label className="form-field-label">Meta Title</label>
-                            <input
-                              readOnly
-                              className="form-field-input"
-                              style={{ color: '#697177', cursor: 'default' }}
-                              value={resolveMetaTemplate(globalTemplates.meta_title_template)}
-                              placeholder="Enter product title above to preview"
-                            />
-                          </div>
-                          <div className="form-field">
-                            <label className="form-field-label">Meta Description</label>
-                            <textarea
-                              readOnly
-                              className="form-field-textarea"
-                              style={{ color: '#697177', cursor: 'default' }}
-                              value={resolveMetaTemplate(globalTemplates.meta_description_template)}
-                              placeholder="—"
-                            />
-                          </div>
-                        </>
-                      ) : null
-                    ) : (
-                      <>
-                        <input
-                          type="text"
-                          className="form-field-input"
-                          placeholder="e.g. Ray-Ban Aviator Classic | Buy Online"
-                          value={formData.meta_title}
-                          onChange={(e) => handleInputChange('meta_title', e.target.value)}
-                          style={{ marginBottom: '10px' }}
-                        />
-                        <textarea
-                          className="form-field-textarea"
-                          placeholder="A timeless model that combines great aviator styling with exceptional quality and comfort."
-                          value={formData.meta_description}
-                          onChange={(e) => handleInputChange('meta_description', e.target.value)}
-                        />
-                      </>
-                    )}
                   </div>
                 </div>
 
-                <div className="form-sub-section">
-                  <div className="form-sub-section-title">
-                    <h3>Technical Specifications</h3>
-                    <hr className="title-divider" />
-                  </div>
+                <div className="form-field">
+                  <label className="form-field-label">Short Description</label>
+                  <input
+                    type="text"
+                    className="form-field-input"
+                    placeholder="Iconic teardrop shape with crystal green lenses."
+                    value={formData.short_description}
+                    onChange={(e) => handleInputChange('short_description', e.target.value)}
+                  />
+                </div>
 
-                  <div className="form-field-row">
-                    <div className="form-field">
-                      <label className="form-field-label">Cost Price</label>
-                      <input
-                        type="number"
-                        className="form-field-input"
-                        placeholder="0.00"
-                        value={formData.cost_price}
-                        onChange={(e) => handleInputChange('cost_price', e.target.value)}
-                      />
-                      <span style={{ fontSize: 11, color: '#9ca3af', marginTop: 2, display: 'block' }}>
-                        Your procurement / purchase cost — used for profit analytics
-                      </span>
-                    </div>
-                    <div className="form-field">
-                      <label className="form-field-label">Frame Width</label>
-                      <div className="form-field-select-wrapper">
-                        <select value={formData.frame_width} onChange={(e) => handleInputChange('frame_width', e.target.value)}>
-                          {FRAME_WIDTH_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                        </select>
-                        <span className="select-chevron"><ChevronDown size={16} /></span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="form-field-row-3">
-                    <div className="form-field">
-                      <label className="form-field-label">Frame Type</label>
-                      <div className="form-field-select-wrapper">
-                        <select value={formData.frame_type} onChange={(e) => handleInputChange('frame_type', e.target.value)}>
-                          {FRAME_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                        </select>
-                        <span className="select-chevron"><ChevronDown size={16} /></span>
-                      </div>
-                    </div>
-                    <div className="form-field">
-                      <label className="form-field-label">Frame Shape</label>
-                      <div className="form-field-select-wrapper">
-                        <select value={formData.frame_shape} onChange={(e) => handleInputChange('frame_shape', e.target.value)}>
-                          {FRAME_SHAPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                        </select>
-                        <span className="select-chevron"><ChevronDown size={16} /></span>
-                      </div>
-                    </div>
-                    <div className="form-field">
-                      <label className="form-field-label">Gender Target</label>
-                      <div className="form-field-select-wrapper">
-                        <select value={formData.gender} onChange={(e) => handleInputChange('gender', e.target.value)}>
-                          {GENDER_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                        </select>
-                        <span className="select-chevron"><ChevronDown size={16} /></span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="form-switch-row">
-                    <div className="form-switch-content">
-                      <span className="switch-label">Frame Only Mode</span>
-                      <span className="switch-description">Enable to bypass lens selection and sell frame only</span>
-                    </div>
-                    <label className="toggle-switch">
-                      <input
-                        type="checkbox"
-                        checked={formData.frame_only_mode}
-                        onChange={(e) => handleInputChange('frame_only_mode', e.target.checked)}
-                      />
-                      <span className="toggle-slider" />
-                    </label>
-                  </div>
+                <div className="form-field">
+                  <label className="form-field-label">Tax %</label>
+                  <input
+                    type="number"
+                    className="form-field-input"
+                    placeholder="0"
+                    value={formData.taxPercent || '0'}
+                    onChange={(e) => handleInputChange('taxPercent', e.target.value)}
+                  />
                 </div>
               </div>
             )}
@@ -754,6 +612,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
                 saving={saving}
                 onVariantRemoved={handleVariantRemoved}
                 onImageRemoved={handleImageRemoved}
+                globalTemplates={globalTemplates}
               />
             )}
 
@@ -765,9 +624,6 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
                 confirmed={confirmed}
                 setConfirmed={setConfirmed}
                 errors={errors}
-                useMetaTemplate={useMetaTemplate}
-                globalTemplates={globalTemplates}
-                resolveMetaTemplate={resolveMetaTemplate}
               />
             )}
           </div>
@@ -798,7 +654,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
       </div>
 
       {errors.general && (
-        <div className="form-field-error" style={{ marginTop: '16px', justifyContent: 'center', fontSize: '14px' }}>
+        <div className="form-field-error" style={{ marginTop: '13px', justifyContent: 'center', fontSize: '11px' }}>
           <AlertCircle size={16} /> {errors.general}
         </div>
       )}

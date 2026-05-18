@@ -56,8 +56,6 @@ const ProductDetailPage = () => {
                 .then(r => setReviews(r.data.results || r.data || []))
                 .catch(() => {});
         fetchReviews();
-        const interval = setInterval(fetchReviews, 30000);
-        return () => clearInterval(interval);
     }, [id]);
 
     useEffect(() => {
@@ -138,8 +136,8 @@ const ProductDetailPage = () => {
     };
 
     // BUG 3 FIX — pass selectedVariantObj so cart stores the variant the user actually chose
-    const handleAddToCart = (prod, lens, prescription, prescriptionPdfUrl = null, rxMode = null) => {
-        addToCart(prod ?? product, lens ?? selectedLens, prescription ?? { type: prescriptionType }, prescriptionPdfUrl, rxMode, selectedVariantObj);
+    const handleAddToCart = (prod, lens, prescription, prescriptionPdfUrl = null, rxMode = null, prescriptionFile = null) => {
+        addToCart(prod ?? product, lens ?? selectedLens, prescription ?? { type: prescriptionType }, prescriptionPdfUrl, rxMode, selectedVariantObj, prescriptionFile);
         navigate('/cart');
     };
 
@@ -179,17 +177,20 @@ const ProductDetailPage = () => {
         v => (v.color || v.frame_color || 'Default') === selectedColor
     ) || product.variants?.[0] || null;
 
-    // ── Variant-aware pricing ─────────────────────────────────────────────────
-    // price_adjustment > 0 means the variant has its own price, otherwise use base_price
-    const basePrice = parseFloat(product.base_price || 0);
-    const priceAdj  = parseFloat(selectedVariantObj?.price_adjustment || 0);
-    const adjustedPrice = priceAdj > 0 ? priceAdj : basePrice;
-    const variantDiscountPct = parseFloat(
-        selectedVariantObj?.discount_percent ?? product.discount_percentage ?? 0
-    );
-    const finalPrice  = adjustedPrice * (1 - variantDiscountPct / 100);
-    const discountPct = variantDiscountPct;
-    const hasDiscount = discountPct > 0 && adjustedPrice > finalPrice;
+    // ── Variant-aware pricing — cascading: variant.selling_price → variant.discount_percent → product.selling_price → product.discount_percentage
+    const mrp            = Math.round(parseFloat(selectedVariantObj?.base_price || product.base_price || 0));
+    const variantSelling = parseFloat(selectedVariantObj?.selling_price || 0);
+    const variantDiscPct = parseFloat(selectedVariantObj?.discount_percent || 0);
+    const productSelling = parseFloat(product.selling_price || 0);
+    const productDiscPct = parseFloat(product.discount_percentage || 0);
+    let finalPrice;
+    if (variantSelling > 0 && variantSelling < mrp)       finalPrice = Math.round(variantSelling);
+    else if (variantDiscPct > 0)                           finalPrice = Math.round(mrp * (1 - variantDiscPct / 100));
+    else if (productSelling > 0 && productSelling < mrp)  finalPrice = Math.round(productSelling);
+    else if (productDiscPct > 0)                           finalPrice = Math.round(mrp * (1 - productDiscPct / 100));
+    else                                                   finalPrice = mrp;
+    const discountPct = mrp > 0 && finalPrice < mrp ? Math.round(((mrp - finalPrice) / mrp) * 100) : 0;
+    const hasDiscount = discountPct > 0;
 
     // ── Variant-aware stock ───────────────────────────────────────────────────
     const variantStock = selectedVariantObj?.stock ?? product.stock_quantity ?? 0;
@@ -360,17 +361,17 @@ const ProductDetailPage = () => {
                     </div>
 
                     <div className="pd-price-section">
-                        <div className="pd-price-row">
+                        <div className="pd-price-block">
                             <span className="pd-current-price">
-                                ₹{Math.round(finalPrice).toLocaleString('en-IN')}
+                                ₹{finalPrice.toLocaleString('en-IN')}
                             </span>
                             {hasDiscount && (
-                                <>
+                                <div className="pd-price-row">
                                     <span className="pd-old-price">
-                                        ₹{Math.round(basePrice).toLocaleString('en-IN')}
+                                        ₹{mrp.toLocaleString('en-IN')}
                                     </span>
-                                    <span className="pd-discount-badge">{Math.round(discountPct)}% OFF</span>
-                                </>
+                                    <span className="pd-discount-badge">({discountPct}% OFF)</span>
+                                </div>
                             )}
                         </div>
                         <p className="pd-tax-info">Inclusive of all taxes</p>

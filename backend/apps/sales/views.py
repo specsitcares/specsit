@@ -1,17 +1,19 @@
 import uuid
-from rest_framework import viewsets, permissions, status, views, filters
+from rest_framework import viewsets, permissions, status, views, filters, parsers
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from django.db.models import Sum, Count, Q
 from django.utils import timezone
 import time
 from datetime import timedelta, datetime
-from .models import Order, OrderItem, Cart, Wishlist, Coupon, Shipment, LiveSession, OrderTracking, Payment
+from .models import Order, OrderItem, Cart, Wishlist, Coupon, Shipment, LiveSession, OrderTracking, Payment, ReturnRequest, WarrantyClaim
 from apps.catalog.models import Prescription, Variant
 from .serializers import (
     OrderSerializer, OrderItemSerializer, CartSerializer,
     WishlistSerializer, CouponSerializer, ShipmentSerializer,
     OrderTrackingSerializer, PaymentSerializer,
+    ReturnRequestSerializer, WarrantyClaimSerializer,
+    OrderShipmentSerializer,
 )
 
 import csv
@@ -37,36 +39,46 @@ class OrderViewSet(viewsets.ModelViewSet):
             'status', 'coupon', 'shipping_address', 'billing_address', 'user'
         ).prefetch_related(
             'items', 'items__variant', 'items__variant__product',
-            'tracking', 'payments'
+            'items__prescription', 'items__prescription__status',
+            'items__lens',
+            'tracking', 'payments',
+            'return_requests', 'warranty_claims',
         )
-        
+
         if not self.request.user.is_staff:
             return qs.filter(user=self.request.user).order_by('-created_at')
 
-        # Hide online-payment orders that haven't been paid yet — admin should
-        # never see or process an order before money is confirmed received.
-        # COD orders are excluded from this filter since their payment is always
-        # pending until delivery.
-        qs = qs.exclude(
-            payment_method__in=['complete_online', 'partial_payment'],
-            payment_status='pending',
-        )
-
-        # View Presets (Return/Warranty Window) - Auto applied from sidebar
+        # View Presets — filter by delivery_date (not created_at) so the window
+        # starts from when the customer actually received the order.
         view_preset = self.request.query_params.get('view_preset')
         if view_preset == 'returns':
-            # Logic: Orders within 10 days window
             ten_days_ago = timezone.now() - timedelta(days=10)
-            qs = qs.filter(created_at__gte=ten_days_ago)
+            qs = qs.filter(order_status='delivered', delivery_date__gte=ten_days_ago)
+            # Sub-tab filtering
+            return_tab = self.request.query_params.get('return_tab')
+            if return_tab == 'requests':
+                qs = qs.filter(return_requests__isnull=False).distinct()
+            elif return_tab == 'refund':
+                qs = qs.filter(return_requests__request_type='refund').distinct()
+            elif return_tab == 'replacement':
+                qs = qs.filter(return_requests__request_type='replacement').distinct()
         elif view_preset == 'warranty':
-            # Logic: Orders within 1 year window
             one_year_ago = timezone.now() - timedelta(days=365)
-            qs = qs.filter(created_at__gte=one_year_ago)
+            qs = qs.filter(order_status='delivered', delivery_date__gte=one_year_ago)
+            # Sub-tab filtering
+            warranty_tab = self.request.query_params.get('warranty_tab')
+            if warranty_tab == 'requests_received' or warranty_tab == 'claimed':
+                qs = qs.filter(warranty_claims__isnull=False).distinct()
+            elif warranty_tab == 'not_claimed':
+                qs = qs.filter(warranty_claims__isnull=True)
 
         # Manual Filtering for Admins
         status_id = self.request.query_params.get('status')
         if status_id and status_id != "":
-            qs = qs.filter(status_id=status_id)
+            try:
+                qs = qs.filter(status_id=int(status_id))
+            except (ValueError, TypeError):
+                pass
             
         date_from = self.request.query_params.get('date_from')
         if date_from and date_from != "":
@@ -115,6 +127,75 @@ class OrderViewSet(viewsets.ModelViewSet):
             print(f"Fatal Export Error: {e}")
             return HttpResponse(f"Error: {str(e)}", status=500)
 
+    @action(detail=False, methods=['get'], url_path='shipment_view')
+    def shipment_view(self, request):
+        """
+        Returns orders that are in the shipping lifecycle:
+        ready_to_dispatch, in_transit, or delivered.
+        Driven entirely from Order + OrderTracking — no Shipment row required.
+        """
+        if not request.user.is_staff:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        SHIPMENT_STATUSES = ['ready_to_dispatch', 'in_transit', 'delivered']
+
+        qs = Order.objects.filter(
+            order_status__in=SHIPMENT_STATUSES
+        ).select_related(
+            'user', 'shipping_address', 'tracking', 'shipment'
+        ).prefetch_related(
+            'items__variant__product'
+        ).order_by('-created_at')
+
+        # Optional filter by status
+        status_filter = request.query_params.get('order_status')
+        if status_filter and status_filter in SHIPMENT_STATUSES:
+            qs = qs.filter(order_status=status_filter)
+
+        # Optional search by order id or customer
+        search = request.query_params.get('search', '').strip()
+        if search:
+            qs = qs.filter(
+                Q(id__icontains=search) |
+                Q(user__username__icontains=search) |
+                Q(user__first_name__icontains=search) |
+                Q(user__last_name__icontains=search) |
+                Q(tracking__tracking_number__icontains=search) |
+                Q(shipment__tracking_id__icontains=search)
+            ).distinct()
+
+        serializer = OrderShipmentSerializer(qs, many=True, context={'request': request})
+        return Response(serializer.data)
+
+    @staticmethod
+    def _get_status_meta(label, value):
+        from apps.catalog.core.models import MetadataGroup, MetadataItem as MI
+        group, _ = MetadataGroup.objects.get_or_create(name='Order Status')
+        meta, _ = MI.objects.get_or_create(
+            group=group, label=label,
+            defaults={'value': value, 'is_active': True},
+        )
+        return meta
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.order_status == 'pending':
+            lens_items = [
+                i for i in instance.items.select_related('lens', 'prescription__status').all()
+                if i.lens_id
+            ]
+            if lens_items and all(
+                i.prescription and i.prescription.status and
+                i.prescription.status.label == 'Approved'
+                for i in lens_items
+            ):
+                conf_meta = self._get_status_meta('Confirmed', 'confirmed')
+                Order.objects.filter(pk=instance.pk).update(
+                    order_status='confirmed', status=conf_meta
+                )
+                instance.refresh_from_db()
+        return super().retrieve(request, *args, **kwargs)
+
     @action(detail=False, methods=['get'])
     def analytics(self, request):
         from django.utils import timezone
@@ -123,22 +204,17 @@ class OrderViewSet(viewsets.ModelViewSet):
 
         # 1. Base Queryset — mirrors get_queryset() so analytics match the table exactly
         qs = Order.objects.all()
-        if request.user.is_staff:
-            qs = qs.exclude(
-                payment_method__in=['complete_online', 'partial_payment'],
-                payment_status='pending',
-            )
-        else:
+        if not request.user.is_staff:
             qs = qs.filter(user=request.user)
 
         # View Presets
         view_preset = request.query_params.get('view_preset')
         if view_preset == 'returns':
             ten_days_ago = timezone.now() - timedelta(days=10)
-            qs = qs.filter(created_at__gte=ten_days_ago)
+            qs = qs.filter(order_status='delivered', delivery_date__gte=ten_days_ago)
         elif view_preset == 'warranty':
             one_year_ago = timezone.now() - timedelta(days=365)
-            qs = qs.filter(created_at__gte=one_year_ago)
+            qs = qs.filter(order_status='delivered', delivery_date__gte=one_year_ago)
             
         # On-page Search
         search = request.query_params.get('search')
@@ -152,36 +228,36 @@ class OrderViewSet(viewsets.ModelViewSet):
         # On-page Status Filter
         status_id = request.query_params.get('status')
         if status_id and status_id != "":
-            qs = qs.filter(status_id=status_id)
+            try:
+                qs = qs.filter(status_id=int(status_id))
+            except (ValueError, TypeError):
+                pass
 
-        # 2. Extract Context-Aware Counts
-        status_counts = qs.values('status__label').annotate(count=Count('id'))
-        
+        # 2. Extract Context-Aware Counts using order_status field
         total_count = qs.count()
-        def get_inclusive_count(keywords):
-            count = 0
-            for s in status_counts:
-                if s['status__label'] and any(k.lower() in s['status__label'].lower() for k in keywords):
-                    count += s['count']
-            return count
 
-        pending_count = get_inclusive_count(['Pending', 'Received'])
-        processing_count = get_inclusive_count(['Processing', 'Preparing', 'Quality', 'Ready', 'Accepted'])
-        shipped_count = get_inclusive_count(['Shipped'])
-        
+        # Pending  = lens not yet prepared (order not yet accepted/confirmed)
+        pending_count = qs.filter(order_status='pending').count()
+
+        # Processing = accepted through to in-transit (preparing → QC → ready → dispatched)
+        processing_count = qs.filter(
+            order_status__in=['confirmed', 'preparing', 'ready_to_dispatch', 'in_transit']
+        ).count()
+
+        # Delivered = fully delivered orders
+        shipped_count = qs.filter(order_status='delivered').count()
+
         # 3. Advanced Multi-Trend Calculation (Context-Aware Trends)
         last_30 = timezone.now() - timedelta(days=30)
         prev_30 = timezone.now() - timedelta(days=60)
 
         def get_all_metrics(queryset):
-            st_counts = queryset.values('status__label').annotate(count=Count('id'))
-            counts = {'total': queryset.count(), 'pending': 0, 'processing': 0, 'shipped': 0}
-            for s in st_counts:
-                lbl = (s['status__label'] or '').lower()
-                if any(k in lbl for k in ['pending', 'received']): counts['pending'] += s['count']
-                elif any(k in lbl for k in ['processing', 'preparing', 'quality', 'ready', 'accepted']): counts['processing'] += s['count']
-                elif 'shipped' in lbl: counts['shipped'] += s['count']
-            return counts
+            return {
+                'total':      queryset.count(),
+                'pending':    queryset.filter(order_status='pending').count(),
+                'processing': queryset.filter(order_status__in=['confirmed', 'preparing', 'ready_to_dispatch', 'in_transit']).count(),
+                'shipped':    queryset.filter(order_status='delivered').count(),
+            }
 
         # Filter the contextual queryset for current and previous periods
         curr_period_qs = qs.filter(created_at__gte=last_30)
@@ -201,14 +277,41 @@ class OrderViewSet(viewsets.ModelViewSet):
             'shipped': calc_delta(curr_metrics['shipped'], prev_metrics['shipped']),
         }
 
-        return Response({
+        response_data = {
             'total': total_count,
             'pending': pending_count,
             'processing': processing_count,
             'shipped': shipped_count,
             'trends': trends,
-            'trendPeriod': 'last period'
-        })
+            'trendPeriod': 'last period',
+        }
+
+        if view_preset == 'returns':
+            order_ids = list(qs.values_list('id', flat=True))
+            return_qs = ReturnRequest.objects.filter(order_id__in=order_ids)
+            refund_qs = return_qs.filter(request_type='refund')
+            replacement_qs = return_qs.filter(request_type='replacement')
+            total_refund = refund_qs.filter(status='refunded').aggregate(
+                total=Sum('refund_amount')
+            )['total'] or 0
+            response_data.update({
+                'return_requests_count': return_qs.values('order_id').distinct().count(),
+                'refund_count': refund_qs.values('order_id').distinct().count(),
+                'replacement_count': replacement_qs.values('order_id').distinct().count(),
+                'total_refund_amount': float(total_refund),
+            })
+        elif view_preset == 'warranty':
+            order_ids = list(qs.values_list('id', flat=True))
+            claim_qs = WarrantyClaim.objects.filter(order_id__in=order_ids)
+            claimed_count = claim_qs.values('order_id').distinct().count()
+            in_service_count = claim_qs.filter(status='in_service').count()
+            response_data.update({
+                'warranty_claimed_count': claimed_count,
+                'warranty_unclaimed_count': len(order_ids) - claimed_count,
+                'warranty_service_pending_count': in_service_count,
+            })
+
+        return Response(response_data)
 
     def perform_create(self, serializer):
         from django.db import transaction
@@ -294,6 +397,13 @@ class OrderViewSet(viewsets.ModelViewSet):
                 product.stock_quantity = max(0, product.stock_quantity - item.quantity)
                 product.save(update_fields=['stock_quantity'])
 
+            # Auto-confirm frame-only orders (no lens, no prescription needed)
+            has_lens = order.items.filter(lens__isnull=False).exists()
+            has_prescription = order.items.filter(prescription__isnull=False).exists()
+            if not has_lens and not has_prescription:
+                conf_meta = OrderViewSet._get_status_meta('Confirmed', 'confirmed')
+                Order.objects.filter(pk=order.pk).update(order_status='confirmed', status=conf_meta)
+
             # 5. Create initial shipment record
             from .models import Shipment
             shipment_status = MetadataItem.objects.filter(group__name='Shipment Status', label='Processing').first()
@@ -352,11 +462,13 @@ class OrderViewSet(viewsets.ModelViewSet):
         from .models import Shipment
 
         old_order_status = serializer.instance.order_status  # capture before save
+        explicit_order_status = 'order_status' in serializer.validated_data
         instance = serializer.save()
 
-        # Sync order_status CharField from MetadataItem status label using fuzzy
-        # keyword matching so any label wording in the DB resolves correctly.
-        if instance.status:
+        # Only sync order_status from MetadataItem label when order_status was NOT
+        # explicitly set in the request — prevents the label from overwriting a
+        # direct status update (e.g. patching order_status='preparing').
+        if instance.status and not explicit_order_status:
             label = instance.status.label.lower()
             if any(k in label for k in ['deliver', 'complet']):
                 mapped = 'delivered'
@@ -402,11 +514,24 @@ class OrderViewSet(viewsets.ModelViewSet):
                     defaults={'value': 'delivered', 'is_active': True},
                 )
             elif 'shipped' in label or 'transit' in label:
-                shipment_status = MetadataItem.objects.filter(group__name='Shipment Status', label='Shipped').first()
+                group, _ = MetadataGroup.objects.get_or_create(name='Shipment Status')
+                shipment_status, _ = MI.objects.get_or_create(
+                    group=group, label='Shipped',
+                    defaults={'value': 'shipped', 'is_active': True},
+                )
             elif any(s in label for s in ['preparing', 'received', 'quality', 'ready', 'confirmed']):
-                shipment_status = MetadataItem.objects.filter(group__name='Shipment Status', label='Processing').first()
+                group, _ = MetadataGroup.objects.get_or_create(name='Shipment Status')
+                shipment_status, _ = MI.objects.get_or_create(
+                    group=group, label='Processing',
+                    defaults={'value': 'processing', 'is_active': True},
+                )
             if shipment_status:
                 Shipment.objects.filter(order=instance).update(status=shipment_status)
+
+        # PIPELINE SYNC: Update OrderTracking.current_status to match order_status
+        if instance.order_status:
+            from .models import OrderTracking
+            OrderTracking.objects.filter(order=instance).update(current_status=instance.order_status)
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
     def mark_delivered(self, request, pk=None):
@@ -423,16 +548,16 @@ class OrderViewSet(viewsets.ModelViewSet):
         now = timezone.now()
 
         # Update order — sync both status fields
-        from apps.catalog.core.models import MetadataItem
-        delivered_meta = MetadataItem.objects.filter(
-            group__name='Order Status',
-            label__icontains='deliver',
-        ).first()
+        from apps.catalog.core.models import MetadataGroup, MetadataItem as MI
+        order_group, _ = MetadataGroup.objects.get_or_create(name='Order Status')
+        delivered_meta, _ = MI.objects.get_or_create(
+            group=order_group, label='Delivered',
+            defaults={'value': 'delivered', 'is_active': True},
+        )
 
         order.order_status = 'delivered'
         order.delivery_date = now
-        if delivered_meta:
-            order.status = delivered_meta
+        order.status = delivered_meta
         if order.payment_method in ('complete_cod', 'COD'):
             order.payment_status = 'paid'
         order.save()
@@ -481,6 +606,56 @@ class OrderViewSet(viewsets.ModelViewSet):
             'thank_you_url': f'/thank-you/{order.id}',
         })
 
+    @action(detail=True, methods=['patch'], url_path='items/(?P<item_id>[0-9]+)/status')
+    def update_item_status(self, request, pk=None, item_id=None):
+        """Update the status of a specific item within an order."""
+        if not request.user.is_staff:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+            
+        try:
+            order = self.get_object()
+            item = order.items.get(id=item_id)
+        except (Order.DoesNotExist, OrderItem.DoesNotExist):
+            return Response({'error': 'Item or Order not found'}, status=status.HTTP_404_NOT_FOUND)
+            
+        new_status = request.data.get('status')
+        if not new_status:
+            return Response({'error': 'Status is required'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        item.status = new_status
+        item.save()
+        
+        # Optional: Auto-update parent order status based on items
+        # e.g., if all items are 'delivered', parent becomes 'delivered'
+        all_items = order.items.all()
+        if all(i.status == 'delivered' for i in all_items):
+            if order.order_status != 'delivered':
+                from apps.catalog.core.models import MetadataGroup, MetadataItem as MI
+                group, _ = MetadataGroup.objects.get_or_create(name='Order Status')
+                delivered_meta, _ = MI.objects.get_or_create(
+                    group=group, label='Delivered',
+                    defaults={'value': 'delivered', 'is_active': True},
+                )
+                order.order_status = 'delivered'
+                order.status = delivered_meta
+                if not order.delivery_date:
+                    order.delivery_date = timezone.now()
+                order.save()
+        elif any(i.status in ['in_transit', 'delivered'] for i in all_items):
+            # If any item has moved forward, order is no longer just 'pending'
+            if order.order_status == 'pending':
+                from apps.catalog.core.models import MetadataGroup, MetadataItem as MI
+                group, _ = MetadataGroup.objects.get_or_create(name='Order Status')
+                processing_meta, _ = MI.objects.get_or_create(
+                    group=group, label='Confirmed',
+                    defaults={'value': 'confirmed', 'is_active': True},
+                )
+                order.order_status = 'confirmed'
+                order.status = processing_meta
+                order.save()
+
+        return Response(OrderItemSerializer(item).data)
+
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
     def update_tracking(self, request, pk=None):
         """Upsert tracking info for an order. Accepts multipart (for qc_image) or JSON."""
@@ -518,7 +693,7 @@ class WishlistViewSet(viewsets.ModelViewSet):
     serializer_class = WishlistSerializer
     permission_classes = [permissions.IsAuthenticated]
     def get_queryset(self):
-        return Wishlist.objects.filter(user=self.request.user).select_related('variant', 'variant__product')
+        return Wishlist.objects.filter(user=self.request.user).select_related('variant', 'variant__product').order_by('-added_at')
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
@@ -563,7 +738,11 @@ class CouponViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
 class ShipmentViewSet(viewsets.ModelViewSet):
-    queryset = Shipment.objects.select_related('order', 'status').all()
+    queryset = Shipment.objects.select_related(
+        'order', 'order__shipping_address', 'order__tracking', 'status'
+    ).prefetch_related(
+        'order__items__variant__product'
+    ).all()
     serializer_class = ShipmentSerializer
     permission_classes = [permissions.IsAdminUser]
 
@@ -662,6 +841,28 @@ class PaymentViewSet(viewsets.ModelViewSet):
         if order_id:
             qs = qs.filter(order_id=order_id)
         return qs
+
+class ReturnRequestViewSet(viewsets.ModelViewSet):
+    serializer_class = ReturnRequestSerializer
+    permission_classes = [permissions.IsAdminUser]
+
+    def get_queryset(self):
+        qs = ReturnRequest.objects.select_related('order').all()
+        order_id = self.request.query_params.get('order')
+        if order_id:
+            qs = qs.filter(order_id=order_id)
+        return qs.order_by('-created_at')
+
+class WarrantyClaimViewSet(viewsets.ModelViewSet):
+    serializer_class = WarrantyClaimSerializer
+    permission_classes = [permissions.IsAdminUser]
+
+    def get_queryset(self):
+        qs = WarrantyClaim.objects.select_related('order').all()
+        order_id = self.request.query_params.get('order')
+        if order_id:
+            qs = qs.filter(order_id=order_id)
+        return qs.order_by('-created_at')
 
 class AdminDashboardStatsView(views.APIView):
     permission_classes = [permissions.IsAdminUser]
@@ -785,8 +986,8 @@ class AdminDashboardStatsView(views.APIView):
         # 7. Calculate specific trends for other metrics
         prev_pending_pres = Prescription.objects.filter(
             Q(status__isnull=True) | Q(status__label__icontains='Pending'),
-            created_at__lt=last_30_start,
-            created_at__gte=prev_30_start,
+            created_at__date__lt=last_30_start,
+            created_at__date__gte=prev_30_start,
         ).filter(order_items__isnull=False).distinct().count()
         pres_trend = round(((pending_pres_count - prev_pending_pres) / max(prev_pending_pres, 1)) * 100, 1)
 
@@ -926,6 +1127,7 @@ class RecordLiveActivityView(views.APIView):
 class PrescriptionUploadView(views.APIView):
     """POST /api/sales/prescriptions/upload/ — accept file + order_id, link to OrderItem."""
     permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [parsers.MultiPartParser, parsers.FormParser]
 
     def post(self, request):
         from apps.catalog.core.models import MetadataGroup, MetadataItem as MI
@@ -939,6 +1141,14 @@ class PrescriptionUploadView(views.APIView):
             return Response({'error': 'order_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
         if not prescription_file:
             return Response({'error': 'prescription_file is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        import os as _os
+        allowed_extensions = {'.pdf', '.jpg', '.jpeg', '.png'}
+        ext = _os.path.splitext(prescription_file.name)[1].lower()
+        if ext not in allowed_extensions:
+            return Response({'error': 'Invalid file type. Only PDF, JPG, and PNG are allowed.'}, status=status.HTTP_400_BAD_REQUEST)
+        if prescription_file.size > 5 * 1024 * 1024:
+            return Response({'error': 'File exceeds the 5 MB size limit.'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Bug #4: Parse numeric order ID if display format is sent
         try:
@@ -954,8 +1164,8 @@ class PrescriptionUploadView(views.APIView):
         except Order.DoesNotExist:
             return Response({'error': f'Order #{order_id_numeric} not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Bug #3: Validate order has items before creating prescription
-        if not order.items.exists():
+        item_count = order.items.count()
+        if item_count == 0:
             return Response({'error': 'Order has no items. Cannot add prescription.'}, status=status.HTTP_400_BAD_REQUEST)
 
         group, _ = MetadataGroup.objects.get_or_create(name='Prescription Status')
@@ -966,7 +1176,7 @@ class PrescriptionUploadView(views.APIView):
 
         from apps.catalog.models import Prescription
 
-        # Bug #7: Use transaction to ensure prescription is created and linked atomically
+        prescription = None
         try:
             with transaction.atomic():
                 prescription = Prescription.objects.create(
@@ -974,14 +1184,13 @@ class PrescriptionUploadView(views.APIView):
                     prescription_file=prescription_file,
                     status=pending_status,
                 )
-
-                # Bug #6: Check if update actually affected rows
-                updated_count = order.items.filter(prescription__isnull=True).update(prescription=prescription)
-
+                updated_count = order.items.update(prescription=prescription)
                 if updated_count == 0:
-                    raise ValidationError('All order items already have prescriptions. Prescription created but not linked.')
-        except ValidationError as e:
-            return Response({'error': str(e.detail[0])}, status=status.HTTP_400_BAD_REQUEST)
+                    raise ValueError('Prescription was saved but could not be linked to any order items.')
+        except ValueError as e:
+            if prescription and prescription.prescription_file:
+                prescription.prescription_file.delete(save=False)
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response({'detail': 'Prescription uploaded successfully.', 'prescription_id': prescription.id})
 
@@ -998,6 +1207,7 @@ class PrescriptionManualView(views.APIView):
         order_id = request.data.get('order_id')
         rx = request.data.get('rx', {})
         name = request.data.get('name', '')
+        vision_type = request.data.get('vision_type', '')
 
         if not order_id:
             return Response({'error': 'order_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -1029,30 +1239,28 @@ class PrescriptionManualView(views.APIView):
         od = rx.get('od', {})
         os_data = rx.get('os', {})
 
+        if not od.get('sph') and not os_data.get('sph'):
+            return Response({'error': 'At least one eye must have a sphere (SPH) value.'}, status=status.HTTP_400_BAD_REQUEST)
+
         from apps.catalog.models import Prescription
 
-        # Bug #7: Use transaction to ensure prescription is created and linked atomically
-        try:
-            with transaction.atomic():
-                prescription = Prescription.objects.create(
-                    user=request.user,
-                    patient_name=name,
-                    od_sphere=od.get('sph') or 0,
-                    od_cylinder=od.get('cyl') or 0,
-                    od_axis=od.get('axis') or 0,
-                    os_sphere=os_data.get('sph') or 0,
-                    os_cylinder=os_data.get('cyl') or 0,
-                    os_axis=os_data.get('axis') or 0,
-                    status=pending_status,
-                )
-
-                # Bug #6: Check if update actually affected rows
-                updated_count = order.items.filter(prescription__isnull=True).update(prescription=prescription)
-
-                if updated_count == 0:
-                    raise ValidationError('All order items already have prescriptions. Prescription created but not linked.')
-        except ValidationError as e:
-            return Response({'error': str(e.detail[0])}, status=status.HTTP_400_BAD_REQUEST)
+        with transaction.atomic():
+            prescription = Prescription.objects.create(
+                user=request.user,
+                patient_name=name,
+                vision_type=vision_type,
+                od_sphere=od.get('sph') or 0,
+                od_cylinder=od.get('cyl') or 0,
+                od_axis=od.get('axis') or 0,
+                od_add=od.get('add') or 0,
+                os_sphere=os_data.get('sph') or 0,
+                os_cylinder=os_data.get('cyl') or 0,
+                os_axis=os_data.get('axis') or 0,
+                os_add=os_data.get('add') or 0,
+                status=pending_status,
+            )
+            # Replace any existing prescription on all items for this order
+            order.items.update(prescription=prescription)
 
         return Response({'detail': 'Prescription saved successfully.', 'prescription_id': prescription.id})
 

@@ -1,0 +1,430 @@
+/* ============================================================
+   PACKAGE OFFCANVAS — Better-Styled Package Form (Image 2)
+   ============================================================ */
+
+:root {
+  --po-primary: #6B46C1;
+  --po-primary-dark: #53389E;
+  --po-bg-overlay: rgba(0, 0, 0, 0.5);
+  --po-bg-white: #FFFFFF;
+  --po-bg-light: #FAFBFC;
+  --po-border: #EAECF0;
+  --po-text-main: #101828;
+  --po-text-sub: #475467;
+  --po-text-meta: #98A2B3;
+  --po-text-error: #D92D20;
+  --po-success: #12B76A;
+  --po-radius-md: 8px;
+  --po-radius-sm: 6px;
+  --po-radius-xs: 4px;
+}
+
+/* ──── Overlay ──── */
+.po-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--po-bg-overlay);
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.po-overlay--active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ──── Offcanvas Panel ──── */
+.po-offcanvas {
+  position: fixed;
+  top: 0;
+  right: -420px;
+  width: 420px;
+  height: 100vh;
+  background: var(--po-bg-white);
+  box-shadow: -4px 0 12px rgba(0, 0, 0, 0.08);
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  transition: right 0.3s ease;
+}
+
+.po-offcanvas--open {
+  right: 0;
+}
+
+/* ──── Header ──── */
+.po-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--po-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.po-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--po-text-main);
+}
+
+.po-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  color: var(--po-text-sub);
+  transition: color 0.2s;
+}
+
+.po-close:hover {
+  color: var(--po-text-main);
+}
+
+/* ──── Form ──── */
+.po-form {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* ──── Form Content (scrollable) ──── */
+.po-form-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+}
+
+/* ──── Form Section ──── */
+.po-section {
+  margin-bottom: 24px;
+}
+
+.po-section-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--po-text-main);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 12px 0;
+  display: block;
+}
+
+.po-hint {
+  font-size: 11px;
+  color: var(--po-text-meta);
+  margin: 0;
+}
+
+/* ──── Form Fields ──── */
+.po-field {
+  margin-bottom: 16px;
+}
+
+.po-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--po-text-main);
+  margin-bottom: 6px;
+}
+
+.po-label .required {
+  color: var(--po-text-error);
+}
+
+.po-input,
+.po-select,
+.po-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--po-border);
+  border-radius: var(--po-radius-sm);
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--po-text-main);
+  transition: all 0.2s;
+  box-sizing: border-box;
+}
+
+.po-input:focus,
+.po-select:focus,
+.po-textarea:focus {
+  outline: none;
+  border-color: var(--po-primary);
+  box-shadow: 0 0 0 3px rgba(107, 70, 193, 0.1);
+}
+
+.po-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23667085' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+}
+
+.po-textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.po-select-wrapper {
+  position: relative;
+}
+
+.po-select-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--po-text-sub);
+}
+
+.po-power-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.po-power-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--po-border);
+  border-radius: var(--po-radius-xs);
+  font-size: 12px;
+  background: var(--po-bg-light);
+  color: var(--po-text-sub);
+  box-sizing: border-box;
+}
+
+.po-power-sep {
+  font-size: 11px;
+  color: var(--po-text-meta);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+/* ──── Chip Groups (multi-select) ──── */
+.po-chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.po-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1.5px solid var(--po-border);
+  background: var(--po-bg-white);
+  color: var(--po-text-sub);
+  user-select: none;
+}
+
+.po-chip:hover {
+  border-color: var(--po-primary);
+  background: rgba(107, 70, 193, 0.05);
+}
+
+.po-chip--active {
+  background: var(--po-primary);
+  color: white;
+  border-color: var(--po-primary);
+}
+
+.po-chip svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* ──── Radio Group (pricing mode) ──── */
+.po-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.po-radio {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--po-radius-sm);
+  border: 1.5px solid var(--po-border);
+  background: var(--po-bg-white);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--po-text-main);
+}
+
+.po-radio input[type="radio"] {
+  margin: 0;
+  cursor: pointer;
+}
+
+.po-radio:hover {
+  border-color: var(--po-primary);
+  background: rgba(107, 70, 193, 0.05);
+}
+
+.po-radio--checked {
+  border-color: var(--po-primary);
+  background: rgba(107, 70, 193, 0.08);
+}
+
+/* ──── Toggle Switch ──── */
+.po-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0;
+  margin-bottom: 0;
+}
+
+.po-toggle {
+  display: inline-flex;
+  align-items: center;
+  width: 40px;
+  height: 24px;
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.po-toggle input[type="checkbox"] {
+  display: none;
+}
+
+.po-toggle-slider {
+  width: 100%;
+  height: 100%;
+  background: #D0D5DD;
+  border-radius: 12px;
+  display: block;
+  position: relative;
+  transition: background 0.2s;
+}
+
+.po-toggle input[type="checkbox"]:checked + .po-toggle-slider {
+  background: var(--po-success);
+}
+
+.po-toggle-slider::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: white;
+  border-radius: 10px;
+  transition: left 0.2s;
+}
+
+.po-toggle input[type="checkbox"]:checked + .po-toggle-slider::before {
+  left: 18px;
+}
+
+/* ──── Preset Buttons ──── */
+.po-preset-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.po-preset-btn {
+  padding: 8px 12px;
+  border: 1px solid var(--po-border);
+  background: white;
+  border-radius: var(--po-radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--po-text-main);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.po-preset-btn:hover {
+  border-color: var(--po-primary);
+  background: rgba(107, 70, 193, 0.05);
+  color: var(--po-primary);
+}
+
+/* ──── Buttons ──── */
+.po-btn {
+  padding: 10px 16px;
+  border: none;
+  border-radius: var(--po-radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.po-btn--ghost {
+  background: white;
+  color: var(--po-text-main);
+  border: 1.5px solid var(--po-border);
+}
+
+.po-btn--ghost:hover {
+  border-color: var(--po-primary);
+  color: var(--po-primary);
+}
+
+.po-btn--primary {
+  background: var(--po-primary);
+  color: white;
+}
+
+.po-btn--primary:hover {
+  background: var(--po-primary-dark);
+}
+
+.po-btn--primary:disabled {
+  background: #D0D5DD;
+  cursor: not-allowed;
+}
+
+/* ──── Sticky Footer ──── */
+.po-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--po-border);
+  background: var(--po-bg-light);
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+/* ──── Responsive ──── */
+@media (max-width: 768px) {
+  .po-offcanvas {
+    width: 100%;
+    right: -100%;
+  }
+
+  .po-form-scroll {
+    padding: 16px;
+  }
+
+  .po-header,
+  .po-footer {
+    padding: 16px;
+  }
+}

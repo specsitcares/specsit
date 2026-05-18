@@ -71,7 +71,7 @@ const StatusBadge = ({ status, label }) => {
 };
 
 /* ── Recommendations carousel ──────────────────────────────── */
-const CARD_WIDTH = 280 + 20;
+const CARD_WIDTH = 224 + 16;
 
 const RecoSection = () => {
     const { addToCart } = useCart();
@@ -291,17 +291,6 @@ const MyOrdersPage = () => {
     useEffect(() => {
         if (!user) { navigate('/login'); return; }
         fetchOrders();
-
-        const onVisible = () => {
-            if (document.visibilityState === 'visible') fetchOrders(true);
-        };
-        const onFocus = () => fetchOrders(true);
-        document.addEventListener('visibilitychange', onVisible);
-        window.addEventListener('focus', onFocus);
-        return () => {
-            document.removeEventListener('visibilitychange', onVisible);
-            window.removeEventListener('focus', onFocus);
-        };
     }, []);
 
     const filtered = orders.filter(o => {

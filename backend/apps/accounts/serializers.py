@@ -11,6 +11,7 @@ class EmployeeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Employee
         fields = '__all__'
+        read_only_fields = ['user']
 
 class CustomerQuerySerializer(serializers.ModelSerializer):
     class Meta:
@@ -19,10 +20,18 @@ class CustomerQuerySerializer(serializers.ModelSerializer):
         read_only_fields = ['user']
 
 class UserSerializer(serializers.ModelSerializer):
+    total_spent = serializers.SerializerMethodField()
+
+    def get_total_spent(self, obj):
+        from django.db.models import Sum
+        from apps.sales.models import Order
+        result = Order.objects.filter(user=obj).aggregate(total=Sum('total_amount'))
+        return float(result['total'] or 0)
+
     class Meta:
         from django.contrib.auth.models import User
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'is_staff', 'date_joined']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'is_staff', 'date_joined', 'total_spent']
 
 class EmployeeActionLogSerializer(serializers.ModelSerializer):
     class Meta:

@@ -25,7 +25,7 @@
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(8px);
   }
 
   to {
@@ -35,44 +35,44 @@
 }
 
 /* ──── Page Header: COLUMN layout — title above, stepper below ─ */
-/* Figma Frame 65 (layout_56VLIT): mode: column, alignItems: stretch, gap: 32px */
+/* Figma Frame 65 (layout_56VLIT): mode: column, alignItems: stretch, gap: 26px */
 .product-form-header {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 32px;
-  margin-bottom: 32px;
+  gap: 26px;
+  margin-bottom: 26px;
   width: 100%;
 }
 
-/* Title block (Frame 53, layout_RUI56R): column, gap 14px */
+/* Title block (Frame 53, layout_RUI56R): column, gap 11px */
 .product-form-header-text {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 11px;
 }
 
 .product-form-header-text h1 {
-  font-size: 24px;
+  font-size: 19px;
   font-weight: 700;
   color: var(--pf-gray-900);
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
 
-/* Title h1: Figma style_ELX10Q — Roboto 500, 24px */
+/* Title h1: Figma style_ELX10Q — Roboto 500, 19px */
 .product-form-header-text h1 {
   font-family: 'Roboto', system-ui, sans-serif;
-  font-size: 24px;
+  font-size: 19px;
   font-weight: 500;
   color: #040205;
   letter-spacing: -0.005em;
   margin: 0;
 }
 
-/* Subtitle p: Figma style_H9VU1H — Roboto 400, 16px */
+/* Subtitle p: Figma style_H9VU1H — Roboto 400, 13px */
 .product-form-header-text p {
   font-family: 'Roboto', system-ui, sans-serif;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 400;
   color: #697177;
   line-height: 1.5;
@@ -80,38 +80,38 @@
 }
 
 /* ──── Stepper — see ProductDetailsForm.jsx for inline implementation ── */
-/* Figma 76:7813: row, space-between, gap 16px, full width              */
-/* Nodes: 32x32px circles (Figma layout_RW0IAP: fixed 32x32)            */
+/* Figma 76:7813: row, space-between, gap 13px, full width              */
+/* Nodes: 32x26px circles (Figma layout_RW0IAP: fixed 32x32)            */
 /* Completed connector: #06B217 1.5px; Upcoming: #D9D9D9 1.5px          */
-/* Typography: Roboto 20px, 600 completed / 400 others, color #171D25   */
+/* Typography: Roboto 16px, 600 completed / 400 others, color #171D25   */
 
 /* ──── Form Card ──────────────────────────────────────────── */
 .product-form-card {
   background: #FFFFFF;
   border: 1px solid #e0e0e0;
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
 }
 
 .product-form-section-header {
-  padding: 20px;
+  padding: 16px;
   border-bottom: 1px solid var(--pf-gray-200);
   background: #F3F3F3;
 }
 
-/* Figma style_CZOJGL: Roboto 500, 20px, #040205 */
+/* Figma style_CZOJGL: Roboto 500, 16px, #040205 */
 .section-title-row h2 {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 500;
   font-family: 'Roboto', sans-serif;
   color: #040205;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
   line-height: 1.171875em;
 }
 
-/* Figma style_U36UTY: Roboto 500, 16px, #697177 */
+/* Figma style_U36UTY: Roboto 500, 13px, #697177 */
 .section-title-row p {
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 500;
   font-family: 'Roboto', sans-serif;
   color: #697177;
@@ -120,29 +120,29 @@
 }
 
 .product-form-body {
-  padding: 20px;
-  padding-top: 12px;
+  padding: 16px;
+  padding-top: 10px;
 }
 
 .product-form-columns {
   display: flex;
   flex-direction: column;
-  gap: 40px; /* Increased gap for section separation */
+  gap: 32px; /* Increased gap for section separation */
 }
 
 .form-sub-section {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
 .form-sub-section-title {
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .form-sub-section-title h3 {
   font-family: 'Roboto', sans-serif;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 500;
   color: #040205;
   margin-bottom: 0;
@@ -161,30 +161,30 @@
 .form-field {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .form-field-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 24px;
+  gap: 19px;
 }
 
 .form-field-row-3 {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  gap: 24px;
+  gap: 19px;
 }
 
 .form-field-label {
   font-family: 'Roboto', sans-serif;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 500;
   color: #020617;
   display: flex;
   align-items: center;
   gap: 2px;
-  line-height: 20px;
+  line-height: 16px;
 }
 
 .required-star {
@@ -196,17 +196,17 @@
 .form-field-textarea,
 .form-field-select-wrapper select {
   width: 100%;
-  padding: 12px 14px;
+  padding: 10px 11px;
   border: 1px solid #d2d2d2;
-  border-radius: 6px;
-  font-size: 16px;
+  border-radius: 5px;
+  font-size: 13px;
   font-family: 'Roboto', system-ui, sans-serif;
   color: #020617;
   background: white;
   outline: none;
   transition: all 0.2s;
   box-sizing: border-box;
-  line-height: 20px;
+  line-height: 16px;
 }
 
 .form-field-input::placeholder,
@@ -218,7 +218,7 @@
 .form-field-textarea:focus,
 .form-field-select-wrapper select:focus {
   border-color: var(--pf-brand-600) !important;
-  box-shadow: 0px 0px 0px 4px var(--pf-brand-50) !important;
+  box-shadow: 0px 0px 0px 3px var(--pf-brand-50) !important;
   caret-color: var(--pf-brand-600) !important;
 }
 
@@ -227,17 +227,17 @@
 }
 
 .form-field-error {
-  font-size: 12px;
+  font-size: 10px;
   color: var(--pf-error-600);
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   font-weight: 500;
 }
 
 .form-field-textarea {
   resize: vertical;
-  min-height: 120px;
+  min-height: 96px;
 }
 
 .form-field-select-wrapper {
@@ -251,7 +251,7 @@
 
 .select-chevron {
   position: absolute;
-  right: 12px;
+  right: 10px;
   top: 50%;
   transform: translateY(-50%);
   pointer-events: none;
@@ -266,14 +266,14 @@
 
 .input-prefix {
   position: absolute;
-  left: 12px;
-  font-size: 14px;
+  left: 10px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--pf-gray-500);
 }
 
 .form-field-input.has-prefix {
-  padding-left: 28px;
+  padding-left: 22px;
 }
 
 /* ──── Switches ───────────────────────────────────────────── */
@@ -281,11 +281,11 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px;
+  padding: 13px;
   background: white;
   border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  gap: 16px;
+  border-radius: 6px;
+  gap: 13px;
 }
 
 .form-switch-content {
@@ -296,24 +296,24 @@
 
 .switch-label {
   font-family: 'Roboto', sans-serif;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 500;
   color: #040205;
 }
 
 .switch-description {
   font-family: 'Roboto', sans-serif;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 400;
   color: #697177;
-  line-height: 20px;
+  line-height: 16px;
 }
 
 .toggle-switch {
   position: relative;
   display: inline-block;
-  width: 44px;
-  height: 24px;
+  width: 35px;
+  height: 19px;
 }
 
 .toggle-switch input {
@@ -331,14 +331,14 @@
   bottom: 0;
   background-color: var(--pf-gray-300);
   transition: .4s;
-  border-radius: 24px;
+  border-radius: 19px;
 }
 
 .toggle-slider:before {
   position: absolute;
   content: "";
-  height: 18px;
-  width: 18px;
+  height: 14px;
+  width: 14px;
   left: 3px;
   bottom: 3px;
   background-color: white;
@@ -351,12 +351,12 @@ input:checked+.toggle-slider {
 }
 
 input:checked+.toggle-slider:before {
-  transform: translateX(20px);
+  transform: translateX(16px);
 }
 
 /* ──── Footer Actions ─────────────────────────────────────── */
 .product-form-footer {
-  padding: 20px;
+  padding: 16px;
   border-top: 1px solid #E0E0E0;
   display: flex;
   justify-content: space-between;
@@ -366,20 +366,20 @@ input:checked+.toggle-slider:before {
 
 .product-form-footer-right {
   display: flex;
-  gap: 12px;
+  gap: 10px;
 }
 
 .pf-btn {
-  padding: 8px 12px;
-  font-size: 16px;
+  padding: 6px 10px;
+  font-size: 13px;
   font-weight: 400;
   font-family: 'Roboto', sans-serif;
-  border-radius: 6px;
+  border-radius: 5px;
   cursor: pointer;
   transition: all 0.2s;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   line-height: 1.5;
 }
 
@@ -403,7 +403,7 @@ input:checked+.toggle-slider:before {
   background: #F8FAFC;
 }
 
-/* Figma style_ZC42B9: Roboto 400, 16px */
+/* Figma style_ZC42B9: Roboto 400, 13px */
 .pf-btn-primary {
   background: #68408D;
   border: 1px solid #68408D;
@@ -426,14 +426,14 @@ input:checked+.toggle-slider:before {
   justify-content: space-between;
   width: 100%;
   position: relative;
-  margin-top: 12px;
+  margin-top: 10px;
 }
 
 .pf-step-item {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   position: relative;
   z-index: 2;
   flex: 0 0 auto;
@@ -441,7 +441,7 @@ input:checked+.toggle-slider:before {
 
 .pf-step-label {
   font-family: 'Roboto', sans-serif;
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 400;
   color: #171D25;
   white-space: nowrap;
@@ -461,8 +461,8 @@ input:checked+.toggle-slider:before {
 .pf-step-circle-completed,
 .pf-step-circle-current,
 .pf-step-circle-upcoming {
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   background: var(--pf-gray-300);
   display: flex;
@@ -476,8 +476,8 @@ input:checked+.toggle-slider:before {
 }
 
 .pf-step-circle-completed .pf-step-circle-inner {
-  width: 25px;
-  height: 25px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   background: var(--pf-success-600);
   display: flex;
@@ -486,8 +486,8 @@ input:checked+.toggle-slider:before {
 }
 
 .pf-step-circle-current .pf-step-circle-inner {
-  width: 25px;
-  height: 25px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   background: #06B217;
   display: flex;
@@ -496,8 +496,8 @@ input:checked+.toggle-slider:before {
 }
 
 .pf-step-dot {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: white;
 }
@@ -512,7 +512,7 @@ input:checked+.toggle-slider:before {
   border-color: var(--pf-success-600);
 }
 
-@media screen and (max-width: 600px) {
+@media screen and (max-width: 480px) {
   .pf-step-label {
     display: none;
     /* Hide labels on very small screens to save space */
@@ -525,20 +525,20 @@ input:checked+.toggle-slider:before {
 
 /* ──── Loading State ──────────────────────────────────────── */
 .product-form-loading {
-  height: 400px;
+  height: 320px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: 13px;
   color: var(--pf-gray-500);
 }
 
 .product-form-spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid var(--pf-brand-50);
-  border-top: 4px solid var(--pf-brand-600);
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--pf-brand-50);
+  border-top: 3px solid var(--pf-brand-600);
   border-radius: 50%;
   animation: pf-spin 1s linear infinite;
 }
@@ -558,7 +558,7 @@ input:checked+.toggle-slider:before {
   position: fixed;
   inset: 0;
   background: rgba(16, 24, 40, 0.7);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(3px);
   z-index: 2000;
   display: flex;
   align-items: center;
@@ -567,10 +567,10 @@ input:checked+.toggle-slider:before {
 
 .product-form-success-card {
   background: white;
-  padding: 40px;
-  border-radius: 16px;
+  padding: 32px;
+  border-radius: 13px;
   text-align: center;
-  max-width: 400px;
+  max-width: 320px;
   animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
@@ -587,104 +587,104 @@ input:checked+.toggle-slider:before {
 }
 
 .success-icon {
-  width: 64px;
-  height: 64px;
+  width: 51px;
+  height: 51px;
   background: var(--pf-success-50);
   color: var(--pf-success-600);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 24px;
+  margin: 0 auto 19px;
 }
 
 .product-form-success-card h3 {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--pf-gray-900);
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .product-form-success-card p {
   color: var(--pf-gray-500);
-  font-size: 14px;
+  font-size: 11px;
 }
 
 /* ──── Responsive ─────────────────────────────────────────── */
 
-/* Tablet & Large Mobile (<= 1024px) */
-@media screen and (max-width: 1024px) {
+/* Tablet & Large Mobile (<= 819px) */
+@media screen and (max-width: 819px) {
   .product-form-header {
-    gap: 24px;
-    margin-bottom: 24px;
+    gap: 19px;
+    margin-bottom: 19px;
   }
 
   .product-form-columns {
     grid-template-columns: 1fr;
-    gap: 32px;
+    gap: 26px;
   }
 
   .product-form-card {
-    border-radius: 8px;
+    border-radius: 6px;
   }
 
   .product-form-section-header {
-    padding: 16px;
+    padding: 13px;
   }
 
   .product-form-body {
-    padding: 16px;
+    padding: 13px;
   }
 }
 
-/* Mobile Portrait & Landscape (<= 768px) */
-@media screen and (max-width: 768px) {
+/* Mobile Portrait & Landscape (<= 614px) */
+@media screen and (max-width: 614px) {
   .product-form-header-text h1 {
-    font-size: 20px;
+    font-size: 16px;
   }
 
   .product-form-header-text p {
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .product-form-card {
     border-radius: 0;
     border-left: none;
     border-right: none;
-    margin: 0 -16px;
+    margin: 0 -13px;
     /* Bleed out on mobile if container has padding */
   }
 
   .section-title-row h2 {
-    font-size: 18px;
+    font-size: 14px;
   }
 
   .section-title-row p {
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .form-field-row,
   .form-field-row-3 {
     grid-template-columns: 1fr;
-    gap: 16px;
+    gap: 13px;
   }
 
   .product-form-footer {
     flex-direction: column;
-    gap: 16px;
+    gap: 13px;
     align-items: stretch;
-    padding: 16px;
+    padding: 13px;
   }
 
   .product-form-footer-right {
     flex-direction: column-reverse;
-    gap: 8px;
+    gap: 6px;
   }
 
   .pf-btn {
     width: 100%;
     justify-content: center;
-    padding: 12px;
+    padding: 10px;
   }
 
   .pf-btn-ghost {
@@ -692,24 +692,24 @@ input:checked+.toggle-slider:before {
   }
 }
 
-/* Very Small Devices (<= 480px) */
-@media screen and (max-width: 480px) {
+/* Very Small Devices (<= 384px) */
+@media screen and (max-width: 384px) {
   .product-form-header {
-    gap: 16px;
+    gap: 13px;
   }
 
   .product-form-body {
-    padding: 12px;
+    padding: 10px;
   }
 
   .form-sub-section {
-    gap: 16px;
+    gap: 13px;
   }
 
   .form-switch-row {
     flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
+    gap: 10px;
   }
 
   .toggle-switch {

@@ -14,6 +14,14 @@ class PaymentGatewayConfig(models.Model):
     key_secret = models.CharField(max_length=255, blank=True, help_text="Razorpay Key Secret")
     is_sandbox = models.BooleanField(default=True, help_text="Toggle between Test and Live mode")
     is_active = models.BooleanField(default=True)
+    cod_enabled = models.BooleanField(
+        default=True,
+        help_text="Show the Cash on Delivery option to customers at checkout"
+    )
+    online_payment_enabled = models.BooleanField(
+        default=True,
+        help_text="Show the full online payment option to customers at checkout"
+    )
     partial_payment_enabled = models.BooleanField(
         default=True,
         help_text="Show the partial payment option to customers at checkout"
@@ -40,15 +48,17 @@ class Coupon(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     def __str__(self): return self.code
 
+ORDER_STATUS_CHOICES = [
+    ('pending', 'Pending'),
+    ('confirmed', 'Confirmed'),
+    ('preparing', 'Preparing'),
+    ('ready_to_dispatch', 'Ready to Dispatch'),
+    ('in_transit', 'In Transit'),
+    ('delivered', 'Delivered'),
+    ('cancelled', 'Cancelled'),
+]
+
 class Order(models.Model):
-    ORDER_STATUS_CHOICES = [
-        ('pending', 'Pending'),
-        ('confirmed', 'Confirmed'),
-        ('ready_to_dispatch', 'Ready to Dispatch'),
-        ('in_transit', 'In Transit'),
-        ('delivered', 'Delivered'),
-        ('cancelled', 'Cancelled'),
-    ]
     PAYMENT_STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('partial_paid', 'Partial Paid'),
@@ -119,6 +129,7 @@ class OrderItem(models.Model):
     price_at_purchase = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     lens_prescription_text = models.TextField(null=True, blank=True)
     lens_pd = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    status = models.CharField(max_length=30, choices=ORDER_STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True, null=True)
     def __str__(self): return f"Item for Order #{self.order.id}"
 
@@ -183,3 +194,56 @@ class LiveSession(models.Model):
     current_page = models.CharField(max_length=255, default='Home Page')
     last_activity = models.DateTimeField(auto_now=True)
     def __str__(self): return f"Session {self.session_id} on {self.current_page}"
+
+class ReturnRequest(models.Model):
+    REASON_CHOICES = [
+        ('defective', 'Defective'),
+        ('wrong_item', 'Wrong Item'),
+        ('size_issue', 'Size Issue'),
+        ('not_as_described', 'Not as Described'),
+        ('other', 'Other'),
+    ]
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+        ('picked_up', 'Picked Up'),
+        ('received', 'Received'),
+        ('refunded', 'Refunded'),
+        ('replaced', 'Replaced'),
+    ]
+    TYPE_CHOICES = [
+        ('refund', 'Refund'),
+        ('replacement', 'Replacement'),
+    ]
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='return_requests')
+    reason = models.CharField(max_length=30, choices=REASON_CHOICES)
+    request_type = models.CharField(max_length=15, choices=TYPE_CHOICES)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    description = models.TextField(blank=True)
+    refund_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    refund_date = models.DateField(null=True, blank=True)
+    replacement_sku = models.CharField(max_length=100, blank=True)
+    replacement_tracking_id = models.CharField(max_length=100, blank=True)
+    admin_notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    def __str__(self): return f"Return #{self.id} for Order #{self.order_id}"
+
+class WarrantyClaim(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('in_service', 'In Service'),
+        ('completed', 'Completed'),
+        ('rejected', 'Rejected'),
+    ]
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='warranty_claims')
+    issue_description = models.TextField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    claimed_at = models.DateTimeField(auto_now_add=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    admin_notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    def __str__(self): return f"Warranty #{self.id} for Order #{self.order_id}"

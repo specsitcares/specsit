@@ -17,10 +17,10 @@
   --pd-error: #BA1A1A;
   --pd-warning: #EAB308;
   --pd-card-bg: #F5F3F6;
-  --pd-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-  --pd-radius-lg: 16px;
-  --pd-radius-md: 12px;
-  --pd-radius-sm: 8px;
+  --pd-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+  --pd-radius-lg: 13px;
+  --pd-radius-md: 10px;
+  --pd-radius-sm: 6px;
 }
 
 .product-detail-page {
@@ -28,19 +28,19 @@
   min-height: 100vh;
   font-family: 'Plus Jakarta Sans', sans-serif;
   color: var(--pd-text);
-  padding-top: 60px;
-  padding-bottom: 80px;
+  padding-top: 48px;
+  padding-bottom: 64px;
 }
 
 /* ── Breadcrumbs ────────────────────────────────────────── */
 .pd-breadcrumbs {
-  padding: 24px 32px; 
-  width: calc(100% - 200px);
+  padding: 19px 26px; 
+  width: calc(100% - 160px);
   margin: 0 auto;
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 11px; 
+  gap: 6px;
+  font-size: 9px; 
   color: var(--pd-text);
 }
 
@@ -66,9 +66,9 @@
 .pd-container {
   display: grid;
   grid-template-columns: 1.5fr 1fr;
-  gap: 40px;
-  padding: 0 32px; 
-  width: calc(100% - 200px); /* Centers consistently with 100px margins */
+  gap: 32px;
+  padding: 0 26px; 
+  width: calc(100% - 160px); /* Centers consistently with 80px margins */
   margin: 0 auto; 
   align-items: start;
 }
@@ -77,26 +77,26 @@
 .pd-left-col {
   display: flex;
   flex-direction: column;
-  gap: 60px;
+  gap: 48px;
 }
 
 .pd-gallery-section {
   display: flex;
-  gap: 24px;
-  height: 561px;
+  gap: 19px;
+  height: 449px;
 }
 
 .pd-thumbnails {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  width: 80px;
+  gap: 13px;
+  width: 64px;
   flex-shrink: 0;
 }
 
 .pd-thumb {
-  width: 80px;
-  height: 80px;
+  width: 64px;
+  height: 64px;
   border-radius: var(--pd-radius-sm);
   border: 1px solid var(--pd-border);
   overflow: hidden;
@@ -115,7 +115,7 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
-  padding: 8px;
+  padding: 6px;
   mix-blend-mode: multiply;
 }
 
@@ -124,9 +124,9 @@
   flex: 1;
   position: relative;
   background: var(--pd-border);
-  border-radius: 8px;
+  border-radius: 6px;
   overflow: hidden;
-  height: 561px;
+  height: 449px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -143,23 +143,23 @@
 /* ── Virtual Try-On pill button (top-right of image) ───── */
 .pd-vto-pill-btn {
   position: absolute;
-  top: 16px;
-  right: 16px;
+  top: 13px;
+  right: 13px;
   z-index: 3;
   background: #68408D;
   color: #FEFCFF;
   border: none;
-  border-radius: 12px;
-  padding: 10px 20px;
+  border-radius: 10px;
+  padding: 8px 16px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 13px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.35px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   cursor: pointer;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.25);
   transition: opacity 0.2s, transform 0.2s;
   white-space: nowrap;
 }
@@ -172,32 +172,32 @@
 /* ── Wishlist floating button (bottom-right of image) ── */
 .pd-floating-actions {
   position: absolute;
-  bottom: 16px;
-  right: 16px;
+  bottom: 13px;
+  right: 13px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .pd-floating-btn {
-  width: 44px;
-  height: 44px;
+  width: 35px;
+  height: 35px;
   background: rgba(254, 252, 255, 0.95);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(3px);
   border: none;
-  border-radius: 12px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0px 10px 15px -3px rgba(0, 0, 0, 0.1), 0px 4px 6px -4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0px 8px 12px -3px rgba(0, 0, 0, 0.1), 0px 3px 5px -3px rgba(0, 0, 0, 0.1);
   color: #040205;
   transition: all 0.2s ease;
 }
 
 .pd-floating-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0px 15px 20px -3px rgba(0, 0, 0, 0.15);
+  box-shadow: 0px 12px 16px -3px rgba(0, 0, 0, 0.15);
 }
 
 /* ── VTO Section (legacy, kept for VTOModal) ─────────── */
@@ -209,29 +209,29 @@
 .pd-features-section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  /* Reduced from 20px */
+  gap: 10px;
+  /* Reduced from 16px */
 }
 
 .pd-section-header h2 {
-  font-size: 30px;
+  font-size: 24px;
   font-weight: 800;
   letter-spacing: -0.025em;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   color: var(--pd-text);
 }
 
 .pd-section-subhead {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 8px;
-  /* Reduced from 32px or the recent update */
+  gap: 10px;
+  margin-bottom: 6px;
+  /* Reduced from 26px or the recent update */
 }
 
 .pd-section-subhead p {
   color: var(--pd-text);
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 500;
   margin: 0;
 }
@@ -241,7 +241,7 @@
   border: none;
   color: var(--pd-primary);
   font-family: inherit;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   padding: 0;
@@ -251,17 +251,17 @@
 .pd-features-grid {
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 26px;
   background: #FEFCFF;
   border: 1px solid #EBE3F2;
-  padding: 32px;
-  border-radius: 16px;
+  padding: 26px;
+  border-radius: 13px;
 }
 
 .pd-feature-card {
   display: flex;
   align-items: flex-start;
-  gap: 24px;
+  gap: 19px;
   padding: 0;
   background: transparent;
   transition: none;
@@ -273,10 +273,10 @@
 }
 
 .pd-feature-icon {
-  width: 56px;
-  height: 56px;
+  width: 45px;
+  height: 45px;
   background: #EFEDF0;
-  border-radius: 12px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -285,7 +285,7 @@
 }
 
 .pd-feature-info h4 {
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--pd-text);
   margin-bottom: 2px;
@@ -293,7 +293,7 @@
 }
 
 .pd-feature-info p {
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 400;
   color: var(--pd-text);
   line-height: 1.42;
@@ -302,32 +302,32 @@
 
 /* ── Full-Width Sections ────────────────────────────────── */
 .pd-full-width-sections {
-  width: calc(100% - 200px);
+  width: calc(100% - 160px);
   margin: 0 auto;
-  padding: 0 32px;
+  padding: 0 26px;
 }
 
 /* ── Details Showcase Section ───────────────────────────── */
 .pd-details-showcase {
-  padding: 40px 0;
+  padding: 32px 0;
   border-top: 1px solid #EBE3F2;
 }
 
 .pd-showcase-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 32px;
+  gap: 26px;
 }
 
 .pd-showcase-item {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 19px;
 }
 
 .pd-showcase-img {
   width: 100%;
-  height: 300px;
+  height: 240px;
   background: #EFEDF0;
   border-radius: 0;
   overflow: hidden;
@@ -343,11 +343,11 @@
 .pd-showcase-info {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 13px;
 }
 
 .pd-showcase-info h3 {
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: -0.05em;
@@ -356,7 +356,7 @@
 }
 
 .pd-showcase-info p {
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 400;
   line-height: 1.625;
   color: #040205;
@@ -364,21 +364,21 @@
 
 /* ── How to Style Section ───────────────────────────────── */
 .pd-how-to-style {
-  padding: 40px 0;
+  padding: 32px 0;
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 26px;
 }
 
 .pd-how-to-style .pd-section-header h2 {
-  font-size: 30px;
+  font-size: 24px;
   font-weight: 800;
   letter-spacing: -0.025em;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .pd-how-to-style .pd-section-header p {
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--pd-text);
   opacity: 0.8;
@@ -387,13 +387,13 @@
 .pd-style-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+  gap: 13px;
 }
 
 .pd-style-item {
   aspect-ratio: 1;
   background: var(--pd-surface);
-  border-radius: 16px;
+  border-radius: 13px;
   overflow: hidden;
 }
 
@@ -412,81 +412,87 @@
 .pd-right-col {
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 26px;
 }
 
 .pd-info-header {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 13px;
 }
 
 .pd-meta-row {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 19px;
 }
 
 .pd-badge {
   display: inline-block;
-  padding: 4px 12px;
+  padding: 3px 10px;
   background: var(--pd-accent-light);
   color: var(--pd-primary);
   font-weight: 800;
-  font-size: 10px;
+  font-size: 8px;
   text-transform: uppercase;
   letter-spacing: 0.15em;
-  border-radius: 12px;
+  border-radius: 10px;
   width: fit-content;
 }
 
 .pd-rating {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
+  gap: 6px;
+  font-size: 11px;
   color: var(--pd-text);
   font-weight: 500;
 }
 
 .pd-rating strong {
   font-weight: 800;
-  font-size: 16px;
+  font-size: 13px;
 }
 
 .pd-title-area h1 {
-  font-size: 48px;
+  font-size: 38px;
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.025em;
   color: var(--pd-text);
-  margin-bottom: 6px;
+  margin-bottom: 5px;
 }
 
 .pd-subtitle {
-  font-size: 18px;
-  /* Reduced from 20px */
+  font-size: 14px;
+  /* Reduced from 16px */
   font-weight: 500;
   color: var(--pd-text);
   line-height: normal;
 }
 
 .pd-price-section {
-  padding: 24px 0;
+  padding: 19px 0;
   border-bottom: 1px solid var(--pd-accent-light);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+}
+
+.pd-price-block {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
 
 .pd-price-row {
   display: flex;
   align-items: baseline;
-  gap: 16px;
+  gap: 13px;
 }
 
 .pd-tax-info {
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 500;
   color: #4B444F;
   text-transform: uppercase;
@@ -494,21 +500,21 @@
 }
 
 .pd-colors-available {
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   color: #4F2874;
-  margin-top: 4px;
+  margin-top: 3px;
 }
 
 .pd-current-price {
-  font-size: 30px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--pd-text);
   line-height: 1.2;
 }
 
 .pd-old-price {
-  font-size: 20px;
+  font-size: 16px;
   color: var(--pd-text);
   opacity: 0.6;
   text-decoration: line-through;
@@ -518,9 +524,9 @@
 .pd-discount-badge {
   background: var(--pd-accent-light);
   color: var(--pd-primary);
-  padding: 4px 12px;
+  padding: 3px 10px;
   border-radius: 2px;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 700;
 }
 
@@ -528,19 +534,19 @@
 .pd-delivery-banner {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 13px;
   background: var(--pd-accent-light);
-  padding: 16px;
-  border-radius: 8px;
+  padding: 13px;
+  border-radius: 6px;
   border: 1px solid var(--pd-accent-light);
-  margin-bottom: 24px;
+  margin-bottom: 19px;
 }
 
 .pd-delivery-icon {
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   background: var(--pd-accent-light);
-  border-radius: 12px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -552,13 +558,13 @@
   font-weight: 800;
   color: var(--pd-primary);
   text-transform: uppercase;
-  font-size: 14px;
+  font-size: 11px;
   letter-spacing: -0.025em;
   margin-bottom: 2px;
 }
 
 .pd-delivery-text p {
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 500;
   color: var(--pd-text);
   line-height: 1.33;
@@ -568,12 +574,12 @@
 .pd-coupon-section {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 13px;
 }
 
 .pd-coupon-label {
   font-weight: 800;
-  font-size: 12px;
+  font-size: 10px;
   text-transform: uppercase;
   color: #4B444F;
   letter-spacing: 0.1em;
@@ -581,17 +587,17 @@
 
 .pd-coupon-input-group {
   display: flex;
-  gap: 12px;
+  gap: 10px;
 }
 
 .pd-coupon-input {
   flex: 1;
-  height: 44px;
+  height: 35px;
   border: 1px solid rgba(205, 195, 209, 0.4);
-  border-radius: 4px;
-  padding: 0 12px;
+  border-radius: 3px;
+  padding: 0 10px;
   font-family: inherit;
-  font-size: 13px;
+  font-size: 10px;
   background: var(--pd-card-bg);
   outline: none;
 }
@@ -600,10 +606,10 @@
   background: var(--pd-primary);
   color: white;
   border: none;
-  padding: 13px 32px;
-  border-radius: 4px;
+  padding: 10px 26px;
+  border-radius: 3px;
   font-weight: 700;
-  font-size: 13px;
+  font-size: 10px;
   cursor: pointer;
   transition: opacity 0.2s;
   white-space: nowrap;
@@ -619,7 +625,7 @@
   background: none;
   border: none;
   color: #4F2874;
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -633,35 +639,35 @@
 .pd-dimensions-section {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 13px;
 }
 
 .pd-dimensions-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 16px 24px;
+  gap: 13px 19px;
 }
 
 .pd-dim-item {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   padding: 0;
   background: transparent;
   border: none;
 }
 
 .pd-dim-icon {
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   background: var(--pd-border);
   color: var(--pd-muted);
-  border-radius: 4px;
+  border-radius: 3px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 12px;
+  font-size: 10px;
   flex-shrink: 0;
 }
 
@@ -672,7 +678,7 @@
 }
 
 .pd-dim-info span {
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 700;
   color: var(--pd-muted);
   text-transform: uppercase;
@@ -681,7 +687,7 @@
 }
 
 .pd-dim-info strong {
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 800;
   color: var(--pd-text);
   line-height: normal;
@@ -691,8 +697,8 @@
 .pd-pincode-confirmed {
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 14px;
+  gap: 10px;
+  font-size: 11px;
   color: var(--pd-text);
 }
 
@@ -705,7 +711,7 @@
   border: none;
   color: var(--pd-primary);
   font-family: inherit;
-  font-size: 13px;
+  font-size: 10px;
   font-weight: 700;
   cursor: pointer;
   padding: 0;
@@ -717,10 +723,10 @@
 .pd-delivery-result {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 14px 16px;
-  border-radius: 12px;
-  font-size: 13px;
+  gap: 10px;
+  padding: 11px 13px;
+  border-radius: 10px;
+  font-size: 10px;
 }
 
 .pd-delivery-result div {
@@ -730,12 +736,12 @@
 }
 
 .pd-delivery-result strong {
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 700;
 }
 
 .pd-delivery-result span {
-  font-size: 12px;
+  font-size: 10px;
   opacity: 0.8;
 }
 
@@ -774,7 +780,7 @@
 
 /* ── Validation / error message ─────────────────────────── */
 .pd-delivery-msg {
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 500;
   margin: 0;
 }
@@ -792,44 +798,44 @@
 .pd-assure-section {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 16px 0;
+  gap: 13px;
+  padding: 13px 0;
   border-top: 1px solid var(--pd-border);
 }
 
 .pd-section-label {
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--pd-text);
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
 
 .pd-pincode-group {
   display: flex;
-  gap: 12px;
+  gap: 10px;
 }
 
 .pd-pincode-input {
   flex: 1;
-  height: 48px;
-  padding: 0 16px;
+  height: 38px;
+  padding: 0 13px;
   border: 1px solid var(--pd-border);
-  border-radius: 8px;
+  border-radius: 6px;
   font-family: inherit;
-  font-size: 14px;
+  font-size: 11px;
   background: #FEFCFF;
 }
 
 .pd-pincode-btn {
-  padding: 0 32px;
-  height: 48px;
+  padding: 0 26px;
+  height: 38px;
   border: 1px solid var(--pd-border);
   background: white;
-  border-radius: 8px;
+  border-radius: 6px;
   font-family: inherit;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--pd-text);
   cursor: pointer;
@@ -845,34 +851,34 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px;
+  padding: 13px;
   background: #EFEDF0;
-  border-radius: 16px;
+  border-radius: 13px;
 }
 
 .pd-banner-content {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .pd-banner-content strong {
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--pd-text);
 }
 
 .pd-banner-content span {
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 400;
   color: var(--pd-text);
 }
 
 .pd-banner-icon-box {
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   background: #FEFCFF;
-  border-radius: 12px;
+  border-radius: 10px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   display: flex;
   align-items: center;
@@ -882,15 +888,15 @@
 .pd-assure-row {
   display: flex;
   justify-content: center;
-  gap: 32px;
-  padding: 16px 0;
+  gap: 26px;
+  padding: 13px 0;
 }
 
 .pd-assure-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 12px;
+  gap: 6px;
+  font-size: 10px;
   font-weight: 600;
   color: var(--pd-text);
 }
@@ -899,30 +905,30 @@
 .pd-selectors-section {
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 26px;
 }
 
 .pd-selector-item {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 13px;
 }
 
 .pd-selector-item label span {
   font-weight: 800;
   color: var(--pd-text);
-  margin-left: 4px;
+  margin-left: 3px;
 }
 
 .pd-color-swatches {
   display: flex;
-  gap: 16px;
+  gap: 13px;
 }
 
 .pd-swatch {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   position: relative;
@@ -934,22 +940,22 @@
 }
 
 .pd-swatch.active {
-  box-shadow: 0 0 0 4px #FBFAFC, 0 0 0 6px #4F2874;
+  box-shadow: 0 0 0 3px #FBFAFC, 0 0 0 5px #4F2874;
 }
 
 .pd-size-btns {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 10px;
 }
 
 .pd-size-btn {
-  padding: 12px 24px;
+  padding: 10px 19px;
   border: 1px solid var(--pd-accent-light);
   background: transparent;
-  border-radius: 12px;
+  border-radius: 10px;
   font-family: inherit;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--pd-text);
   cursor: pointer;
@@ -971,10 +977,10 @@
 .pd-coupon-msg {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
+  gap: 6px;
+  font-size: 10px;
   font-weight: 600;
-  margin-top: 4px;
+  margin-top: 3px;
 }
 
 .pd-coupon-msg.success {
@@ -988,14 +994,14 @@
 .pd-assure-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  gap: 8px;
 }
 
 .pd-assure-item {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11px;
+  gap: 5px;
+  font-size: 9px;
   font-weight: 700;
   color: var(--pd-muted);
 }
@@ -1004,16 +1010,16 @@
 .pd-detailed-features {
   display: flex;
   flex-direction: column;
-  gap: 40px;
-  margin-top: 40px;
+  gap: 32px;
+  margin-top: 32px;
 }
 
 .pd-feature-block {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   border-top: 1px solid var(--pd-border);
-  padding-top: 40px;
+  padding-top: 32px;
 }
 
 .pd-feature-img {
@@ -1030,15 +1036,15 @@
 }
 
 .pd-feature-text h3 {
-  font-size: 24px;
+  font-size: 19px;
   font-weight: 800;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .pd-feature-text p {
   color: var(--pd-muted);
   line-height: 1.6;
-  font-size: 15px;
+  font-size: 12px;
 }
 
 /* ── Reviews Breakdown ─────────────────────────────────── */
@@ -1046,25 +1052,25 @@
 
 /* ── Main CTA ─────────────────────────────────────────── */
 .pd-cta-container {
-  padding: 24px 0 0;
+  padding: 19px 0 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 13px;
 }
 
 .pd-main-cta {
   width: 100%;
-  padding: 20px;
+  padding: 16px;
   background: var(--pd-primary);
   color: #FEFCFF;
   border: none;
-  border-radius: 8px;
-  font-size: 18px;
+  border-radius: 6px;
+  font-size: 14px;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
   letter-spacing: -0.025em;
@@ -1073,21 +1079,21 @@
 .pd-main-cta:hover {
   opacity: 0.9;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(104, 64, 141, 0.2);
+  box-shadow: 0 3px 10px rgba(104, 64, 141, 0.2);
 }
 
 .pd-lens-grid {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-bottom: 24px;
+  gap: 10px;
+  margin-bottom: 19px;
 }
 
 .pd-lens-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
+  padding: 13px 16px;
   border: 1px solid var(--pd-border);
   border-radius: var(--pd-radius-sm);
   cursor: pointer;
@@ -1115,12 +1121,12 @@
 .pd-rx-options {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 24px;
+  gap: 10px;
+  margin-bottom: 19px;
 }
 
 .pd-rx-btn {
-  height: 80px;
+  height: 64px;
   border: 1px solid var(--pd-border);
   border-radius: var(--pd-radius-sm);
   background: white;
@@ -1128,9 +1134,9 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 11px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -1153,25 +1159,25 @@
 .pd-back-link {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   color: var(--pd-muted);
   font-weight: 700;
-  margin-top: 16px;
+  margin-top: 13px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 11px;
 }
 
 /* ── Rating & Reviews Section ───────────────────────────── */
 .pd-reviews-section {
-  padding: 60px 0;
+  padding: 48px 0;
   border-top: 1px solid #EBE3F2;
   display: flex;
   flex-direction: column;
-  gap: 48px;
+  gap: 38px;
 }
 
 .pd-reviews-section .pd-section-header h2 {
-  font-size: 30px;
+  font-size: 24px;
   font-weight: 800;
   letter-spacing: -0.025em;
   color: var(--pd-text);
@@ -1180,27 +1186,27 @@
 
 .pd-reviews-container {
   display: flex;
-  gap: 48px;
+  gap: 38px;
   align-items: flex-start;
 }
 
 /* Overall Rating Col */
 .pd-rating-overall-col {
-  width: 600px;
+  width: 480px;
   display: flex;
   flex-direction: column;
-  gap: 48px;
+  gap: 38px;
   flex-shrink: 0;
 }
 
 .pd-rating-summary-row {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 19px;
 }
 
 .pd-rating-score-big {
-  font-size: 60px;
+  font-size: 48px;
   font-weight: 800;
   color: var(--pd-primary);
   line-height: 1;
@@ -1209,7 +1215,7 @@
 .pd-rating-summary-meta {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .pd-stars-row {
@@ -1218,7 +1224,7 @@
 }
 
 .pd-review-total-count {
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--pd-text);
 }
@@ -1227,20 +1233,20 @@
 .pd-rating-breakdown-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 13px;
   width: 100%;
 }
 
 .pd-rating-breakdown-row {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 13px;
   width: 100%;
 }
 
 .pd-star-label {
-  width: 16px;
-  font-size: 12px;
+  width: 13px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--pd-text);
   flex-shrink: 0;
@@ -1252,22 +1258,22 @@
 
 .pd-progress-track {
   flex: 1;
-  height: 6px;
+  height: 5px;
   background: #EFEDF0;
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
 }
 
 .pd-progress-thumb {
   height: 100%;
   background: var(--pd-primary);
-  border-radius: 12px;
+  border-radius: 10px;
 }
 
 .pd-pct-label {
-  width: 32px;
+  width: 26px;
   text-align: right;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--pd-text);
 }
@@ -1277,16 +1283,16 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 19px;
 }
 
 .pd-user-photos-header h3 {
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--pd-text);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   margin: 0;
 }
 
@@ -1298,13 +1304,13 @@
 .pd-user-photo-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 12px;
+  gap: 10px;
 }
 
 .pd-user-photo-item {
   aspect-ratio: 1;
   background: #EFEDF0;
-  border-radius: 8px;
+  border-radius: 6px;
   overflow: hidden;
 }
 
@@ -1318,11 +1324,11 @@
 /* ── Related Product Sections (Brand & Style) ──────────── */
 .pd-brand-section,
 .pd-style-section {
-  padding: 80px 0;
+  padding: 64px 0;
   border-top: 1px solid #EBE3F2;
   display: flex;
   flex-direction: column;
-  gap: 40px;
+  gap: 32px;
 }
 
 .pd-style-section {
@@ -1339,12 +1345,12 @@
 
 .pd-carousel-nav {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 
 .pd-nav-btn {
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   border: 1px solid #EBE3F2;
   background: white;
   border-radius: 50%;
@@ -1370,7 +1376,7 @@
 .pd-style-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 24px;
+  gap: 19px;
 }
 
 @media (max-width: 1200px) {
@@ -1398,13 +1404,13 @@
 .pd-lifestyle-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: repeat(2, 285px);
-  gap: 16px;
+  grid-template-rows: repeat(2, 228px);
+  gap: 13px;
 }
 
 .pd-lifestyle-item {
   background: var(--pd-border);
-  border-radius: 16px;
+  border-radius: 13px;
   overflow: hidden;
 }
 
@@ -1420,7 +1426,7 @@
 }
 
 .pd-lifestyle-item {
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
   aspect-ratio: 1;
   background: #F8F7F9;
@@ -1453,9 +1459,9 @@
 @media (max-width: 1400px) {
   .pd-breadcrumbs,
   .pd-container {
-    padding: 0 24px;
+    padding: 0 19px;
     width: auto;
-    margin: 0 60px;
+    margin: 0 48px;
   }
 }
 
@@ -1472,9 +1478,9 @@
 @media (max-width: 768px) {
   .pd-breadcrumbs,
   .pd-container {
-    padding: 0 16px;
+    padding: 0 13px;
     width: auto;
-    margin: 0 20px;
+    margin: 0 16px;
   }
 
   .pd-gallery-section {

@@ -85,7 +85,7 @@ const CollectionTable = () => {
   const renderRow = (c, idx, { isSelected, onToggle } = {}) => (
     <tr key={c.id || idx} style={{ borderBottom: '1px solid #EAECF0', backgroundColor: isSelected ? '#F9F5FF' : '#fff' }}>
       <td style={{ padding: '16px 24px' }}>
-        <input type="checkbox" checked={!!isSelected} onChange={onToggle} style={{ cursor: 'pointer', borderRadius: '4px', accentColor: '#7F56D9' }} />
+        <input type="checkbox" checked={!!isSelected} onChange={onToggle} style={{ cursor: 'pointer', borderRadius: '3px', accentColor: '#7F56D9' }} />
       </td>
       <td style={{ padding: '16px 24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -93,13 +93,13 @@ const CollectionTable = () => {
             {c.image ? <img src={c.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Layers size={18} />}
           </div>
           <div>
-            <div style={{ fontWeight: 600, color: '#101828', fontSize: '14px' }}>{c.name}</div>
-            <div style={{ fontSize: '12px', color: '#667085' }}>ID: {c.id}</div>
+            <div style={{ fontWeight: 600, color: '#101828', fontSize: '11px' }}>{c.name}</div>
+            <div style={{ fontSize: '10px', color: '#667085' }}>ID: {c.id}</div>
           </div>
         </div>
       </td>
       <td style={{ padding: '16px 24px', maxWidth: 280 }}>
-        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '14px', color: '#667085' }}>
+        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '11px', color: '#667085' }}>
           {c.description || '—'}
         </div>
       </td>
@@ -108,8 +108,8 @@ const CollectionTable = () => {
           backgroundColor: '#F9F5FF',
           color: '#6941C6',
           padding: '4px 10px',
-          borderRadius: '16px',
-          fontSize: '12px',
+          borderRadius: '13px',
+          fontSize: '10px',
           fontWeight: 700,
           border: '1px solid #E9D7FE'
         }}>
@@ -121,8 +121,8 @@ const CollectionTable = () => {
           backgroundColor: c.is_active ? '#ECFDF3' : '#F2F4F7',
           color: c.is_active ? '#027A48' : '#344054',
           padding: '4px 10px',
-          borderRadius: '16px',
-          fontSize: '12px',
+          borderRadius: '13px',
+          fontSize: '10px',
           fontWeight: 600,
           display: 'inline-flex',
           alignItems: 'center',
@@ -137,14 +137,14 @@ const CollectionTable = () => {
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
           <div
             onClick={() => handleEditClick(c)}
-            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
             title="Edit Collection"
           >
             <Edit2 size={16} />
           </div>
           <div
             onClick={() => handleCreateClick()} // Using create click logic as delete placeholder if needed, or implement delete
-            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+            style={{ width: 32, height: 32, border: '1px solid #D0D5DD', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
           >
             <MoreVertical size={16} />
           </div>
@@ -179,8 +179,8 @@ const CollectionTable = () => {
         showFilters={showFilters}
         setShowFilters={setShowFilters}
         filterContent={
-          <div style={{ display: 'flex', gap: '16px' }}>
-             <div style={{ fontSize: '14px', color: '#667085' }}>Collection filters coming soon.</div>
+          <div style={{ display: 'flex', gap: '13px' }}>
+             <div style={{ fontSize: '11px', color: '#667085' }}>Collection filters coming soon.</div>
           </div>
         }
       />

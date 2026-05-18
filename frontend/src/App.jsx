@@ -28,7 +28,6 @@ import WishlistPage from './components/pages/account/WishlistPage';
 import CustomerOrderDetailPage from './components/pages/account/CustomerOrderDetailPage';
 import ThankYouPage from './components/pages/checkout/ThankYouPage';
 import OrderConfirmedPage from './components/pages/checkout/OrderConfirmedPage';
-import SubmitPrescriptionPage from './components/pages/checkout/SubmitPrescriptionPage';
 import OrderTrackingPage from './components/pages/account/OrderTrackingPage';
 import ReviewCreatePage from './components/pages/account/ReviewCreatePage';
 import ReviewPage from './components/pages/account/ReviewPage';
@@ -79,8 +78,6 @@ const LiveTracker = () => {
         };
 
         report();
-        const interval = setInterval(report, 15000); // 15s for tighter live sync
-        return () => clearInterval(interval);
     }, [location.pathname]);
 
     return null;
@@ -114,7 +111,6 @@ const App = () => {
                                     <Route path="customer/order/:orderId" element={<ProtectedRoute><CustomerOrderDetailPage /></ProtectedRoute>} />
                                     <Route path="order-confirmed/:orderId" element={<ProtectedRoute><OrderConfirmedPage /></ProtectedRoute>} />
                                     <Route path="thank-you/:orderId" element={<ProtectedRoute><ThankYouPage /></ProtectedRoute>} />
-                                    <Route path="prescription/submit/:orderId" element={<ProtectedRoute><SubmitPrescriptionPage /></ProtectedRoute>} />
                                     <Route path="order-tracking/:orderId" element={<ProtectedRoute><OrderTrackingPage /></ProtectedRoute>} />
                                     <Route path="review/create/:productId/:orderId" element={<ProtectedRoute><ReviewCreatePage /></ProtectedRoute>} />
                                     <Route path="review/:orderId" element={<ProtectedRoute><ReviewPage /></ProtectedRoute>} />
@@ -134,13 +130,13 @@ const App = () => {
                                     <Route path="support/privacy" element={<PrivacyPolicyPage />} />
                                 </Route>
                                 
-                                <Route 
-                                    path="admin" 
+                                <Route
+                                    path="admin/*"
                                     element={
                                         <ProtectedRoute requireAdmin={true}>
                                             <AdminDashboard />
                                         </ProtectedRoute>
-                                    } 
+                                    }
                                 />
                             </Routes>
                         </Router>

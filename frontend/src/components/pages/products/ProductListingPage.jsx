@@ -19,12 +19,26 @@ const VariantCard = ({ product, variant }) => {
   const [wishlistPending, setWishlistPending] = useState(false);
 
   const mainImg = variant?.images?.[0]?.image || variant?.images?.[0] || product.product_image || product.main_image || '';
-  const basePrice = parseFloat(product.base_price || 0);
-  const priceAdj = parseFloat(variant?.price_adjustment || 0);
-  const adjustedPrice = priceAdj > 0 ? priceAdj : basePrice;
-  const discountPct = parseFloat(variant?.discount_percent ?? product.discount_percentage ?? 0);
-  const salePrice = Math.round(adjustedPrice * (1 - discountPct / 100));
-  const hasDiscount = discountPct > 0 && adjustedPrice > salePrice;
+  const mrp = Math.round(parseFloat(variant?.base_price || product.base_price || 0));
+  // Resolve selling price: prefer explicit variant selling_price, then variant discount %, then product selling_price, then product discount %
+  const variantSelling = parseFloat(variant?.selling_price || 0);
+  const variantDiscPct = parseFloat(variant?.discount_percent || 0);
+  const productSelling = parseFloat(product.selling_price || 0);
+  const productDiscPct = parseFloat(product.discount_percentage || 0);
+  let salePrice;
+  if (variantSelling > 0 && variantSelling < mrp) {
+    salePrice = Math.round(variantSelling);
+  } else if (variantDiscPct > 0) {
+    salePrice = Math.round(mrp * (1 - variantDiscPct / 100));
+  } else if (productSelling > 0 && productSelling < mrp) {
+    salePrice = Math.round(productSelling);
+  } else if (productDiscPct > 0) {
+    salePrice = Math.round(mrp * (1 - productDiscPct / 100));
+  } else {
+    salePrice = mrp;
+  }
+  const discountPct = mrp > 0 && salePrice < mrp ? Math.round(((mrp - salePrice) / mrp) * 100) : 0;
+  const hasDiscount = discountPct > 0;
   const colorName = variant?.color || variant?.frame_color || variant?.lens_color || '';
   const brandName = (product.brand_display_name || product.brand_name || product.category_name || '').toUpperCase();
   const wishlisted = variant?.id != null && isWishlisted(variant.id);
@@ -77,12 +91,14 @@ const VariantCard = ({ product, variant }) => {
                 {colorName}
               </p>
             )}
-            <div className="product-card__price-row">
-              {hasDiscount && <span className="product-card__price-old">₹{Math.round(adjustedPrice).toLocaleString('en-IN')}</span>}
+            <div className="product-card__price-block">
               <span className="product-card__price-new">₹{salePrice.toLocaleString('en-IN')}</span>
               {hasDiscount && (
-                <div className="product-card__discount">
-                  <span className="product-card__discount-text">{Math.round(discountPct)}% OFF</span>
+                <div className="product-card__price-row">
+                  <span className="product-card__price-old">₹{mrp.toLocaleString('en-IN')}</span>
+                  <div className="product-card__discount">
+                    <span className="product-card__discount-text">({discountPct}% OFF)</span>
+                  </div>
                 </div>
               )}
             </div>
@@ -598,7 +614,7 @@ const ProductListingPage = () => {
                                             onChange={(e) => setMaxPrice(e.target.value)}
                                             style={{ accentColor: '#68408D', width: '100%' }}
                                         />
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#71717A' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#71717A' }}>
                                             <span>₹0</span>
                                             <span>₹{Number(maxPrice).toLocaleString('en-IN')}</span>
                                         </div>
@@ -806,11 +822,12 @@ const ProductListingPage = () => {
                     ) : (
                         <>
                             <div className="plp-product-grid">
-                                {products.flatMap((p) =>
-                                    p.variants?.length > 0
-                                        ? p.variants.map(v => <VariantCard key={`v-${v.id}`} product={p} variant={v} />)
-                                        : [<VariantCard key={`p-${p.id}`} product={p} variant={null} />]
-                                )}
+                                {products.flatMap((p) => {
+                                    const listed = p.variants?.filter(v => v.is_listed && v.stock > 0) || [];
+                                    return listed.length > 0
+                                        ? listed.map(v => <VariantCard key={`v-${v.id}`} product={p} variant={v} />)
+                                        : [<VariantCard key={`p-${p.id}`} product={p} variant={null} />];
+                                })}
                             </div>
 
                             {/* Pagination */}

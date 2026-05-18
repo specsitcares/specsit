@@ -106,7 +106,7 @@ const Header = ({ showUserProfile = false, user = null, onLogout = null }) => {
         {/* Shopping Cart */}
         <Link to="/cart" className="cart-button" data-name="Button - Shopping Cart">
           <div className="cart-icon">
-            <img src={cartIcon} alt="cart" style={{ width: '22px', height: '23px' }} />
+            <img src={cartIcon} alt="cart" style={{ width: '18px', height: '18px' }} />
           </div>
           {cartCount > 0 && (
             <div className="cart-badge" data-name="Background">

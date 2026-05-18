@@ -20,8 +20,13 @@ class PaymentSettingsView(APIView):
     def get(self, request):
         config = PaymentGatewayConfig.objects.filter(name='razorpay', is_active=True).first()
         return Response({
+            'cod_enabled': config.cod_enabled if config else True,
+            'online_payment_enabled': config.online_payment_enabled if config else True,
             'partial_payment_enabled': config.partial_payment_enabled if config else True,
             'partial_payment_percentage': config.partial_payment_percentage if config else 50,
+            'key_id': config.key_id if config else '',
+            'has_key_secret': bool(config and config.key_secret),
+            'is_sandbox': config.is_sandbox if config else True,
         })
 
     def put(self, request):
@@ -33,14 +38,32 @@ class PaymentSettingsView(APIView):
                 raise ValueError
         except (ValueError, TypeError):
             return Response({'error': 'Percentage must be an integer between 1 and 99.'}, status=status.HTTP_400_BAD_REQUEST)
-        enabled = bool(request.data.get('partial_payment_enabled', True))
+        cod_enabled = bool(request.data.get('cod_enabled', True))
+        online_payment_enabled = bool(request.data.get('online_payment_enabled', True))
+        partial_enabled = bool(request.data.get('partial_payment_enabled', True))
+        is_sandbox = bool(request.data.get('is_sandbox', True))
+        key_id = request.data.get('key_id', '').strip()
+        key_secret = request.data.get('key_secret', '').strip()
+
         config, _ = PaymentGatewayConfig.objects.get_or_create(name='razorpay')
-        config.partial_payment_enabled = enabled
+        config.cod_enabled = cod_enabled
+        config.online_payment_enabled = online_payment_enabled
+        config.partial_payment_enabled = partial_enabled
         config.partial_payment_percentage = pct
-        config.save(update_fields=['partial_payment_enabled', 'partial_payment_percentage'])
+        config.is_sandbox = is_sandbox
+        if key_id:
+            config.key_id = key_id
+        if key_secret:
+            config.key_secret = key_secret
+        config.save()
         return Response({
+            'cod_enabled': config.cod_enabled,
+            'online_payment_enabled': config.online_payment_enabled,
             'partial_payment_enabled': config.partial_payment_enabled,
             'partial_payment_percentage': config.partial_payment_percentage,
+            'key_id': config.key_id,
+            'has_key_secret': bool(config.key_secret),
+            'is_sandbox': config.is_sandbox,
         })
 
 logger = logging.getLogger(__name__)
@@ -226,6 +249,16 @@ class PaymentVerifyView(APIView):
                 order.razorpay_payment_id = razorpay_payment_id
                 order.razorpay_order_id = razorpay_order_id
                 order.razorpay_signature = razorpay_signature
+
+                # Sync the MetadataItem FK so status_label reflects "Confirmed"
+                # (serializer reads status.label first; without this it stays "Pending")
+                from apps.catalog.core.models import MetadataGroup, MetadataItem as MI
+                confirmed_group, _ = MetadataGroup.objects.get_or_create(name='Order Status')
+                confirmed_meta, _ = MI.objects.get_or_create(
+                    group=confirmed_group, label='Confirmed',
+                    defaults={'value': 'confirmed', 'is_active': True},
+                )
+                order.status = confirmed_meta
                 order.save()
 
                 # Bug #2: Use create instead of get_or_create for idempotency
@@ -280,7 +313,7 @@ class PaymentCancelView(APIView):
                         product.stock_quantity += item.quantity
                         product.save(update_fields=['stock_quantity'])
 
-            order.payment_status = 'failed'
+            order.payment_status = 'pending'
             order.order_status = 'cancelled'
             order.save(update_fields=['payment_status', 'order_status'])
 

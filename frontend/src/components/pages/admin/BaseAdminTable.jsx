@@ -4,6 +4,7 @@ import {
   ChevronDown, ChevronRight, ChevronLeft,
   ArrowUpDown, Package
 } from 'lucide-react';
+import AdminLoadingState from './AdminLoadingState';
 
 const BulkBar = ({ count, actions, onClear }) => (
   <div style={{
@@ -37,6 +38,7 @@ const BaseAdminTable = ({
   title,
   subtitle,
   count,
+  countLabel = 'Orders',
   searchQuery,
   onSearchChange,
   onSearchEnter,
@@ -85,8 +87,8 @@ const BaseAdminTable = ({
   const totalPages = Math.ceil(pagination.totalCount / pagination.perPage) || 1;
 
   if (loading) return (
-    <div className="flex items-center justify-center h-64">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+    <div style={{ padding: '19px' }}>
+      <AdminLoadingState loading={true} label={title?.toLowerCase() || 'data'} />
     </div>
   );
 
@@ -95,34 +97,34 @@ const BaseAdminTable = ({
       
       {/* Analytics Cards Row */}
       {analyticsCards && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '24px', marginBottom: '32px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '19px', marginBottom: '26px' }}>
           {analyticsCards}
         </div>
       )}
 
-      <div className="orders-table-card-v2" style={{ backgroundColor: '#fff', border: '1px solid #e0e0e0', borderRadius: '12px', overflow: 'hidden' }}>
+      <div className="orders-table-card-v2" style={{ backgroundColor: '#fff', border: '1px solid #e0e0e0', borderRadius: '10px', overflow: 'hidden' }}>
         {/* Table Header Section */}
         <div style={{ padding: '20px 24px', borderBottom: '1px solid #e0e0e0', backgroundColor: '#fff' }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <h3 style={{ fontSize: '20px', fontWeight: 500, color: '#040205', margin: 0 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '13px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 500, color: '#040205', margin: 0 }}>
                 {title}
               </h3>
               {subtitle && (
-                <span style={{ backgroundColor: '#F4EBFF', color: '#7F56D9', fontSize: '12px', padding: '2px 10px', borderRadius: '16px', fontWeight: 600 }}>
+                <span style={{ backgroundColor: '#F4EBFF', color: '#7F56D9', fontSize: '10px', padding: '2px 10px', borderRadius: '13px', fontWeight: 600 }}>
                   {subtitle}
                 </span>
               )}
               {count !== undefined && (
-                <span style={{ backgroundColor: '#F4EBFF', color: '#7F56D9', fontSize: '12px', padding: '3px 12px', borderRadius: '20px', fontWeight: 600 }}>
-                  {count} Orders
+                <span style={{ backgroundColor: '#F4EBFF', color: '#7F56D9', fontSize: '10px', padding: '3px 12px', borderRadius: '16px', fontWeight: 600 }}>
+                  {count} {countLabel}
                 </span>
               )}
             </div>
 
-            <div className="table-actions-container" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px' }}>
+            <div className="table-actions-container" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
               {/* Search Box */}
-              <div className="table-search-box" style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: '1', minWidth: '40px', maxWidth: '320px' }}>
+              <div className="table-search-box" style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: '1', minWidth: '32px', maxWidth: '256px' }}>
                 <Search size={18} style={{ position: 'absolute', left: 14, color: '#667085', pointerEvents: 'none' }} />
                 <input
                   type="text"
@@ -136,8 +138,8 @@ const BaseAdminTable = ({
                     width: '100%',
                     padding: '10px 48px 10px 42px',
                     border: '1px solid #D0D5DD',
-                    borderRadius: '8px',
-                    fontSize: '14px',
+                    borderRadius: '6px',
+                    fontSize: '11px',
                     backgroundColor: '#fff',
                     outline: 'none',
                     fontWeight: 500,
@@ -145,8 +147,8 @@ const BaseAdminTable = ({
                     boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)'
                   }}
                 />
-                <div className="desktop-only" style={{ position: 'absolute', right: 12, display: 'flex', alignItems: 'center', gap: 4, padding: '2px 6px', border: '1px solid #e0e0e0', borderRadius: '6px', backgroundColor: '#F9FAFB', fontSize: '12px', color: '#667085', fontWeight: 600 }}>
-                  <span style={{ fontSize: '10px' }}>⌘</span> K
+                <div className="desktop-only" style={{ position: 'absolute', right: 12, display: 'flex', alignItems: 'center', gap: 4, padding: '2px 6px', border: '1px solid #e0e0e0', borderRadius: '5px', backgroundColor: '#F9FAFB', fontSize: '10px', color: '#667085', fontWeight: 600 }}>
+                  <span style={{ fontSize: '8px' }}>⌘</span> K
                 </div>
               </div>
 
@@ -154,7 +156,7 @@ const BaseAdminTable = ({
               {onAdd && (
                 <button
                   onClick={onAdd}
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', border: '1px solid #7F56D9', borderRadius: '8px', backgroundColor: '#7F56D9', fontSize: '14px', fontWeight: 600, color: '#fff', cursor: 'pointer', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', border: '1px solid #7F56D9', borderRadius: '6px', backgroundColor: '#7F56D9', fontSize: '11px', fontWeight: 600, color: '#fff', cursor: 'pointer', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
                 >
                   <span className="desktop-only">{addLabel}</span>
                 </button>
@@ -164,7 +166,7 @@ const BaseAdminTable = ({
                 <button
                   onClick={() => setShowFilters(!showFilters)}
                   className="btn-collapse-on-search"
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', border: '1px solid #D0D5DD', borderRadius: '8px', backgroundColor: showFilters ? '#F9FAFB' : '#fff', fontSize: '14px', fontWeight: 600, color: '#344054', cursor: 'pointer', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', border: '1px solid #D0D5DD', borderRadius: '6px', backgroundColor: showFilters ? '#F9FAFB' : '#fff', fontSize: '11px', fontWeight: 600, color: '#344054', cursor: 'pointer', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
                 >
                   <Filter size={18} color="#667085" />
                   <span className="desktop-only">Filter</span>
@@ -174,7 +176,7 @@ const BaseAdminTable = ({
               {onExport && (
                 <button
                   className="btn-collapse-on-search"
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', border: '1px solid #e0e0e0', borderRadius: '8px', backgroundColor: '#fff', fontSize: '14px', fontWeight: 500, color: '#344054', cursor: 'pointer' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', border: '1px solid #e0e0e0', borderRadius: '6px', backgroundColor: '#fff', fontSize: '11px', fontWeight: 500, color: '#344054', cursor: 'pointer' }}
                   onClick={onExport}
                 >
                   <Download size={16} color="#667085" />
@@ -215,7 +217,7 @@ const BaseAdminTable = ({
                   {selectedIds ? (
                     <input
                       type="checkbox"
-                      style={{ cursor: 'pointer', borderRadius: '4px', accentColor: '#7F56D9' }}
+                      style={{ cursor: 'pointer', borderRadius: '3px', accentColor: '#7F56D9' }}
                       checked={data.length > 0 && data.every(item => selectedIds.has(item.id))}
                       ref={el => { if (el) el.indeterminate = data.some(item => selectedIds.has(item.id)) && !data.every(item => selectedIds.has(item.id)); }}
                       onChange={e => {
@@ -226,7 +228,7 @@ const BaseAdminTable = ({
                       }}
                     />
                   ) : (
-                    <input type="checkbox" style={{ cursor: 'pointer', borderRadius: '4px', accentColor: '#7F56D9' }} />
+                    <input type="checkbox" style={{ cursor: 'pointer', borderRadius: '3px', accentColor: '#7F56D9' }} />
                   )}
                 </th>
                 {columns.map((col, idx) => (
@@ -235,7 +237,7 @@ const BaseAdminTable = ({
                     onClick={() => col.onSort && col.onSort(col.key)}
                     style={{
                       padding: '12px 16px',
-                      fontSize: '13px',
+                      fontSize: '10px',
                       color: '#697177',
                       fontWeight: 500,
                       textAlign: col.align || 'left',
@@ -262,7 +264,7 @@ const BaseAdminTable = ({
                         <Package size={24} />
                       </div>
                       <div style={{ fontWeight: 600, color: '#101828' }}>{emptyMessage}</div>
-                      <div style={{ fontSize: '14px', color: '#667085' }}>{emptyDescription}</div>
+                      <div style={{ fontSize: '11px', color: '#667085' }}>{emptyDescription}</div>
                     </div>
                   </td>
                 </tr>
@@ -279,14 +281,14 @@ const BaseAdminTable = ({
         </div>
 
         {/* Pagination Strip */}
-        <div style={{ padding: '14px 24px', borderTop: '1px solid #e0e0e0', backgroundColor: '#fff', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '14px', fontWeight: 600, color: '#344054' }}>
+        <div style={{ padding: '14px 24px', borderTop: '1px solid #e0e0e0', backgroundColor: '#fff', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: '13px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '11px', fontWeight: 600, color: '#344054' }}>
             <span>Rows per Page</span>
             <div style={{ position: 'relative' }}>
               <select
                 value={pagination.perPage}
                 onChange={(e) => pagination.onPerPageChange(Number(e.target.value))}
-                style={{ padding: '8px 32px 8px 12px', border: '1px solid #D0D5DD', borderRadius: '8px', fontSize: '14px', fontWeight: 600, backgroundColor: '#fff', appearance: 'none', cursor: 'pointer', outline: 'none', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
+                style={{ padding: '8px 32px 8px 12px', border: '1px solid #D0D5DD', borderRadius: '6px', fontSize: '11px', fontWeight: 600, backgroundColor: '#fff', appearance: 'none', cursor: 'pointer', outline: 'none', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)' }}
               >
                 <option value={10}>10</option>
                 <option value={20}>20</option>
@@ -300,7 +302,7 @@ const BaseAdminTable = ({
             <button
               disabled={pagination.page === 1}
               onClick={() => pagination.onPageChange(pagination.page - 1)}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '14px', color: pagination.page === 1 ? '#D0D5DD' : '#344054', fontWeight: 600, cursor: pagination.page === 1 ? 'default' : 'pointer', background: 'none', border: '1px solid #D0D5DD', borderRadius: '8px', padding: '6px 12px', outline: 'none' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '11px', color: pagination.page === 1 ? '#D0D5DD' : '#344054', fontWeight: 600, cursor: pagination.page === 1 ? 'default' : 'pointer', background: 'none', border: '1px solid #D0D5DD', borderRadius: '6px', padding: '6px 12px', outline: 'none' }}
             >
               <ChevronLeft size={16} /> Prev
             </button>
@@ -311,7 +313,7 @@ const BaseAdminTable = ({
                   key={i}
                   onClick={() => typeof n === 'number' && pagination.onPageChange(n)}
                   style={{
-                    width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px',
+                    width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '5px',
                     background: pagination.page === n ? '#F4EBFF' : 'transparent',
                     color: pagination.page === n ? '#7F56D9' : '#475467',
                     fontWeight: pagination.page === n ? 700 : 500,
@@ -326,7 +328,7 @@ const BaseAdminTable = ({
             <button
               disabled={pagination.page >= totalPages || totalPages === 0}
               onClick={() => pagination.onPageChange(pagination.page + 1)}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '14px', color: (pagination.page >= totalPages || totalPages === 0) ? '#D0D5DD' : '#344054', fontWeight: 600, cursor: (pagination.page >= totalPages || totalPages === 0) ? 'default' : 'pointer', background: 'none', border: '1px solid #D0D5DD', borderRadius: '8px', padding: '6px 12px', outline: 'none' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '11px', color: (pagination.page >= totalPages || totalPages === 0) ? '#D0D5DD' : '#344054', fontWeight: 600, cursor: (pagination.page >= totalPages || totalPages === 0) ? 'default' : 'pointer', background: 'none', border: '1px solid #D0D5DD', borderRadius: '6px', padding: '6px 12px', outline: 'none' }}
             >
               Next <ChevronRight size={16} />
             </button>
@@ -334,12 +336,12 @@ const BaseAdminTable = ({
             <span style={{ color: '#D0D5DD', margin: '0 8px' }}>/</span>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: '14px', color: '#344054', fontWeight: 600 }}>Go to Page</span>
+              <span style={{ fontSize: '11px', color: '#344054', fontWeight: 600 }}>Go to Page</span>
               <input
                 type="text"
                 value={goToInputVal}
                 onChange={(e) => setGoToInputVal(e.target.value)}
-                style={{ width: '40px', padding: '6px', border: '1px solid #D0D5DD', borderRadius: '8px', textAlign: 'center', fontSize: '14px', fontWeight: 600 }}
+                style={{ width: '32px', padding: '5px', border: '1px solid #D0D5DD', borderRadius: '6px', textAlign: 'center', fontSize: '11px', fontWeight: 600 }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     const p = parseInt(goToInputVal);
@@ -358,7 +360,7 @@ const BaseAdminTable = ({
             </div>
           </div>
 
-          <div style={{ fontSize: '14px', fontWeight: 500, color: '#475467' }}>
+          <div style={{ fontSize: '11px', fontWeight: 500, color: '#475467' }}>
             {pagination.totalCount === 0 ? 'Showing 0 of 0' : `Showing ${(pagination.page - 1) * pagination.perPage + 1} - ${Math.min(pagination.page * pagination.perPage, pagination.totalCount)} of ${pagination.totalCount}`}
           </div>
         </div>

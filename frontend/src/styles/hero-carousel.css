@@ -5,10 +5,10 @@
 .hero-carousel {
   position: relative;
   width: 100%;
-  height: 720px;
+  height: 576px;
   overflow: hidden;
-  border-radius: 8px;
-  margin: 0 0 40px 0;
+  border-radius: 6px;
+  margin: 0 0 32px 0;
 }
 
 /* Background Image */
@@ -44,7 +44,7 @@
   inset: 0;
   display: flex;
   align-items: center;
-  padding-left: 96px;
+  padding-left: 77px;
   z-index: 2;
   pointer-events: none;
 }
@@ -52,17 +52,17 @@
 .hero-carousel__text-container {
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 26px;
   align-items: flex-start;
-  max-width: 672px;
+  max-width: 538px;
 }
 
 /* Title */
 .hero-carousel__title {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 800;
-  font-size: 96px;
-  line-height: 96px;
+  font-size: 77px;
+  line-height: 77px;
   letter-spacing: -1px;
   color: #FEFCFF;
   margin: 0;
@@ -74,24 +74,24 @@
 .hero-carousel__subtitle {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 500;
-  font-size: 20px;
-  line-height: 28px;
+  font-size: 16px;
+  line-height: 22px;
   color: #FEFCFF;
   margin: 0;
   padding: 0;
-  max-width: 500px;
+  max-width: 400px;
 }
 
 /* CTA Button */
 .hero-carousel__cta {
   background: #68408D;
   color: #FEFCFF;
-  padding: 16px 40px;
-  border-radius: 6px;
+  padding: 13px 32px;
+  border-radius: 5px;
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 700;
-  font-size: 16px;
-  line-height: 24px;
+  font-size: 13px;
+  line-height: 19px;
   text-decoration: none;
   display: inline-block;
   transition: all 0.2s ease;
@@ -102,16 +102,16 @@
 .hero-carousel__cta:hover {
   background: #563070;
   transform: translateY(-2px);
-  box-shadow: 0px 8px 16px rgba(104, 64, 141, 0.2);
+  box-shadow: 0px 6px 13px rgba(104, 64, 141, 0.2);
 }
 
 /* Controls Section */
 .hero-carousel__controls {
   position: absolute;
-  bottom: 32px;
-  left: 96px;
-  right: 96px;
-  height: 48px;
+  bottom: 26px;
+  left: 77px;
+  right: 77px;
+  height: 38px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -126,31 +126,31 @@
 }
 
 .hero-carousel__indicator {
-  height: 6px;
-  width: 32px;
+  height: 5px;
+  width: 26px;
   background: rgba(255, 255, 255, 0.4);
-  border-radius: 60px;
+  border-radius: 48px;
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
 .hero-carousel__indicator--active {
-  width: 32px;
+  width: 26px;
   background: #FFFFFF;
 }
 
 /* Navigation Buttons */
 .hero-carousel__navigation {
   display: flex;
-  gap: 16px;
+  gap: 13px;
   align-items: center;
 }
 
 .hero-carousel__button {
   border: 1px solid rgba(255, 255, 255, 0.5);
-  border-radius: 12px;
-  width: 48px;
-  height: 48px;
+  border-radius: 10px;
+  width: 38px;
+  height: 38px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -167,104 +167,104 @@
 }
 
 .hero-carousel__button img {
-  width: 7.4px;
-  height: 12px;
+  width: 6px;
+  height: 10px;
   object-fit: contain;
 }
 
 /* Responsive */
 @media (max-width: 1024px) {
   .hero-carousel {
-    height: 500px;
-    margin: 32px;
+    height: 400px;
+    margin: 26px;
   }
 
   .hero-carousel__content {
-    padding-left: 60px;
+    padding-left: 48px;
   }
 
   .hero-carousel__title {
-    font-size: 64px;
-    line-height: 64px;
+    font-size: 51px;
+    line-height: 51px;
   }
 
   .hero-carousel__subtitle {
-    font-size: 18px;
-    line-height: 24px;
+    font-size: 14px;
+    line-height: 19px;
   }
 
   .hero-carousel__controls {
-    left: 60px;
-    right: 60px;
+    left: 48px;
+    right: 48px;
   }
 }
 
 /* Mobile */
 @media (max-width: 768px) {
   .hero-carousel {
-    height: 400px;
-    margin: 24px;
+    height: 320px;
+    margin: 19px;
   }
 
   .hero-carousel__content {
-    padding-left: 40px;
+    padding-left: 32px;
   }
 
   .hero-carousel__title {
-    font-size: 48px;
-    line-height: 48px;
+    font-size: 38px;
+    line-height: 38px;
   }
 
   .hero-carousel__controls {
-    left: 40px;
-    right: 40px;
+    left: 32px;
+    right: 32px;
   }
 }
 
 @media (max-width: 768px) {
   .hero-carousel {
-    height: 350px;
-    margin: 0 4px;
-    border-radius: 4px;
+    height: 280px;
+    margin: 0 3px;
+    border-radius: 3px;
   }
 
   .hero-carousel__content {
-    padding-left: 40px;
+    padding-left: 32px;
   }
 
   .hero-carousel__title {
-    font-size: 48px;
-    line-height: 48px;
+    font-size: 38px;
+    line-height: 38px;
   }
 
   .hero-carousel__subtitle {
-    font-size: 14px;
-    line-height: 20px;
+    font-size: 11px;
+    line-height: 16px;
   }
 
   .hero-carousel__cta {
-    padding: 12px 24px;
-    font-size: 14px;
+    padding: 10px 19px;
+    font-size: 11px;
   }
 
   .hero-carousel__controls {
-    left: 40px;
-    right: 40px;
-    height: 40px;
+    left: 32px;
+    right: 32px;
+    height: 32px;
   }
 
   .hero-carousel__indicator {
-    width: 24px;
-    height: 4px;
+    width: 19px;
+    height: 3px;
   }
 
   .hero-carousel__button {
-    width: 40px;
-    height: 40px;
+    width: 32px;
+    height: 32px;
   }
 
   .hero-carousel__button img {
-    width: 5px;
-    height: 8px;
+    width: 4px;
+    height: 6px;
   }
 }

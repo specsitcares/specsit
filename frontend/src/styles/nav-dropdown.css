@@ -7,8 +7,8 @@
 .nd-wrapper {
   position: absolute;
   top: 100%;
-  left: 5px;
-  right: 5px;
+  left: 4px;
+  right: 4px;
   z-index: 998;
 }
 
@@ -17,10 +17,10 @@
   background: #FEFCFF;
   border: 1px solid #EFEDF0;
   border-top: none;
-  border-bottom-left-radius: 24px;
-  border-bottom-right-radius: 24px;
-  box-shadow: 0px 40px 80px 0px rgba(4, 2, 5, 0.12);
-  padding: 64px 53px 65px;
+  border-bottom-left-radius: 19px;
+  border-bottom-right-radius: 19px;
+  box-shadow: 0px 32px 64px 0px rgba(4, 2, 5, 0.12);
+  padding: 51px 42px 52px;
   overflow: hidden;
 }
 
@@ -35,19 +35,19 @@
 /* Each data column */
 .nd-col {
   flex: 1 1 0;
-  min-width: 120px;
+  min-width: 96px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  padding-right: 24px;
+  gap: 19px;
+  padding-right: 19px;
 }
 
 /* Column heading */
 .nd-heading {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 700;
-  font-size: 10px;
-  line-height: 15px;
+  font-size: 8px;
+  line-height: 12px;
   letter-spacing: 1.5px;
   text-transform: uppercase;
   color: #68408D;
@@ -61,7 +61,7 @@
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 13px;
 }
 
 .nd-item {
@@ -72,8 +72,8 @@
 .nd-link {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 500;
-  font-size: 14px;
-  line-height: 20px;
+  font-size: 11px;
+  line-height: 16px;
   color: #040205;
   text-decoration: none;
   transition: color 0.15s ease;
@@ -88,14 +88,14 @@
 .nd-color-link {
   display: flex;
   align-items: center;
-  gap: 12px;
-  height: 20px;
+  gap: 10px;
+  height: 16px;
 }
 
 .nd-swatch {
-  width: 16px;
-  height: 16px;
-  border-radius: 12px;
+  width: 13px;
+  height: 13px;
+  border-radius: 10px;
   flex-shrink: 0;
   display: inline-block;
 }
@@ -104,8 +104,8 @@
 .nd-view-more {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 500;
-  font-size: 14px;
-  line-height: 20px;
+  font-size: 11px;
+  line-height: 16px;
   color: #68408D;
   text-decoration: underline;
   text-decoration-skip-ink: none;
@@ -121,27 +121,27 @@
    ============================================================ */
 .nd-card {
   flex-shrink: 0;
-  width: 320px;
+  width: 256px;
   background: #FEFCFF;
   border: 1px solid rgba(205, 195, 209, 0.1);
-  border-radius: 16px;
-  padding: 33px;
+  border-radius: 13px;
+  padding: 26px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 /* Wide variant for Contact Lens */
 .nd-card--wide {
-  width: 480px;
+  width: 384px;
   justify-content: space-between;
 }
 
 .nd-card-label {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 700;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: 10px;
+  line-height: 13px;
   letter-spacing: 1.2px;
   text-transform: uppercase;
   color: #68408D;
@@ -151,37 +151,37 @@
 .nd-card-title {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 600;
-  font-size: 16px;
-  line-height: 24px;
+  font-size: 13px;
+  line-height: 19px;
   color: #040205;
-  margin: 4px 0 0;
+  margin: 3px 0 0;
 }
 
 .nd-card-desc {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 400;
-  font-size: 14px;
-  line-height: 20px;
+  font-size: 11px;
+  line-height: 16px;
   color: #040205;
   margin: 0;
 }
 
 .nd-card-desc--wide {
-  line-height: 29px;
+  line-height: 23px;
 }
 
 .nd-card-cta {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 700;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: 10px;
+  line-height: 13px;
   letter-spacing: 1.2px;
   text-transform: uppercase;
   color: #68408D;
   text-decoration: underline;
   text-decoration-skip-ink: none;
   display: block;
-  padding-top: 11.5px;
+  padding-top: 9px;
   transition: opacity 0.15s ease;
 }
 
@@ -199,7 +199,7 @@
 @keyframes nd-fade-in {
   from {
     opacity: 0;
-    transform: translateY(-6px);
+    transform: translateY(-5px);
   }
   to {
     opacity: 1;

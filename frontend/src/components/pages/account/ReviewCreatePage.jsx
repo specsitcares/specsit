@@ -275,7 +275,7 @@ const ReviewCreatePage = () => {
           {form.images.length < 3 && (
             <div
               onClick={() => fileInputRef.current?.click()}
-              style={{ border: '2px dashed #d1d5db', borderRadius: 8, padding: '20px', textAlign: 'center', cursor: 'pointer', color: '#9ca3af', fontSize: 13 }}>
+              style={{ border: '2px dashed #d1d5db', borderRadius: 8, padding: '16px', textAlign: 'center', cursor: 'pointer', color: '#9ca3af', fontSize: 13 }}>
               Click to add photos (JPG, PNG, WebP)
               <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" multiple
                 onChange={handleImageAdd} style={{ display: 'none' }} />
@@ -285,7 +285,7 @@ const ReviewCreatePage = () => {
 
         {/* Submit */}
         <button onClick={handleSubmit} disabled={submitting}
-          style={{ width: '100%', background: submitting ? '#a78bfa' : '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, padding: '12px', fontSize: 15, fontWeight: 700, cursor: submitting ? 'not-allowed' : 'pointer' }}>
+          style={{ width: '100%', background: submitting ? '#a78bfa' : '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, padding: '10px', fontSize: 15, fontWeight: 700, cursor: submitting ? 'not-allowed' : 'pointer' }}>
           {submitting ? 'Submitting...' : isEditMode ? 'Update Review' : 'Submit Review'}
         </button>
       </div>

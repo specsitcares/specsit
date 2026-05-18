@@ -5,6 +5,7 @@ from .views import (
     AdminDashboardStatsView, RecentOrdersView, RecordLiveActivityView, DeliveryCheckView,
     OrderTrackingViewSet, PaymentViewSet,
     PrescriptionUploadView, PrescriptionManualView, PrescriptionByOrderView,
+    ReturnRequestViewSet, WarrantyClaimViewSet,
 )
 from .payment_views import PaymentInitiateView, PaymentVerifyView, PaymentCancelView, PaymentSettingsView
 
@@ -16,6 +17,8 @@ router.register(r'cart', CartViewSet, basename='cart')
 router.register(r'wishlist', WishlistViewSet, basename='wishlist')
 router.register(r'order-tracking', OrderTrackingViewSet, basename='order-tracking')
 router.register(r'order-payments', PaymentViewSet, basename='order-payment')
+router.register(r'return-requests', ReturnRequestViewSet, basename='return-request')
+router.register(r'warranty-claims', WarrantyClaimViewSet, basename='warranty-claim')
 
 urlpatterns = [
     path('admin/stats/', AdminDashboardStatsView.as_view(), name='admin-stats'),

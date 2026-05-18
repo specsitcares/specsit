@@ -9,9 +9,9 @@
 .capture-card {
     background: white;
     padding: 2rem;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    max-width: 600px;
+    border-radius: 10px;
+    box-shadow: 0 3px 16px rgba(0, 0, 0, 0.1);
+    max-width: 480px;
     width: 100%;
     text-align: center;
 }
@@ -29,11 +29,11 @@
 .video-wrapper {
     position: relative;
     width: 100%;
-    max-width: 480px;
+    max-width: 384px;
     margin: 0 auto;
     aspect-ratio: 4 / 3;
     background: #000;
-    border-radius: 8px;
+    border-radius: 6px;
     overflow: hidden;
     border: 3px solid #eee;
 }
@@ -49,11 +49,11 @@ video, .preview-img {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 220px;
-    height: 300px;
+    width: 176px;
+    height: 240px;
     border: 2px dashed rgba(255, 255, 255, 0.8);
     border-radius: 50% / 40%;
-    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 0 0 7999px rgba(0, 0, 0, 0.4);
     pointer-events: none;
     z-index: 10;
 }
@@ -63,11 +63,11 @@ video, .preview-img {
     top: 20%;
     left: 50%;
     transform: translateX(-50%);
-    width: 200px;
-    height: 126px; /* 1.586 aspect ratio */
+    width: 160px;
+    height: 101px; /* 1.586 aspect ratio */
     border: 3px solid #ffd700;
-    border-radius: 8px;
-    box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+    border-radius: 6px;
+    box-shadow: 0 0 12px rgba(255, 215, 0, 0.5);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -82,20 +82,20 @@ video, .preview-img {
 .card-guide-overlay::after {
     content: 'HOLD CARD HERE';
     background: rgba(0,0,0,0.7);
-    padding: 2px 8px;
-    border-radius: 4px;
+    padding: 2px 6px;
+    border-radius: 3px;
 }
 
 .pd-marker {
     position: absolute;
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
     border: 2px solid #fff;
     border-radius: 50%;
     transform: translate(-50%, -50%);
     cursor: move;
     z-index: 30;
-    box-shadow: 0 0 5px rgba(0,0,0,0.5);
+    box-shadow: 0 0 4px rgba(0,0,0,0.5);
 }
 
 .pd-marker.pupil { border-color: #3b82f6; background: rgba(59, 130, 246, 0.3); }
@@ -113,7 +113,7 @@ video, .preview-img {
     margin-top: 1rem;
     padding: 1rem;
     background: #f8fafc;
-    border-radius: 8px;
+    border-radius: 6px;
     border: 1px solid #e2e8f0;
 }
 
@@ -135,7 +135,7 @@ video, .preview-img {
     color: white;
     border: none;
     padding: 0.8rem 2rem;
-    border-radius: 6px;
+    border-radius: 5px;
     font-weight: 600;
     cursor: pointer;
     transition: background 0.2s;
@@ -150,7 +150,7 @@ video, .preview-img {
     color: #333;
     border: 1px solid #ddd;
     padding: 0.8rem 2rem;
-    border-radius: 6px;
+    border-radius: 5px;
     font-weight: 600;
     cursor: pointer;
 }
@@ -158,18 +158,18 @@ video, .preview-img {
 .error-msg {
     color: #ef4444;
     background: #fef2f2;
-    padding: 10px;
-    border-radius: 8px;
-    margin-bottom: 15px;
+    padding: 8px;
+    border-radius: 6px;
+    margin-bottom: 12px;
     text-align: center;
 }
 
 .success-msg {
     color: #10b981;
     background: #ecfdf5;
-    padding: 10px;
-    border-radius: 8px;
-    margin-bottom: 15px;
+    padding: 8px;
+    border-radius: 6px;
+    margin-bottom: 12px;
     text-align: center;
 }
 
@@ -185,18 +185,18 @@ video, .preview-img {
     justify-content: center;
     color: white;
     font-weight: bold;
-    border-radius: 12px;
+    border-radius: 10px;
 }
 
 .mode-toggle {
     display: flex;
     justify-content: center;
-    gap: 10px;
+    gap: 8px;
 }
 
 .mode-toggle button {
-    padding: 8px 16px;
-    border-radius: 20px;
+    padding: 6px 13px;
+    border-radius: 16px;
     border: 1px solid #ddd;
     background: #f8fafc;
     cursor: pointer;

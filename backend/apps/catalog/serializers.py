@@ -25,6 +25,7 @@ class VariantImageSerializer(serializers.ModelSerializer):
 class VariantSerializer(serializers.ModelSerializer):
     images = VariantImageSerializer(many=True, read_only=True)
     product_name = serializers.ReadOnlyField(source='product.title')
+    category_name = serializers.ReadOnlyField(source='product.category.name')
     brand_name   = serializers.SerializerMethodField()
 
     def get_brand_name(self, obj):
@@ -109,6 +110,8 @@ class CollectionSerializer(serializers.ModelSerializer):
 # --- Eyewear Specific Serializers ---
 
 class LensPackageSerializer(serializers.ModelSerializer):
+    categories = serializers.PrimaryKeyRelatedField(many=True, queryset=Category.objects.all(), required=False)
+
     class Meta:
         model = LensPackage
         fields = '__all__'
@@ -117,12 +120,14 @@ class LensSerializer(serializers.ModelSerializer):
     package_name = serializers.CharField(required=False)
     description = serializers.CharField(required=False, allow_blank=True)
     features = serializers.JSONField(required=False)
+    category_ids = serializers.ListField(child=serializers.IntegerField(), required=False, write_only=True)
 
     class Meta:
         model = Lens
         fields = [
             'id', 'name', 'package', 'package_name', 'description', 'features',
-            'type', 'price', 'index', 'is_active', 'is_for_sunglasses', 'is_for_eyeglasses'
+            'type', 'price', 'index', 'is_active', 'is_for_sunglasses', 'is_for_eyeglasses',
+            'brand', 'category_ids'
         ]
         extra_kwargs = {
             'package': {'read_only': True}
@@ -134,22 +139,31 @@ class LensSerializer(serializers.ModelSerializer):
             data['package_name'] = instance.package.name
             data['description'] = instance.package.description
             data['features'] = instance.package.features
+            data['categories'] = list(instance.package.categories.values('id', 'name'))
+        if instance.brand:
+            data['brand_name'] = instance.brand.name
+        if instance.type:
+            data['type_label'] = instance.type.label
         return data
 
     def create(self, validated_data):
         package_name = validated_data.pop('package_name', 'Basic')
         description = validated_data.pop('description', '')
         features = validated_data.pop('features', [])
+        category_ids = validated_data.pop('category_ids', [])
         package, _ = LensPackage.objects.get_or_create(
             name=package_name,
             defaults={'description': description, 'features': features}
         )
+        if category_ids:
+            package.categories.set(category_ids)
         return Lens.objects.create(package=package, **validated_data)
 
     def update(self, instance, validated_data):
         package_name = validated_data.pop('package_name', None)
         description = validated_data.pop('description', None)
         features = validated_data.pop('features', None)
+        category_ids = validated_data.pop('category_ids', None)
         if package_name or description is not None or features is not None:
             package = instance.package
             if package_name:
@@ -159,6 +173,8 @@ class LensSerializer(serializers.ModelSerializer):
             if features is not None:
                 package.features = features
             package.save()
+        if category_ids is not None:
+            instance.package.categories.set(category_ids)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
@@ -178,11 +194,11 @@ class PrescriptionSerializer(serializers.ModelSerializer):
         return obj.status.label if obj.status else 'Pending'
 
     def get_order_id(self, obj):
-        item = obj.order_items.select_related('order').first()
+        item = obj.order_items.all().first()
         return item.order_id if item else None
 
     def get_order_display_id(self, obj):
-        item = obj.order_items.select_related('order').first()
+        item = obj.order_items.all().first()
         return f'#LO-{str(item.order_id).zfill(7)}' if item else None
 
     def get_prescription_file(self, obj):
@@ -224,6 +240,6 @@ class ReviewSerializer(serializers.ModelSerializer):
             'id', 'username', 'product', 'product_name', 'order',
             'rating', 'review_title', 'review_text',
             'reviewer_display_name', 'review_images', 'is_verified_purchase',
-            'is_approved', 'created_at', 'updated_at'
+            'is_approved', 'is_rejected', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'username', 'created_at', 'updated_at', 'is_verified_purchase']

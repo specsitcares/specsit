@@ -48,13 +48,20 @@ const ProductCard = ({ product }) => {
   const variantImgs = selectedVariant?.images || [];
   const mainImg = variantImgs[0]?.image || variantImgs[0] || product.main_image || '';
 
-  // Variant-aware pricing
-  const basePrice     = parseFloat(product.base_price || 0);
-  const priceAdj      = parseFloat(selectedVariant?.price_adjustment || 0);
-  const adjustedPrice = priceAdj > 0 ? priceAdj : basePrice;
-  const discountPct   = parseFloat(selectedVariant?.discount_percent ?? product.discount_percentage ?? 0);
-  const salePrice     = Math.round(adjustedPrice * (1 - discountPct / 100));
-  const hasDiscount   = discountPct > 0 && adjustedPrice > salePrice;
+  // Variant-aware pricing — cascading: variant.selling_price → variant.discount_percent → product.selling_price → product.discount_percentage
+  const mrp            = Math.round(parseFloat(selectedVariant?.base_price || product.base_price || 0));
+  const variantSelling = parseFloat(selectedVariant?.selling_price || 0);
+  const variantDiscPct = parseFloat(selectedVariant?.discount_percent || 0);
+  const productSelling = parseFloat(product.selling_price || 0);
+  const productDiscPct = parseFloat(product.discount_percentage || 0);
+  let salePrice;
+  if (variantSelling > 0 && variantSelling < mrp)       salePrice = Math.round(variantSelling);
+  else if (variantDiscPct > 0)                           salePrice = Math.round(mrp * (1 - variantDiscPct / 100));
+  else if (productSelling > 0 && productSelling < mrp)  salePrice = Math.round(productSelling);
+  else if (productDiscPct > 0)                           salePrice = Math.round(mrp * (1 - productDiscPct / 100));
+  else                                                   salePrice = mrp;
+  const discountPct = mrp > 0 && salePrice < mrp ? Math.round(((mrp - salePrice) / mrp) * 100) : 0;
+  const hasDiscount = discountPct > 0;
 
   const brandName   = (product.brand_name || product.brand_display_name || product.category_name || '').toUpperCase();
   const title       = product.title || '';
@@ -124,18 +131,14 @@ const ProductCard = ({ product }) => {
                 <span className="product-card__delivery-text">Get delivery in 1–2 hours across Hyderabad</span>
               </div>
             )}
-            <div className="product-card__price-row">
+            <div className="product-card__price-block">
+              <span className="product-card__price-new">₹{salePrice.toLocaleString('en-IN')}</span>
               {hasDiscount && (
-                <span className="product-card__price-old">
-                  ₹{Math.round(adjustedPrice).toLocaleString('en-IN')}
-                </span>
-              )}
-              <span className="product-card__price-new">
-                ₹{salePrice.toLocaleString('en-IN')}
-              </span>
-              {hasDiscount && (
-                <div className="product-card__discount">
-                  <span className="product-card__discount-text">{Math.round(discountPct)}% OFF</span>
+                <div className="product-card__price-row">
+                  <span className="product-card__price-old">₹{mrp.toLocaleString('en-IN')}</span>
+                  <div className="product-card__discount">
+                    <span className="product-card__discount-text">({discountPct}% OFF)</span>
+                  </div>
                 </div>
               )}
             </div>

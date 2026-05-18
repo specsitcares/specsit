@@ -17,11 +17,12 @@ const HeartIcon = () => (
 const toProductShape = (item) => ({
     id: item.product_id,
     title: item.variant_name || 'Product',
-    base_price: item.product_price,
+    base_price: item.variant_base_price || item.product_price,
+    selling_price: item.variant_selling_price || item.product_selling_price || 0,
+    discount_percentage: item.variant_discount_percent || item.product_discount_percentage || 0,
     main_image: item.variant_image || '',
     variants: item.variant ? [{ id: item.variant, color_code: null }] : [],
     brand_name: '',
-    discount_percentage: 0,
 });
 
 const WishlistCard = ({ item, onRemove }) => {
@@ -31,7 +32,15 @@ const WishlistCard = ({ item, onRemove }) => {
     const [removing, setRemoving] = useState(false);
 
     const product = toProductShape(item);
-    const price = Number(product.base_price) || 0;
+    const mrp            = Math.round(parseFloat(product.base_price || 0));
+    const productSelling = parseFloat(product.selling_price || 0);
+    const productDiscPct = parseFloat(product.discount_percentage || 0);
+    let salePrice;
+    if (productSelling > 0 && productSelling < mrp)  salePrice = Math.round(productSelling);
+    else if (productDiscPct > 0)                      salePrice = Math.round(mrp * (1 - productDiscPct / 100));
+    else                                              salePrice = mrp;
+    const discountPct = mrp > 0 && salePrice < mrp ? Math.round(((mrp - salePrice) / mrp) * 100) : 0;
+    const hasDiscount = discountPct > 0;
 
     const handleAddToCart = (e) => {
         e.preventDefault();
@@ -88,7 +97,15 @@ const WishlistCard = ({ item, onRemove }) => {
             <div className="wl-card__body">
                 <p className="wl-card__name">{product.title}</p>
                 <div className="wl-card__footer">
-                    <span className="wl-card__price">₹{price.toLocaleString('en-IN')}</span>
+                    <div className="wl-card__price-block">
+                        <span className="wl-card__price">₹{salePrice.toLocaleString('en-IN')}</span>
+                        {hasDiscount && (
+                            <div className="wl-card__price-sub">
+                                <span className="wl-card__price-old">₹{mrp.toLocaleString('en-IN')}</span>
+                                <span className="wl-card__price-disc">({discountPct}% OFF)</span>
+                            </div>
+                        )}
+                    </div>
                     <button
                         className="wl-card__atc-btn"
                         onClick={handleAddToCart}

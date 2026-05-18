@@ -19,20 +19,20 @@
 
 /* ──── Section Header ─────────────────────────────────────── */
 .vp-section-header {
-  margin-bottom: 24px;
+  margin-bottom: 19px;
 }
 
 .vp-header-text h3 {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 500;
   font-family: 'Roboto', sans-serif;
   color: #040205;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
   line-height: 1.171875em;
 }
 
 .vp-header-text p {
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 500;
   font-family: 'Roboto', sans-serif;
   color: #697177;
@@ -45,13 +45,13 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 0 12px;
+  padding: 16px 0 10px;
   border-top: 1px solid #E0E0E0;
 }
 
-/* Figma style_FISSKA: Roboto 500, 18px */
+/* Figma style_FISSKA: Roboto 500, 14px */
 .vp-variant-header h3 {
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 500;
   font-family: 'Roboto', sans-serif;
   color: #040205;
@@ -63,15 +63,15 @@
   background: #5CB518;
   border: 1px solid #5CB518;
   color: #FFFFFF;
-  padding: 6px 8px;
-  border-radius: 6px;
-  font-size: 14px;
+  padding: 5px 6px;
+  border-radius: 5px;
+  font-size: 11px;
   font-family: 'Geist', 'Roboto', sans-serif;
   font-weight: 500;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   line-height: 1.714;
   box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
   transition: all 0.2s;
@@ -85,12 +85,12 @@
 .vp-variant-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 13px;
 }
 
 .vp-variant-card {
-  border: 1px solid #E0E0E0;
-  border-radius: 8px;
+  border: 1px dashed #E0E0E0;
+  border-radius: 6px;
   background: white;
   overflow: hidden;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -98,12 +98,12 @@
 
 .vp-variant-card.expanded {
   border-color: #68408D;
-  box-shadow: 0 4px 8px rgba(104, 64, 141, 0.08);
+  box-shadow: 0 3px 6px rgba(104, 64, 141, 0.08);
 }
 
-/* Figma fill_7J887N: #DBDBDB, padding 12px */
+/* Figma fill_7J887N: #DBDBDB, padding 10px */
 .vp-variant-card-header {
-  padding: 12px;
+  padding: 10px;
   background: #DBDBDB;
   display: flex;
   justify-content: space-between;
@@ -112,9 +112,9 @@
   user-select: none;
 }
 
-/* Figma style_KXG50R: Roboto 500, 16px */
+/* Figma style_KXG50R: Roboto 500, 13px */
 .variant-title {
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 500;
   font-family: 'Roboto', sans-serif;
   color: #040205;
@@ -124,8 +124,8 @@
 .chevron-icon {
   color: #020617;
   transition: transform 0.3s;
-  width: 24px;
-  height: 24px;
+  width: 19px;
+  height: 19px;
 }
 
 .chevron-icon.open {
@@ -133,21 +133,17 @@
   color: #68408D;
 }
 
-/* Figma: #FDFAFF bg, dashed border #68408D, padding 20px, gap 24px */
 .vp-variant-card-body {
-  padding: 20px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 19px;
   background: #FDFAFF;
-  border: 1px dashed #68408D;
-  border-top: none;
-  border-radius: 0 0 6px 6px;
   animation: slideDown 0.3s ease-out;
 }
 
 @keyframes slideDown {
-  from { opacity: 0; transform: translateY(-10px); }
+  from { opacity: 0; transform: translateY(-8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
@@ -161,15 +157,15 @@
   background: rgba(220, 38, 38, 0.1);
   border: none;
   color: #DC2626;
-  font-size: 14px;
+  font-size: 11px;
   font-family: 'Geist', 'Roboto', sans-serif;
   font-weight: 500;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 6px 8px;
-  border-radius: 6px;
+  gap: 3px;
+  padding: 5px 6px;
+  border-radius: 5px;
   line-height: 1.714;
   box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
   transition: all 0.2s;
@@ -179,18 +175,18 @@
   background: rgba(220, 38, 38, 0.18);
 }
 
-/* Figma layout_OO4UTR: row, gap 24px */
+/* Figma layout_OO4UTR: row, gap 19px */
 .vp-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 24px;
+  gap: 19px;
 }
 
 /* ──── Form Field Overrides (Figma spec) ──────────────────── */
-/* Figma style_NWLZXO: Roboto 500, 16px, #020617 */
+/* Figma style_NWLZXO: Roboto 500, 13px, #020617 */
 .vp-variant-card-body .form-field-label,
 .vp-marketing-box .form-field-label {
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 500;
   font-family: 'Roboto', sans-serif;
   color: #020617;
@@ -204,18 +200,18 @@
 .vp-variant-card-body .required-star {
   color: #C02828;
   font-weight: 800;
-  font-size: 16px;
+  font-size: 13px;
 }
 
-/* Figma field: border #D2D2D2, border-radius 6px, padding 12px 14px */
+/* Figma field: border #D2D2D2, border-radius 5px, padding 10px 11px */
 .vp-variant-card-body .form-field-input,
 .vp-variant-card-body .form-field-textarea,
 .vp-variant-card-body .form-field-select-wrapper select,
 .vp-marketing-box .form-field-input {
-  padding: 12px 14px;
+  padding: 10px 11px;
   border: 1px solid #D2D2D2;
-  border-radius: 6px;
-  font-size: 16px;
+  border-radius: 5px;
+  font-size: 13px;
   font-family: 'Roboto', sans-serif;
   font-weight: 400;
   color: #020617;
@@ -231,17 +227,17 @@
 .vp-variant-card-body .form-field-select-wrapper select:focus,
 .vp-marketing-box .form-field-input:focus {
   border-color: #68408D !important;
-  box-shadow: 0px 0px 0px 4px rgba(104, 64, 141, 0.1) !important;
+  box-shadow: 0px 0px 0px 3px rgba(104, 64, 141, 0.1) !important;
   caret-color: #68408D !important;
 }
 
 .vp-variant-card-body .form-field-input.has-error {
   border-color: #DC2626;
-  box-shadow: 0px 0px 0px 4px rgba(220, 38, 38, 1), 0px 0px 0px 2px rgba(255, 255, 255, 1);
+  box-shadow: 0px 0px 0px 3px rgba(220, 38, 38, 1), 0px 0px 0px 2px rgba(255, 255, 255, 1);
 }
 
 .vp-field-error {
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 500;
   font-family: 'Roboto', sans-serif;
   color: #DC2626;
@@ -249,40 +245,40 @@
   margin-top: 2px;
 }
 
-/* Figma placeholder: Roboto 400, 14px */
+/* Figma placeholder: Roboto 400, 11px */
 .vp-variant-card-body .form-field-input::placeholder {
-  font-size: 14px;
+  font-size: 11px;
   color: #020617;
   font-weight: 400;
 }
 
-/* Figma help text: Roboto 400, 14px, #64748B */
+/* Figma help text: Roboto 400, 11px, #64748B */
 .vp-help-text {
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 400;
   font-family: 'Roboto', sans-serif;
   color: #64748B;
   line-height: 1.428;
-  margin-top: 4px;
+  margin-top: 3px;
 }
 
 /* ──── Color Selection Area ──────────────────────────────── */
-/* Figma: column, gap 12px */
+/* Figma: column, gap 10px */
 .vp-color-selection-area {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 /* Figma: title row with divider */
 .vp-color-section-title {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .vp-color-section-title .section-label {
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 500;
   font-family: 'Roboto', sans-serif;
   color: #040205;
@@ -295,27 +291,27 @@
   margin: 0;
 }
 
-/* Figma tabs: bg #FAF2FF, padding 4px, border-radius 8px */
+/* Figma tabs: bg #FAF2FF, padding 3px, border-radius 6px */
 .vp-tabs-container {
   background: #FAF2FF;
-  padding: 4px;
-  border-radius: 8px;
+  padding: 3px;
+  border-radius: 6px;
 }
 
 .vp-tabs {
   display: flex;
 }
 
-/* Figma tab: padding 12px, Roboto 500, 16px, fill width */
+/* Figma tab: padding 10px, Roboto 500, 13px, fill width */
 .vp-tab {
-  padding: 12px;
-  font-size: 16px;
+  padding: 10px;
+  font-size: 13px;
   font-family: 'Roboto', sans-serif;
   font-weight: 500;
   color: #040205;
   background: transparent;
   border: none;
-  border-radius: 6px;
+  border-radius: 5px;
   cursor: pointer;
   line-height: 1.25em;
   text-align: center;
@@ -333,19 +329,19 @@
 /* ──── Color Code Field ──────────────────────────────────── */
 .vp-color-field {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
 }
 
 .vp-color-field .form-field-input {
-  padding: 10px 12px;
+  padding: 8px 10px;
   border: 1px solid #E2E8F0;
 }
 
 .vp-color-swatch-trigger {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
   border: 2px solid white;
   box-shadow: 0 0 0 1px var(--vp-gray-200);
   position: relative;
@@ -357,7 +353,7 @@
 
 .vp-color-swatch-trigger input[type="color"] {
   position: absolute;
-  top: -10px; left: -10px; width: 60px; height: 60px;
+  top: -8px; left: -8px; width: 48px; height: 48px;
   cursor: pointer;
   opacity: 0;
 }
@@ -366,30 +362,30 @@
 .vp-palette-dropzone {
   border: 1px dashed var(--vp-gray-300);
   background: white;
-  padding: 12px;
-  border-radius: 8px;
+  padding: 10px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 44px;
+  min-height: 35px;
   cursor: pointer;
 }
 
 .palette-preview {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
 }
 
-.palette-preview img { width: 32px; height: 32px; border-radius: 4px; object-fit: cover; }
-.palette-preview span { font-size: 13px; color: var(--vp-gray-700); flex: 1; }
+.palette-preview img { width: 26px; height: 26px; border-radius: 3px; object-fit: cover; }
+.palette-preview span { font-size: 10px; color: var(--vp-gray-700); flex: 1; }
 
 /* ──── Images Section ─────────────────────────────────────── */
 .vp-images-section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .vp-images-label-row {
@@ -398,9 +394,9 @@
   align-items: center;
 }
 
-/* Figma counter: Roboto 400, 14px, #020617 */
+/* Figma counter: Roboto 400, 11px, #020617 */
 .label-counter {
-  font-size: 14px;
+  font-size: 11px;
   color: #020617;
   font-weight: 400;
   font-family: 'Roboto', sans-serif;
@@ -408,24 +404,24 @@
   text-align: center;
 }
 
-/* Figma dropzone: border dashed #68408D, border-radius 12px */
+/* Figma dropzone: border dashed #68408D, border-radius 10px */
 .vp-dropzone-wrapper {
   border: 1px dashed #68408D;
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
 }
 
-/* Figma upload area: bg #FDFAFF, height 216px, centered */
+/* Figma upload area: bg #FDFAFF, height 173px, centered */
 .vp-dropzone {
   background: #FDFAFF;
-  padding: 20px;
+  padding: 16px;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  min-height: 216px;
+  gap: 6px;
+  min-height: 173px;
   cursor: pointer;
   transition: all 0.2s;
   border: none;
@@ -438,18 +434,18 @@
 
 /* Figma upload icon: 40x40 */
 .upload-icon-circle {
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--vp-gray-500);
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
 
-/* Figma: Roboto 500, 16px, #171D25 */
+/* Figma: Roboto 500, 13px, #171D25 */
 .vp-dropzone-text p:first-child {
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 500;
   font-family: 'Roboto', sans-serif;
   color: #171D25;
@@ -457,28 +453,28 @@
   margin-bottom: 2px;
 }
 
-/* Figma: Roboto 500, 16px, #A9ACB4 */
+/* Figma: Roboto 500, 13px, #A9ACB4 */
 .vp-dropzone-text p:last-child {
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 500;
   font-family: 'Roboto', sans-serif;
   color: #A9ACB4;
   line-height: 1.171875em;
 }
 
-/* Figma: white bg, border #E2E8F0, text #54575C, padding 8px 12px */
+/* Figma: white bg, border #E2E8F0, text #54575C, padding 6px 10px */
 .vp-browse-btn {
   background: white;
   border: 1px solid #E2E8F0;
   color: #54575C;
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 16px;
+  padding: 6px 10px;
+  border-radius: 5px;
+  font-size: 13px;
   font-family: 'Roboto', sans-serif;
   font-weight: 500;
   line-height: 1.5;
   cursor: pointer;
-  margin-top: 8px;
+  margin-top: 6px;
   transition: all 0.2s;
 }
 
@@ -486,13 +482,13 @@
   background: #F8FAFC;
 }
 
-/* Figma preview thumbnails: 80x80, gap 12px, bg #F3F3F3 */
+/* Figma preview thumbnails: 80x80, gap 10px, bg #F3F3F3 */
 .vp-preview-area {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 12px;
-  padding: 12px 24px 20px;
+  gap: 10px;
+  padding: 10px 19px 16px;
   background: #F3F3F3;
   border-top: 1px solid #D2D2D2;
 }
@@ -500,10 +496,10 @@
 .vp-preview-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 10px;
   justify-content: center;
   align-items: center;
-  padding: 12px 24px 20px;
+  padding: 10px 19px 16px;
   background: #F3F3F3;
   border-top: 1px solid #D2D2D2;
 }
@@ -511,9 +507,9 @@
 /* Figma preview card: 80x80 */
 .vp-preview-card {
   position: relative;
-  width: 80px;
-  height: 80px;
-  border-radius: 9px;
+  width: 64px;
+  height: 64px;
+  border-radius: 7px;
   border: 0.75px solid #D2D2D2;
   overflow: hidden;
   background: white;
@@ -535,7 +531,7 @@
 .remove-media-btn {
   position: absolute;
   top: -2px; right: -2px;
-  width: 27px; height: 27px;
+  width: 22px; height: 22px;
   background: #636363;
   color: white;
   border-radius: 50%;
@@ -549,14 +545,14 @@
 .remove-media-btn:hover { background: #F04438; scale: 1.1; }
 
 /* ──── Alert ──────────────────────────────────────────────── */
-/* Figma: bg #FFF7ED, border #9A3412, text #9A3412, padding 16px */
+/* Figma: bg #FFF7ED, border #9A3412, text #9A3412, padding 13px */
 .vp-alert {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 16px;
-  border-radius: 8px;
-  margin-top: 8px;
+  gap: 10px;
+  padding: 13px;
+  border-radius: 6px;
+  margin-top: 6px;
 }
 
 .vp-alert-warning {
@@ -574,21 +570,21 @@
 .vp-alert-body {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
-/* Figma: Roboto 500, 16px, #9A3412 */
+/* Figma: Roboto 500, 13px, #9A3412 */
 .vp-alert-body strong {
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 500;
   font-family: 'Roboto', sans-serif;
   color: #9A3412;
   line-height: 1.5;
 }
 
-/* Figma: Roboto 400, 14px, #9A3412 */
+/* Figma: Roboto 400, 11px, #9A3412 */
 .vp-alert-body span {
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 400;
   font-family: 'Roboto', sans-serif;
   color: #9A3412;
@@ -596,31 +592,31 @@
 }
 
 /* ── Marketing Box ────────────────────────────────────────── */
-/* Figma: bg #FDFAFF, border 1px dashed #68408D, padding 20px, gap 24px */
+/* Figma: bg #FDFAFF, border 1px dashed #68408D, padding 16px, gap 19px */
 .vp-marketing-box {
   background: #FDFAFF;
   border: 1px dashed #68408D;
-  border-radius: 6px;
-  padding: 20px;
+  border-radius: 5px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 19px;
 }
 
 /* Figma checkbox row */
 .vp-bogo-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   cursor: pointer;
 }
 
 .vp-bogo-row:hover { opacity: 0.9; }
 
 .vp-checkbox {
-  width: 16px; height: 16px;
+  width: 13px; height: 13px;
   border: 1.5px solid var(--vp-gray-300);
-  border-radius: 4px;
+  border-radius: 3px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -633,9 +629,9 @@
   border-color: var(--vp-brand-600);
 }
 
-/* Figma style_JU38J5: Roboto 500, 16px, #171D25 */
+/* Figma style_JU38J5: Roboto 500, 13px, #171D25 */
 .vp-bogo-row label {
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 500;
   font-family: 'Roboto', sans-serif;
   color: #171D25;
@@ -644,34 +640,34 @@
 }
 
 /* ──── Date Picker Row ────────────────────────────────────── */
-/* Figma: row, gap 24px */
+/* Figma: row, gap 19px */
 .vp-date-picker-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 24px;
+  gap: 19px;
 }
 
 .vp-date-field {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
-/* Figma: Roboto 500, 16px, #171D25 */
+/* Figma: Roboto 500, 13px, #171D25 */
 .vp-date-field label {
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 500;
   font-family: 'Roboto', sans-serif;
   color: #171D25;
   line-height: 1.25em;
 }
 
-/* Figma: border #D2D2D2, padding 8px 12px, border-radius 6px */
+/* Figma: border #D2D2D2, padding 6px 10px, border-radius 5px */
 .vp-date-field input[type="date"] {
-  padding: 8px 12px;
+  padding: 6px 10px;
   border: 1px solid #D2D2D2;
-  border-radius: 6px;
-  font-size: 16px;
+  border-radius: 5px;
+  font-size: 13px;
   font-family: 'Roboto', sans-serif;
   font-weight: 400;
   color: #64748B;
@@ -685,7 +681,7 @@
 
 .vp-date-field input[type="date"]:focus {
   border-color: #68408D !important;
-  box-shadow: 0px 0px 0px 4px rgba(104, 64, 141, 0.1) !important;
+  box-shadow: 0px 0px 0px 3px rgba(104, 64, 141, 0.1) !important;
   color: #020617;
   outline: none;
 }
@@ -693,19 +689,19 @@
 /* ──── Prefix Input ──────────────────────────────────────── */
 .vp-variant-card-body .input-prefix {
   position: absolute;
-  left: 14px;
-  font-size: 16px;
+  left: 11px;
+  font-size: 13px;
   font-weight: 400;
   color: #020617;
 }
 
 .vp-variant-card-body .form-field-input.has-prefix {
-  padding-left: 32px;
+  padding-left: 26px;
 }
 
 /* ──── Select Overrides ──────────────────────────────────── */
 .vp-variant-card-body .form-field-select-wrapper select {
-  padding: 14px 12px;
+  padding: 11px 10px;
   border: 1px solid #D2D2D2;
   appearance: none;
   cursor: pointer;
@@ -713,7 +709,7 @@
 
 .vp-variant-card-body .select-chevron {
   position: absolute;
-  right: 12px;
+  right: 10px;
   top: 50%;
   transform: translateY(-50%);
   pointer-events: none;
@@ -722,59 +718,59 @@
 
 /* ──── Responsive ─────────────────────────────────────────── */
 
-/* Tablet (<= 1024px) */
-@media screen and (max-width: 1024px) {
+/* Tablet (<= 819px) */
+@media screen and (max-width: 819px) {
   .vp-variant-card-header {
-    padding: 16px;
+    padding: 13px;
   }
 }
 
-/* Mobile Portrait & Landscape (<= 768px) */
-@media screen and (max-width: 768px) {
+/* Mobile Portrait & Landscape (<= 614px) */
+@media screen and (max-width: 614px) {
   .vp-section-header {
-    margin-bottom: 16px;
+    margin-bottom: 13px;
   }
 
   .vp-header-text h3 {
-    font-size: 18px;
+    font-size: 14px;
   }
 
   .vp-header-text p {
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .vp-row,
   .vp-date-picker-row {
     grid-template-columns: 1fr;
-    gap: 16px;
+    gap: 13px;
   }
 
   .vp-variant-card-body {
-    padding: 16px;
-    gap: 20px;
+    padding: 13px;
+    gap: 16px;
   }
 
   .vp-marketing-box {
-    padding: 16px;
-    gap: 20px;
+    padding: 13px;
+    gap: 16px;
   }
 
   .vp-tabs {
     flex-direction: column;
-    gap: 4px;
+    gap: 3px;
   }
   
   .vp-tabs-container {
-    padding: 8px;
+    padding: 6px;
   }
 
   .vp-tab {
-    padding: 10px;
-    font-size: 14px;
+    padding: 8px;
+    font-size: 11px;
   }
 
   .variant-title {
-    font-size: 14px;
+    font-size: 11px;
     max-width: 70%;
     white-space: nowrap;
     overflow: hidden;
@@ -783,7 +779,7 @@
 
   .vp-preview-grid {
     grid-template-columns: repeat(3, 1fr);
-    padding: 12px;
+    padding: 10px;
   }
 
   .vp-preview-card {
@@ -793,20 +789,20 @@
   }
 }
 
-/* Small Mobile (<= 480px) */
-@media screen and (max-width: 480px) {
+/* Small Mobile (<= 384px) */
+@media screen and (max-width: 384px) {
   .vp-variant-header h3 {
-    font-size: 16px;
+    font-size: 13px;
   }
 
   .vp-add-variant-btn {
-    padding: 4px 6px;
-    font-size: 12px;
+    padding: 3px 5px;
+    font-size: 10px;
   }
 
   .vp-dropzone-text p:first-child,
   .vp-dropzone-text p:last-child {
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .vp-preview-grid {

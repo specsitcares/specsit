@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, FileText, RefreshCw, ChevronDown, ZoomIn, ZoomOut, Eye, X } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import apiClient from '../../../services/api';
-import FormModal from './FormModal';
 
 /* ─── helpers ──────────────────────────────────────────── */
 const timeAgo = (dateStr) => {
@@ -68,8 +68,8 @@ const RxCard = ({ rx, selected, onClick }) => {
       onClick={() => onClick(rx)}
       style={{
         display: 'flex',
-        gap: 12,
-        padding: '14px 16px',
+        gap: 10,
+        padding: '11px 13px',
         borderBottom: '1px solid #e2e8f0',
         cursor: 'pointer',
         background: selected ? '#f3f0ff' : '#fff',
@@ -82,25 +82,25 @@ const RxCard = ({ rx, selected, onClick }) => {
       {/* content */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-          <span style={{ fontWeight: 600, fontSize: 14, color: rx.order_display_id ? '#0f172a' : '#ef4444' }}>
+          <span style={{ fontWeight: 600, fontSize: 11, color: rx.order_display_id ? '#0f172a' : '#ef4444' }}>
             {rx.order_display_id || `#RX-${String(rx.id).padStart(5, '0')} (orphaned)`}
           </span>
-          <span style={{ fontSize: 12, color: '#64748b' }}>{timeAgo(rx.created_at)}</span>
+          <span style={{ fontSize: 10, color: '#64748b' }}>{timeAgo(rx.created_at)}</span>
         </div>
 
-        <div style={{ fontSize: 14, color: '#68408d', fontWeight: 500, marginBottom: 3 }}>
+        <div style={{ fontSize: 11, color: '#68408d', fontWeight: 500, marginBottom: 3 }}>
           {rx.user_name || 'Unknown'}
         </div>
 
-        <div style={{ fontSize: 12, color: '#64748b', marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div style={{ fontSize: 10, color: '#64748b', marginBottom: 5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {rx.vision_type || 'Vision type not set'}
         </div>
 
         <div style={{
           display: 'inline-flex', alignItems: 'center',
-          padding: '2px 8px', borderRadius: 9999,
+          padding: '2px 6px', borderRadius: 9999,
           background: badge.bg, color: badge.color,
-          fontSize: 12, fontWeight: 500,
+          fontSize: 10, fontWeight: 500,
         }}>
           {rx.status_label || 'Pending'}
         </div>
@@ -179,7 +179,7 @@ const ReuploadDrawer = ({ rx, onClose, onSend }) => {
         onClick={e => e.stopPropagation()}
         style={{
           position: 'absolute', top: 0, right: 0, bottom: 0,
-          width: 480, maxWidth: '100vw',
+          width: 384, maxWidth: '100vw',
           background: '#fff',
           display: 'flex', flexDirection: 'column',
           boxShadow: '-9px 0 20px rgba(36,36,36,0.04), -36px 0 36px rgba(36,36,36,0.03), -80px 0 48px rgba(36,36,36,0.02)',
@@ -187,9 +187,9 @@ const ReuploadDrawer = ({ rx, onClose, onSend }) => {
         }}
       >
         {/* ── Header ── */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '16px', background: '#f3f3f3', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '13px', background: '#f3f3f3', flexShrink: 0 }}>
           <div style={{ flex: 1, overflow: 'hidden' }}>
-            <span style={{ fontSize: 20, fontWeight: 600, color: '#111827', fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap' }}>
+            <span style={{ fontSize: 16, fontWeight: 600, color: '#111827', fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap' }}>
               Request Reupload
             </span>
           </div>
@@ -202,37 +202,37 @@ const ReuploadDrawer = ({ rx, onClose, onSend }) => {
         </div>
 
         {/* ── Body ── */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: 13, display: 'flex', flexDirection: 'column', gap: 19 }}>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {/* Reason field */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ fontSize: 14, color: '#020617' }}>Reason for request</span>
-                <span style={{ fontSize: 16, fontWeight: 800, color: '#c02828' }}>*</span>
+                <span style={{ fontSize: 11, color: '#020617' }}>Reason for request</span>
+                <span style={{ fontSize: 13, fontWeight: 800, color: '#c02828' }}>*</span>
               </div>
               <div style={{ position: 'relative' }}>
                 <select
                   value={reason}
                   onChange={e => handleReasonChange(e.target.value)}
                   style={{
-                    width: '100%', appearance: 'none', padding: '14px 40px 14px 12px',
-                    border: '1px solid #d2d2d2', borderRadius: 6,
-                    fontSize: 16, color: '#020617', background: '#fff',
+                    width: '100%', appearance: 'none', padding: '11px 32px 11px 10px',
+                    border: '1px solid #d2d2d2', borderRadius: 5,
+                    fontSize: 13, color: '#020617', background: '#fff',
                     cursor: 'pointer', outline: 'none', fontFamily: 'inherit',
                   }}
                 >
                   {REUPLOAD_REASONS.map(r => <option key={r} value={r}>{r}</option>)}
                 </select>
-                <ChevronDown size={16} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#020617' }} />
+                <ChevronDown size={13} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#020617' }} />
               </div>
             </div>
 
             {/* Message field */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ fontSize: 14, color: '#020617' }}>Message to customer</span>
-                <span style={{ fontSize: 16, fontWeight: 800, color: '#c02828' }}>*</span>
+                <span style={{ fontSize: 11, color: '#020617' }}>Message to customer</span>
+                <span style={{ fontSize: 13, fontWeight: 800, color: '#c02828' }}>*</span>
               </div>
               <div style={{ position: 'relative' }}>
                 <textarea
@@ -241,9 +241,9 @@ const ReuploadDrawer = ({ rx, onClose, onSend }) => {
                   rows={5}
                   style={{
                     width: '100%', boxSizing: 'border-box',
-                    padding: '10px 12px', minHeight: 80,
-                    border: '1px solid #d2d2d2', borderRadius: 6,
-                    fontSize: 14, color: '#020617', lineHeight: '17px',
+                    padding: '8px 10px', minHeight: 64,
+                    border: '1px solid #d2d2d2', borderRadius: 5,
+                    fontSize: 11, color: '#020617', lineHeight: '16px',
                     resize: 'vertical', outline: 'none',
                     background: '#fff', fontFamily: 'inherit',
                   }}
@@ -253,8 +253,8 @@ const ReuploadDrawer = ({ rx, onClose, onSend }) => {
           </div>
 
           {/* Warning alert */}
-          <div style={{ background: '#fff5db', border: '1px solid #f4c95c', borderRadius: 8, padding: 16 }}>
-            <p style={{ fontSize: 14, color: '#835e00', lineHeight: '22px', margin: 0 }}>
+          <div style={{ background: '#fff5db', border: '1px solid #f4c95c', borderRadius: 6, padding: 13 }}>
+            <p style={{ fontSize: 11, color: '#835e00', lineHeight: '16px', margin: 0 }}>
               This will put the order on hold until the customer provides a new document. The current document will be archived.
             </p>
           </div>
@@ -267,14 +267,14 @@ const ReuploadDrawer = ({ rx, onClose, onSend }) => {
         </div>
 
         {/* ── Footer ── */}
-        <div style={{ flexShrink: 0, borderTop: '1px solid #e0e0e0', padding: 20, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+        <div style={{ flexShrink: 0, borderTop: '1px solid #e0e0e0', padding: 16, display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
           <button
             onClick={onClose}
             disabled={sending}
             style={{
-              minWidth: 80, padding: '8px 12px', borderRadius: 6,
+              minWidth: 64, padding: '6px 10px', borderRadius: 5,
               border: '1px solid #e2e8f0', background: '#fff',
-              color: '#0f172a', fontSize: 16, cursor: 'pointer',
+              color: '#0f172a', fontSize: 13, cursor: 'pointer',
               opacity: sending ? 0.6 : 1,
             }}
           >
@@ -284,9 +284,9 @@ const ReuploadDrawer = ({ rx, onClose, onSend }) => {
             onClick={handleSend}
             disabled={sending}
             style={{
-              minWidth: 80, padding: '8px 12px', borderRadius: 6,
+              minWidth: 64, padding: '6px 10px', borderRadius: 5,
               border: 'none', background: sending ? '#9a6bbf' : '#68408d',
-              color: '#fefcff', fontSize: 16,
+              color: '#fefcff', fontSize: 13,
               cursor: sending ? 'not-allowed' : 'pointer',
             }}
           >
@@ -298,11 +298,67 @@ const ReuploadDrawer = ({ rx, onClose, onSend }) => {
   );
 };
 
+/* ─── Reject Reason Modal ──────────────────────────────── */
+const RejectModal = ({ onClose, onConfirm, saving }) => {
+  const [reason, setReason] = useState('');
+  const [error, setError]   = useState('');
+
+  const handleConfirm = () => {
+    if (!reason.trim()) { setError('Rejection reason is required.'); return; }
+    onConfirm(reason);
+  };
+
+  return (
+    <div
+      onClick={onClose}
+      style={{ position: 'fixed', inset: 0, zIndex: 1200, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{ background: '#fff', borderRadius: 12, padding: 24, width: 420, maxWidth: '90vw', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}
+      >
+        <h3 style={{ fontSize: 16, fontWeight: 600, color: '#0f172a', margin: '0 0 6px' }}>Reject Prescription</h3>
+        <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 14px' }}>Enter the reason for rejection.</p>
+        <textarea
+          value={reason}
+          onChange={e => { setReason(e.target.value); setError(''); }}
+          placeholder="Enter rejection reason..."
+          rows={4}
+          autoFocus
+          style={{
+            width: '100%', boxSizing: 'border-box',
+            padding: '10px', border: `1px solid ${error ? '#fca5a5' : '#d2d2d2'}`,
+            borderRadius: 6, fontSize: 13, color: '#0f172a',
+            resize: 'vertical', outline: 'none', fontFamily: 'inherit',
+          }}
+        />
+        {error && <div style={{ fontSize: 12, color: '#ef4444', marginTop: 6 }}>{error}</div>}
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
+          <button
+            onClick={onClose}
+            disabled={saving}
+            style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid #e2e8f0', background: '#fff', color: '#0f172a', fontSize: 13, cursor: 'pointer' }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={saving}
+            style={{ padding: '7px 14px', borderRadius: 6, border: 'none', background: '#ef4444', color: '#fff', fontSize: 13, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}
+          >
+            {saving ? 'Rejecting…' : 'Confirm Rejection'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 /* ─── Notes + Action buttons (shared by both paths) ───── */
-const NotesAndActions = ({ notes, setNotes, submit, saving, error, success, onReuploadClick }) => (
+const NotesAndActions = ({ notes, setNotes, submit, saving, error, success, onReuploadClick, onRejectClick }) => (
   <>
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <label style={{ fontSize: 14, fontWeight: 500, color: '#0f172a', lineHeight: '20px' }}>
+      <label style={{ fontSize: 14, fontWeight: 500, color: '#0f172a', lineHeight: '16px' }}>
         Internal Notes
       </label>
       <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, minHeight: 64 }}>
@@ -312,7 +368,7 @@ const NotesAndActions = ({ notes, setNotes, submit, saving, error, success, onRe
           placeholder="Notes for team (not visible to customer)..."
           rows={3}
           style={{
-            width: '100%', boxSizing: 'border-box', padding: '13px',
+            width: '100%', boxSizing: 'border-box', padding: '10px',
             border: 'none', borderRadius: 10, fontSize: 14,
             color: '#0f172a', resize: 'vertical', outline: 'none',
             background: 'transparent', fontFamily: 'inherit',
@@ -359,7 +415,7 @@ const NotesAndActions = ({ notes, setNotes, submit, saving, error, success, onRe
         Request reupload
       </button>
       <button
-        onClick={() => submit('Rejected')}
+        onClick={onRejectClick}
         disabled={saving}
         style={{
           flex: 1, padding: '10px 12px', borderRadius: 6,
@@ -376,14 +432,16 @@ const NotesAndActions = ({ notes, setNotes, submit, saving, error, success, onRe
 );
 
 /* ─── Detail Panel ─────────────────────────────────────── */
-const DetailPanel = ({ rx, onReviewed }) => {
+const DetailPanel = ({ rx, onReviewed, autoOpenReupload, onAutoOpenReuploadDone }) => {
   const [notes, setNotes]           = useState(rx.review_notes || '');
   const [zoom, setZoom]             = useState(100);
   const [saving, setSaving]         = useState(false);
   const [error, setError]           = useState('');
   const [success, setSuccess]       = useState('');
   const [showReupload, setShowReupload] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
   const [pdfLoadError, setPdfLoadError] = useState(false);
+  const [pdfBlobUrl, setPdfBlobUrl] = useState(null);
 
   useEffect(() => {
     setNotes(rx.review_notes || '');
@@ -391,8 +449,34 @@ const DetailPanel = ({ rx, onReviewed }) => {
     setSuccess('');
     setZoom(100);
     setShowReupload(false);
+    setShowRejectModal(false);
     setPdfLoadError(false);
+    setPdfBlobUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null; });
   }, [rx.id]);
+
+  useEffect(() => {
+    if (autoOpenReupload) {
+      setShowReupload(true);
+      onAutoOpenReuploadDone?.();
+    }
+  }, [autoOpenReupload]);
+
+  // Fetch PDF as a blob so the iframe uses a local blob URL —
+  // this bypasses Django's X-Frame-Options: DENY header which blocks direct embedding.
+  useEffect(() => {
+    if (!rx.prescription_file) return;
+    const relativeUrl = rx.prescription_file.replace(/^https?:\/\/[^/]+/, '');
+    if (!/\.pdf$/i.test(relativeUrl.split('?')[0])) return;
+    let cancelled = false;
+    fetch(relativeUrl, { credentials: 'same-origin' })
+      .then(r => r.ok ? r.blob() : Promise.reject(r.status))
+      .then(blob => { if (!cancelled) setPdfBlobUrl(URL.createObjectURL(blob)); })
+      .catch(() => { if (!cancelled) setPdfLoadError(true); });
+    return () => {
+      cancelled = true;
+      setPdfBlobUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null; });
+    };
+  }, [rx.prescription_file]);
 
   const submit = async (reviewStatus) => {
     setSaving(true);
@@ -412,6 +496,25 @@ const DetailPanel = ({ rx, onReviewed }) => {
     }
   };
 
+  const handleRejectConfirm = async (reason) => {
+    setSaving(true);
+    setError('');
+    setSuccess('');
+    try {
+      await apiClient.patch(`/catalog/prescriptions/${rx.id}/review/`, {
+        status: 'Rejected',
+        notes: reason,
+      });
+      setSuccess('Prescription rejected successfully.');
+      setShowRejectModal(false);
+      onReviewed();
+    } catch (err) {
+      setError(err?.response?.data?.detail || 'Failed to reject prescription.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   /* Called by the drawer — sends status + the customer message as notes */
   const handleReuploadSend = async (reason, message) => {
     await apiClient.patch(`/catalog/prescriptions/${rx.id}/review/`, {
@@ -423,9 +526,12 @@ const DetailPanel = ({ rx, onReviewed }) => {
   };
 
   const hasFile = !!rx.prescription_file;
-  const isImage = hasFile && /\.(jpg|jpeg|png|gif|webp)$/i.test(rx.prescription_file);
-  const isPdf   = hasFile && /\.pdf$/i.test(rx.prescription_file);
-  const fileName = hasFile ? (rx.prescription_file.split('/').pop() || 'Prescription File') : 'No file uploaded';
+  // Strip protocol+host so the Vite proxy serves it same-origin (avoids cross-origin iframe block)
+  const fileUrl = hasFile ? rx.prescription_file.replace(/^https?:\/\/[^/]+/, '') : '';
+  const filePath = hasFile ? fileUrl.split('?')[0] : '';
+  const isImage = hasFile && /\.(jpg|jpeg|png|gif|webp)$/i.test(filePath);
+  const isPdf   = hasFile && /\.pdf$/i.test(filePath);
+  const fileName = hasFile ? (filePath.split('/').pop() || 'Prescription File') : 'No file uploaded';
 
   const rows = [
     { eye: 'OD', sub: '(Right)', sph: rx.od_sphere, cyl: rx.od_cylinder, axis: rx.od_axis, add: rx.od_add },
@@ -434,7 +540,7 @@ const DetailPanel = ({ rx, onReviewed }) => {
 
   const DataCell = ({ value, mismatch }) => (
     <td style={{ padding: '13px 12px', borderBottom: '1px solid #e2e8f0', verticalAlign: 'top' }}>
-      <div style={{ fontSize: 14, color: mismatch ? '#ef4444' : '#0f172a', fontWeight: mismatch ? 600 : 400, lineHeight: '20px' }}>
+      <div style={{ fontSize: 14, color: mismatch ? '#ef4444' : '#0f172a', fontWeight: mismatch ? 600 : 400, lineHeight: '16px' }}>
         {fmt(value)}
       </div>
     </td>
@@ -482,23 +588,27 @@ const DetailPanel = ({ rx, onReviewed }) => {
 
                 <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 16px 24px', boxSizing: 'border-box', gap: 12 }}>
                   {isImage ? (
-                    <img src={rx.prescription_file} alt="Prescription" style={{ width: `${zoom}%`, borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', transition: 'width 0.2s' }} />
+                    <img src={fileUrl} alt="Prescription" style={{ width: `${zoom}%`, borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', transition: 'width 0.2s' }} />
                   ) : isPdf ? (
                     pdfLoadError ? (
                       <>
                         <FileText size={40} color="#ef4444" />
                         <div style={{ textAlign: 'center' }}>
                           <div style={{ fontSize: 14, fontWeight: 500, color: '#991b1b' }}>Failed to load PDF</div>
-                          <div style={{ fontSize: 12, color: '#dc2626', marginTop: 2 }}>The PDF file could not be displayed. Try downloading it directly.</div>
+                          <div style={{ fontSize: 12, color: '#dc2626', marginTop: 2 }}>
+                            <a href={fileUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#6d28d9' }}>Open PDF in new tab</a>
+                          </div>
                         </div>
                       </>
-                    ) : (
+                    ) : pdfBlobUrl ? (
                       <iframe
-                        src={rx.prescription_file}
+                        src={pdfBlobUrl}
                         title="Prescription PDF"
                         style={{ width: '100%', height: 260, border: 'none', borderRadius: 8 }}
                         onError={() => setPdfLoadError(true)}
                       />
+                    ) : (
+                      <div style={{ fontSize: 13, color: '#64748b' }}>Loading PDF…</div>
                     )
                   ) : (
                     <>
@@ -515,7 +625,12 @@ const DetailPanel = ({ rx, onReviewed }) => {
 
             {/* Notes + buttons section */}
             <div style={{ flexShrink: 0, background: '#f3f0ff', borderTop: '1px solid #e2e8f0', padding: '25px 24px 24px', display: 'flex', flexDirection: 'column', gap: 24 }}>
-              <NotesAndActions notes={notes} setNotes={setNotes} submit={submit} saving={saving} error={error} success={success} onReuploadClick={() => setShowReupload(true)} />
+              {isPdf && fileUrl && (
+                <a href={fileUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: '#68408d', textDecoration: 'underline', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <Eye size={14} /> Open PDF in new tab
+                </a>
+              )}
+              <NotesAndActions notes={notes} setNotes={setNotes} submit={submit} saving={saving} error={error} success={success} onReuploadClick={() => setShowReupload(true)} onRejectClick={() => setShowRejectModal(true)} />
             </div>
           </>
         ) : (
@@ -548,8 +663,8 @@ const DetailPanel = ({ rx, onReviewed }) => {
                   {rows.map(row => (
                     <tr key={row.eye}>
                       <td style={{ padding: '14px 12px 15px', borderBottom: '1px solid #e2e8f0', verticalAlign: 'top' }}>
-                        <div style={{ fontWeight: 500, fontSize: 14, color: '#000', lineHeight: '20px' }}>{row.eye}</div>
-                        <div style={{ fontSize: 12, color: '#64748b', lineHeight: '16px' }}>{row.sub}</div>
+                        <div style={{ fontWeight: 500, fontSize: 14, color: '#000', lineHeight: '16px' }}>{row.eye}</div>
+                        <div style={{ fontSize: 12, color: '#64748b', lineHeight: '13px' }}>{row.sub}</div>
                       </td>
                       <DataCell value={row.sph}  mismatch={false} />
                       <DataCell value={row.cyl}  mismatch={false} />
@@ -561,11 +676,11 @@ const DetailPanel = ({ rx, onReviewed }) => {
               </table>
 
               {/* footer metadata */}
-              <div style={{ background: 'rgba(241,245,249,0.2)', padding: '16px', display: 'flex', gap: 32, flexWrap: 'wrap' }}>
+              <div style={{ background: 'rgba(241,245,249,0.2)', padding: '13px', display: 'flex', gap: 32, flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <span style={{ fontSize: 12, color: '#64748b', lineHeight: '16px' }}>PD (Pupillary Distance)</span>
+                  <span style={{ fontSize: 12, color: '#64748b', lineHeight: '13px' }}>PD (Pupillary Distance)</span>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                    <span style={{ fontSize: 14, fontWeight: 500, color: '#0f172a', lineHeight: '20px' }}>
+                    <span style={{ fontSize: 14, fontWeight: 500, color: '#0f172a', lineHeight: '16px' }}>
                       {rx.pd_distance ? `${rx.pd_distance}` : '—'}
                     </span>
                     {rx.pd_distance && (
@@ -574,30 +689,39 @@ const DetailPanel = ({ rx, onReviewed }) => {
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <span style={{ fontSize: 12, color: '#64748b', lineHeight: '16px' }}>Vision Type</span>
-                  <span style={{ fontSize: 14, fontWeight: 500, color: '#0f172a', lineHeight: '20px' }}>{rx.vision_type || '—'}</span>
+                  <span style={{ fontSize: 12, color: '#64748b', lineHeight: '13px' }}>Vision Type</span>
+                  <span style={{ fontSize: 14, fontWeight: 500, color: '#0f172a', lineHeight: '16px' }}>{rx.vision_type || '—'}</span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <span style={{ fontSize: 12, color: '#64748b', lineHeight: '16px' }}>Submitted</span>
-                  <span style={{ fontSize: 14, fontWeight: 500, color: '#0f172a', lineHeight: '20px' }}>
+                  <span style={{ fontSize: 12, color: '#64748b', lineHeight: '13px' }}>Submitted</span>
+                  <span style={{ fontSize: 14, fontWeight: 500, color: '#0f172a', lineHeight: '16px' }}>
                     {rx.created_at ? new Date(rx.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
                   </span>
                 </div>
               </div>
             </div>
 
-            <NotesAndActions notes={notes} setNotes={setNotes} submit={submit} saving={saving} error={error} success={success} onReuploadClick={() => setShowReupload(true)} />
+            <NotesAndActions notes={notes} setNotes={setNotes} submit={submit} saving={saving} error={error} success={success} onReuploadClick={() => setShowReupload(true)} onRejectClick={() => setShowRejectModal(true)} />
           </div>
         )}
 
       </div>
 
-      {/* Reupload drawer — rendered outside the scroll container so it overlays everything */}
+      {/* Reupload drawer */}
       {showReupload && (
         <ReuploadDrawer
           rx={rx}
           onClose={() => setShowReupload(false)}
           onSend={handleReuploadSend}
+        />
+      )}
+
+      {/* Reject reason modal */}
+      {showRejectModal && (
+        <RejectModal
+          onClose={() => setShowRejectModal(false)}
+          onConfirm={handleRejectConfirm}
+          saving={saving}
         />
       )}
     </div>
@@ -614,17 +738,15 @@ const EmptyState = ({ message }) => (
 
 /* ─── Main Component ─────────────────────────────────────── */
 const PrescriptionTable = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [prescriptions, setPrescriptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('newest');
   const [selectedRx, setSelectedRx] = useState(null);
-
-  // form modal state (kept for add/edit)
-  const [showForm, setShowForm] = useState(false);
-  const [formMode, setFormMode] = useState('create');
-  const [editRx, setEditRx] = useState(null);
+  const [autoOpenReupload, setAutoOpenReupload] = useState(false);
 
   const fetchPrescriptions = async () => {
     setLoading(true);
@@ -643,12 +765,26 @@ const PrescriptionTable = () => {
 
   useEffect(() => {
     fetchPrescriptions();
-    const interval = setInterval(fetchPrescriptions, 5000);
-    return () => clearInterval(interval);
   }, []);
 
+  // Auto-select prescription when redirected from offcanvas Flag Issue
+  useEffect(() => {
+    const selectOrderId = location.state?.selectOrderId;
+    if (!selectOrderId || prescriptions.length === 0) return;
+    const match = prescriptions.find(r => r.order_id === selectOrderId);
+    if (match) {
+      setSelectedRx(match);
+      setAutoOpenReupload(true);
+    }
+  }, [prescriptions, location.state?.selectOrderId]);
+
   const handleReviewed = async () => {
-    await fetchPrescriptions();
+    const orderId = selectedRx?.order_id;
+    if (orderId) {
+      navigate(`/admin/orders/${orderId}`);
+    } else {
+      await fetchPrescriptions();
+    }
   };
 
   // Keep selectedRx in sync after a review action
@@ -678,24 +814,6 @@ const PrescriptionTable = () => {
     !r.status_label || r.status_label.toLowerCase().includes('pending')
   ).length;
 
-  const handleFormSubmit = async (formData) => {
-    try {
-      if (formMode === 'create') await apiClient.post('/catalog/prescriptions/', formData);
-      else await apiClient.patch(`/catalog/prescriptions/${editRx.id}/`, formData);
-      setShowForm(false);
-      fetchPrescriptions();
-    } catch (err) { console.error(err); }
-  };
-
-  const handleFormDelete = async (id) => {
-    try {
-      await apiClient.delete(`/catalog/prescriptions/${id}/`);
-      setShowForm(false);
-      if (selectedRx?.id === id) setSelectedRx(null);
-      fetchPrescriptions();
-    } catch (err) { console.error(err); }
-  };
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 160px)', minHeight: 600, background: '#fefcff' }}>
 
@@ -715,17 +833,6 @@ const PrescriptionTable = () => {
             </span>
           )}
         </div>
-        <button
-          onClick={() => { setFormMode('create'); setEditRx(null); setShowForm(true); }}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            padding: '8px 16px', borderRadius: 8,
-            background: '#68408d', color: '#fff',
-            border: 'none', fontSize: 14, fontWeight: 500, cursor: 'pointer',
-          }}
-        >
-          + Add Prescription
-        </button>
       </div>
 
       <p style={{ margin: '6px 24px 0', fontSize: 14, color: '#697177' }}>
@@ -834,45 +941,14 @@ const PrescriptionTable = () => {
               key={selectedRx.id}
               rx={selectedRx}
               onReviewed={handleReviewed}
+              autoOpenReupload={autoOpenReupload}
+              onAutoOpenReuploadDone={() => setAutoOpenReupload(false)}
             />
           ) : (
             <EmptyState message="Select a prescription to review" />
           )}
         </div>
       </div>
-
-      {/* ── Form Modal (create/edit) ── */}
-      {showForm && (
-        <FormModal
-          isOpen={showForm}
-          onClose={() => setShowForm(false)}
-          onSubmit={handleFormSubmit}
-          onDelete={handleFormDelete}
-          mode={formMode}
-          title="Prescription"
-          fields={[
-            {
-              name: 'vision_type', label: 'Vision Type', type: 'select',
-              options: [
-                { label: 'Single Vision', value: 'Single Vision' },
-                { label: 'Progressive', value: 'Progressive' },
-                { label: 'Bifocal', value: 'Bifocal' },
-                { label: 'Reading', value: 'Reading' },
-              ], required: true,
-            },
-            { name: 'pd_distance', label: 'PD Distance (mm)', type: 'number', required: true, step: 0.1, min: 0, max: 100 },
-            { name: 'od_sphere', label: 'OD Sphere', type: 'number', step: 0.25 },
-            { name: 'od_cylinder', label: 'OD Cylinder', type: 'number', step: 0.25 },
-            { name: 'od_axis', label: 'OD Axis', type: 'number', step: 1 },
-            { name: 'od_add', label: 'OD Add', type: 'number', step: 0.25 },
-            { name: 'os_sphere', label: 'OS Sphere', type: 'number', step: 0.25 },
-            { name: 'os_cylinder', label: 'OS Cylinder', type: 'number', step: 0.25 },
-            { name: 'os_axis', label: 'OS Axis', type: 'number', step: 1 },
-            { name: 'os_add', label: 'OS Add', type: 'number', step: 0.25 },
-          ]}
-          initialData={editRx || {}}
-        />
-      )}
 
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
