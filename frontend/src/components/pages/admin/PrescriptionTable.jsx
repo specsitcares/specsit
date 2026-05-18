@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Search, FileText, RefreshCw, ChevronDown, ZoomIn, ZoomOut, Eye, X } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Search, FileText, RefreshCw, ChevronDown, ZoomIn, ZoomOut, Eye, X, Glasses, Check, User, Phone } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import apiClient from '../../../services/api';
 
@@ -62,6 +62,20 @@ const applyTab = (list, tab) => {
 const RxCard = ({ rx, selected, onClick }) => {
   const badge = statusBadge(rx.status_label);
   const barColor = statusColor(rx.status_label);
+  const rxType = rx.prescription_file 
+    ? 'Uploaded file' 
+    : (rx.status_label === 'Awaiting Submission' ? 'Awaiting Submission' : 'Manual entry');
+
+  const getDaysLeft = (orderCreatedAt) => {
+    if (!orderCreatedAt) return 15;
+    const createdDate = new Date(orderCreatedAt);
+    const now = new Date();
+    const diffTime = now.getTime() - createdDate.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const daysLeft = 15 - diffDays;
+    return daysLeft > 0 ? daysLeft : 0;
+  };
+  const daysLeft = getDaysLeft(rx.created_at);
 
   return (
     <div
@@ -85,15 +99,21 @@ const RxCard = ({ rx, selected, onClick }) => {
           <span style={{ fontWeight: 600, fontSize: 11, color: rx.order_display_id ? '#0f172a' : '#ef4444' }}>
             {rx.order_display_id || `#RX-${String(rx.id).padStart(5, '0')} (orphaned)`}
           </span>
-          <span style={{ fontSize: 10, color: '#64748b' }}>{timeAgo(rx.created_at)}</span>
+          <span style={{ fontSize: 10, color: rx.status_label === 'Awaiting Submission' ? '#ef4444' : '#64748b', fontWeight: rx.status_label === 'Awaiting Submission' ? 700 : 400 }}>
+            {rx.status_label === 'Awaiting Submission' ? `(${daysLeft} days left)` : timeAgo(rx.created_at)}
+          </span>
         </div>
 
-        <div style={{ fontSize: 11, color: '#68408d', fontWeight: 500, marginBottom: 3 }}>
+        <div style={{ fontSize: 11, color: '#68408d', fontWeight: 500, marginBottom: 2 }}>
           {rx.user_name || 'Unknown'}
+          {rx.patient_name && rx.patient_name !== rx.user_name && (
+            <span style={{ color: '#0f172a', fontWeight: 600 }}> · Patient: {rx.patient_name}</span>
+          )}
         </div>
 
-        <div style={{ fontSize: 10, color: '#64748b', marginBottom: 5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {rx.vision_type || 'Vision type not set'}
+        <div style={{ fontSize: 10, color: '#64748b', marginBottom: 4, display: 'flex', gap: 6, alignItems: 'center' }}>
+          <span style={{ background: '#f1f5f9', borderRadius: 4, padding: '1px 5px' }}>{rxType}</span>
+          {rx.vision_type && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rx.vision_type}</span>}
         </div>
 
         <div style={{
@@ -102,7 +122,7 @@ const RxCard = ({ rx, selected, onClick }) => {
           background: badge.bg, color: badge.color,
           fontSize: 10, fontWeight: 500,
         }}>
-          {rx.status_label || 'Pending'}
+          {rx.status_label === 'Awaiting Submission' ? 'Waiting for Customer' : (rx.status_label || 'Pending')}
         </div>
       </div>
     </div>
@@ -355,84 +375,101 @@ const RejectModal = ({ onClose, onConfirm, saving }) => {
 };
 
 /* ─── Notes + Action buttons (shared by both paths) ───── */
-const NotesAndActions = ({ notes, setNotes, submit, saving, error, success, onReuploadClick, onRejectClick }) => (
-  <>
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <label style={{ fontSize: 14, fontWeight: 500, color: '#0f172a', lineHeight: '16px' }}>
-        Internal Notes
-      </label>
-      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, minHeight: 64 }}>
-        <textarea
-          value={notes}
-          onChange={e => setNotes(e.target.value)}
-          placeholder="Notes for team (not visible to customer)..."
-          rows={3}
+const NotesAndActions = ({ notes, setNotes, submit, saving, error, success, onReuploadClick, onRejectClick, rxStatusLabel }) => {
+  const isDone = ['Approved', 'Rejected', 'Reupload Requested'].includes(rxStatusLabel);
+  const disableBtns = saving || isDone;
+
+  return (
+    <>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <label style={{ fontSize: 14, fontWeight: 500, color: '#0f172a', lineHeight: '16px' }}>
+          Internal Notes
+        </label>
+        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, minHeight: 64 }}>
+          <textarea
+            value={notes}
+            onChange={e => setNotes(e.target.value)}
+            placeholder="Notes for team (not visible to customer)..."
+            rows={3}
+            style={{
+              width: '100%', boxSizing: 'border-box', padding: '10px',
+              border: 'none', borderRadius: 10, fontSize: 14,
+              color: '#0f172a', resize: 'vertical', outline: 'none',
+              background: 'transparent', fontFamily: 'inherit',
+            }}
+          />
+        </div>
+      </div>
+
+      {error && (
+        <div style={{ padding: '10px 14px', background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 8, fontSize: 13, color: '#991b1b' }}>
+          {error}
+        </div>
+      )}
+      {success && (
+        <div style={{ padding: '10px 14px', background: '#dcfce7', border: '1px solid #86efac', borderRadius: 8, fontSize: 13, color: '#166534' }}>
+          {success}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', gap: 12, alignItems: 'center', paddingTop: 8 }}>
+        <button
+          onClick={() => submit('Approved')}
+          disabled={disableBtns}
           style={{
-            width: '100%', boxSizing: 'border-box', padding: '10px',
-            border: 'none', borderRadius: 10, fontSize: 14,
-            color: '#0f172a', resize: 'vertical', outline: 'none',
-            background: 'transparent', fontFamily: 'inherit',
+            flex: 1, padding: '10px 12px', borderRadius: 6, border: 'none',
+            background: isDone ? '#cbd5e1' : (saving ? '#6ee7b7' : '#10b981'), color: '#fff',
+            fontSize: 14, fontWeight: 500, cursor: disableBtns ? 'not-allowed' : 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
-        />
+        >
+          {isDone ? ((rxStatusLabel || '').toLowerCase().trim() === 'approved' ? 'Already Approved' : rxStatusLabel) : 'Approve & accept order'}
+        </button>
+        <button
+          onClick={onReuploadClick}
+          disabled={disableBtns}
+          style={{
+            flex: 1, padding: '10px 12px', borderRadius: 6,
+            border: `1px solid ${isDone ? '#e2e8f0' : '#d1d5db'}`, background: isDone ? '#f1f5f9' : '#fff',
+            color: isDone ? '#94a3b8' : '#0f172a', fontSize: 14, fontWeight: 500,
+            cursor: disableBtns ? 'not-allowed' : 'pointer', opacity: 1,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          Request reupload
+        </button>
+        <button
+          onClick={onRejectClick}
+          disabled={disableBtns}
+          style={{
+            flex: 1, padding: '10px 12px', borderRadius: 6,
+            border: 'none', background: 'transparent',
+            color: isDone ? '#94a3b8' : '#ef4444', fontSize: 14, fontWeight: 500,
+            cursor: disableBtns ? 'not-allowed' : 'pointer', opacity: 1,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          Reject prescription
+        </button>
       </div>
-    </div>
-
-    {error && (
-      <div style={{ padding: '10px 14px', background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 8, fontSize: 13, color: '#991b1b' }}>
-        {error}
-      </div>
-    )}
-    {success && (
-      <div style={{ padding: '10px 14px', background: '#dcfce7', border: '1px solid #86efac', borderRadius: 8, fontSize: 13, color: '#166534' }}>
-        {success}
-      </div>
-    )}
-
-    <div style={{ display: 'flex', gap: 12, alignItems: 'center', paddingTop: 8 }}>
-      <button
-        onClick={() => submit('Approved')}
-        disabled={saving}
-        style={{
-          flex: 1, padding: '10px 12px', borderRadius: 6, border: 'none',
-          background: saving ? '#6ee7b7' : '#10b981', color: '#fff',
-          fontSize: 14, fontWeight: 500, cursor: saving ? 'not-allowed' : 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}
-      >
-        Approve &amp; accept order
-      </button>
-      <button
-        onClick={onReuploadClick}
-        disabled={saving}
-        style={{
-          flex: 1, padding: '10px 12px', borderRadius: 6,
-          border: '1px solid #d1d5db', background: '#fff',
-          color: '#0f172a', fontSize: 14, fontWeight: 500,
-          cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}
-      >
-        Request reupload
-      </button>
-      <button
-        onClick={onRejectClick}
-        disabled={saving}
-        style={{
-          flex: 1, padding: '10px 12px', borderRadius: 6,
-          border: 'none', background: 'transparent',
-          color: '#ef4444', fontSize: 14, fontWeight: 500,
-          cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}
-      >
-        Reject prescription
-      </button>
-    </div>
-  </>
-);
+    </>
+  );
+};
 
 /* ─── Detail Panel ─────────────────────────────────────── */
-const DetailPanel = ({ rx, onReviewed, autoOpenReupload, onAutoOpenReuploadDone }) => {
+const DetailPanel = ({ rx, onReviewed, autoOpenReupload, onAutoOpenReuploadDone, setSelectedRx }) => {
+  const navigate = useNavigate();
+  const getDaysLeft = (orderCreatedAt) => {
+    if (!orderCreatedAt) return 15;
+    const createdDate = new Date(orderCreatedAt);
+    const now = new Date();
+    const diffTime = now.getTime() - createdDate.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const daysLeft = 15 - diffDays;
+    return daysLeft > 0 ? daysLeft : 0;
+  };
+  const daysLeft = getDaysLeft(rx.created_at);
+
   const [notes, setNotes]           = useState(rx.review_notes || '');
   const [zoom, setZoom]             = useState(100);
   const [saving, setSaving]         = useState(false);
@@ -442,6 +479,10 @@ const DetailPanel = ({ rx, onReviewed, autoOpenReupload, onAutoOpenReuploadDone 
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [pdfLoadError, setPdfLoadError] = useState(false);
   const [pdfBlobUrl, setPdfBlobUrl] = useState(null);
+
+  const [orderPrescriptions, setOrderPrescriptions] = useState([]);
+  const [dropdownOpen, setDropdownOpen]             = useState(false);
+  const dropdownRef                                 = useRef(null);
 
   useEffect(() => {
     setNotes(rx.review_notes || '');
@@ -477,6 +518,40 @@ const DetailPanel = ({ rx, onReviewed, autoOpenReupload, onAutoOpenReuploadDone 
       setPdfBlobUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null; });
     };
   }, [rx.prescription_file]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!dropdownOpen) return;
+    const handler = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [dropdownOpen]);
+
+  // Fetch related prescriptions of the same order
+  useEffect(() => {
+    if (!rx.order_id) {
+      setOrderPrescriptions([]);
+      return;
+    }
+    apiClient.get(`/sales/prescriptions/by-order/${rx.order_id}/`)
+      .then(res => {
+        const list = Array.isArray(res.data) ? res.data : (res.data.results || []);
+        setOrderPrescriptions(list);
+      })
+      .catch(() => setOrderPrescriptions([]));
+  }, [rx.order_id]);
+
+  const handleSwitchRx = (p) => {
+    setSelectedRx(p);
+    setDropdownOpen(false);
+  };
+
+  const currentIndex = orderPrescriptions.findIndex(p => p.id === rx.id || p.order_item_id === rx.order_item_id);
+  const rxEnriched = orderPrescriptions[currentIndex] || rx;
 
   const submit = async (reviewStatus) => {
     setSaving(true);
@@ -548,6 +623,145 @@ const DetailPanel = ({ rx, onReviewed, autoOpenReupload, onAutoOpenReuploadDone 
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#f3f0ff', overflow: 'hidden' }}>
+
+      {/* Premium Header with Custom Selector/Dropdown (Accordion) */}
+      <div style={{ background: '#fff', borderBottom: '1px solid #e2e8f0', padding: '16px 24px', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 18, fontWeight: 600, color: '#101828' }}>
+                Prescription Review
+              </span>
+              <span style={{ fontSize: 13, color: '#64748b', fontWeight: 500 }}>
+                {rx.order_display_id || (rx.order_id ? `#LO-${String(rx.order_id).padStart(7, '0')}` : '')}
+              </span>
+            </div>
+
+            {orderPrescriptions.length > 1 ? (
+              <div ref={dropdownRef} style={{ position: 'relative', marginTop: 8, maxWidth: 380 }}>
+                <button
+                  onClick={() => setDropdownOpen(o => !o)}
+                  style={{
+                    width: '100%', background: '#fff',
+                    border: '1px solid #d2d2d2', borderRadius: 8,
+                    padding: '8px 10px', display: 'flex', alignItems: 'center',
+                    gap: 8, cursor: 'pointer', textAlign: 'left',
+                  }}
+                >
+                  <div style={{ width: 28, height: 28, borderRadius: 5, border: '1px solid #eaecf0', background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
+                    {rxEnriched?.itemImage
+                      ? <img src={rxEnriched.itemImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      : <Glasses size={15} color="#d0d5dd" />}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {rxEnriched?.itemName || `Prescription ${currentIndex + 1}`}
+                      {rxEnriched?.lensName && <span style={{ fontWeight: 400, color: '#64748b' }}> · {rxEnriched.lensName}</span>}
+                    </div>
+                    <div style={{ fontSize: 11, color: '#64748b', display: 'flex', gap: 4, alignItems: 'center', marginTop: 1 }}>
+                      <span>Patient: {rxEnriched?.itemPatient || rx.patient_name || '—'}</span>
+                      <span>·</span>
+                      <span style={{ 
+                        fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 12,
+                        background: rx.status_label === 'Approved' ? '#dcfce7' : rx.status_label === 'Rejected' ? '#fee2e2' : '#fef9c3',
+                        color: rx.status_label === 'Approved' ? '#166534' : rx.status_label === 'Rejected' ? '#991b1b' : '#854d0e',
+                        textTransform: 'uppercase'
+                      }}>
+                        {rx.status_label || 'Pending'}
+                      </span>
+                    </div>
+                  </div>
+                  <ChevronDown size={14} color="#64748b" style={{ flexShrink: 0, transform: dropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+                </button>
+
+                {dropdownOpen && (
+                  <div style={{
+                    position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
+                    zIndex: 200, background: '#fff',
+                    border: '1px solid #e2e8f0', borderRadius: 8,
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+                    overflow: 'hidden',
+                  }}>
+                    {orderPrescriptions.map((p, i) => {
+                      const isActive = p.id === rx.id;
+                      const badgeColor = p.status_label === 'Approved' ? '#166534' : p.status_label === 'Rejected' ? '#991b1b' : '#854d0e';
+                      return (
+                        <div
+                          key={p.order_item_id || p.id || i}
+                          onClick={() => handleSwitchRx(p)}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 8,
+                            padding: '9px 10px',
+                            cursor: 'pointer',
+                            background: isActive ? '#f5f3ff' : '#fff',
+                            borderBottom: i < orderPrescriptions.length - 1 ? '1px solid #f1f5f9' : 'none',
+                            transition: 'background 0.1s',
+                          }}
+                        >
+                          <div style={{ width: 28, height: 28, borderRadius: 5, border: '1px solid #eaecf0', background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
+                            {p.itemImage
+                              ? <img src={p.itemImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              : <Glasses size={15} color="#d0d5dd" />}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {p.itemName || `Prescription ${i + 1}`}
+                            </div>
+                            <div style={{ fontSize: 11, color: '#64748b', display: 'flex', gap: 4, alignItems: 'center', marginTop: 1 }}>
+                              <span>{p.itemPatient || 'Unknown patient'}</span>
+                              <span>·</span>
+                              <span style={{ color: badgeColor, fontWeight: 600 }}>{p.status_label || 'Pending'}</span>
+                              <span>·</span>
+                              <span>{p.prescription_file ? 'File' : 'Manual'}</span>
+                            </div>
+                          </div>
+                          {isActive && <Check size={13} color="#68408d" style={{ flexShrink: 0 }} />}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <User size={14} color="#64748b" />
+                  <span style={{ fontSize: 13, color: '#4b5563', fontWeight: 500 }}>
+                    {rx.user_name || 'Customer'}
+                  </span>
+                </div>
+                {rx.patient_name && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <span style={{ fontSize: 13, color: '#94a3b8' }}>·</span>
+                    <span style={{ fontSize: 13, color: '#64748b' }}>Patient: {rx.patient_name}</span>
+                  </div>
+                )}
+                <span style={{ 
+                  fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 12,
+                  background: rx.status_label === 'Approved' ? '#dcfce7' : rx.status_label === 'Rejected' ? '#fee2e2' : '#fef9c3',
+                  color: rx.status_label === 'Approved' ? '#166534' : rx.status_label === 'Rejected' ? '#991b1b' : '#854d0e',
+                  textTransform: 'uppercase'
+                }}>
+                  {rx.status_label || 'Pending'}
+                </span>
+              </div>
+            )}
+          </div>
+          
+          {rx.order_id && (
+            <button 
+              onClick={() => navigate(`/admin/orders/${rx.order_id}`)}
+              style={{
+                padding: '6px 12px', borderRadius: 8, border: '1px solid #d2d2d2',
+                background: '#fff', color: '#374151', fontSize: 12, fontWeight: 500,
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4
+              }}
+            >
+              View Order
+            </button>
+          )}
+        </div>
+      </div>
 
       {/* ── Scrollable body ── */}
       <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
@@ -630,10 +844,10 @@ const DetailPanel = ({ rx, onReviewed, autoOpenReupload, onAutoOpenReuploadDone 
                   <Eye size={14} /> Open PDF in new tab
                 </a>
               )}
-              <NotesAndActions notes={notes} setNotes={setNotes} submit={submit} saving={saving} error={error} success={success} onReuploadClick={() => setShowReupload(true)} onRejectClick={() => setShowRejectModal(true)} />
+              <NotesAndActions notes={notes} setNotes={setNotes} submit={submit} saving={saving} error={error} success={success} onReuploadClick={() => setShowReupload(true)} onRejectClick={() => setShowRejectModal(true)} rxStatusLabel={rx.status_label} />
             </div>
           </>
-        ) : (
+        ) : rx.status_label !== 'Awaiting Submission' ? (
           /* ════════════════════════════════════════════════
              MANUAL ENTRY PATH
              Single section: data table + notes + buttons
@@ -701,7 +915,22 @@ const DetailPanel = ({ rx, onReviewed, autoOpenReupload, onAutoOpenReuploadDone 
               </div>
             </div>
 
-            <NotesAndActions notes={notes} setNotes={setNotes} submit={submit} saving={saving} error={error} success={success} onReuploadClick={() => setShowReupload(true)} onRejectClick={() => setShowRejectModal(true)} />
+            <NotesAndActions notes={notes} setNotes={setNotes} submit={submit} saving={saving} error={error} success={success} onReuploadClick={() => setShowReupload(true)} onRejectClick={() => setShowRejectModal(true)} rxStatusLabel={rx.status_label} />
+          </div>
+        ) : (
+          /* ════════════════════════════════════════════════
+             AWAITING CUSTOMER SUBMISSION PATH
+             ════════════════════════════════════════════════ */
+          <div style={{ flex: 1, background: '#f3f0ff', padding: '25px 24px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+            <div style={{ background: '#fff', border: '1px dashed #cbd5e1', borderRadius: 16, padding: '48px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, width: '100%', maxWidth: 460, boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
+              <FileText size={40} color="#94a3b8" />
+              <span style={{ fontSize: 15, fontWeight: 600, color: '#475569', textAlign: 'center' }}>
+                Waiting for customer to upload or enter prescription details / PDF
+              </span>
+              <span style={{ fontSize: 13, color: '#ef4444', fontWeight: 700 }}>
+                ({daysLeft} days left)
+              </span>
+            </div>
           </div>
         )}
 
@@ -943,6 +1172,7 @@ const PrescriptionTable = () => {
               onReviewed={handleReviewed}
               autoOpenReupload={autoOpenReupload}
               onAutoOpenReuploadDone={() => setAutoOpenReupload(false)}
+              setSelectedRx={setSelectedRx}
             />
           ) : (
             <EmptyState message="Select a prescription to review" />

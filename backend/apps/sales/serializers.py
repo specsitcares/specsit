@@ -57,6 +57,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
             'quantity', 'unit_price', 'item_total', 'price_at_purchase', 'price',
             'lens_prescription_text', 'lens_pd',
             'prescription_status', 'patient_name', 'prescription', 'lens', 'status',
+            'prescription_submission_type', 'prescription_deferred_until', 'prescription_submitted_at',
             'created_at',
         ]
 
@@ -407,6 +408,7 @@ class OrderShipmentSerializer(serializers.ModelSerializer):
     delivery_date       = serializers.SerializerMethodField()
     tracking_id         = serializers.SerializerMethodField()
     carrier             = serializers.SerializerMethodField()
+    service_provider    = serializers.SerializerMethodField()
     order_status_label  = serializers.SerializerMethodField()
 
     ORDER_STATUS_LABELS = {
@@ -479,6 +481,14 @@ class OrderShipmentSerializer(serializers.ModelSerializer):
         except Exception:
             return None
 
+    def get_service_provider(self, obj):
+        try:
+            if obj.tracking.service_provider:
+                return obj.tracking.service_provider
+        except Exception:
+            pass
+        return None
+
     def get_order_status_label(self, obj):
         return self.ORDER_STATUS_LABELS.get(obj.order_status, obj.order_status or 'Pending')
 
@@ -488,7 +498,7 @@ class OrderShipmentSerializer(serializers.ModelSerializer):
             'order_id', 'order_status', 'order_status_label',
             'product_names', 'customer_name',
             'shipping_pincode', 'shipping_city',
-            'delivery_date', 'tracking_id', 'carrier',
+            'delivery_date', 'tracking_id', 'carrier', 'service_provider',
             'payment_status', 'total_amount',
             'order_date', 'created_at',
         ]

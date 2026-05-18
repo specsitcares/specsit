@@ -139,7 +139,8 @@ class LensSerializer(serializers.ModelSerializer):
             data['package_name'] = instance.package.name
             data['description'] = instance.package.description
             data['features'] = instance.package.features
-            data['categories'] = list(instance.package.categories.values('id', 'name'))
+            # categories is now a JSONField (list), not a QuerySet
+            data['categories'] = instance.package.categories if instance.package.categories else []
         if instance.brand:
             data['brand_name'] = instance.brand.name
         if instance.type:
@@ -219,6 +220,7 @@ class PrescriptionSerializer(serializers.ModelSerializer):
             'prism_od', 'prism_base_od', 'prism_os', 'prism_base_os',
             'vision_type', 'prescription_file', 'review_notes',
             'status', 'status_label',
+            'submission_type', 'submitted_at',
             'order_id', 'order_display_id',
             'created_at', 'updated_at',
         ]

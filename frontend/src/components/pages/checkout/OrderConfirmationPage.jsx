@@ -110,6 +110,8 @@ const OrderConfirmationPage = () => {
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
 
+    const [selectedItemId, setSelectedItemId] = useState('');
+
     /* Deferred prescription flow step:
        0 = Screen 1 (Submit Your Lens Power)
        1 = Screen 2 (Choose method)
@@ -147,6 +149,14 @@ const OrderConfirmationPage = () => {
             const response = await apiClient.get(`/sales/orders/${orderId}/`);
             const data = response.data;
             setOrder(data);
+            
+            const itemsNeedingRx = (data.items || []).filter(
+                item => item.lens && item.prescription_status !== 'Approved'
+            );
+            if (itemsNeedingRx.length > 0) {
+                setSelectedItemId(itemsNeedingRx[0].id);
+            }
+
             if (hasDeferredRx) {
                 const alreadySubmitted = (data.items || []).some(
                     item => item.prescription_status && item.prescription_status !== 'Pending'
@@ -175,6 +185,7 @@ const OrderConfirmationPage = () => {
 
             await apiClient.post('/sales/prescriptions/manual/', {
                 order_id: orderId,
+                item_id: selectedItemId || undefined,
                 name: patientName,
                 vision_type: 'Single Vision',
                 rx: {
@@ -182,7 +193,26 @@ const OrderConfirmationPage = () => {
                     os: { sph: leftSph,  cyl: leftCyl,  axis: leftAxis,  add: 0 },
                 },
             });
-            setRxStep(3);
+            
+            // Refetch order details
+            const response = await apiClient.get(`/sales/orders/${orderId}/`);
+            const data = response.data;
+            setOrder(data);
+            const itemsNeedingRx = (data.items || []).filter(
+                item => item.lens && item.prescription_status !== 'Approved'
+            );
+            if (itemsNeedingRx.length > 0) {
+                setSelectedItemId(itemsNeedingRx[0].id);
+                setPatientName('');
+                setPowerForm({
+                    left_sph: '0.00', left_cyl: '0.00', left_axis: '180',
+                    right_sph: '0.00', right_cyl: '0.00', right_axis: '180',
+                });
+                setSubmitError('Success! Prescription submitted for this item. Please submit for the remaining items.');
+                setRxStep(1); // Back to choose method
+            } else {
+                setRxStep(3);
+            }
         } catch (err) {
             setSubmitError('Could not save prescription. Please try again.');
         } finally {
@@ -198,8 +228,25 @@ const OrderConfirmationPage = () => {
             const formData = new FormData();
             formData.append('prescription_file', file);
             formData.append('order_id', orderId);
+            if (selectedItemId) {
+                formData.append('item_id', selectedItemId);
+            }
             await apiClient.post('/sales/prescriptions/upload/', formData);
-            setRxStep(3);
+            
+            // Refetch order details
+            const response = await apiClient.get(`/sales/orders/${orderId}/`);
+            const data = response.data;
+            setOrder(data);
+            const itemsNeedingRx = (data.items || []).filter(
+                item => item.lens && item.prescription_status !== 'Approved'
+            );
+            if (itemsNeedingRx.length > 0) {
+                setSelectedItemId(itemsNeedingRx[0].id);
+                setSubmitError('Success! Prescription submitted for this item. Please submit for the remaining items.');
+                setRxStep(1); // Back to choose method
+            } else {
+                setRxStep(3);
+            }
         } catch (err) {
             const msg = err.response?.data?.error || 'Upload failed. Please try again.';
             setSubmitError(msg);
@@ -240,6 +287,33 @@ const OrderConfirmationPage = () => {
     const depositPct = totalAmount > 0 ? Math.round(depositAmount / totalAmount * 100) : 0;
     const displayOrderId = `LO-${String(order.id || orderId).padStart(7, '0')}`;
     const items = order.items || order.order_items || [];
+
+    const pendingItems = (order?.items || []).filter(
+        item => item.lens && item.prescription_status !== 'Approved'
+    );
+
+    const renderItemSelector = () => {
+        if (pendingItems.length <= 1) return null;
+        return (
+            <div className="conf-item-selector-wrap" style={{ marginBottom: '20px', padding: '16px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                <label className="conf-field-label" style={{ marginBottom: '8px', display: 'block', fontSize: '11px', fontWeight: '700', color: '#64748b', letterSpacing: '0.5px' }}>
+                    SELECT ITEM TO SUBMIT PRESCRIPTION FOR
+                </label>
+                <select
+                    value={selectedItemId}
+                    onChange={e => setSelectedItemId(e.target.value)}
+                    className="conf-power-select"
+                    style={{ width: '100%', height: '40px', background: '#fff', fontSize: '13px', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '0 8px' }}
+                >
+                    {pendingItems.map(item => (
+                        <option key={item.id} value={item.id}>
+                            {item.variant_name || 'Eyewear Frame'} - {item.variant_sku || 'Standard'}
+                        </option>
+                    ))}
+                </select>
+            </div>
+        );
+    };
 
     /* ── Shared header ── */
     const renderHeader = (heading, orderIdText) => (
@@ -443,6 +517,8 @@ const OrderConfirmationPage = () => {
                                 </div>
                             </div>
 
+                            {renderItemSelector()}
+
                             {/* Options */}
                             <div className="conf-method-options">
                                 <button className="conf-method-card" onClick={() => setRxStep(2)}>
@@ -596,6 +672,8 @@ const OrderConfirmationPage = () => {
                                 </svg>
                                 Back
                             </button>
+
+                            {renderItemSelector()}
 
                             <div className="conf-form-section">
                                 <h2 className="conf-form-heading">Enter Power Manually</h2>

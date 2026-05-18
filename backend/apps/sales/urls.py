@@ -4,7 +4,7 @@ from .views import (
     OrderViewSet, CouponViewSet, ShipmentViewSet, CartViewSet, WishlistViewSet,
     AdminDashboardStatsView, RecentOrdersView, RecordLiveActivityView, DeliveryCheckView,
     OrderTrackingViewSet, PaymentViewSet,
-    PrescriptionUploadView, PrescriptionManualView, PrescriptionByOrderView,
+    PrescriptionUploadView, PrescriptionManualView, PrescriptionDeferredView,
     ReturnRequestViewSet, WarrantyClaimViewSet,
 )
 from .payment_views import PaymentInitiateView, PaymentVerifyView, PaymentCancelView, PaymentSettingsView
@@ -27,7 +27,7 @@ urlpatterns = [
     path('delivery/check/', DeliveryCheckView.as_view(), name='delivery-check'),
     path('prescriptions/upload/', PrescriptionUploadView.as_view(), name='prescription-upload'),
     path('prescriptions/manual/', PrescriptionManualView.as_view(), name='prescription-manual'),
-    path('prescriptions/by-order/<int:order_id>/', PrescriptionByOrderView.as_view(), name='prescription-by-order'),
+    path('prescriptions/deferred/', PrescriptionDeferredView.as_view(), name='prescription-deferred'),
     path('payments/settings/', PaymentSettingsView.as_view(), name='payment-settings'),
     path('payments/initiate/', PaymentInitiateView.as_view(), name='payment-initiate'),
     path('payments/verify/', PaymentVerifyView.as_view(), name='payment-verify'),

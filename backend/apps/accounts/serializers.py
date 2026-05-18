@@ -11,6 +11,7 @@ class EmployeeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Employee
         fields = '__all__'
+        read_only_fields = ['user']
 
 class CustomerQuerySerializer(serializers.ModelSerializer):
     class Meta:

@@ -1125,16 +1125,17 @@ class RecordLiveActivityView(views.APIView):
 
 
 class PrescriptionUploadView(views.APIView):
-    """POST /api/sales/prescriptions/upload/ — accept file + order_id, link to OrderItem."""
+    """POST /api/sales/prescriptions/upload/ — accept file + order_id + optional item_id, link to OrderItem."""
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = [parsers.MultiPartParser, parsers.FormParser]
 
     def post(self, request):
         from apps.catalog.core.models import MetadataGroup, MetadataItem as MI
         from django.db import transaction
-        from rest_framework.exceptions import ValidationError
+        from django.utils import timezone
 
         order_id = request.data.get('order_id')
+        item_id  = request.data.get('item_id')   # optional — target a specific item
         prescription_file = request.FILES.get('prescription_file')
 
         if not order_id:
@@ -1143,30 +1144,53 @@ class PrescriptionUploadView(views.APIView):
             return Response({'error': 'prescription_file is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
         import os as _os
-        allowed_extensions = {'.pdf', '.jpg', '.jpeg', '.png'}
+        allowed_extensions = {'.pdf', '.jpg', '.jpeg', '.png', '.gif', '.webp'}
         ext = _os.path.splitext(prescription_file.name)[1].lower()
         if ext not in allowed_extensions:
-            return Response({'error': 'Invalid file type. Only PDF, JPG, and PNG are allowed.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Invalid file type. Only PDF, JPG, PNG, GIF or WEBP are allowed.'}, status=status.HTTP_400_BAD_REQUEST)
         if prescription_file.size > 5 * 1024 * 1024:
             return Response({'error': 'File exceeds the 5 MB size limit.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Bug #4: Parse numeric order ID if display format is sent
         try:
-            if isinstance(order_id, str) and order_id.startswith('#'):
-                order_id_numeric = int(''.join(filter(str.isdigit, order_id)))
-            else:
-                order_id_numeric = int(order_id)
+            order_id_numeric = int(order_id)
         except (ValueError, TypeError):
-            return Response({'error': 'Invalid order ID format.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Invalid order_id.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            order = Order.objects.get(id=order_id_numeric, user=request.user)
+            if request.user.is_staff:
+                order = Order.objects.get(id=order_id_numeric)
+            else:
+                order = Order.objects.get(id=order_id_numeric, user=request.user)
         except Order.DoesNotExist:
             return Response({'error': f'Order #{order_id_numeric} not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-        item_count = order.items.count()
-        if item_count == 0:
-            return Response({'error': 'Order has no items. Cannot add prescription.'}, status=status.HTTP_400_BAD_REQUEST)
+        # Resolve which items to target
+        if item_id:
+            try:
+                target_item = order.items.get(id=int(item_id))
+                # Check if item already has a prescription with a non-null submission_type
+                # This prevents overwriting already submitted prescriptions
+                if target_item.prescription and target_item.prescription_submission_type:
+                    return Response(
+                        {'error': f'This item already has a {target_item.prescription_submission_type.replace("_", " ")} submission. Cannot overwrite.'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                target_items = order.items.filter(id=int(item_id))
+            except (ValueError, TypeError):
+                return Response({'error': 'Invalid item_id.'}, status=status.HTTP_400_BAD_REQUEST)
+            except OrderItem.DoesNotExist:
+                return Response({'error': 'Item not found in this order.'}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            # Target only items that don't have a prescription or have no submission_type set yet
+            # This prevents overwriting prescriptions that have already been submitted
+            target_items = order.items.filter(
+                Q(prescription__isnull=True) | Q(prescription_submission_type__isnull=True)
+            ).exclude(
+                prescription__status__label='Approved'
+            )
+
+        if not target_items.exists():
+            return Response({'detail': 'All items already have an approved prescription. No changes made.'}, status=status.HTTP_200_OK)
 
         group, _ = MetadataGroup.objects.get_or_create(name='Prescription Status')
         pending_status, _ = MI.objects.get_or_create(
@@ -1179,14 +1203,22 @@ class PrescriptionUploadView(views.APIView):
         prescription = None
         try:
             with transaction.atomic():
+                now = timezone.now()
                 prescription = Prescription.objects.create(
-                    user=request.user,
+                    user=order.user,
                     prescription_file=prescription_file,
+                    submission_type='pdf_upload',
+                    submitted_at=now,
                     status=pending_status,
                 )
-                updated_count = order.items.update(prescription=prescription)
-                if updated_count == 0:
-                    raise ValueError('Prescription was saved but could not be linked to any order items.')
+                
+                # Update each item to link the prescription and track submission type
+                for item in target_items:
+                    item.prescription = prescription
+                    item.prescription_submission_type = 'pdf_upload'
+                    item.prescription_submitted_at = now
+                    item.save(update_fields=['prescription', 'prescription_submission_type', 'prescription_submitted_at'])
+                    
         except ValueError as e:
             if prescription and prescription.prescription_file:
                 prescription.prescription_file.delete(save=False)
@@ -1196,23 +1228,23 @@ class PrescriptionUploadView(views.APIView):
 
 
 class PrescriptionManualView(views.APIView):
-    """POST /api/sales/prescriptions/manual/ — accept Rx data + order_id, link to OrderItem."""
+    """POST /api/sales/prescriptions/manual/ — accept Rx data + order_id + optional item_id, link to OrderItem."""
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
         from apps.catalog.core.models import MetadataGroup, MetadataItem as MI
         from django.db import transaction
-        from rest_framework.exceptions import ValidationError
+        from django.utils import timezone
 
-        order_id = request.data.get('order_id')
-        rx = request.data.get('rx', {})
-        name = request.data.get('name', '')
+        order_id   = request.data.get('order_id')
+        item_id    = request.data.get('item_id')   # optional — target a specific item
+        rx         = request.data.get('rx', {})
+        name       = request.data.get('name', '')
         vision_type = request.data.get('vision_type', '')
 
         if not order_id:
             return Response({'error': 'order_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Bug #4: Parse numeric order ID if display format is sent
         try:
             if isinstance(order_id, str) and order_id.startswith('#'):
                 order_id_numeric = int(''.join(filter(str.isdigit, order_id)))
@@ -1222,11 +1254,13 @@ class PrescriptionManualView(views.APIView):
             return Response({'error': 'Invalid order ID format.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            order = Order.objects.get(id=order_id_numeric, user=request.user)
+            if request.user.is_staff:
+                order = Order.objects.get(id=order_id_numeric)
+            else:
+                order = Order.objects.get(id=order_id_numeric, user=request.user)
         except Order.DoesNotExist:
             return Response({'error': f'Order #{order_id_numeric} not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Bug #3: Validate order has items before creating prescription
         if not order.items.exists():
             return Response({'error': 'Order has no items. Cannot add prescription.'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -1236,36 +1270,178 @@ class PrescriptionManualView(views.APIView):
             defaults={'value': 'pending_review', 'is_active': True},
         )
 
-        od = rx.get('od', {})
+        od      = rx.get('od', {})
         os_data = rx.get('os', {})
 
         if not od.get('sph') and not os_data.get('sph'):
             return Response({'error': 'At least one eye must have a sphere (SPH) value.'}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Resolve which items to target
+        if item_id:
+            try:
+                target_item = order.items.get(id=int(item_id))
+                # Check if item already has a prescription with a non-null submission_type
+                if target_item.prescription and target_item.prescription_submission_type:
+                    return Response(
+                        {'error': f'This item already has a {target_item.prescription_submission_type.replace("_", " ")} submission. Cannot overwrite.'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                target_items = order.items.filter(id=int(item_id))
+            except (ValueError, TypeError):
+                return Response({'error': 'Invalid item_id.'}, status=status.HTTP_400_BAD_REQUEST)
+            except OrderItem.DoesNotExist:
+                return Response({'error': 'Item not found in this order.'}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            # Target only items that don't have a prescription or have no submission_type set yet
+            target_items = order.items.filter(
+                Q(prescription__isnull=True) | Q(prescription_submission_type__isnull=True)
+            ).exclude(
+                prescription__status__label='Approved'
+            )
+
+        if not target_items.exists():
+            return Response({'detail': 'All items already have an approved prescription. No changes made.'}, status=status.HTTP_200_OK)
+
         from apps.catalog.models import Prescription
 
+        created_ids = []
+        now = timezone.now()
         with transaction.atomic():
-            prescription = Prescription.objects.create(
-                user=request.user,
-                patient_name=name,
-                vision_type=vision_type,
-                od_sphere=od.get('sph') or 0,
-                od_cylinder=od.get('cyl') or 0,
-                od_axis=od.get('axis') or 0,
-                od_add=od.get('add') or 0,
-                os_sphere=os_data.get('sph') or 0,
-                os_cylinder=os_data.get('cyl') or 0,
-                os_axis=os_data.get('axis') or 0,
-                os_add=os_data.get('add') or 0,
-                status=pending_status,
+            # Create a SEPARATE Prescription for each item so each can be
+            # independently reviewed / approved in the admin offcanvas.
+            for item in target_items:
+                prescription = Prescription.objects.create(
+                    user=order.user,
+                    patient_name=name,
+                    vision_type=vision_type,
+                    od_sphere=od.get('sph') or 0,
+                    od_cylinder=od.get('cyl') or 0,
+                    od_axis=od.get('axis') or 0,
+                    od_add=od.get('add') or 0,
+                    os_sphere=os_data.get('sph') or 0,
+                    os_cylinder=os_data.get('cyl') or 0,
+                    os_axis=os_data.get('axis') or 0,
+                    os_add=os_data.get('add') or 0,
+                    submission_type='manual_entry',
+                    submitted_at=now,
+                    status=pending_status,
+                )
+                item.prescription = prescription
+                item.prescription_submission_type = 'manual_entry'
+                item.prescription_submitted_at = now
+                item.save(update_fields=['prescription', 'prescription_submission_type', 'prescription_submitted_at'])
+                created_ids.append(prescription.id)
+
+        return Response({'detail': 'Prescription saved successfully.', 'prescription_ids': created_ids})
+
+
+class PrescriptionDeferredView(views.APIView):
+    """
+    POST /api/sales/prescriptions/deferred/ — defer prescription submission for 15 days.
+    Customer chooses to submit prescription later, order continues with deferred status.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        from apps.catalog.core.models import MetadataGroup, MetadataItem as MI
+        from django.db import transaction
+        from django.utils import timezone
+        from datetime import timedelta
+
+        order_id = request.data.get('order_id')
+        item_id  = request.data.get('item_id')   # optional — target a specific item
+
+        if not order_id:
+            return Response({'error': 'order_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            if isinstance(order_id, str) and order_id.startswith('#'):
+                order_id_numeric = int(''.join(filter(str.isdigit, order_id)))
+            else:
+                order_id_numeric = int(order_id)
+        except (ValueError, TypeError):
+            return Response({'error': 'Invalid order ID format.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            if request.user.is_staff:
+                order = Order.objects.get(id=order_id_numeric)
+            else:
+                order = Order.objects.get(id=order_id_numeric, user=request.user)
+        except Order.DoesNotExist:
+            return Response({'error': f'Order #{order_id_numeric} not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if not order.items.exists():
+            return Response({'error': 'Order has no items. Cannot defer prescription.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        group, _ = MetadataGroup.objects.get_or_create(name='Prescription Status')
+        deferred_status, _ = MI.objects.get_or_create(
+            group=group, label='Deferred',
+            defaults={'value': 'deferred', 'is_active': True},
+        )
+
+        # Resolve which items to target
+        if item_id:
+            try:
+                target_item = order.items.get(id=int(item_id))
+                # Check if item already has a prescription with a non-null submission_type
+                if target_item.prescription and target_item.prescription_submission_type:
+                    return Response(
+                        {'error': f'This item already has a {target_item.prescription_submission_type.replace("_", " ")} submission. Cannot change to deferred.'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                target_items = order.items.filter(id=int(item_id))
+            except (ValueError, TypeError):
+                return Response({'error': 'Invalid item_id.'}, status=status.HTTP_400_BAD_REQUEST)
+            except OrderItem.DoesNotExist:
+                return Response({'error': 'Item not found in this order.'}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            # Target items that don't have a submission yet or have no submission_type
+            target_items = order.items.filter(
+                lens__isnull=False
+            ).filter(
+                Q(prescription__isnull=True) | Q(prescription_submission_type__isnull=True)
+            ).exclude(
+                prescription__status__label='Approved'
             )
-            # Replace any existing prescription on all items for this order
-            order.items.update(prescription=prescription)
 
-        return Response({'detail': 'Prescription saved successfully.', 'prescription_id': prescription.id})
+        if not target_items.exists():
+            return Response({'detail': 'No items available for deferred submission.'}, status=status.HTTP_200_OK)
+
+        from apps.catalog.models import Prescription
+
+        now = timezone.now()
+        deadline = now + timedelta(days=15)
+
+        try:
+            with transaction.atomic():
+                for item in target_items:
+                    # Create a deferred placeholder prescription
+                    prescription = Prescription.objects.create(
+                        user=order.user,
+                        patient_name=item.patient_name or order.user.get_full_name() or order.user.username,
+                        submission_type='deferred',
+                        status=deferred_status,
+                    )
+                    
+                    item.prescription = prescription
+                    item.prescription_submission_type = 'deferred'
+                    item.prescription_deferred_until = deadline
+                    # Note: prescription_submitted_at is NOT set yet, as they haven't submitted
+                    item.save(update_fields=[
+                        'prescription',
+                        'prescription_submission_type',
+                        'prescription_deferred_until',
+                    ])
+        except Exception as e:
+            return Response({'error': f'Failed to defer prescription: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({
+            'detail': 'Prescription submission deferred. You have 15 days to submit.',
+            'deadline': deadline.isoformat(),
+        })
 
 
-class PrescriptionByOrderView(views.APIView):
+
     """GET /api/sales/prescriptions/by-order/<order_id>/ — prescription status for an order."""
     permission_classes = [permissions.IsAuthenticated]
 
@@ -1274,19 +1450,93 @@ class PrescriptionByOrderView(views.APIView):
         from apps.catalog.serializers import PrescriptionSerializer
 
         try:
-            order = Order.objects.prefetch_related('items__prescription__status').get(id=order_id)
+            order = Order.objects.prefetch_related(
+                'items__prescription__status', 'items__lens'
+            ).get(id=order_id)
         except Order.DoesNotExist:
             return Response({'error': 'Order not found.'}, status=status.HTTP_404_NOT_FOUND)
 
         if not request.user.is_staff and order.user != request.user:
             return Response({'error': 'Not authorised.'}, status=status.HTTP_403_FORBIDDEN)
 
-        prescriptions = Prescription.objects.filter(
-            order_items__order=order
-        ).select_related('user', 'status').prefetch_related('order_items__order').distinct()
+        # Get all items that require a prescription (either have a lens or have a prescription)
+        rx_items = order.items.filter(
+            Q(lens__isnull=False) | Q(prescription__isnull=False)
+        ).select_related('prescription', 'prescription__status', 'prescription__user', 'lens').distinct()
 
-        serializer = PrescriptionSerializer(prescriptions, many=True, context={'request': request})
-        return Response(serializer.data)
+        results = []
+        for item in rx_items:
+            # If there is a prescription, serialize it
+            if item.prescription:
+                p_data = PrescriptionSerializer(item.prescription, context={'request': request}).data
+            else:
+                p_data = {
+                    'id': None,
+                    'patient_name': item.patient_name or order.user.get_full_name() or order.user.username,
+                    'status_label': 'Awaiting Submission',
+                    'od_sphere': 0.00, 'od_cylinder': 0.00, 'od_axis': 0, 'od_add': 0.00,
+                    'os_sphere': 0.00, 'os_cylinder': 0.00, 'os_axis': 0, 'os_add': 0.00,
+                    'prescription_file': None,
+                    'vision_type': 'Single Vision',
+                }
+                
+                # Check if we have manually entered prescription text
+                if item.lens_prescription_text:
+                    import re
+                    text = item.lens_prescription_text
+                    
+                    # Extract Patient Name
+                    patient_match = re.search(r'Patient:\s*([^|]+)', text)
+                    if patient_match:
+                        p_data['patient_name'] = patient_match.group(1).strip()
+                        
+                    # Extract OD (Right Eye) details
+                    od_match = re.search(r'OD:\s*SPH\s*([+-]?\d*(?:\.\d+)?)\s*CYL\s*([+-]?\d*(?:\.\d+)?)\s*AXIS\s*(\d+)', text)
+                    if od_match:
+                        try:
+                            p_data['od_sphere'] = float(od_match.group(1))
+                            p_data['od_cylinder'] = float(od_match.group(2))
+                            p_data['od_axis'] = int(od_match.group(3))
+                        except ValueError:
+                            pass
+                            
+                    # Extract OS (Left Eye) details
+                    os_match = re.search(r'OS:\s*SPH\s*([+-]?\d*(?:\.\d+)?)\s*CYL\s*([+-]?\d*(?:\.\d+)?)\s*AXIS\s*(\d+)', text)
+                    if os_match:
+                        try:
+                            p_data['os_sphere'] = float(os_match.group(1))
+                            p_data['os_cylinder'] = float(os_match.group(2))
+                            p_data['os_axis'] = int(os_match.group(3))
+                        except ValueError:
+                            pass
+                            
+                    # Extract PD (Pupillary Distance) details
+                    pd_match = re.search(r'PD:\s*([+-]?\d*(?:\.\d+)?)\s*mm', text)
+                    if pd_match:
+                        try:
+                            p_data['pd_distance'] = float(pd_match.group(1))
+                        except ValueError:
+                            pass
+                            
+                    # If we parsed OD or OS values, it means we have manually entered details, so the status is Pending Review
+                    if od_match or os_match:
+                        p_data['status_label'] = 'Pending Review'
+            
+            # Enrich with item specific metadata so the frontend doesn't have to guess or do client-side lookups
+            first_img = item.variant.images.first() if (item.variant and hasattr(item.variant, 'images')) else None
+            variant_image = request.build_absolute_uri(first_img.image.url) if first_img else None
+            
+            p_data.update({
+                'order_item_id': item.id,
+                'itemName': item.variant.product.title if (item.variant and item.variant.product) else 'Frame Only',
+                'itemImage': variant_image,
+                'lensName': item.lens.name if item.lens else None,
+                'itemPatient': item.patient_name or p_data.get('patient_name'),
+                'lens_prescription_text': item.lens_prescription_text,
+            })
+            results.append(p_data)
+
+        return Response(results)
 
 
 class DeliveryCheckView(views.APIView):

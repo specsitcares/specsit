@@ -4,7 +4,9 @@ from .core.models import MetadataItem  # type: ignore
 from decimal import Decimal
 
 class Category(models.Model):
+    CATEGORY_TYPE_CHOICES = [('Lens', 'Lens'), ('Frame', 'Frame')]
     name = models.CharField(max_length=100, unique=True)
+    category_type = models.CharField(max_length=10, choices=CATEGORY_TYPE_CHOICES, default='Frame')
     description = models.TextField(blank=True)
     image = models.ImageField(upload_to='categories/', blank=True, null=True)
     parent = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='subcategories')
@@ -14,12 +16,11 @@ class Category(models.Model):
     def __str__(self): return self.name
 
 class Brand(models.Model):
-    BRAND_TYPE_CHOICES = [('Frame', 'Frame'), ('Lens', 'Lenses for Frames'), ('Contact', 'Contact Lenses')]
     name = models.CharField(max_length=100, unique=True)
     label = models.CharField(max_length=100, blank=True)
+    brand_type = models.CharField(max_length=100, blank=True, null=True)
     logo = models.ImageField(upload_to='brands/', blank=True, null=True)
     description = models.TextField(blank=True)
-    brand_type = models.CharField(max_length=10, choices=BRAND_TYPE_CHOICES, default='Frame')
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -129,23 +130,18 @@ class Variant(models.Model):
     tax_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
     discount_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
     is_bogo = models.BooleanField(default=False)
+    is_listed = models.BooleanField(default=True, null=True, blank=True)
     discount_start_date = models.DateField(null=True, blank=True)
     discount_end_date = models.DateField(null=True, blank=True)
-
-    # Storefront visibility — auto-cleared when stock hits 0; manually re-enabled by admin
-    is_listed = models.BooleanField(default=True)
-
-    # SEO Fields (per-variant)
-    meta_title = models.CharField(max_length=255, blank=True)
-    meta_description = models.TextField(blank=True)
-
+    
+    # SEO
+    meta_title = models.CharField(max_length=255, blank=True, null=True)
+    meta_description = models.TextField(blank=True, null=True)
+    
     # VTO Assets
     vto_image_front = models.ImageField(upload_to='vto_assets/', blank=True, null=True)
     vto_video = models.FileField(upload_to='vto_assets/', blank=True, null=True)
-
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-
+    
     def __str__(self): return f"{self.product.title} [{self.sku}]"
 
 class VariantImage(models.Model):
@@ -170,16 +166,16 @@ class Collection(models.Model):
 class LensPackage(models.Model):
     name = models.CharField(max_length=100) # Silver, Gold, Platinum
     description = models.TextField(blank=True)
+    categories = models.JSONField(default=list, blank=True, null=True)
     features = models.JSONField(default=list) # e.g. ["Anti-glare", "UV Protection"]
     is_active = models.BooleanField(default=True)
-    categories = models.ManyToManyField(Category, blank=True, related_name='lens_packages')
     def __str__(self): return self.name
 
 class Lens(models.Model):
     name = models.CharField(max_length=100, blank=True) # Optional override
+    brand = models.ForeignKey(Brand, on_delete=models.SET_NULL, null=True, blank=True)
     package = models.ForeignKey(LensPackage, on_delete=models.CASCADE, related_name='lenses')
     type = models.ForeignKey(MetadataItem, on_delete=models.SET_NULL, null=True, blank=True, limit_choices_to={'group__name': 'Lens Type'})
-    brand = models.ForeignKey(Brand, on_delete=models.SET_NULL, null=True, blank=True, related_name='lenses')
     price = models.DecimalField(max_digits=10, decimal_places=2)
     index = models.CharField(max_length=10, blank=True) # 1.5, 1.61, 1.67, 1.74
     is_active = models.BooleanField(default=True)
@@ -189,8 +185,14 @@ class Lens(models.Model):
 
 class Prescription(models.Model):
     """
-    Enhanced Prescription model with full industry-standard fields.
+    Enhanced Prescription model with full industry-standard fields.4cvhj
     """
+    SUBMISSION_TYPE_CHOICES = [
+        ('manual_entry', 'Manual Entry'),
+        ('pdf_upload', 'PDF Upload'),
+        ('deferred', 'Deferred (15 Days)'),
+    ]
+    
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='prescriptions')
     patient_name = models.CharField(max_length=100, blank=True, null=True)
     
@@ -219,6 +221,21 @@ class Prescription(models.Model):
     vision_type = models.CharField(max_length=50, blank=True) # Single Vision, Progressive, Bifocal
     prescription_file = models.FileField(upload_to='prescriptions/', null=True, blank=True)
     review_notes = models.TextField(blank=True)
+    
+    # Submission type tracking
+    submission_type = models.CharField(
+        max_length=20,
+        choices=SUBMISSION_TYPE_CHOICES,
+        null=True,
+        blank=True,
+        default=None,
+        help_text="How the prescription was submitted"
+    )
+    submitted_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the prescription was submitted (useful for tracking deferred submissions)"
+    )
 
     status = models.ForeignKey(MetadataItem, on_delete=models.SET_NULL, null=True, blank=True, limit_choices_to={'group__name': 'Prescription Status'})
     created_at = models.DateTimeField(auto_now_add=True)
@@ -251,7 +268,7 @@ class Review(models.Model):
     review_images = models.JSONField(default=list)
     is_verified_purchase = models.BooleanField(default=True)
     is_approved = models.BooleanField(default=False)
-    is_rejected = models.BooleanField(default=False)
+    is_rejected = models.BooleanField(default=False, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

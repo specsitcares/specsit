@@ -55,6 +55,7 @@ const ShipmentTable = () => {
     { label: 'Order ID',      key: 'order_id',      sortable: true },
     { label: 'Product',       key: 'product_names', sortable: false },
     { label: 'Address (Pin)', key: 'pincode',        sortable: false },
+    { label: 'Shipped By',    key: 'service_provider', sortable: false },
     { label: 'Delivery Date', key: 'delivery_date',  sortable: true },
     { label: 'Tracking ID',   key: 'tracking_id',    sortable: true },
     { label: 'Status',        key: 'order_status',   sortable: true },
@@ -94,6 +95,12 @@ const ShipmentTable = () => {
               {s.shipping_pincode || '—'}
             </span>
           </div>
+        </td>
+        {/* Shipped By */}
+        <td style={{ padding: '16px 24px' }}>
+          <span style={{ fontSize: 12, color: '#344054', fontWeight: 500 }}>
+            {s.service_provider || s.carrier || '—'}
+          </span>
         </td>
         {/* Delivery date */}
         <td style={{ padding: '16px 24px' }}>

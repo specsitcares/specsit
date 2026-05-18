@@ -33,7 +33,8 @@ const OrderDetail = ({ orderId, onBack }) => {
   const [riderEditModalOpen, setRiderEditModalOpen] = useState(false);
   const [dispatchModalOpen, setDispatchModalOpen] = useState(false);
   const [dispatchForm, setDispatchForm] = useState({
-    booking_id: '', rider_name: '', rider_phone: '', vehicle_type: 'Bike', eta: '',
+    service_provider: 'Porter', booking_id: '', rider_name: '', rider_phone: '', vehicle_type: 'Bike', eta: '',
+    sms_text: '', sms_dirty: false,
   });
   const [dispatchSaving, setDispatchSaving] = useState(false);
   const [deliveryModalOpen, setDeliveryModalOpen] = useState(false);
@@ -41,6 +42,7 @@ const OrderDetail = ({ orderId, onBack }) => {
   const [confirmingDelivery, setConfirmingDelivery] = useState(false);
   const [deliveryError, setDeliveryError] = useState(null);
   const [etaMinutes, setEtaMinutes] = useState(null);
+  const [expandedPrescriptionItems, setExpandedPrescriptionItems] = useState({});
 
   const fetchOrder = async () => {
     try {
@@ -71,6 +73,33 @@ const OrderDetail = ({ orderId, onBack }) => {
   useEffect(() => {
     fetchOrder();
   }, [orderId]);
+
+  useEffect(() => {
+    if (order && !dispatchForm.sms_dirty) {
+      const firstName = order.customer_name?.split(' ')[0] || 'Customer';
+      const orderNum = `#LO-${String(order.id).padStart(7, '0')}`;
+      const riderName = dispatchForm.rider_name || '[Rider name]';
+      const riderPhone = dispatchForm.rider_phone || '[Phone]';
+      const etaText = dispatchForm.eta ? ` in ~${dispatchForm.eta}` : '';
+      const autoText = `Hi ${firstName}, your eyewear order ${orderNum} is on its way. Rider ${riderName} (${riderPhone}) will deliver${etaText}. Track via app.`;
+      if (dispatchForm.sms_text !== autoText) {
+        setDispatchForm(f => ({ ...f, sms_text: autoText }));
+      }
+    }
+  }, [order, dispatchForm.rider_name, dispatchForm.rider_phone, dispatchForm.eta, dispatchForm.sms_dirty]);
+
+  useEffect(() => {
+    if (order && tracking && !tracking.sms_dirty) {
+      const firstName = order.customer_name?.split(' ')[0] || 'Customer';
+      const orderNum = `#LO-${String(order.id).padStart(7, '0')}`;
+      const riderName = tracking.delivery_agent_name || '[Rider name]';
+      const riderPhone = tracking.delivery_agent_phone || '[Phone]';
+      const autoText = `Hi ${firstName}, your eyewear order ${orderNum} is on its way. Rider ${riderName} (${riderPhone}) will deliver. Track via app.`;
+      if (tracking.sms_text !== autoText) {
+        setTracking(t => ({ ...t, sms_text: autoText }));
+      }
+    }
+  }, [order, tracking?.delivery_agent_name, tracking?.delivery_agent_phone, tracking?.sms_dirty]);
 
   const handleStatusUpdate = async (orderStatus) => {
     try {
@@ -189,6 +218,7 @@ const OrderDetail = ({ orderId, onBack }) => {
         delivery_agent_name: dispatchForm.rider_name,
         delivery_agent_phone: dispatchForm.rider_phone,
         courier_company: dispatchForm.vehicle_type,
+        service_provider: dispatchForm.service_provider,
         shipped_date: now,
       };
       await apiClient.post(`/sales/orders/${orderId}/update_tracking/`, trackingPayload);
@@ -196,7 +226,7 @@ const OrderDetail = ({ orderId, onBack }) => {
       setEtaMinutes(parseEtaMinutes(dispatchForm.eta));
       await handleStatusUpdate('in_transit');
       setDispatchModalOpen(false);
-      setDispatchForm({ booking_id: '', rider_name: '', rider_phone: '', vehicle_type: 'Bike', eta: '' });
+      setDispatchForm({ service_provider: 'Porter', booking_id: '', rider_name: '', rider_phone: '', vehicle_type: 'Bike', eta: '', sms_text: '', sms_dirty: false });
     } catch (err) {
       alert('Failed to dispatch order. Please try again.');
     } finally {
@@ -622,28 +652,144 @@ const OrderDetail = ({ orderId, onBack }) => {
                   )}
                 </div>
 
-                {order.items?.[0]?.prescription?.prescription_file && (
-                  <div className="prescription-section">
-                    <div className="file-info">
-                      <div className="pdf-icon-wrap">
-                        <div className="pdf-icon-page" />
-                        <div className="pdf-icon-label">pdf</div>
-                      </div>
-                      <div>
-                        <div className="file-name">
-                          {order.items[0].prescription.prescription_file.split('/').pop() || 'Prescription.pdf'}
-                        </div>
-                        <div className="file-meta">Uploaded by Customer</div>
-                      </div>
+                {/* Prescriptions Accordion - Show all items with prescriptions */}
+                {order.items && order.items.length > 0 && order.items.some(item => item.prescription) && (
+                  <div style={{ marginTop: '20px' }}>
+                    <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '600', color: '#040205' }}>
+                      Prescriptions for Items
+                    </h4>
+                    <div style={{ border: '1px solid #E5E7EB', borderRadius: '8px', overflow: 'hidden' }}>
+                      {order.items.map((item, idx) => {
+                        if (!item.prescription) return null;
+                        const isExpanded = expandedPrescriptionItems[item.id];
+                        const hasPrescriptionFile = item.prescription?.prescription_file;
+                        const prescriptionType = item.prescription_submission_type || 'unknown';
+                        const isDeferred = prescriptionType === 'deferred';
+                        const isManual = prescriptionType === 'manual_entry';
+                        const isPdf = prescriptionType === 'pdf_upload';
+
+                        return (
+                          <div key={item.id} style={{ borderBottom: idx < order.items.length - 1 ? '1px solid #E5E7EB' : 'none' }}>
+                            {/* Accordion Header */}
+                            <button
+                              onClick={() =>
+                                setExpandedPrescriptionItems(prev => ({
+                                  ...prev,
+                                  [item.id]: !prev[item.id],
+                                }))
+                              }
+                              style={{
+                                width: '100%',
+                                padding: '12px 14px',
+                                background: isExpanded ? '#F9FAFB' : '#FFF',
+                                border: 'none',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                fontSize: '13px',
+                                transition: 'background 0.2s',
+                              }}
+                              onMouseEnter={e => !isExpanded && (e.currentTarget.style.background = '#F9FAFB')}
+                              onMouseLeave={e => !isExpanded && (e.currentTarget.style.background = '#FFF')}
+                            >
+                              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', textAlign: 'left', flex: 1 }}>
+                                <span style={{ fontWeight: '500', color: '#040205' }}>
+                                  {item.variant_name || 'Item'}
+                                </span>
+                                <span style={{ fontSize: '12px', color: '#6B7280' }}>
+                                  {item.patient_name && `(${item.patient_name})`}
+                                </span>
+                                {isPdf && <span style={{ fontSize: '11px', background: '#EDE9FE', color: '#7C3AED', padding: '2px 6px', borderRadius: '4px' }}>📄 PDF</span>}
+                                {isManual && <span style={{ fontSize: '11px', background: '#E0F2FE', color: '#0284C7', padding: '2px 6px', borderRadius: '4px' }}>✍️ Manual</span>}
+                                {isDeferred && <span style={{ fontSize: '11px', background: '#FFFBEB', color: '#CA8A04', padding: '2px 6px', borderRadius: '4px' }}>⏰ Deferred</span>}
+                              </div>
+                              {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                            </button>
+
+                            {/* Accordion Content */}
+                            {isExpanded && (
+                              <div style={{ padding: '12px 14px', background: '#FAFAFA', borderTop: '1px solid #E5E7EB' }}>
+                                {isPdf && hasPrescriptionFile ? (
+                                  <div className="prescription-section">
+                                    <div className="file-info">
+                                      <div className="pdf-icon-wrap">
+                                        <div className="pdf-icon-page" />
+                                        <div className="pdf-icon-label">pdf</div>
+                                      </div>
+                                      <div>
+                                        <div className="file-name">
+                                          {item.prescription.prescription_file.split('/').pop() || 'Prescription.pdf'}
+                                        </div>
+                                        <div className="file-meta">Uploaded by Customer</div>
+                                      </div>
+                                    </div>
+                                    <a
+                                      href={item.prescription.prescription_file}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="view-link"
+                                    >
+                                      View
+                                    </a>
+                                  </div>
+                                ) : isManual ? (
+                                  <div style={{ fontSize: '13px', color: '#374151' }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                                      <thead>
+                                        <tr style={{ background: '#F3F4F6', borderBottom: '1px solid #E5E7EB' }}>
+                                          <th style={{ padding: '6px', textAlign: 'left', fontWeight: '600' }}>Eye</th>
+                                          <th style={{ padding: '6px', textAlign: 'left', fontWeight: '600' }}>Sphere</th>
+                                          <th style={{ padding: '6px', textAlign: 'left', fontWeight: '600' }}>Cylinder</th>
+                                          <th style={{ padding: '6px', textAlign: 'left', fontWeight: '600' }}>Axis</th>
+                                          <th style={{ padding: '6px', textAlign: 'left', fontWeight: '600' }}>Add</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        <tr style={{ borderBottom: '1px solid #E5E7EB' }}>
+                                          <td style={{ padding: '6px', fontWeight: '500' }}>OD (Right)</td>
+                                          <td style={{ padding: '6px' }}>{item.prescription.od_sphere || '-'}</td>
+                                          <td style={{ padding: '6px' }}>{item.prescription.od_cylinder || '-'}</td>
+                                          <td style={{ padding: '6px' }}>{item.prescription.od_axis || '-'}</td>
+                                          <td style={{ padding: '6px' }}>{item.prescription.od_add || '-'}</td>
+                                        </tr>
+                                        <tr>
+                                          <td style={{ padding: '6px', fontWeight: '500' }}>OS (Left)</td>
+                                          <td style={{ padding: '6px' }}>{item.prescription.os_sphere || '-'}</td>
+                                          <td style={{ padding: '6px' }}>{item.prescription.os_cylinder || '-'}</td>
+                                          <td style={{ padding: '6px' }}>{item.prescription.os_axis || '-'}</td>
+                                          <td style={{ padding: '6px' }}>{item.prescription.os_add || '-'}</td>
+                                        </tr>
+                                      </tbody>
+                                    </table>
+                                    {item.prescription.vision_type && (
+                                      <div style={{ marginTop: '6px', fontSize: '12px', color: '#6B7280' }}>
+                                        <strong>Vision Type:</strong> {item.prescription.vision_type}
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : isDeferred ? (
+                                  <div style={{ padding: '10px', background: '#FFFBEB', border: '1px solid #FCD34D', borderRadius: '6px', fontSize: '13px', color: '#92400E' }}>
+                                    <strong>⏰ Deferred Submission</strong>
+                                    <p style={{ margin: '4px 0 0 0', fontSize: '12px' }}>
+                                      Customer has 15 days to submit their prescription.
+                                      {item.prescription_deferred_until && (
+                                        <>
+                                          <br />
+                                          Deadline: {new Date(item.prescription_deferred_until).toLocaleDateString('en-IN')}
+                                        </>
+                                      )}
+                                    </p>
+                                  </div>
+                                ) : (
+                                  <div style={{ fontSize: '13px', color: '#6B7280' }}>No prescription details available</div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
-                    <a
-                      href={order.items[0].prescription.prescription_file}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="view-link"
-                    >
-                      View
-                    </a>
                   </div>
                 )}
               </div>
@@ -806,7 +952,7 @@ const OrderDetail = ({ orderId, onBack }) => {
             {/* Header */}
             <div className="dm-header">
               <div className="dm-header-content">
-                <p className="dm-header-title">Enter Porter rider details</p>
+                <p className="dm-header-title">Enter rider details</p>
                 <p className="dm-header-sub">
                   Order #LO-{String(order.id).padStart(7, '0')} · {order.customer_name || 'Customer'} · {addr.city || addr.street || '—'}
                 </p>
@@ -822,15 +968,26 @@ const OrderDetail = ({ orderId, onBack }) => {
               {/* Tip alert */}
               <div className="dm-alert">
                 <p className="dm-alert-title">Tip:</p>
-                <p className="dm-alert-body">Enter exactly what the Porter SMS shows. The rider's name and phone will be sent to the customer.</p>
+                <p className="dm-alert-body">Enter exactly what the dispatch SMS shows. The rider's name and phone will be sent to the customer.</p>
               </div>
 
               {/* Form */}
               <div className="dm-form">
 
-                {/* Porter booking ID */}
+                {/* Service Provider */}
                 <div className="dm-field">
-                  <label className="dm-label">Porter booking ID <span className="dm-required">*</span></label>
+                  <label className="dm-label">Service provider <span className="dm-required">*</span></label>
+                  <input
+                    className="dm-input"
+                    placeholder="e.g. Porter, Dunzo"
+                    value={dispatchForm.service_provider}
+                    onChange={e => setDispatchForm(f => ({ ...f, service_provider: e.target.value }))}
+                  />
+                </div>
+
+                {/* Booking ID */}
+                <div className="dm-field">
+                  <label className="dm-label">Booking ID <span className="dm-required">*</span></label>
                   <input
                     className="dm-input"
                     placeholder="e.g. PRT-7782"
@@ -894,15 +1051,8 @@ const OrderDetail = ({ orderId, onBack }) => {
                   <p className="dm-sms-label">SMS preview to customer</p>
                   <textarea
                     className="dm-sms-preview"
-                    readOnly
-                    value={(() => {
-                      const firstName = order.customer_name?.split(' ')[0] || 'Customer';
-                      const orderNum = `#LO-${String(order.id).padStart(7, '0')}`;
-                      const riderName = dispatchForm.rider_name || '[Rider name]';
-                      const riderPhone = dispatchForm.rider_phone || '[Phone]';
-                      const etaText = dispatchForm.eta ? ` in ~${dispatchForm.eta}` : '';
-                      return `Hi ${firstName}, your eyewear order ${orderNum} is on its way. Rider ${riderName} (${riderPhone}) will deliver${etaText}. Track via app.`;
-                    })()}
+                    value={dispatchForm.sms_text}
+                    onChange={e => setDispatchForm(f => ({ ...f, sms_text: e.target.value, sms_dirty: true }))}
                   />
                 </div>
 
@@ -1200,7 +1350,7 @@ const OrderDetail = ({ orderId, onBack }) => {
             {/* Header */}
             <div className="dm-header">
               <div className="dm-header-content">
-                <p className="dm-header-title">Enter Porter rider details</p>
+                <p className="dm-header-title">Edit rider details</p>
                 <p className="dm-header-sub">
                   Order #LO-{String(order.id).padStart(7, '0')} · {order.customer_name || 'Customer'} · {addr.city || addr.street || '—'}
                 </p>
@@ -1216,14 +1366,25 @@ const OrderDetail = ({ orderId, onBack }) => {
               {/* Tip alert */}
               <div className="dm-alert">
                 <p className="dm-alert-title">Tip:</p>
-                <p className="dm-alert-body">Enter exactly what the Porter SMS shows. The rider's name and phone will be sent to the customer.</p>
+                <p className="dm-alert-body">Enter exactly what the dispatch SMS shows. The rider's name and phone will be sent to the customer.</p>
               </div>
 
               <div className="dm-form">
 
-                {/* Porter booking ID */}
+                {/* Service Provider */}
                 <div className="dm-field">
-                  <label className="dm-label">Porter booking ID <span className="dm-required">*</span></label>
+                  <label className="dm-label">Service provider <span className="dm-required">*</span></label>
+                  <input
+                    className="dm-input"
+                    placeholder="e.g. Porter, Dunzo"
+                    value={tracking.service_provider || ''}
+                    onChange={e => setTracking(t => ({ ...t, service_provider: e.target.value }))}
+                  />
+                </div>
+
+                {/* Booking ID */}
+                <div className="dm-field">
+                  <label className="dm-label">Booking ID <span className="dm-required">*</span></label>
                   <input
                     className="dm-input"
                     placeholder="e.g. PRT-7782"
@@ -1276,14 +1437,8 @@ const OrderDetail = ({ orderId, onBack }) => {
                   <p className="dm-sms-label">SMS preview to customer</p>
                   <textarea
                     className="dm-sms-preview"
-                    readOnly
-                    value={(() => {
-                      const firstName = order.customer_name?.split(' ')[0] || 'Customer';
-                      const orderNum = `#LO-${String(order.id).padStart(7, '0')}`;
-                      const riderName = tracking.delivery_agent_name || '[Rider name]';
-                      const riderPhone = tracking.delivery_agent_phone || '[Phone]';
-                      return `Hi ${firstName}, your eyewear order ${orderNum} is on its way. Rider ${riderName} (${riderPhone}) will deliver. Track via app.`;
-                    })()}
+                    value={tracking.sms_text || ''}
+                    onChange={e => setTracking(t => ({ ...t, sms_text: e.target.value, sms_dirty: true }))}
                   />
                 </div>
 

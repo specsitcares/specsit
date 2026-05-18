@@ -286,12 +286,30 @@ const CheckoutPage = () => {
             setPendingOrderId(localOrder.id);
 
             // Upload any PDF prescription files now that we have the order ID
+            const matchedOrderItemIds = new Set();
             await Promise.all(
                 cart.filter(item => item.rxMode === 'upload' && item.prescriptionFile instanceof File).map(async (item) => {
                     try {
+                        const targetVariantId = item.variant?.id || item.product?.variants?.[0]?.id;
+                        const targetLensId = item.lens?.id || null;
+                        
+                        // Find the matching OrderItem from the server response that hasn't been matched yet
+                        const orderItem = (localOrder.items || []).find(oi => 
+                            oi.variant === targetVariantId &&
+                            (oi.lens?.id === targetLensId || (!oi.lens && !targetLensId)) &&
+                            !matchedOrderItemIds.has(oi.id)
+                        );
+                        
+                        if (orderItem) {
+                            matchedOrderItemIds.add(orderItem.id);
+                        }
+
                         const fd = new FormData();
                         fd.append('prescription_file', item.prescriptionFile);
                         fd.append('order_id', localOrder.id);
+                        if (orderItem) {
+                            fd.append('item_id', orderItem.id);
+                        }
                         await apiClient.post('/sales/prescriptions/upload/', fd);
                     } catch (uploadErr) {
                         console.warn('Prescription upload failed for cart item', item.id, uploadErr);

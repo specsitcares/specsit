@@ -329,6 +329,8 @@ const SubmitPrescriptionPage = () => {
     const orderId = urlOrderId || location.state?.orderId || '#LO-0000000';
     const numericOrderId = extractNumericOrderId(orderId);
 
+    const [selectedItemId, setSelectedItemId] = useState('');
+
     useEffect(() => {
         const fetchOrder = async () => {
             if (!numericOrderId) {
@@ -338,6 +340,12 @@ const SubmitPrescriptionPage = () => {
             try {
                 const res = await apiClient.get(`/sales/orders/${numericOrderId}/`);
                 setOrder(res.data);
+                const itemsNeedingRx = (res.data.items || []).filter(
+                    item => item.lens && item.prescription_status !== 'Approved'
+                );
+                if (itemsNeedingRx.length > 0) {
+                    setSelectedItemId(itemsNeedingRx[0].id);
+                }
             } catch (e) {
                 console.error('Failed to load order', e);
             } finally {
@@ -354,6 +362,7 @@ const SubmitPrescriptionPage = () => {
     const [uploadError, setUploadError]   = useState('');
     const [submitting, setSubmitting]     = useState(false);
     const [submitError, setSubmitError]   = useState('');
+    const [deferring, setDeferring]       = useState(false);
 
     const getDeadlineStatus = () => {
         if (!order?.created_at) return { daysLeft: 15, isUrgent: false, isPassed: false };
@@ -370,11 +379,13 @@ const SubmitPrescriptionPage = () => {
     const deadlineStatus = getDeadlineStatus();
 
     const handleSubmit = async () => {
+        console.log('🔵 handleSubmit called with view:', view, 'submitting:', submitting);
         setSubmitting(true);
         setSubmitError('');
 
         // Bug #2: Validate numeric order ID exists
         if (!numericOrderId) {
+            console.log('❌ No numeric order ID');
             setSubmitError('Invalid order ID. Please go back and try again.');
             setSubmitting(false);
             return;
@@ -383,6 +394,7 @@ const SubmitPrescriptionPage = () => {
         try {
             if (view === 'upload') {
                 if (!uploadedFile) {
+                    console.log('❌ No uploaded file');
                     setSubmitError('Please select a file before submitting.');
                     setSubmitting(false);
                     return;
@@ -390,19 +402,48 @@ const SubmitPrescriptionPage = () => {
                 const formData = new FormData();
                 formData.append('prescription_file', uploadedFile);
                 formData.append('order_id', numericOrderId);
+                if (selectedItemId) {
+                    formData.append('item_id', selectedItemId);
+                }
+                console.log('📤 Uploading prescription file:', uploadedFile.name, 'order_id:', numericOrderId);
                 await apiClient.post('/sales/prescriptions/upload/', formData);
+                console.log('✅ Upload successful');
             } else if (view === 'manual') {
+                console.log('📝 Submitting manual prescription:', { order_id: numericOrderId, rx, name: rxMeta.name });
                 await apiClient.post('/sales/prescriptions/manual/', {
                     order_id: numericOrderId,
+                    item_id: selectedItemId || undefined,
                     rx,
                     name: rxMeta.name,
                     vision_type: rxMeta.hasAdd ? 'Progressive' : 'Single Vision',
                 });
+                console.log('✅ Manual submission successful');
             } else {
+                console.log('❌ Unknown view:', view);
                 setSubmitting(false);
                 return;
             }
-            setView('success');
+
+            // Refetch order details to see if there are still pending items
+            const res = await apiClient.get(`/sales/orders/${numericOrderId}/`);
+            setOrder(res.data);
+            const itemsNeedingRx = (res.data.items || []).filter(
+                item => item.lens && item.prescription_status !== 'Approved'
+            );
+            
+            if (itemsNeedingRx.length > 0) {
+                // There are still more items that need a prescription!
+                // Reset form state so the user can submit for the next item
+                setUploadedFile(null);
+                setRx({ od: { sph: '', cyl: '', axis: '', add: '' }, os: { sph: '', cyl: '', axis: '', add: '' } });
+                setRxMeta(p => ({ ...p, name: '' }));
+                setSelectedItemId(itemsNeedingRx[0].id);
+                // Show a nice success toast/alert
+                setSubmitError('Success! Prescription submitted for this item. Please submit for the remaining items.');
+                setView('choose');
+            } else {
+                setView('success');
+            }
         } catch (err) {
             // Bug #5: Improved error messages
             const errorData = err?.response?.data;
@@ -420,8 +461,13 @@ const SubmitPrescriptionPage = () => {
                 msg = 'Network error. Please check your connection and try again.';
             }
 
+            console.error('❌ Prescription submission failed:', {
+                message: err?.message,
+                status: err?.response?.status,
+                data: err?.response?.data,
+                fullError: err,
+            });
             setSubmitError(msg);
-            console.error('Prescription submission failed:', err);
         } finally {
             setSubmitting(false);
         }
@@ -429,6 +475,96 @@ const SubmitPrescriptionPage = () => {
 
     const canSubmitManual = rxMeta.name.trim() && (rx.od?.sph || rx.os?.sph);
     const canSubmitUpload = !!uploadedFile;
+
+    const handleDefer = async () => {
+        setDeferring(true);
+        setSubmitError('');
+
+        // Bug #2: Validate numeric order ID exists
+        if (!numericOrderId) {
+            setSubmitError('Invalid order ID. Please go back and try again.');
+            setDeferring(false);
+            return;
+        }
+
+        try {
+            const payload = {
+                order_id: numericOrderId,
+            };
+            if (selectedItemId) {
+                payload.item_id = selectedItemId;
+            }
+
+            await apiClient.post('/sales/prescriptions/deferred/', payload);
+
+            // Refetch order details to see if there are still pending items
+            const res = await apiClient.get(`/sales/orders/${numericOrderId}/`);
+            setOrder(res.data);
+            const itemsNeedingRx = (res.data.items || []).filter(
+                item => item.lens && item.prescription_status !== 'Approved'
+            );
+            
+            if (itemsNeedingRx.length > 0) {
+                // There are still more items that need a prescription!
+                setSelectedItemId(itemsNeedingRx[0].id);
+                setSubmitError('Success! Prescription submission deferred for 15 days. Please submit for any remaining items.');
+                setView('choose');
+            } else {
+                // All items now have deferred prescriptions or are done
+                setView('success');
+            }
+        } catch (err) {
+            const errorData = err?.response?.data;
+            let msg = 'Something went wrong. Please try again.';
+
+            if (errorData?.error) {
+                msg = errorData.error;
+            } else if (errorData?.detail) {
+                msg = errorData.detail;
+            } else if (err?.response?.status === 404) {
+                msg = `Order #${numericOrderId} not found. Please check the order ID and try again.`;
+            } else if (err?.response?.status === 400) {
+                msg = 'Invalid request. Please check your input and try again.';
+            } else if (err?.message === 'Network Error') {
+                msg = 'Network error. Please check your connection and try again.';
+            }
+
+            setSubmitError(msg);
+            console.error('Deferred submission failed:', err);
+        } finally {
+            setDeferring(false);
+        }
+    };
+
+    const canSubmitManual = rxMeta.name.trim() && (rx.od?.sph || rx.os?.sph);
+    const canSubmitUpload = !!uploadedFile;
+
+    const pendingItems = (order?.items || []).filter(
+        item => item.lens && item.prescription_status !== 'Approved'
+    );
+
+    const renderItemSelector = () => {
+        if (pendingItems.length <= 1) return null;
+        return (
+            <div className="spp-item-selector-wrap" style={{ marginBottom: '20px', padding: '16px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                <label className="spp-field__label" style={{ marginBottom: '8px', display: 'block', fontSize: '11px', fontWeight: '700', color: '#64748b', letterSpacing: '0.5px' }}>
+                    SELECT ITEM TO SUBMIT PRESCRIPTION FOR
+                </label>
+                <select
+                    value={selectedItemId}
+                    onChange={e => setSelectedItemId(e.target.value)}
+                    className="spp-grid-select"
+                    style={{ width: '100%', height: '40px', background: '#fff', fontSize: '13px', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '0 8px' }}
+                >
+                    {pendingItems.map(item => (
+                        <option key={item.id} value={item.id}>
+                            {item.variant_name || 'Eyewear Frame'} - {item.variant_sku || 'Standard'}
+                        </option>
+                    ))}
+                </select>
+            </div>
+        );
+    };
 
     const displayOrderId = order
         ? `#LO-${String(order.id).padStart(7, '0')}`
@@ -540,6 +676,8 @@ const SubmitPrescriptionPage = () => {
                                 </div>
                             </div>
 
+                            {renderItemSelector()}
+
                             <div className="spp-options">
                                 <button className="spp-option-card" onClick={() => setView('manual')}>
                                     <div className="spp-option-card__icon">
@@ -572,6 +710,20 @@ const SubmitPrescriptionPage = () => {
                                     </div>
                                     <ChevronRight />
                                 </button>
+
+                                <button className="spp-option-card" onClick={() => setView('defer')}>
+                                    <div className="spp-option-card__icon">
+                                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                            <circle cx="10" cy="10" r="8.5" stroke="#68408D" strokeWidth="1.3"/>
+                                            <path d="M10 5.5V10.5L13 12.5" stroke="#68408D" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                                        </svg>
+                                    </div>
+                                    <div className="spp-option-card__text">
+                                        <h3 className="spp-option-card__title">Submit Later (15 Days)</h3>
+                                        <p className="spp-option-card__sub">Defer submission and upload within 15 days</p>
+                                    </div>
+                                    <ChevronRight />
+                                </button>
                             </div>
 
                             <p className="spp-action-note spp-action-note--indent">
@@ -586,6 +738,7 @@ const SubmitPrescriptionPage = () => {
                             <button className="spp-back-btn" onClick={() => setView('choose')}>
                                 <ChevronLeft /> Back
                             </button>
+                            {renderItemSelector()}
                             <ManualPowerForm rx={rx} setRx={setRx} rxMeta={rxMeta} setRxMeta={setRxMeta} />
                             {submitError && (
                                 <div style={{ margin: '8px 0', padding: '10px 14px', borderRadius: 8, background: '#FEF3F2', border: '1px solid #FDA29B', color: '#B42318', fontSize: 13 }}>
@@ -611,6 +764,7 @@ const SubmitPrescriptionPage = () => {
                             <button className="spp-back-btn" onClick={() => setView('choose')}>
                                 <ChevronLeft /> Back
                             </button>
+                            {renderItemSelector()}
                             <UploadView uploadedFile={uploadedFile} onUpload={setUploadedFile} uploadError={uploadError} onUploadError={setUploadError} />
                             {submitError && (
                                 <div style={{ margin: '8px 0', padding: '10px 14px', borderRadius: 8, background: '#FEF3F2', border: '1px solid #FDA29B', color: '#B42318', fontSize: 13 }}>
@@ -626,6 +780,61 @@ const SubmitPrescriptionPage = () => {
                                     {submitting ? 'Uploading…' : 'Submit Prescription'}
                                 </button>
                             </div>
+                        </div>
+                    )}
+
+                    {/* ════ VIEW: DEFER SUBMISSION ════ */}
+                    {view === 'defer' && (
+                        <div className="spp-form-col">
+                            <button className="spp-back-btn" onClick={() => setView('choose')}>
+                                <ChevronLeft /> Back
+                            </button>
+                            {renderItemSelector()}
+                            
+                            <div style={{ background: '#EBE3F2', padding: '20px', borderRadius: '12px', marginBottom: '20px' }}>
+                                <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                                    <svg width="24" height="24" viewBox="0 0 20 20" fill="none" style={{ flexShrink: 0 }}>
+                                        <circle cx="10" cy="10" r="8.5" stroke="#68408D" strokeWidth="1.3"/>
+                                        <path d="M10 5.5V10.5L13 12.5" stroke="#68408D" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                                    </svg>
+                                    <div>
+                                        <h3 style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: '600', color: '#040205' }}>Defer Prescription Submission</h3>
+                                        <p style={{ margin: '0', fontSize: '13px', color: '#475569', lineHeight: '1.5' }}>
+                                            You'll have 15 days from today to upload your prescription. Your order will continue processing and be delivered as soon as your prescription is received.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style={{ background: '#F8FAFC', padding: '16px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #E2E8F0' }}>
+                                <div style={{ fontSize: '12px', color: '#64748b', fontWeight: '600', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Key Details</div>
+                                <ul style={{ margin: '0', padding: '0', listStyle: 'none', fontSize: '13px', color: '#475569', lineHeight: '1.8' }}>
+                                    <li>✓ 15-day submission window</li>
+                                    <li>✓ Order continues processing while awaiting prescription</li>
+                                    <li>✓ 1–2 hour delivery after submission</li>
+                                    <li>✓ No additional charges</li>
+                                </ul>
+                            </div>
+
+                            {submitError && (
+                                <div style={{ margin: '8px 0', padding: '10px 14px', borderRadius: 8, background: '#FEF3F2', border: '1px solid #FDA29B', color: '#B42318', fontSize: 13 }}>
+                                    {submitError}
+                                </div>
+                            )}
+
+                            <div className="spp-submit-row">
+                                <button
+                                    className="spp-btn spp-btn--primary spp-btn--full"
+                                    disabled={deferring}
+                                    onClick={handleDefer}
+                                >
+                                    {deferring ? 'Deferring…' : 'Defer for 15 Days'}
+                                </button>
+                            </div>
+
+                            <p className="spp-action-note">
+                                By deferring, you confirm that you will submit your prescription within 15 days. If the prescription is not submitted within this period, your order may be cancelled.
+                            </p>
                         </div>
                     )}
 

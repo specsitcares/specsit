@@ -287,7 +287,12 @@ const DashboardHome = ({ onOrderClick, onNavigate }) => {
             </div>
          </div>
 
-         <OrderTable category={null} onViewDetails={onOrderClick} />
+         <OrderTable 
+            category={null} 
+            onViewDetails={onOrderClick} 
+            hideKPIs={true} 
+            defaultDateFilter={{ from: new Date().toISOString().split('T')[0], to: new Date().toISOString().split('T')[0] }}
+         />
       </>
    );
 };

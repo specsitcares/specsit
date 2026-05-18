@@ -157,6 +157,37 @@ const Sidebar = ({ onClose, isMobile, badges = {} }) => {
           {menuItems.map(item => {
             const Icon = item.icon;
             const active = activeParent === item.key;
+            
+            if (item.subs.length === 1) {
+              const sub = item.subs[0];
+              return (
+                <div key={item.key}>
+                  <div
+                    onClick={() => { navigate(SUB_URLS[sub] || '/admin'); if (isMobile) onClose(); }}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '6px 10px', borderRadius: 4,
+                      borderLeft: active ? '3px solid #68408d' : '3px solid transparent',
+                      cursor: 'pointer', background: active ? '#f5f0ff' : 'transparent',
+                      transition: 'background 0.15s',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 7, flex: 1, minWidth: 0 }}>
+                      <Icon size={18} color={active ? '#68408d' : '#697177'} style={{ flexShrink: 0 }} />
+                      <span style={{
+                        fontSize: 13, fontWeight: active ? 500 : 400,
+                        color: active ? '#68408d' : '#040205', lineHeight: 1.5,
+                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1,
+                      }}>
+                        {item.label}
+                      </span>
+                      <Badge count={badges[item.key]} />
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
             return (
               <div key={item.key}>
                 {/* Parent row */}

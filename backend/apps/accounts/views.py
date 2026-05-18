@@ -123,6 +123,67 @@ class EmployeeViewSet(viewsets.ModelViewSet):
     serializer_class = EmployeeSerializer
     permission_classes = [permissions.IsAdminUser]
 
+    def perform_create(self, serializer):
+        from django.contrib.auth.models import User
+        import uuid
+        
+        email = self.request.data.get('email')
+        name = self.request.data.get('name', '')
+        role = self.request.data.get('role', 'Agent')
+        
+        name_parts = name.split(' ', 1)
+        first_name = name_parts[0]
+        last_name = name_parts[1] if len(name_parts) > 1 else ''
+        
+        username = email.split('@')[0] if email else f"user_{uuid.uuid4().hex[:8]}"
+        counter = 1
+        base_username = username
+        while User.objects.filter(username=username).exists():
+            username = f"{base_username}{counter}"
+            counter += 1
+            
+        user = User.objects.create_user(
+            username=username,
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
+            password='Password123!',
+            is_staff=(role in ['Admin', 'Superadmin']),
+            is_superuser=(role == 'Superadmin')
+        )
+        serializer.save(user=user)
+
+    def perform_update(self, serializer):
+        user = serializer.instance.user
+        email = self.request.data.get('email')
+        name = self.request.data.get('name')
+        role = self.request.data.get('role')
+
+        update_fields = []
+        if email:
+            user.email = email
+            update_fields.append('email')
+        if name:
+            name_parts = name.split(' ', 1)
+            user.first_name = name_parts[0]
+            user.last_name = name_parts[1] if len(name_parts) > 1 else ''
+            update_fields.extend(['first_name', 'last_name'])
+        if role:
+            user.is_staff = (role in ['Admin', 'Superadmin'])
+            user.is_superuser = (role == 'Superadmin')
+            update_fields.extend(['is_staff', 'is_superuser'])
+            
+        if update_fields:
+            user.save(update_fields=update_fields)
+            
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        user = instance.user
+        instance.delete()
+        if user:
+            user.delete()
+
 class CustomerQueryViewSet(viewsets.ModelViewSet):
     serializer_class = CustomerQuerySerializer
     permission_classes = [permissions.AllowAny]

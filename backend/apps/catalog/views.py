@@ -2,6 +2,7 @@ from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.parsers import MultiPartParser, FormParser
 from .models import Category, Brand, Manufacturer, Product, Variant, VariantImage, Collection, LensPackage, Lens, Prescription, UserFace, Review
 from .serializers import (
     CategorySerializer, BrandSerializer, ManufacturerSerializer,
@@ -475,6 +476,51 @@ class PrescriptionViewSet(viewsets.ModelViewSet):
             linked_orders.filter(
                 order_status__in=['pending', 'confirmed']
             ).update(order_status='pending', status=_order_status_meta('Pending', 'pending'))
+
+        return Response(self.get_serializer(prescription).data)
+
+    @action(detail=True, methods=['patch'], parser_classes=[MultiPartParser, FormParser])
+    def reupload(self, request, pk=None):
+        """
+        Customer-facing endpoint to re-upload a prescription file.
+        Resets the prescription status to 'Pending' so it re-enters the admin review queue.
+        """
+        prescription = self.get_object()
+
+        # Only the prescription owner can reupload
+        if prescription.user != request.user and not request.user.is_staff:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('You can only reupload your own prescription.')
+
+        new_file = request.FILES.get('prescription_file')
+        if not new_file:
+            return Response({'detail': 'No file provided.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Replace the file
+        prescription.prescription_file = new_file
+
+        # Reset status to Pending
+        from apps.catalog.core.models import MetadataGroup, MetadataItem as MI
+        group, _ = MetadataGroup.objects.get_or_create(name='Prescription Status')
+        pending_status, _ = MI.objects.get_or_create(
+            group=group, label='Pending',
+            defaults={'value': 'pending', 'is_active': True},
+        )
+        prescription.status = pending_status
+        prescription.review_notes = ''
+        prescription.save()
+
+        # Revert linked orders back to pending
+        from apps.sales.models import Order
+        linked_orders = Order.objects.filter(items__prescription=prescription).distinct()
+        order_group, _ = MetadataGroup.objects.get_or_create(name='Order Status')
+        pending_order_status, _ = MI.objects.get_or_create(
+            group=order_group, label='Pending',
+            defaults={'value': 'pending', 'is_active': True},
+        )
+        linked_orders.filter(
+            order_status__in=['pending', 'confirmed']
+        ).update(order_status='pending', status=pending_order_status)
 
         return Response(self.get_serializer(prescription).data)
 

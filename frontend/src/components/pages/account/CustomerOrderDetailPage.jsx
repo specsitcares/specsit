@@ -72,6 +72,9 @@ const CustomerOrderDetailPage = () => {
   const [deliveryConfirming, setDeliveryConfirming] = useState(false);
   const [deliveryConfirmOpen, setDeliveryConfirmOpen] = useState(false);
   const [deliveryConfirmError, setDeliveryConfirmError] = useState(null);
+  const [reuploadingRxId, setReuploadingRxId] = useState(null);
+  const [reuploadError, setReuploadError] = useState(null);
+  const [reuploadSuccess, setReuploadSuccess] = useState(null);
 
 
   /* inject print css once */
@@ -157,6 +160,25 @@ const CustomerOrderDetailPage = () => {
     }
   };
 
+  const handleReuploadPrescription = async (prescriptionId, file) => {
+    setReuploadingRxId(prescriptionId);
+    setReuploadError(null);
+    setReuploadSuccess(null);
+    try {
+      const formData = new FormData();
+      formData.append('prescription_file', file);
+      await apiClient.patch(`/catalog/prescriptions/${prescriptionId}/reupload/`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setReuploadSuccess('Prescription uploaded successfully! It will be reviewed by our team.');
+      fetchAll(true);
+    } catch (e) {
+      setReuploadError(e.response?.data?.detail || 'Failed to upload prescription. Please try again.');
+    } finally {
+      setReuploadingRxId(null);
+    }
+  };
+
   /* ── loading / error ──────────────────────────────────────── */
   if (loading) return (
     <div style={{ textAlign: 'center', padding: 80, color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>
@@ -180,6 +202,21 @@ const CustomerOrderDetailPage = () => {
   const showPartial   = order.payment_method === 'partial_payment' && order.payment_status === 'partial_paid';
 
   const orderLabel = `#LO-${String(order.id).padStart(7, '0')}`;
+
+  // ── 15-day prescription deadline ───────────────────────────
+  // Items that have a lens but no prescription yet ("Submit Power Later")
+  const awaitingItems = items.filter(item =>
+    item.lens && (!item.prescription || item.prescription_status === 'Awaiting Submission')
+  );
+  const prescriptionDeadlineDays = (() => {
+    if (!awaitingItems.length || !order.created_at) return null;
+    const created = new Date(order.created_at);
+    const deadline = new Date(created.getTime() + 15 * 24 * 60 * 60 * 1000);
+    const daysLeft = Math.ceil((deadline - new Date()) / (24 * 60 * 60 * 1000));
+    return daysLeft;
+  })();
+  const deadlineExpired = prescriptionDeadlineDays !== null && prescriptionDeadlineDays <= 0;
+  const deadlineUrgent  = prescriptionDeadlineDays !== null && prescriptionDeadlineDays > 0 && prescriptionDeadlineDays <= 3;
 
   /* ── render ───────────────────────────────────────────────── */
   return (
@@ -222,6 +259,43 @@ const CustomerOrderDetailPage = () => {
             style={{ background: paymentLoading ? '#fbbf24' : '#d97706', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 13, fontWeight: 700, cursor: paymentLoading ? 'not-allowed' : 'pointer' }}>
             {paymentLoading ? 'Opening…' : `Pay ${fmtPrice(order.balance_amount)} Now`}
           </button>
+        </div>
+      )}
+
+      {/* Prescription submission deadline banner */}
+      {prescriptionDeadlineDays !== null && order.order_status !== 'cancelled' && (
+        <div style={{
+          background: deadlineExpired ? '#fef2f2' : deadlineUrgent ? '#fef3c7' : '#f0fdf4',
+          border: `1px solid ${deadlineExpired ? '#fca5a5' : deadlineUrgent ? '#fbbf24' : '#86efac'}`,
+          borderRadius: 10, padding: '14px 18px', marginBottom: 16,
+          display: 'flex', alignItems: 'flex-start', gap: 12,
+        }}>
+          <span style={{ fontSize: 22 }}>{deadlineExpired ? '🚫' : deadlineUrgent ? '⚠️' : '⏳'}</span>
+          <div style={{ flex: 1 }}>
+            <p style={{ margin: '0 0 3px', fontWeight: 700, fontSize: 14,
+              color: deadlineExpired ? '#991b1b' : deadlineUrgent ? '#92400e' : '#166534' }}>
+              {deadlineExpired
+                ? 'Prescription Deadline Passed — Order at Risk'
+                : `${prescriptionDeadlineDays} day${prescriptionDeadlineDays !== 1 ? 's' : ''} left to submit your prescription`
+              }
+            </p>
+            <p style={{ margin: 0, fontSize: 12,
+              color: deadlineExpired ? '#dc2626' : deadlineUrgent ? '#b45309' : '#15803d' }}>
+              {deadlineExpired
+                ? 'Your order may be automatically cancelled. Please submit your prescription immediately from the items below or contact support.'
+                : 'Submit your prescription below for each item to avoid automatic cancellation after 15 days of ordering.'
+              }
+            </p>
+          </div>
+          {!deadlineExpired && (
+            <div style={{
+              background: deadlineUrgent ? '#b45309' : '#15803d',
+              color: '#fff', borderRadius: 99, padding: '4px 12px',
+              fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0,
+            }}>
+              Day {15 - prescriptionDeadlineDays} / 15
+            </div>
+          )}
         </div>
       )}
 
@@ -285,13 +359,64 @@ const CustomerOrderDetailPage = () => {
                     </div>
                   )}
                   {item.prescription && (
-                    <div style={{ fontSize: 11, color: '#7c3aed', background: '#f5f3ff', borderRadius: 6, padding: '4px 8px', display: 'inline-block', marginBottom: 4 }}>
-                      {item.prescription.prescription_file ? (
-                        <>Prescription: <a href={item.prescription.prescription_file} target="_blank" rel="noopener noreferrer" style={{ color: '#6d28d9', textDecoration: 'underline' }}>View uploaded file</a></>
-                      ) : (
-                        <>Rx: OD {item.prescription.od_sphere} / {item.prescription.od_cylinder} ×{item.prescription.od_axis}{item.prescription.os_sphere ? ` | OS ${item.prescription.os_sphere} / ${item.prescription.os_cylinder} ×${item.prescription.os_axis}` : ''}</>
+                    <div style={{ marginBottom: 4 }}>
+                      <div style={{ fontSize: 11, color: '#7c3aed', background: '#f5f3ff', borderRadius: 6, padding: '4px 8px', display: 'inline-block' }}>
+                        {item.prescription.prescription_file ? (
+                          <>Prescription: <a href={item.prescription.prescription_file} target="_blank" rel="noopener noreferrer" style={{ color: '#6d28d9', textDecoration: 'underline' }}>View uploaded file</a></>
+                        ) : (
+                          <>Rx: OD {item.prescription.od_sphere} / {item.prescription.od_cylinder} ×{item.prescription.od_axis}{(item.prescription.os_sphere !== null && item.prescription.os_sphere !== undefined && item.prescription.os_sphere !== '') ? ` | OS ${item.prescription.os_sphere} / ${item.prescription.os_cylinder} ×${item.prescription.os_axis}` : ''}</>
+                        )}
+                        {item.prescription.status_label && <span style={{ marginLeft: 6, opacity: 0.7 }}>· {item.prescription.status_label}</span>}
+                      </div>
+
+                      {/* Reupload Prescription */}
+                      {item.prescription.status_label === 'Reupload Requested' && (
+                        <div style={{ marginTop: 8, background: '#fef3c7', border: '1px solid #fbbf24', borderRadius: 8, padding: '10px 14px' }}>
+                          <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 600, color: '#92400e' }}>
+                            ⚠ Your prescription needs to be re-uploaded
+                          </p>
+                          {item.prescription.review_notes && (
+                            <p style={{ margin: '0 0 8px', fontSize: 11, color: '#78350f', lineHeight: 1.5 }}>
+                              {item.prescription.review_notes.replace(/^\[Reason:.*?\]\n?/, '')}
+                            </p>
+                          )}
+                          <label
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', gap: 6,
+                              background: reuploadingRxId === item.prescription.id ? '#fbbf24' : '#d97706',
+                              color: '#fff', border: 'none', borderRadius: 6,
+                              padding: '7px 14px', fontSize: 12, fontWeight: 700,
+                              cursor: reuploadingRxId ? 'not-allowed' : 'pointer',
+                              opacity: reuploadingRxId && reuploadingRxId !== item.prescription.id ? 0.5 : 1,
+                            }}
+                          >
+                            {reuploadingRxId === item.prescription.id ? 'Uploading…' : '📎 Reupload Prescription'}
+                            <input
+                              type="file"
+                              accept=".pdf,.jpg,.jpeg,.png,.gif,.webp"
+                              style={{ display: 'none' }}
+                              disabled={!!reuploadingRxId}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleReuploadPrescription(item.prescription.id, file);
+                                e.target.value = '';
+                              }}
+                            />
+                          </label>
+                        </div>
                       )}
-                      {item.prescription.status_label && <span style={{ marginLeft: 6, opacity: 0.7 }}>· {item.prescription.status_label}</span>}
+
+                      {/* Reupload success/error messages */}
+                      {reuploadSuccess && (
+                        <div style={{ marginTop: 8, background: '#d1fae5', border: '1px solid #6ee7b7', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#065f46', fontWeight: 600 }}>
+                          ✓ {reuploadSuccess}
+                        </div>
+                      )}
+                      {reuploadError && (
+                        <div style={{ marginTop: 8, background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#991b1b', fontWeight: 600 }}>
+                          {reuploadError}
+                        </div>
+                      )}
                     </div>
                   )}
                   {/* per-item unit price */}

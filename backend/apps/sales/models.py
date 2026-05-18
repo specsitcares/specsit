@@ -58,6 +58,12 @@ ORDER_STATUS_CHOICES = [
     ('cancelled', 'Cancelled'),
 ]
 
+PRESCRIPTION_SUBMISSION_CHOICES = [
+    ('manual_entry', 'Manual Entry'),
+    ('pdf_upload', 'PDF Upload'),
+    ('deferred', 'Deferred (15 Days)'),
+]
+
 class Order(models.Model):
     PAYMENT_STATUS_CHOICES = [
         ('pending', 'Pending'),
@@ -130,6 +136,27 @@ class OrderItem(models.Model):
     lens_prescription_text = models.TextField(null=True, blank=True)
     lens_pd = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     status = models.CharField(max_length=30, choices=ORDER_STATUS_CHOICES, default='pending')
+    
+    # Prescription submission type tracking
+    prescription_submission_type = models.CharField(
+        max_length=20,
+        choices=PRESCRIPTION_SUBMISSION_CHOICES,
+        null=True,
+        blank=True,
+        default=None,
+        help_text="Tracks how the prescription was submitted for this specific item"
+    )
+    prescription_deferred_until = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="If deferred, this is when the 15-day window expires"
+    )
+    prescription_submitted_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the prescription was actually submitted (useful for tracking deferred submissions)"
+    )
+    
     created_at = models.DateTimeField(auto_now_add=True, null=True)
     def __str__(self): return f"Item for Order #{self.order.id}"
 
@@ -156,6 +183,7 @@ class Shipment(models.Model):
 class OrderTracking(models.Model):
     order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name='tracking')
     tracking_number = models.CharField(max_length=100, unique=True, null=True, blank=True)
+    service_provider = models.CharField(max_length=100, null=True, blank=True)
     courier_company = models.CharField(max_length=100, null=True, blank=True)
     current_status = models.CharField(max_length=50, default='pending')
     shipped_date = models.DateTimeField(null=True, blank=True)
