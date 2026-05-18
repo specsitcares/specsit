@@ -12,31 +12,31 @@ import AdminLoadingState from './AdminLoadingState';
 import PrescriptionOffcanvas from './PrescriptionOffcanvas';
 
 const STATUS_CLASS = {
-  pending:               'badge-warning',
-  confirmed:             'badge-warning',
-  preparing:             'badge-info',
-  processing:            'badge-info',
-  'ready for dispatch':  'badge-info',
-  'in transit':          'badge-info',
-  shipped:               'badge-info',
-  delivering:            'badge-info',
-  delivered:             'badge-success',
-  completed:             'badge-success',
-  cancelled:             'badge-error',
+  pending: 'badge-warning',
+  confirmed: 'badge-warning',
+  preparing: 'badge-info',
+  processing: 'badge-info',
+  'ready for dispatch': 'badge-info',
+  'in transit': 'badge-info',
+  shipped: 'badge-info',
+  delivering: 'badge-info',
+  delivered: 'badge-success',
+  completed: 'badge-success',
+  cancelled: 'badge-error',
 };
 
 const STATUS_BADGE_STYLE = {
   'badge-success': { bg: '#ECFDF3', color: '#039855' },
   'badge-warning': { bg: '#FFFAEB', color: '#B54708' },
-  'badge-error':   { bg: '#FEF3F2', color: '#D1242F' },
-  'badge-info':    { bg: '#EFF8FF', color: '#175CD3' },
+  'badge-error': { bg: '#FEF3F2', color: '#D1242F' },
+  'badge-info': { bg: '#EFF8FF', color: '#175CD3' },
   'badge-neutral': { bg: '#F2F4F7', color: '#344054' },
 };
 
 const getStatusClass = (label) =>
   STATUS_CLASS[(label || '').toLowerCase()] || 'badge-neutral';
 
-const OrderTable = ({ category = null, onViewDetails }) => {
+const OrderTable = ({ category = null, onViewDetails, hideKPIs = false }) => {
   const [orders, setOrders] = useState([]);
   const [expandedRows, setExpandedRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -218,14 +218,14 @@ const OrderTable = ({ category = null, onViewDetails }) => {
 
   const bulkDelete = async () => {
     if (!window.confirm(`Delete ${selectedIds.size} order(s)?`)) return;
-    await Promise.all([...selectedIds].map(id => apiClient.delete(`/sales/orders/${id}/`).catch(() => {})));
+    await Promise.all([...selectedIds].map(id => apiClient.delete(`/sales/orders/${id}/`).catch(() => { })));
     setSelectedIds(new Set());
     refreshData();
   };
 
   const bulkMarkDelivered = async () => {
     if (!window.confirm(`Mark ${selectedIds.size} order(s) as Delivered?`)) return;
-    await Promise.all([...selectedIds].map(id => apiClient.post(`/sales/orders/${id}/mark_delivered/`).catch(() => {})));
+    await Promise.all([...selectedIds].map(id => apiClient.post(`/sales/orders/${id}/mark_delivered/`).catch(() => { })));
     setSelectedIds(new Set());
     refreshData();
   };
@@ -276,47 +276,47 @@ const OrderTable = ({ category = null, onViewDetails }) => {
 
   return (
     <div className="orders-page-container-v3" style={{ padding: '0px' }}>
-
-      {/* Analytics Cards Row (Visual Parity) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '26px' }}>
-        {(category === 'returns' ? [
-          { title: 'Items in Return Window', value: orderAnalytics?.total ?? 0, trendValue: Math.abs(orderAnalytics?.trends?.total || 0), trend: (orderAnalytics?.trends?.total >= 0) ? 'up' : 'down', icon: <Package size={16} /> },
-          { title: 'Total Return Requests', value: orderAnalytics?.return_requests_count ?? 0, trendValue: 0, trend: 'up', icon: <Clock size={16} /> },
-          { title: 'Returns for Refund', value: orderAnalytics?.refund_count ?? 0, trendValue: 0, trend: 'up', icon: <CircleDollarSign size={16} /> },
-          { title: 'Returns for Replacement', value: orderAnalytics?.replacement_count ?? 0, trendValue: 0, trend: 'up', icon: <RefreshCw size={16} /> },
-          { title: 'Total Refund Amount', value: `₹${(orderAnalytics?.total_refund_amount || 0).toLocaleString('en-IN')}`, trendValue: 0, trend: 'up', icon: <Briefcase size={16} /> }
-        ] : category === 'warranty' ? [
-          { title: 'Total Warranty Window', value: orderAnalytics?.total ?? 0, trendValue: Math.abs(orderAnalytics?.trends?.total || 0), trend: (orderAnalytics?.trends?.total >= 0) ? 'up' : 'down', icon: <ShieldCheck size={16} /> },
-          { title: 'Warranty Claimed', value: orderAnalytics?.warranty_claimed_count ?? 0, trendValue: 0, trend: 'up', icon: <Briefcase size={16} /> },
-          { title: 'Unclaimed Warranty', value: orderAnalytics?.warranty_unclaimed_count ?? 0, trendValue: 0, trend: 'down', icon: <Package size={16} /> },
-          { title: 'Service Pending', value: orderAnalytics?.warranty_service_pending_count ?? 0, trendValue: 0, trend: 'up', icon: <RefreshCw size={16} /> }
-        ] : [
-          { title: 'Total Orders', value: orderAnalytics?.total ?? 0, trendValue: Math.abs(orderAnalytics?.trends?.total || 0), trend: (orderAnalytics?.trends?.total >= 0) ? 'up' : 'down', icon: <Briefcase size={16} /> },
-          { title: 'Pending', value: orderAnalytics?.pending ?? 0, trendValue: Math.abs(orderAnalytics?.trends?.pending || 0), trend: (orderAnalytics?.trends?.pending >= 0) ? 'up' : 'down', icon: <Clock size={16} /> },
-          { title: 'Processing', value: orderAnalytics?.processing ?? 0, trendValue: Math.abs(orderAnalytics?.trends?.processing || 0), trend: (orderAnalytics?.trends?.processing >= 0) ? 'up' : 'down', icon: <RefreshCw size={16} /> },
-          { title: 'Shipped', value: orderAnalytics?.shipped ?? 0, trendValue: Math.abs(orderAnalytics?.trends?.shipped || 0), trend: (orderAnalytics?.trends?.shipped >= 0) ? 'up' : 'down', icon: <Truck size={16} /> }
-        ]).map((c, i) => (
-          <div key={i} style={{ backgroundColor: '#fff', border: '1px solid #EAECF0', borderRadius: '10px', padding: '16px', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)', position: 'relative' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start' }}>
-              <div style={{ width: '32px', height: '32px', backgroundColor: '#F9F5FF', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7F56D9' }}>
-                {c.icon || <Briefcase size={16} />}
+      {!hideKPIs && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '26px' }}>
+          {(category === 'returns' ? [
+            { title: 'Items in Return Window', value: orderAnalytics?.total ?? 0, trendValue: Math.abs(orderAnalytics?.trends?.total || 0), trend: (orderAnalytics?.trends?.total >= 0) ? 'up' : 'down', icon: <Package size={16} /> },
+            { title: 'Total Return Requests', value: orderAnalytics?.return_requests_count ?? 0, trendValue: 0, trend: 'up', icon: <Clock size={16} /> },
+            { title: 'Returns for Refund', value: orderAnalytics?.refund_count ?? 0, trendValue: 0, trend: 'up', icon: <CircleDollarSign size={16} /> },
+            { title: 'Returns for Replacement', value: orderAnalytics?.replacement_count ?? 0, trendValue: 0, trend: 'up', icon: <RefreshCw size={16} /> },
+            { title: 'Total Refund Amount', value: `₹${(orderAnalytics?.total_refund_amount || 0).toLocaleString('en-IN')}`, trendValue: 0, trend: 'up', icon: <Briefcase size={16} /> }
+          ] : category === 'warranty' ? [
+            { title: 'Total Warranty Window', value: orderAnalytics?.total ?? 0, trendValue: Math.abs(orderAnalytics?.trends?.total || 0), trend: (orderAnalytics?.trends?.total >= 0) ? 'up' : 'down', icon: <ShieldCheck size={16} /> },
+            { title: 'Warranty Claimed', value: orderAnalytics?.warranty_claimed_count ?? 0, trendValue: 0, trend: 'up', icon: <Briefcase size={16} /> },
+            { title: 'Unclaimed Warranty', value: orderAnalytics?.warranty_unclaimed_count ?? 0, trendValue: 0, trend: 'down', icon: <Package size={16} /> },
+            { title: 'Service Pending', value: orderAnalytics?.warranty_service_pending_count ?? 0, trendValue: 0, trend: 'up', icon: <RefreshCw size={16} /> }
+          ] : [
+            { title: 'Total Orders', value: orderAnalytics?.total ?? 0, trendValue: Math.abs(orderAnalytics?.trends?.total || 0), trend: (orderAnalytics?.trends?.total >= 0) ? 'up' : 'down', icon: <Briefcase size={16} /> },
+            { title: 'Pending', value: orderAnalytics?.pending ?? 0, trendValue: Math.abs(orderAnalytics?.trends?.pending || 0), trend: (orderAnalytics?.trends?.pending >= 0) ? 'up' : 'down', icon: <Clock size={16} /> },
+            { title: 'Processing', value: orderAnalytics?.processing ?? 0, trendValue: Math.abs(orderAnalytics?.trends?.processing || 0), trend: (orderAnalytics?.trends?.processing >= 0) ? 'up' : 'down', icon: <RefreshCw size={16} /> },
+            { title: 'Shipped', value: orderAnalytics?.shipped ?? 0, trendValue: Math.abs(orderAnalytics?.trends?.shipped || 0), trend: (orderAnalytics?.trends?.shipped >= 0) ? 'up' : 'down', icon: <Truck size={16} /> }
+          ]).map((c, i) => (
+            <div key={i} style={{ backgroundColor: '#fff', border: '1px solid #EAECF0', borderRadius: '10px', padding: '16px', boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)', position: 'relative' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+                <div style={{ width: '32px', height: '32px', backgroundColor: '#F9F5FF', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7F56D9' }}>
+                  {c.icon || <Briefcase size={16} />}
+                </div>
+              </div>
+              <div style={{ marginTop: '13px' }}>
+                <div style={{ color: '#667085', fontSize: '11px', fontWeight: 600 }}>{c.title}</div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '3px' }}>
+                  <div style={{ fontSize: '19px', fontWeight: 700, color: '#101828' }}>{c.value}</div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '3px', marginTop: '6px' }}>
+                  <span style={{ fontSize: '10px', color: c.trend === 'up' ? '#12B76A' : '#F04438', display: 'flex', alignItems: 'center', gap: 2, fontWeight: 700 }}>
+                    {c.trend === 'up' ? '↗' : '↘'} {c.trendValue}%
+                  </span>
+                  <span style={{ fontSize: '9px', color: '#667085', fontWeight: 500 }}>{orderAnalytics?.trendPeriod || 'last period'}</span>
+                </div>
               </div>
             </div>
-            <div style={{ marginTop: '13px' }}>
-              <div style={{ color: '#667085', fontSize: '11px', fontWeight: 600 }}>{c.title}</div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '3px' }}>
-                <div style={{ fontSize: '19px', fontWeight: 700, color: '#101828' }}>{c.value}</div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '3px', marginTop: '6px' }}>
-                <span style={{ fontSize: '10px', color: c.trend === 'up' ? '#12B76A' : '#F04438', display: 'flex', alignItems: 'center', gap: 2, fontWeight: 700 }}>
-                  {c.trend === 'up' ? '↗' : '↘'} {c.trendValue}%
-                </span>
-                <span style={{ fontSize: '9px', color: '#667085', fontWeight: 500 }}>{orderAnalytics?.trendPeriod || 'last period'}</span>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       <div className="orders-table-card-v2" style={{ backgroundColor: '#fff', border: '1px solid #EAECF0', borderRadius: '13px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(16, 24, 40, 0.1), 0 1px 2px rgba(16, 24, 40, 0.06)' }}>
         {/* Table Header Section (Inline-Styled for Guaranteed Alignment) */}
@@ -762,8 +762,8 @@ const OrderTable = ({ category = null, onViewDetails }) => {
                     <td style={{ padding: '12px 16px', backgroundColor: expandedRows.includes(o.id) ? '#F5F3FF' : 'inherit' }}>
                       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
                         <div
-                          onClick={(e) => { 
-                            e.stopPropagation(); 
+                          onClick={(e) => {
+                            e.stopPropagation();
                             const ps = (o.items?.[0]?.prescription_status || 'Frame Only').toLowerCase();
                             if (ps === 'approved' || ps === 'frame only') {
                               onViewDetails(o.id);

@@ -73,6 +73,16 @@ const CustomerOrderDetailPage = () => {
   const [deliveryConfirmOpen, setDeliveryConfirmOpen] = useState(false);
   const [deliveryConfirmError, setDeliveryConfirmError] = useState(null);
 
+  // ── Prescription Reupload State ──
+  const [reuploadModal, setReuploadModal] = useState(null); // { prescriptionId, itemName }
+  const [reuploadMode, setReuploadMode] = useState('file'); // 'file' | 'manual'
+  const [reuploadFile, setReuploadFile] = useState(null);
+  const [reuploadManual, setReuploadManual] = useState({ od_sphere: '', od_cylinder: '', od_axis: '', os_sphere: '', os_cylinder: '', os_axis: '', od_add: '', os_add: '' });
+  const [reuploadSubmitting, setReuploadSubmitting] = useState(false);
+  const [reuploadError, setReuploadError] = useState(null);
+  const [reuploadSuccess, setReuploadSuccess] = useState(false);
+  const reuploadFileRef = React.useRef(null);
+
 
   /* inject print css once */
   useEffect(() => {
@@ -154,6 +164,34 @@ const CustomerOrderDetailPage = () => {
       setDeliveryConfirmError(e.response?.data?.detail || 'Could not confirm delivery. Please try again.');
     } finally {
       setDeliveryConfirming(false);
+    }
+  };
+
+  const handleReuploadSubmit = async () => {
+    if (!reuploadModal) return;
+    setReuploadSubmitting(true);
+    setReuploadError(null);
+    try {
+      if (reuploadMode === 'file') {
+        if (!reuploadFile) { setReuploadError('Please select a file.'); setReuploadSubmitting(false); return; }
+        const fd = new FormData();
+        fd.append('prescription_file', reuploadFile);
+        fd.append('prescription_id', reuploadModal.prescriptionId);
+        await apiClient.post('/sales/prescriptions/reupload/', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      } else {
+        await apiClient.patch(`/sales/prescriptions/${reuploadModal.prescriptionId}/`, {
+          od_sphere: reuploadManual.od_sphere, od_cylinder: reuploadManual.od_cylinder, od_axis: reuploadManual.od_axis,
+          os_sphere: reuploadManual.os_sphere, os_cylinder: reuploadManual.os_cylinder, os_axis: reuploadManual.os_axis,
+          od_add: reuploadManual.od_add || null, os_add: reuploadManual.os_add || null,
+          status: 'pending',
+        });
+      }
+      setReuploadSuccess(true);
+      setTimeout(() => { setReuploadModal(null); setReuploadSuccess(false); setReuploadFile(null); fetchAll(true); }, 1500);
+    } catch (e) {
+      setReuploadError(e.response?.data?.detail || 'Submission failed. Please try again.');
+    } finally {
+      setReuploadSubmitting(false);
     }
   };
 
@@ -292,6 +330,17 @@ const CustomerOrderDetailPage = () => {
                         <>Rx: OD {item.prescription.od_sphere} / {item.prescription.od_cylinder} ×{item.prescription.od_axis}{item.prescription.os_sphere ? ` | OS ${item.prescription.os_sphere} / ${item.prescription.os_cylinder} ×${item.prescription.os_axis}` : ''}</>
                       )}
                       {item.prescription.status_label && <span style={{ marginLeft: 6, opacity: 0.7 }}>· {item.prescription.status_label}</span>}
+                    </div>
+                  )}
+                  {/* Reupload button — shown when admin requests a new prescription */}
+                  {item.prescription && item.prescription.status_label?.toLowerCase().includes('reupload') && (
+                    <div style={{ marginTop: 6 }}>
+                      <button
+                        onClick={() => { setReuploadModal({ prescriptionId: item.prescription.id, itemName: item.variant_name || 'Product' }); setReuploadMode('file'); setReuploadFile(null); setReuploadError(null); setReuploadSuccess(false); setReuploadManual({ od_sphere: '', od_cylinder: '', od_axis: '', os_sphere: '', os_cylinder: '', os_axis: '', od_add: '', os_add: '' }); }}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#fef3c7', color: '#92400e', border: '1px solid #fbbf24', borderRadius: 8, padding: '8px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        📋 Admin requested new prescription — Upload now
+                      </button>
                     </div>
                   )}
                   {/* per-item unit price */}
@@ -530,6 +579,88 @@ const CustomerOrderDetailPage = () => {
             </div>
           )}
         </Card>
+      )}
+
+      {/* ── Prescription Reupload Modal ── */}
+      {reuploadModal && (
+        <div onClick={(e) => e.target === e.currentTarget && setReuploadModal(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 500, boxShadow: '0 25px 50px rgba(0,0,0,0.25)', overflow: 'hidden' }}>
+            {/* Header */}
+            <div style={{ background: '#fef3c7', padding: '16px 20px', borderBottom: '1px solid #fbbf24' }}>
+              <p style={{ margin: 0, fontWeight: 800, fontSize: 16, color: '#92400e' }}>📋 New Prescription Required</p>
+              <p style={{ margin: '4px 0 0', fontSize: 13, color: '#78350f' }}>{reuploadModal.itemName} — please provide an updated prescription.</p>
+            </div>
+            {/* Mode tabs */}
+            <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb' }}>
+              {[['file', '📁 Upload File'], ['manual', '✏️ Enter Manually']].map(([key, label]) => (
+                <button key={key} onClick={() => setReuploadMode(key)}
+                  style={{ flex: 1, padding: '12px 0', fontSize: 13, fontWeight: 700, border: 'none', cursor: 'pointer', borderBottom: reuploadMode === key ? '2px solid #7c3aed' : '2px solid transparent', background: '#fff', color: reuploadMode === key ? '#7c3aed' : '#6b7280' }}>
+                  {label}
+                </button>
+              ))}
+            </div>
+            {/* Body */}
+            <div style={{ padding: '20px', maxHeight: '60vh', overflowY: 'auto' }}>
+              {reuploadSuccess ? (
+                <div style={{ textAlign: 'center', padding: '30px 0' }}>
+                  <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
+                  <p style={{ fontWeight: 700, color: '#065f46', fontSize: 16 }}>Prescription submitted!</p>
+                  <p style={{ fontSize: 13, color: '#6b7280' }}>Our team will review it shortly.</p>
+                </div>
+              ) : reuploadMode === 'file' ? (
+                <div>
+                  <p style={{ fontSize: 13, color: '#374151', marginTop: 0 }}>Upload a clear photo or PDF of your prescription from your doctor.</p>
+                  <input ref={reuploadFileRef} type="file" accept="image/*,application/pdf" style={{ display: 'none' }}
+                    onChange={e => setReuploadFile(e.target.files[0])} />
+                  <div onClick={() => reuploadFileRef.current?.click()}
+                    style={{ border: '2px dashed #d8b4fe', borderRadius: 12, padding: '28px 20px', textAlign: 'center', cursor: 'pointer', background: '#faf5ff', marginBottom: 12 }}>
+                    {reuploadFile ? (
+                      <><div style={{ fontSize: 28 }}>📄</div><p style={{ margin: '8px 0 0', fontWeight: 700, color: '#7c3aed', fontSize: 14 }}>{reuploadFile.name}</p></>
+                    ) : (
+                      <><div style={{ fontSize: 28 }}>📁</div><p style={{ margin: '8px 0 0', color: '#6b7280', fontSize: 13 }}>Tap to choose file<br /><span style={{ fontSize: 11 }}>JPEG, PNG or PDF — max 10MB</span></p></>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <p style={{ fontSize: 13, color: '#374151', marginTop: 0 }}>Enter your prescription values as given by your doctor.</p>
+                  {[['OD (Right Eye)', 'od'], ['OS (Left Eye)', 'os']].map(([eyeLabel, eye]) => (
+                    <div key={eye} style={{ marginBottom: 16 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{eyeLabel}</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8 }}>
+                        {['sphere', 'cylinder', 'axis', 'add'].map(field => (
+                          <div key={field}>
+                            <label style={{ fontSize: 10, color: '#6b7280', fontWeight: 600, textTransform: 'uppercase' }}>{field}</label>
+                            <input type="number" step="0.25"
+                              value={reuploadManual[`${eye}_${field}`]}
+                              onChange={e => setReuploadManual(p => ({ ...p, [`${eye}_${field}`]: e.target.value }))}
+                              placeholder={field === 'axis' ? '0–180' : '0.00'}
+                              style={{ width: '100%', padding: '7px 8px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, boxSizing: 'border-box', marginTop: 3 }} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {reuploadError && <p style={{ color: '#dc2626', fontSize: 13, marginTop: 8, fontWeight: 600 }}>{reuploadError}</p>}
+            </div>
+            {/* Footer */}
+            {!reuploadSuccess && (
+              <div style={{ display: 'flex', gap: 10, padding: '14px 20px', borderTop: '1px solid #e5e7eb' }}>
+                <button onClick={() => setReuploadModal(null)}
+                  style={{ flex: 1, padding: '10px', border: '1px solid #d1d5db', borderRadius: 8, background: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', color: '#374151' }}>
+                  Cancel
+                </button>
+                <button onClick={handleReuploadSubmit} disabled={reuploadSubmitting}
+                  style={{ flex: 2, padding: '10px', border: 'none', borderRadius: 8, background: reuploadSubmitting ? '#a78bfa' : '#7c3aed', color: '#fff', fontSize: 14, fontWeight: 700, cursor: reuploadSubmitting ? 'not-allowed' : 'pointer' }}>
+                  {reuploadSubmitting ? 'Submitting…' : 'Submit Prescription'}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
     </div>

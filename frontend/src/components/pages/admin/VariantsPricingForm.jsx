@@ -72,6 +72,7 @@ const EMPTY_VARIANT = () => ({
   frame_material: '',
   frame_size: 'Medium',
   frame_weight: 'Standard',
+  is_listed: true,
 });
 
 const VariantsPricingForm = ({ formData, onFormDataChange, saving, errors = {}, onVariantRemoved, onImageRemoved, globalTemplates }) => {

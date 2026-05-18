@@ -157,11 +157,19 @@ const Sidebar = ({ onClose, isMobile, badges = {} }) => {
           {menuItems.map(item => {
             const Icon = item.icon;
             const active = activeParent === item.key;
+            const isSingle = item.subs.length === 1;
             return (
               <div key={item.key}>
-                {/* Parent row */}
+                {/* Parent row — single-sub items navigate directly, no dropdown */}
                 <div
-                  onClick={() => toggle(item.key)}
+                  onClick={() => {
+                    if (isSingle) {
+                      navigate(SUB_URLS[item.subs[0]] || '/admin');
+                      if (isMobile) onClose();
+                    } else {
+                      toggle(item.key);
+                    }
+                  }}
                   style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                     padding: '6px 10px', borderRadius: 4,
@@ -181,14 +189,17 @@ const Sidebar = ({ onClose, isMobile, badges = {} }) => {
                     </span>
                     <Badge count={badges[item.key]} />
                   </div>
-                  <ChevronDown
-                    size={16} color="#697177"
-                    style={{ flexShrink: 0, transform: expanded[item.key] ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
-                  />
+                  {/* Only show chevron when there are multiple sub-items */}
+                  {!isSingle && (
+                    <ChevronDown
+                      size={16} color="#697177"
+                      style={{ flexShrink: 0, transform: expanded[item.key] ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
+                    />
+                  )}
                 </div>
 
-                {/* Sub-items */}
-                {expanded[item.key] && (
+                {/* Sub-items — only rendered for multi-sub sections */}
+                {!isSingle && expanded[item.key] && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 1, marginTop: 1 }}>
                     {item.subs.map(sub => {
                       const subActive = isSubActive(sub);

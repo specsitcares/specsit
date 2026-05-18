@@ -96,6 +96,7 @@ const CustomerTable = () => {
   const columns = [
     { label: 'Customer',   key: 'customer',    sortable: true },
     { label: 'Email',      key: 'email',        sortable: true },
+    { label: 'Phone',      key: 'phone',        sortable: false },
     { label: 'Total Bill', key: 'total_bill',   sortable: true },
     { label: 'Joined',     key: 'joined',       sortable: true },
     { label: 'Action',     key: 'action',       align: 'right' }
@@ -130,6 +131,11 @@ const CustomerTable = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#475467', fontSize: '11px' }}>
           <Mail size={14} color="#667085" />
           {u.email || '—'}
+        </div>
+      </td>
+      <td style={{ padding: '16px 24px' }}>
+        <div style={{ fontSize: '11px', color: '#475467' }}>
+          {u.phone || u.profile_phone || '—'}
         </div>
       </td>
       <td style={{ padding: '16px 24px' }}>

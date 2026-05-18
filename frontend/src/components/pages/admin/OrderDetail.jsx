@@ -33,7 +33,7 @@ const OrderDetail = ({ orderId, onBack }) => {
   const [riderEditModalOpen, setRiderEditModalOpen] = useState(false);
   const [dispatchModalOpen, setDispatchModalOpen] = useState(false);
   const [dispatchForm, setDispatchForm] = useState({
-    booking_id: '', rider_name: '', rider_phone: '', vehicle_type: 'Bike', eta: '',
+    booking_id: '', rider_name: '', rider_phone: '', vehicle_type: 'Bike', carrier_company: '', eta: '',
   });
   const [dispatchSaving, setDispatchSaving] = useState(false);
   const [deliveryModalOpen, setDeliveryModalOpen] = useState(false);
@@ -188,7 +188,7 @@ const OrderDetail = ({ orderId, onBack }) => {
         tracking_number: dispatchForm.booking_id,
         delivery_agent_name: dispatchForm.rider_name,
         delivery_agent_phone: dispatchForm.rider_phone,
-        courier_company: dispatchForm.vehicle_type,
+        courier_company: dispatchForm.carrier_company || dispatchForm.vehicle_type,
         shipped_date: now,
       };
       await apiClient.post(`/sales/orders/${orderId}/update_tracking/`, trackingPayload);
@@ -196,7 +196,7 @@ const OrderDetail = ({ orderId, onBack }) => {
       setEtaMinutes(parseEtaMinutes(dispatchForm.eta));
       await handleStatusUpdate('in_transit');
       setDispatchModalOpen(false);
-      setDispatchForm({ booking_id: '', rider_name: '', rider_phone: '', vehicle_type: 'Bike', eta: '' });
+      setDispatchForm({ booking_id: '', rider_name: '', rider_phone: '', vehicle_type: 'Bike', carrier_company: '', eta: '' });
     } catch (err) {
       alert('Failed to dispatch order. Please try again.');
     } finally {
@@ -847,6 +847,17 @@ const OrderDetail = ({ orderId, onBack }) => {
                     placeholder="e.g. Rakesh"
                     value={dispatchForm.rider_name}
                     onChange={e => setDispatchForm(f => ({ ...f, rider_name: e.target.value }))}
+                  />
+                </div>
+
+                {/* Carrier Company */}
+                <div className="dm-field">
+                  <label className="dm-label">Carrier Company <span className="dm-required">*</span></label>
+                  <input
+                    className="dm-input"
+                    placeholder="e.g. DTDC, FedEx, Delhivery, Porter"
+                    value={dispatchForm.carrier_company}
+                    onChange={e => setDispatchForm(f => ({ ...f, carrier_company: e.target.value }))}
                   />
                 </div>
 
