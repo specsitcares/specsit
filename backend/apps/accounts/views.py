@@ -123,6 +123,40 @@ class EmployeeViewSet(viewsets.ModelViewSet):
     serializer_class = EmployeeSerializer
     permission_classes = [permissions.IsAdminUser]
 
+    def perform_create(self, serializer):
+        from django.contrib.auth.models import User
+        import secrets
+
+        data = self.request.data
+        email = data.get('email', '')
+        name = data.get('name', '')
+        role = data.get('role', 'Agent')
+        password = data.get('password') or secrets.token_urlsafe(12)
+
+        # Build a unique username from email or name
+        base_username = (email.split('@')[0] or name.replace(' ', '_').lower() or 'staff')
+        username = base_username
+        counter = 1
+        while User.objects.filter(username=username).exists():
+            username = f"{base_username}{counter}"
+            counter += 1
+
+        # Create the Django user
+        first_name = name.split(' ')[0] if name else ''
+        last_name = ' '.join(name.split(' ')[1:]) if ' ' in name else ''
+        is_staff = role in ('Admin', 'Manager')
+
+        user = User.objects.create_user(
+            username=username,
+            email=email,
+            password=password,
+            first_name=first_name,
+            last_name=last_name,
+            is_staff=is_staff,
+        )
+
+        serializer.save(user=user)
+
 class CustomerQueryViewSet(viewsets.ModelViewSet):
     serializer_class = CustomerQuerySerializer
     permission_classes = [permissions.AllowAny]
