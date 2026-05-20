@@ -726,7 +726,7 @@ const OrderTable = ({ category = null, onViewDetails, hideKPIs = false }) => {
                             else {
                               ps = o.items?.[0]?.prescription_status || 'Pending Review';
                             }
-                            """ the """
+
                             const psl = ps.toLowerCase();
                             const bg = psl === 'approved' ? '#ECFDF3' : psl === 'frame only' ? '#F2F4F7' : '#FFFAEB';
                             const color = psl === 'approved' ? '#027A48' : psl === 'frame only' ? '#344054' : '#B54708';
