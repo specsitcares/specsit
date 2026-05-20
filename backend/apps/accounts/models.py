@@ -10,6 +10,7 @@ class UserProfile(models.Model):
         ('Non-binary', 'Non-binary'),
         ('Prefer not to say', 'Prefer not to say'),
     ]
+    # user profile input fields 
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     phone = models.CharField(max_length=20, blank=True)
     birthday = models.DateField(null=True, blank=True)
