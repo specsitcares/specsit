@@ -135,6 +135,10 @@ class Variant(models.Model):
     # Storefront visibility — auto-cleared when stock hits 0; manually re-enabled by admin
     is_listed = models.BooleanField(default=True)
 
+    # Stock tracking timestamps
+    last_restocked = models.DateTimeField(null=True, blank=True)
+    last_sold = models.DateTimeField(null=True, blank=True)
+
     # SEO Fields (per-variant)
     meta_title = models.CharField(max_length=255, blank=True)
     meta_description = models.TextField(blank=True)
@@ -144,6 +148,29 @@ class Variant(models.Model):
     vto_video = models.FileField(upload_to='vto_assets/', blank=True, null=True)
 
     def save(self, *args, **kwargs):
+        from django.utils import timezone
+        if self.pk:
+            try:
+                orig = Variant.objects.get(pk=self.pk)
+                if self.stock > orig.stock:
+                    self.last_restocked = timezone.now()
+                    if kwargs.get('update_fields') is not None:
+                        fields = list(kwargs['update_fields'])
+                        if 'last_restocked' not in fields:
+                            fields.append('last_restocked')
+                        kwargs['update_fields'] = fields
+                elif self.stock < orig.stock:
+                    self.last_sold = timezone.now()
+                    if kwargs.get('update_fields') is not None:
+                        fields = list(kwargs['update_fields'])
+                        if 'last_sold' not in fields:
+                            fields.append('last_sold')
+                        kwargs['update_fields'] = fields
+            except Variant.DoesNotExist:
+                pass
+        else:
+            if self.stock > 0:
+                self.last_restocked = timezone.now()
         super().save(*args, **kwargs)
 
     def __str__(self): return f"{self.product.title} [{self.sku}]"

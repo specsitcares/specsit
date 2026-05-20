@@ -47,7 +47,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
         if obj.prescription:
             return 'Pending Review'
         if obj.lens:
-            return 'Awaiting Submission'
+            return 'Not Submitted'
         return 'Frame Only'
 
     class Meta:
