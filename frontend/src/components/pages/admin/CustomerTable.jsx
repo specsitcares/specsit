@@ -25,8 +25,8 @@ const CustomerTable = () => {
     { name: 'email',      label: 'Email',        type: 'email',    required: true, placeholder: 'user@example.com' },
     { name: 'first_name', label: 'First Name',   type: 'text',     placeholder: 'First name' },
     { name: 'last_name',  label: 'Last Name',    type: 'text',     placeholder: 'Last name' },
+    { name: 'phone',      label: 'Phone Number', type: 'tel',      placeholder: 'Phone number' },
     { name: 'password',   label: 'Password',     type: 'password', placeholder: 'Leave empty to keep current' },
-    { name: 'is_staff',   label: 'Admin Status', type: 'checkbox', defaultValue: false },
   ];
 
   const fetchCustomers = async () => {

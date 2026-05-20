@@ -263,6 +263,8 @@ const CheckoutPage = () => {
                 ? formatRxText(item.prescription)
                 : item.rxMode === 'upload'
                 ? 'Prescription uploaded by customer at time of order'
+                : item.rxMode === 'later'
+                ? 'Submit Power Later in 15 days'
                 : undefined,
         })),
     });

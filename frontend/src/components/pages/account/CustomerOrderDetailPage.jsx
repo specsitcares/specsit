@@ -82,6 +82,7 @@ const CustomerOrderDetailPage = () => {
   const [reuploadError, setReuploadError] = useState(null);
   const [reuploadSuccess, setReuploadSuccess] = useState(false);
   const reuploadFileRef = React.useRef(null);
+  const itemsContainerRef = React.useRef(null);
 
 
   /* inject print css once */
@@ -176,15 +177,33 @@ const CustomerOrderDetailPage = () => {
         if (!reuploadFile) { setReuploadError('Please select a file.'); setReuploadSubmitting(false); return; }
         const fd = new FormData();
         fd.append('prescription_file', reuploadFile);
-        fd.append('prescription_id', reuploadModal.prescriptionId);
-        await apiClient.post('/sales/prescriptions/reupload/', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        
+        if (reuploadModal.prescriptionId) {
+          fd.append('prescription_id', reuploadModal.prescriptionId);
+          await apiClient.post('/sales/prescriptions/reupload/', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        } else {
+          fd.append('order_id', orderId);
+          fd.append('order_item_id', reuploadModal.orderItemId);
+          await apiClient.post('/sales/prescriptions/upload/', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        }
       } else {
-        await apiClient.patch(`/sales/prescriptions/${reuploadModal.prescriptionId}/`, {
-          od_sphere: reuploadManual.od_sphere, od_cylinder: reuploadManual.od_cylinder, od_axis: reuploadManual.od_axis,
-          os_sphere: reuploadManual.os_sphere, os_cylinder: reuploadManual.os_cylinder, os_axis: reuploadManual.os_axis,
-          od_add: reuploadManual.od_add || null, os_add: reuploadManual.os_add || null,
-          status: 'pending',
-        });
+        if (reuploadModal.prescriptionId) {
+          await apiClient.patch(`/sales/prescriptions/${reuploadModal.prescriptionId}/`, {
+            od_sphere: reuploadManual.od_sphere, od_cylinder: reuploadManual.od_cylinder, od_axis: reuploadManual.od_axis,
+            os_sphere: reuploadManual.os_sphere, os_cylinder: reuploadManual.os_cylinder, os_axis: reuploadManual.os_axis,
+            od_add: reuploadManual.od_add || null, os_add: reuploadManual.os_add || null,
+            status: 'pending',
+          });
+        } else {
+          await apiClient.post('/sales/prescriptions/manual/', {
+            order_id: orderId,
+            order_item_id: reuploadModal.orderItemId,
+            rx: {
+              od: { sph: reuploadManual.od_sphere, cyl: reuploadManual.od_cylinder, axis: reuploadManual.od_axis, add: reuploadManual.od_add },
+              os: { sph: reuploadManual.os_sphere, cyl: reuploadManual.os_cylinder, axis: reuploadManual.os_axis, add: reuploadManual.os_add }
+            }
+          });
+        }
       }
       setReuploadSuccess(true);
       setTimeout(() => { setReuploadModal(null); setReuploadSuccess(false); setReuploadFile(null); fetchAll(true); }, 1500);
@@ -218,6 +237,25 @@ const CustomerOrderDetailPage = () => {
   const showPartial   = order.payment_method === 'partial_payment' && order.payment_status === 'partial_paid';
 
   const orderLabel = `#LO-${String(order.id).padStart(7, '0')}`;
+
+  const deferredItems = items.filter(item => 
+    (!item.prescription && item.lens && item.lens_prescription_text?.toLowerCase().includes('later')) ||
+    (item.prescription && item.prescription.status_label?.toLowerCase().includes('reupload'))
+  );
+
+  const handleReviewPending = () => {
+    if (deferredItems.length > 0) {
+      const firstPending = document.getElementById(`item-${deferredItems[0].id}`);
+      if (firstPending) {
+        firstPending.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        firstPending.style.transition = 'background-color 0.5s';
+        firstPending.style.backgroundColor = '#f5f3ff';
+        setTimeout(() => {
+          firstPending.style.backgroundColor = 'transparent';
+        }, 1500);
+      }
+    }
+  };
 
   /* ── render ───────────────────────────────────────────────── */
   return (
@@ -289,6 +327,36 @@ const CustomerOrderDetailPage = () => {
         </Card>
       )}
 
+      {/* Pending Prescriptions Banner */}
+      {deferredItems.length > 0 && (
+        <div style={{
+          background: 'linear-gradient(135deg, #6d28d9 0%, #7c3aed 100%)',
+          borderRadius: 12, padding: '16px 20px', marginBottom: 16,
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12,
+          boxShadow: '0 4px 6px -1px rgba(124, 58, 237, 0.1), 0 2px 4px -1px rgba(124, 58, 237, 0.06)'
+        }}>
+          <div>
+            <p style={{ margin: '0 0 4px', fontWeight: 800, color: '#fff', fontSize: 16 }}>
+              ⚠️ Action Required: Missing Prescriptions
+            </p>
+            <p style={{ margin: 0, color: 'rgba(255,255,255,0.9)', fontSize: 14 }}>
+              You have {deferredItems.length} item{deferredItems.length > 1 ? 's' : ''} waiting for a prescription to be uploaded.
+            </p>
+          </div>
+          <button onClick={handleReviewPending}
+            style={{
+              background: '#fff', color: '#7c3aed', border: 'none', borderRadius: 8, padding: '10px 20px',
+              fontSize: 14, fontWeight: 700, cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            }}
+            onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+            onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+          >
+            Review Pending Items ↓
+          </button>
+        </div>
+      )}
+
       {/* ── B. ITEMS & VARIANTS ─────────────────────────────── */}
       <Card title={`Items Ordered (${items.length})`}>
         {items.length === 0 ? (
@@ -296,8 +364,8 @@ const CustomerOrderDetailPage = () => {
         ) : (
           <div>
             {items.map((item, i) => (
-              <div key={item.id || i}
-                style={{ display: 'flex', gap: 16, padding: '14px 0', borderBottom: i < items.length - 1 ? '1px solid #f3f4f6' : 'none' }}>
+              <div key={item.id || i} id={`item-${item.id}`}
+                style={{ display: 'flex', gap: 16, padding: '14px 10px', margin: '0 -10px', borderRadius: 8, borderBottom: i < items.length - 1 ? '1px solid #f3f4f6' : 'none' }}>
                 {/* Thumbnail */}
                 <div style={{ width: 72, height: 72, borderRadius: 10, background: '#f3f4f6', overflow: 'hidden', flexShrink: 0, border: '1px solid #e5e7eb' }}>
                   {item.variant_image
@@ -332,17 +400,45 @@ const CustomerOrderDetailPage = () => {
                       {item.prescription.status_label && <span style={{ marginLeft: 6, opacity: 0.7 }}>· {item.prescription.status_label}</span>}
                     </div>
                   )}
-                  {/* Reupload button — shown when admin requests a new prescription */}
-                  {item.prescription && item.prescription.status_label?.toLowerCase().includes('reupload') && (
-                    <div style={{ marginTop: 6 }}>
-                      <button
-                        onClick={() => { setReuploadModal({ prescriptionId: item.prescription.id, itemName: item.variant_name || 'Product' }); setReuploadMode('file'); setReuploadFile(null); setReuploadError(null); setReuploadSuccess(false); setReuploadManual({ od_sphere: '', od_cylinder: '', od_axis: '', os_sphere: '', os_cylinder: '', os_axis: '', od_add: '', os_add: '' }); }}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#fef3c7', color: '#92400e', border: '1px solid #fbbf24', borderRadius: 8, padding: '8px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
-                      >
-                        📋 Admin requested new prescription — Upload now
-                      </button>
-                    </div>
-                  )}
+                  {/* Upload / Reupload button */}
+                  {(() => {
+                    const isDeferred = !item.prescription && item.lens && 
+                      item.lens_prescription_text?.toLowerCase().includes('later');
+                    const isReupload = item.prescription && 
+                      item.prescription.status_label?.toLowerCase().includes('reupload');
+                    if (!isDeferred && !isReupload) return null;
+                    return (
+                      <div style={{ marginTop: 6 }}>
+                        <button
+                          onClick={() => { 
+                            setReuploadModal({ 
+                              prescriptionId: item.prescription?.id || null, 
+                              orderItemId: item.id, 
+                              itemName: item.variant_name || 'Product',
+                              isDeferred,
+                            }); 
+                            setReuploadMode('file'); 
+                            setReuploadFile(null); 
+                            setReuploadError(null); 
+                            setReuploadSuccess(false); 
+                            setReuploadManual({ od_sphere: '', od_cylinder: '', od_axis: '', os_sphere: '', os_cylinder: '', os_axis: '', od_add: '', os_add: '' }); 
+                          }}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 6,
+                            background: isDeferred ? '#f5f3ff' : '#fef3c7',
+                            color: isDeferred ? '#6d28d9' : '#92400e',
+                            border: isDeferred ? '1px solid #c4b5fd' : '1px solid #fbbf24',
+                            borderRadius: 8, padding: '8px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                            transition: 'background 0.2s, transform 0.1s',
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+                          onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+                        >
+                          {isDeferred ? '📋 Upload Prescription Now' : '📋 Admin requested new prescription — Upload now'}
+                        </button>
+                      </div>
+                    );
+                  })()}
                   {/* per-item unit price */}
                   <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>
                     Unit price: {fmtPrice(item.unit_price || item.price_at_purchase)}
@@ -586,10 +682,20 @@ const CustomerOrderDetailPage = () => {
         <div onClick={(e) => e.target === e.currentTarget && setReuploadModal(null)}
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 500, boxShadow: '0 25px 50px rgba(0,0,0,0.25)', overflow: 'hidden' }}>
-            {/* Header */}
-            <div style={{ background: '#fef3c7', padding: '16px 20px', borderBottom: '1px solid #fbbf24' }}>
-              <p style={{ margin: 0, fontWeight: 800, fontSize: 16, color: '#92400e' }}>📋 New Prescription Required</p>
-              <p style={{ margin: '4px 0 0', fontSize: 13, color: '#78350f' }}>{reuploadModal.itemName} — please provide an updated prescription.</p>
+            {/* Header — violet for deferred first-time, amber for admin reupload */}
+            <div style={{
+              background: reuploadModal.isDeferred ? 'linear-gradient(135deg, #6d28d9 0%, #7c3aed 100%)' : '#fef3c7',
+              padding: '18px 20px',
+              borderBottom: reuploadModal.isDeferred ? '1px solid #5b21b6' : '1px solid #fbbf24',
+            }}>
+              <p style={{ margin: 0, fontWeight: 800, fontSize: 16, color: reuploadModal.isDeferred ? '#fff' : '#92400e' }}>
+                {reuploadModal.isDeferred ? '📋 Submit Your Prescription' : '📋 New Prescription Required'}
+              </p>
+              <p style={{ margin: '4px 0 0', fontSize: 13, color: reuploadModal.isDeferred ? 'rgba(255,255,255,0.85)' : '#78350f' }}>
+                {reuploadModal.isDeferred
+                  ? `${reuploadModal.itemName} — upload or enter your prescription details below.`
+                  : `${reuploadModal.itemName} — please provide an updated prescription.`}
+              </p>
             </div>
             {/* Mode tabs */}
             <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb' }}>

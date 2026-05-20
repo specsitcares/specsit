@@ -167,10 +167,10 @@ const LensForm = ({ productId, onBack, onSaved }) => {
         if (existing.length > 0) {
           await apiClient.patch(`/catalog/variants/${existing[0].id}/`, variantData);
         } else {
-          await apiClient.post('/catalog/variants/', variantData);
+          await apiClient.post('/catalog/variants/', { ...variantData, is_listed: true });
         }
       } else {
-        await apiClient.post('/catalog/variants/', variantData);
+        await apiClient.post('/catalog/variants/', { ...variantData, is_listed: true });
       }
       setToast({ type: 'success', msg: `Contact Lens ${isEdit ? 'updated' : 'created'} successfully!` });
       setIsDirty(false);

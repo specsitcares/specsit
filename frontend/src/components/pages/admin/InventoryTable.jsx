@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Package, Archive, CheckCircle, AlertTriangle, XCircle, Trash2, ChevronDown } from 'lucide-react';
+import { Package, Archive, CheckCircle, AlertTriangle, XCircle, Trash2, ChevronDown, Edit } from 'lucide-react';
 import apiClient from '../../../services/api';
 import FormModal from './FormModal';
 import BaseAdminTable from './BaseAdminTable';
@@ -208,13 +208,37 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
         </td>
 
         {/* Action */}
-        <td style={{ ...CELL, minWidth: 144 }}>
+        <td style={{ ...CELL, minWidth: 100 }}>
           <div style={{ display: 'flex', gap: 6 }}>
-            <button onClick={() => handleEditClick(v)} style={{ minWidth: 64, padding: '6px 10px', border: '1px solid #e2e8f0', borderRadius: 5, background: '#f7f7f7', fontSize: 13, color: '#0f172a', cursor: 'pointer' }}>
-              Adjust
-            </button>
-            <button style={{ minWidth: 64, padding: '6px 10px', border: '1px solid #e2e8f0', borderRadius: 5, background: '#fff', fontSize: 13, color: '#0f172a', cursor: 'pointer' }}>
-              Restock
+            <button
+              onClick={() => handleEditClick(v)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                padding: '6px 12px',
+                border: '1px solid #D0D5DD',
+                borderRadius: 6,
+                background: '#ffffff',
+                fontSize: 13,
+                fontWeight: 500,
+                color: '#344054',
+                cursor: 'pointer',
+                boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#F9FAFB';
+                e.currentTarget.style.borderColor = '#C7CCD0';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#ffffff';
+                e.currentTarget.style.borderColor = '#D0D5DD';
+              }}
+            >
+              <Edit size={14} color="#475467" />
+              Edit
             </button>
           </div>
         </td>
