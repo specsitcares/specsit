@@ -169,6 +169,23 @@ class OrderTracking(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     def __str__(self): return f"Tracking for Order #{self.order.id}"
 
+class OrderItemTracking(models.Model):
+    order_item = models.OneToOneField(OrderItem, on_delete=models.CASCADE, related_name='tracking')
+    tracking_number = models.CharField(max_length=100, unique=True, null=True, blank=True)
+    courier_company = models.CharField(max_length=100, null=True, blank=True)
+    current_status = models.CharField(max_length=50, default='pending')
+    shipped_date = models.DateTimeField(null=True, blank=True)
+    estimated_delivery_date = models.DateField(null=True, blank=True)
+    actual_delivery_date = models.DateTimeField(null=True, blank=True)
+    delivery_agent_name = models.CharField(max_length=100, blank=True)
+    delivery_agent_phone = models.CharField(max_length=20, blank=True)
+    qc_image = models.ImageField(upload_to='qc/', null=True, blank=True)
+    last_updated = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    def __str__(self): return f"Tracking for OrderItem #{self.order_item.id}"
+
+
 class Payment(models.Model):
     PAYMENT_STATUS_CHOICES = [
         ('pending', 'Pending'),
