@@ -718,7 +718,14 @@ const OrderTable = ({ category = null, onViewDetails, hideKPIs = false }) => {
                         <td style={{ padding: '12px 16px', color: '#667085', fontSize: '13px', whiteSpace: 'nowrap' }}>{new Date(o.created_at).toLocaleDateString('en-GB')}</td>
                         <td style={{ padding: '12px 16px' }}>
                           {(() => {
-                            const ps = (o.items?.[0]?.prescription_status || 'Frame Only');
+                            const hasApproved = o.items?.some(item => (item.prescription_status || '').toLowerCase() === 'approved');
+                            const isFrameOnly = o.items?.every(item => (item.prescription_status || 'Frame Only').toLowerCase() === 'frame only');
+                            let ps = 'Pending Review';
+                            if (hasApproved) ps = 'Approved';
+                            else if (isFrameOnly) ps = 'Frame Only';
+                            else {
+                              ps = o.items?.[0]?.prescription_status || 'Pending Review';
+                            }
                             const psl = ps.toLowerCase();
                             const bg = psl === 'approved' ? '#ECFDF3' : psl === 'frame only' ? '#F2F4F7' : '#FFFAEB';
                             const color = psl === 'approved' ? '#027A48' : psl === 'frame only' ? '#344054' : '#B54708';
@@ -764,8 +771,9 @@ const OrderTable = ({ category = null, onViewDetails, hideKPIs = false }) => {
                         <div
                           onClick={(e) => {
                             e.stopPropagation();
-                            const ps = (o.items?.[0]?.prescription_status || 'Frame Only').toLowerCase();
-                            if (ps === 'approved' || ps === 'frame only') {
+                            const hasApproved = o.items?.some(item => (item.prescription_status || '').toLowerCase() === 'approved');
+                            const isFrameOnly = o.items?.every(item => (item.prescription_status || 'Frame Only').toLowerCase() === 'frame only');
+                            if (hasApproved || isFrameOnly) {
                               onViewDetails(o.id);
                             } else {
                               setRxOffcanvasOrder(o);
