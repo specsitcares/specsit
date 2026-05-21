@@ -148,6 +148,7 @@ const ProductListingPage = () => {
     // Core filter states (API-connected)
     const [categories, setCategories] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '');
+    const [productType, setProductType] = useState('frame');
     const [selectedBrand, setSelectedBrand] = useState(searchParams.get('brand_name') || '');
     const [maxPrice, setMaxPrice] = useState(searchParams.get('max_price') || 50000);
     const [sortBy, setSortBy] = useState('newest');
@@ -212,6 +213,7 @@ const ProductListingPage = () => {
         const params = new URLSearchParams();
 
         if (selectedCategory) params.append('category', selectedCategory);
+        if (productType) params.append('product_type', productType);
         if (selectedBrand) params.append('brand_name', selectedBrand);
         if (searchQuery) params.append('search', searchQuery);
         if (maxPrice < 50000) params.append('max_price', maxPrice);
@@ -364,6 +366,31 @@ const ProductListingPage = () => {
                     <p className="plp-subtitle">Elevate your vision with our curated atelier collection.</p>
                 </div>
             </header>
+
+            {/* Category Tabs */}
+            <div style={{ margin: '12px 0 20px' }}>
+                <div style={{ display: 'flex', gap: 8 }}>
+                    {['Eyeglasses', 'Sunglasses', 'Accessories', 'Contact Lenses'].map(tab => (
+                        <button
+                            key={tab}
+                            onClick={() => {
+                                if (tab === 'Contact Lenses') {
+                                    setProductType('lens');
+                                    setSelectedCategory('');
+                                } else {
+                                    setProductType('frame');
+                                    const cat = categories.find(c => c.name === tab);
+                                    setSelectedCategory(cat ? String(cat.id) : '');
+                                }
+                                setCurrentPage(1);
+                            }}
+                            style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #E6E6E6', background: (productType === 'lens' && tab === 'Contact Lenses') || (productType === 'frame' && categories.find(c => c.id.toString() === selectedCategory)?.name === tab) ? '#fff' : 'transparent', cursor: 'pointer' }}
+                        >
+                            {tab}
+                        </button>
+                    ))}
+                </div>
+            </div>
 
             {/* Main Container: Sidebar + Content */}
             <div className="plp-layout">

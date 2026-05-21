@@ -8,6 +8,13 @@ class Category(models.Model):
     description = models.TextField(blank=True)
     image = models.ImageField(upload_to='categories/', blank=True, null=True)
     parent = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='subcategories')
+    # Grouping for admin tabs: frame, lens, accessory
+    GROUP_CHOICES = [
+        ('frame', 'Frames'),
+        ('lens', 'Contact Lenses'),
+        ('accessory', 'Accessories'),
+    ]
+    group = models.CharField(max_length=20, choices=GROUP_CHOICES, default='frame')
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True)
     updated_at = models.DateTimeField(auto_now=True, null=True)

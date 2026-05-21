@@ -45,7 +45,14 @@ class Coupon(models.Model):
     valid_until = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
     is_bogo = models.BooleanField(default=False)
+    categories = models.ManyToManyField(
+        'catalog.Category',
+        blank=True,
+        related_name='coupons',
+        help_text='Categories this coupon applies to. Leave empty to apply to all categories.'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
+
     def __str__(self): return self.code
 
 ORDER_STATUS_CHOICES = [

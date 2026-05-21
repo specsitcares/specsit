@@ -800,14 +800,17 @@ class CouponViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'], url_path='validate',
             permission_classes=[permissions.AllowAny])
     def validate_coupon(self, request):
+        from apps.catalog.models import Variant
         code = request.data.get('code', '').strip().upper()
         cart_value = float(request.data.get('cartValue', 0) or 0)
+        # items is a list of {variant_id, quantity, price} sent by the frontend
+        items = request.data.get('items', [])
 
         if not code:
             return Response({'valid': False, 'message': 'Please enter a coupon code.'})
 
         try:
-            coupon = Coupon.objects.get(code=code, is_active=True)
+            coupon = Coupon.objects.prefetch_related('categories').get(code=code, is_active=True)
         except Coupon.DoesNotExist:
             return Response({'valid': False, 'message': 'Invalid coupon code. Please try again.'})
 
@@ -822,6 +825,60 @@ class CouponViewSet(viewsets.ModelViewSet):
                 'message': f'Minimum cart value ₹{int(coupon.min_cart_value)} required for this coupon.',
             })
 
+        # Category-restricted coupon logic (M2M)
+        coupon_categories = list(coupon.categories.all())
+        coupon_category_ids = {c.id for c in coupon_categories}
+        category_names_str = ', '.join(c.name for c in coupon_categories)
+
+        if coupon_category_ids and items:
+            # Build a map of variant_id -> category_id using a single DB query
+            variant_ids = []
+            for item in items:
+                vid = item.get('variant_id') or item.get('variant')
+                if vid:
+                    try:
+                        variant_ids.append(int(vid))
+                    except (ValueError, TypeError):
+                        pass
+
+            if variant_ids:
+                variant_category_map = {
+                    v['id']: v['product__category']
+                    for v in Variant.objects.filter(id__in=variant_ids)
+                        .values('id', 'product__category')
+                }
+
+                applicable_subtotal = 0.0
+                for item in items:
+                    vid = item.get('variant_id') or item.get('variant')
+                    try:
+                        vid = int(vid) if vid else None
+                    except (ValueError, TypeError):
+                        vid = None
+                    if vid and variant_category_map.get(vid) in coupon_category_ids:
+                        price = float(item.get('price', 0) or 0)
+                        qty = int(item.get('quantity', 1) or 1)
+                        applicable_subtotal += price * qty
+
+                if applicable_subtotal == 0:
+                    return Response({
+                        'valid': False,
+                        'message': f"This coupon is only valid for '{category_names_str}' products. No eligible items found in your cart.",
+                    })
+
+                savings = round(applicable_subtotal * coupon.discount_percentage / 100, 2)
+                return Response({
+                    'valid': True,
+                    'code': coupon.code,
+                    'discountPercentage': coupon.discount_percentage,
+                    'savings': savings,
+                    'applicableSubtotal': applicable_subtotal,
+                    'categoryRestricted': True,
+                    'categoryName': category_names_str,
+                    'message': f"Coupon '{coupon.code}' applied for {category_names_str} items! You saved ₹{savings}",
+                })
+
+        # No category restriction — discount on full cart
         savings = round(cart_value * coupon.discount_percentage / 100, 2) if cart_value else 0
 
         return Response({
@@ -829,6 +886,8 @@ class CouponViewSet(viewsets.ModelViewSet):
             'code': coupon.code,
             'discountPercentage': coupon.discount_percentage,
             'savings': savings,
+            'categoryRestricted': bool(coupon_category_ids),
+            'categoryName': category_names_str or None,
             'message': f"Coupon '{coupon.code}' applied! You saved ₹{savings}" if savings else f"Coupon '{coupon.code}' applied!",
         })
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]

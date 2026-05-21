@@ -115,7 +115,7 @@ const VariantRow = ({ v, onEdit, onDelete, productType }) => {
 };
 
 // ─── Shared variants fetch hook ───────────────────────────────────────────────
-const useVariantsTab = (productType) => {
+const useVariantsTab = ({ productType, category }) => {
   const [variants, setVariants] = useState([]);
   const [loading, setLoading] = useState(false);
   const [total, setTotal] = useState(0);
@@ -127,7 +127,9 @@ const useVariantsTab = (productType) => {
   const fetch = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ product_type: productType, page, page_size: perPage });
+      const params = new URLSearchParams({ page, page_size: perPage });
+      if (productType) params.append('product_type', productType);
+      if (category) params.append('category', category);
       if (searchQuery) params.append('search', searchQuery);
       const res = await apiClient.get(`/catalog/variants/?${params}`);
       const data = res.data;
@@ -136,7 +138,7 @@ const useVariantsTab = (productType) => {
       setTotal(data.count ?? results.length);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
-  }, [productType, page, perPage, searchQuery]);
+  }, [productType, category, page, perPage, searchQuery]);
 
   useEffect(() => { fetch(); }, [fetch]);
   useEffect(() => { setPage(1); }, [searchQuery]);
@@ -155,7 +157,7 @@ const useVariantsTab = (productType) => {
 
 // ─── Lenses Tab ───────────────────────────────────────────────────────────────
 const LensesTab = ({ onAdd, onEdit }) => {
-  const { variants, loading, total, page, setPage, perPage, setPerPage, searchQuery, setSearchQuery, deleteTarget, setDeleteTarget, confirmDelete } = useVariantsTab('lens');
+  const { variants, loading, total, page, setPage, perPage, setPerPage, searchQuery, setSearchQuery, deleteTarget, setDeleteTarget, confirmDelete } = useVariantsTab({ productType: 'lens' });
 
   const columns = [
     { label: 'Product / SKU', key: 'name' },
@@ -192,9 +194,9 @@ const LensesTab = ({ onAdd, onEdit }) => {
   );
 };
 
-// ─── Frames Tab ───────────────────────────────────────────────────────────────
-const FramesTab = ({ onAdd, onEdit }) => {
-  const { variants, loading, total, page, setPage, perPage, setPerPage, searchQuery, setSearchQuery, deleteTarget, setDeleteTarget, confirmDelete } = useVariantsTab('frame');
+// ─── Category Tab ─────────────────────────────────────────────────────────────
+const CategoryTab = ({ title, categoryName, onAdd, onEdit }) => {
+  const { variants, loading, total, page, setPage, perPage, setPerPage, searchQuery, setSearchQuery, deleteTarget, setDeleteTarget, confirmDelete } = useVariantsTab({ productType: 'frame', category: categoryName });
 
   const columns = [
     { label: 'Product / SKU', key: 'name' },
@@ -211,13 +213,13 @@ const FramesTab = ({ onAdd, onEdit }) => {
   return (
     <>
       <BaseAdminTable
-        title="Frames"
+        title={title}
         count={total}
         countLabel="Variants"
         searchQuery={searchQuery}
         onSearchChange={(v) => setSearchQuery(v)}
         onAdd={onAdd}
-        addLabel="+ Add Frame"
+        addLabel={`+ Add ${title}`}
         columns={columns}
         data={variants}
         loading={loading}
@@ -225,8 +227,8 @@ const FramesTab = ({ onAdd, onEdit }) => {
           <VariantRow key={v.id} v={v} productType="frame" onEdit={onEdit} onDelete={setDeleteTarget} />
         )}
         pagination={{ page, perPage, totalCount: total, onPageChange: setPage, onPerPageChange: (pp) => { setPerPage(pp); setPage(1); } }}
-        emptyMessage="No frame variants found"
-        emptyDescription="Add your first frame product to get started."
+        emptyMessage={`No ${title.toLowerCase()} variants found`}
+        emptyDescription={`Add your first ${title.toLowerCase()} product to get started.`}
       />
       <DeleteModal target={deleteTarget} onCancel={() => setDeleteTarget(null)} onConfirm={confirmDelete} />
     </>
@@ -235,7 +237,9 @@ const FramesTab = ({ onAdd, onEdit }) => {
 
 // ─── Main Products Page ───────────────────────────────────────────────────────
 const ProductsPage = ({ onAddNew, onEdit }) => {
-  const [activeTab, setActiveTab] = useState('lenses');
+  const [groupsData, setGroupsData] = useState([]);
+  const [activeGroup, setActiveGroup] = useState('frame');
+  const [activeCategory, setActiveCategory] = useState(null);
 
   const tabStyle = (tab) => ({
     padding: '8px 20px',
@@ -249,18 +253,48 @@ const ProductsPage = ({ onAddNew, onEdit }) => {
     boxShadow: activeTab === tab ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
   });
 
+  useEffect(() => {
+    const fetchGroups = async () => {
+      try {
+        const res = await apiClient.get('/catalog/categories/groups/');
+        setGroupsData(res.data || []);
+        if (res.data && res.data.length) {
+          const grp = res.data.find(g => g.key === activeGroup) || res.data[0];
+          setActiveGroup(grp.key);
+          setActiveCategory((grp.categories && grp.categories[0] && grp.categories[0].name) || null);
+        }
+      } catch (e) { console.error(e); }
+    };
+    fetchGroups();
+  }, []);
+
+  useEffect(() => {
+    // when activeGroup changes ensure activeCategory exists
+    const grp = groupsData.find(g => g.key === activeGroup);
+    if (grp) setActiveCategory((grp.categories && grp.categories[0] && grp.categories[0].name) || null);
+  }, [activeGroup, groupsData]);
+
   return (
     <div>
-      {/* Pill-style tab switcher */}
-      <div style={{ display: 'flex', background: '#F9FAFB', border: '1px solid #EAECF0', borderRadius: 8, padding: 2, width: 'fit-content', marginBottom: 20 }}>
-        <button style={tabStyle('lenses')} onClick={() => setActiveTab('lenses')}>Contact Lenses</button>
-        <button style={tabStyle('frames')} onClick={() => setActiveTab('frames')}>Frames</button>
+      {/* Group tabs */}
+      <div style={{ display: 'flex', background: '#F9FAFB', border: '1px solid #EAECF0', borderRadius: 8, padding: 4, gap: 8, marginBottom: 12 }}>
+        {groupsData.map(g => (
+          <button key={g.key} onClick={() => setActiveGroup(g.key)} style={{ padding: '8px 14px', borderRadius: 8, border: 'none', background: activeGroup === g.key ? '#fff' : 'transparent', cursor: 'pointer', color: activeGroup === g.key ? '#7F56D9' : '#667085' }}>{g.label}</button>
+        ))}
       </div>
 
-      {activeTab === 'lenses' ? (
+      {/* Category tabs for selected group */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        {(groupsData.find(g => g.key === activeGroup)?.categories || []).map(cat => (
+          <button key={cat.id} onClick={() => setActiveCategory(cat.name)} style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #E6E6E6', background: activeCategory === cat.name ? '#fff' : 'transparent', cursor: 'pointer' }}>{cat.name}</button>
+        ))}
+      </div>
+
+      {/* Content for the selected category/group */}
+      {activeGroup === 'lens' ? (
         <LensesTab onAdd={() => onAddNew('lens')} onEdit={onEdit} />
       ) : (
-        <FramesTab onAdd={() => onAddNew('frame')} onEdit={onEdit} />
+        <CategoryTab title={activeCategory || 'Category'} categoryName={activeCategory} onAdd={() => onAddNew('frame')} onEdit={onEdit} />
       )}
     </div>
   );

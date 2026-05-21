@@ -14,6 +14,9 @@ const STATUS_OPTS = [
 const InventoryTable = ({ initialFilter = 'all' }) => {
   const [variants, setVariants]               = useState([]);
   const [loading, setLoading]                 = useState(true);
+  const [groupsData, setGroupsData]           = useState([]);
+  const [activeGroup, setActiveGroup]         = useState('frame');
+  const [activeCategory, setActiveCategory]   = useState(null);
   const [searchQuery, setSearchQuery]         = useState('');
   const [stockFilter, setStockFilter]         = useState(initialFilter);
   const [showForm, setShowForm]               = useState(false);
@@ -23,12 +26,32 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
   const [selectedIds, setSelectedIds]         = useState(new Set());
 
   useEffect(() => {
+    fetchGroups();
     fetchInventory();
   }, []);
 
+  useEffect(() => {
+    // whenever category changes, re-fetch inventory for that category
+    fetchInventory();
+  }, [activeCategory]);
+
+  const fetchGroups = async () => {
+    try {
+      const res = await apiClient.get('/catalog/categories/groups/');
+      setGroupsData(res.data || []);
+      if (res.data && res.data.length) {
+        const grp = res.data.find(g => g.key === activeGroup) || res.data[0];
+        setActiveGroup(grp.key);
+        setActiveCategory((grp.categories && grp.categories[0] && grp.categories[0].name) || null);
+      }
+    } catch (e) { console.error(e); }
+  };
+
   const fetchInventory = async () => {
     try {
-      const res = await apiClient.get('/catalog/variants/?page_size=1000&admin=true');
+      let url = '/catalog/variants/?page_size=1000&admin=true';
+      if (activeCategory) url += `&category=${encodeURIComponent(activeCategory)}`;
+      const res = await apiClient.get(url);
       setVariants(Array.isArray(res.data) ? res.data : (res.data.results || []));
     } catch { } finally { setLoading(false); }
   };
@@ -251,6 +274,19 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
   return (
     <div style={{ fontFamily: 'Inter, sans-serif' }}>
 
+      {/* Group tabs */}
+      <div style={{ display: 'flex', background: '#F9FAFB', border: '1px solid #EAECF0', borderRadius: 8, padding: 4, gap: 8, marginBottom: 12 }}>
+        {groupsData.map(g => (
+          <button key={g.key} onClick={() => setActiveGroup(g.key)} style={{ padding: '8px 14px', borderRadius: 8, border: 'none', background: activeGroup === g.key ? '#fff' : 'transparent', cursor: 'pointer', color: activeGroup === g.key ? '#7F56D9' : '#667085' }}>{g.label}</button>
+        ))}
+      </div>
+
+      {/* Category tabs */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        {(groupsData.find(g => g.key === activeGroup)?.categories || []).map(cat => (
+          <button key={cat.id} onClick={() => setActiveCategory(cat.name)} style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #E6E6E6', background: activeCategory === cat.name ? '#fff' : 'transparent', cursor: 'pointer' }}>{cat.name}</button>
+        ))}
+      </div>
       {/* Title */}
       <h1 style={{ fontSize: 19, fontWeight: 700, color: '#040205', marginBottom: 16 }}>
         Inventory Management

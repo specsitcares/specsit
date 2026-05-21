@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../../../context/CartContext';
 import apiClient from '../../../services/api';
@@ -71,15 +71,21 @@ const CartPage = () => {
         setPromoLoading(true);
         setPromoError('');
         try {
+            // Build items array so the backend can calculate category-specific discounts
+            const itemsPayload = cart.map(item => ({
+                variant: item.variant?.id ?? null,
+                quantity: item.quantity,
+                price: resolveProductPrice(item.product) + (item.lens ? parseFloat(item.lens.price || 0) : 0),
+            }));
+
             const res = await apiClient.post('/sales/coupons/validate/', {
                 code,
                 cartValue: cartTotal,
+                items: itemsPayload,
             });
             if (res.data.valid) {
-                // Bug fix: Use integer paise for discount calculation
-                const discountPercentage = parseFloat(res.data.discountPercentage || res.data.discount_percentage || 0);
-                const discountPaise = Math.round(cartTotal * 100 * discountPercentage / 100);
-                const discount = discountPaise / 100;
+                // Use savings computed by the backend (respects category restrictions)
+                const discount = res.data.savings || 0;
                 setAppliedCoupon({ code, discount, message: res.data.message });
                 setPromoError('');
             } else {

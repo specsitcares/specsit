@@ -105,6 +105,18 @@ class CategoryViewSet(viewsets.ModelViewSet):
         qs = Category.objects.all() if self.request.user.is_staff else Category.objects.filter(is_active=True)
         return qs.order_by('id')
 
+    @action(detail=False, methods=['get'], permission_classes=[permissions.AllowAny])
+    def groups(self, request):
+        """Return categories grouped by the `group` field for admin tab rendering."""
+        groups = []
+        for key, label in Category.GROUP_CHOICES:
+            cats = Category.objects.filter(group=key)
+            if not request.user.is_staff:
+                cats = cats.filter(is_active=True)
+            data = CategorySerializer(cats.order_by('id'), many=True, context={'request': request}).data
+            groups.append({'key': key, 'label': label, 'categories': data})
+        return Response(groups)
+
 class BrandViewSet(viewsets.ModelViewSet):
     queryset = Brand.objects.all().order_by('id')
     serializer_class = BrandSerializer
@@ -317,12 +329,19 @@ class VariantViewSet(viewsets.ModelViewSet):
         
         # If it's a management action (PATCH/PUT/DELETE) or an explicit admin GET, show everything
         if not (is_staff and (is_admin_query or self.action in ['partial_update', 'update', 'destroy'])):
-            qs = qs.filter(stock__gt=0, is_listed=True)
+            # Show variants that are listed and have stock OR whose parent product has stock
+            qs = qs.filter(is_listed=True).filter(
+                Q(stock__gt=0) | Q(product__stock_quantity__gt=0)
+            )
 
         # NEW: Filter by product type if requested (crucial for segregating frames vs contact lenses in UI)
         ptype = params.get('product_type')
         if ptype:
             qs = qs.filter(product__product_type=ptype)
+            
+        category = params.get('category')
+        if category:
+            qs = qs.filter(product__category__name__iexact=category)
             
         search = params.get('search')
         if search:

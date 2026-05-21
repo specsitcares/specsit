@@ -27,11 +27,28 @@ class VariantSerializer(serializers.ModelSerializer):
     product_name = serializers.ReadOnlyField(source='product.title')
     category_name = serializers.ReadOnlyField(source='product.category.name')
     brand_name   = serializers.SerializerMethodField()
+    stock = serializers.SerializerMethodField()
+    effective_stock = serializers.SerializerMethodField()
 
     def get_brand_name(self, obj):
         if obj.product.brand:
             return obj.product.brand.name
         return obj.product.brand_name or ''
+
+    def get_effective_stock(self, obj):
+        # Prefer variant-level stock; fallback to product-level stock_quantity
+        try:
+            if obj.stock and obj.stock > 0:
+                return obj.stock
+        except Exception:
+            pass
+        try:
+            return obj.product.stock_quantity or 0
+        except Exception:
+            return 0
+
+    def get_stock(self, obj):
+        return self.get_effective_stock(obj)
 
     class Meta:
         model = Variant

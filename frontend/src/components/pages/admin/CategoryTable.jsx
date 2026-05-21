@@ -5,13 +5,15 @@ import FormModal from './FormModal';
 import BaseAdminTable from './BaseAdminTable';
 
 const CAT_TABS = [
-  { key: 'Frame', label: 'Frames' },
-  { key: 'Contact', label: 'Contact Lenses' },
+  { key: 'frame', label: 'Frames' },
+  { key: 'lens', label: 'Contact Lenses' },
+  { key: 'accessory', label: 'Accessories' },
 ];
 
 const CAT_TYPE_OPTIONS = [
-  { value: 'Frame', label: 'Frame' },
-  { value: 'Contact', label: 'Contact Lenses' },
+  { value: 'frame', label: 'Frames' },
+  { value: 'lens', label: 'Contact Lenses' },
+  { value: 'accessory', label: 'Accessories' },
 ];
 
 const CategoryTable = () => {
@@ -21,7 +23,7 @@ const CategoryTable = () => {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [formMode, setFormMode] = useState('create');
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState('Frame');
+  const [activeTab, setActiveTab] = useState('frame');
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
   const [showFilters, setShowFilters] = useState(false);
@@ -81,7 +83,7 @@ const CategoryTable = () => {
   };
 
   const filtered = categories
-    .filter(c => (c.category_type || 'Frame') === activeTab)
+    .filter(c => ((c.group || c.category_type || 'frame').toString().toLowerCase()) === activeTab)
     .filter(c => [c.name, c.slug, c.description].some(v => v?.toLowerCase().includes(searchQuery.toLowerCase())));
 
   const paginated = filtered.slice((page - 1) * perPage, page * perPage);
@@ -156,7 +158,7 @@ const CategoryTable = () => {
     </tr>
   );
 
-  const tabCounts = Object.fromEntries(CAT_TABS.map(t => [t.key, categories.filter(c => (c.category_type || 'Frame') === t.key).length]));
+  const tabCounts = Object.fromEntries(CAT_TABS.map(t => [t.key, categories.filter(c => ((c.group || c.category_type || 'frame').toString().toLowerCase()) === t.key).length]));
 
   return (
     <>
@@ -213,13 +215,13 @@ const CategoryTable = () => {
         }
       />
 
-      <FormModal isOpen={showForm} onClose={() => setShowForm(false)} onSubmit={handleFormSubmit}
+        <FormModal isOpen={showForm} onClose={() => setShowForm(false)} onSubmit={handleFormSubmit}
         onDelete={handleFormDelete} mode={formMode} title="Category"
         fields={[
           { name: 'name', label: 'Category Name', type: 'text', required: true },
-          { name: 'category_type', label: 'Type', type: 'select', required: true, options: CAT_TYPE_OPTIONS },
+          { name: 'group', label: 'Group', type: 'select', required: true, options: CAT_TYPE_OPTIONS },
           { name: 'description', label: 'Description', type: 'textarea' },
-          { name: 'parent', label: 'Parent Category', type: 'select', options: categories.filter(cat => cat.id !== selectedCategory?.id && (cat.category_type || 'Frame') === activeTab).map(cat => ({ value: cat.id, label: cat.name })) },
+          { name: 'parent', label: 'Parent Category', type: 'select', options: categories.filter(cat => cat.id !== selectedCategory?.id && ((cat.group || cat.category_type || 'frame').toString().toLowerCase()) === activeTab).map(cat => ({ value: cat.id, label: cat.name })) },
           { name: 'image', label: 'Category Image', type: 'file' },
           { name: 'is_active', label: 'Active', type: 'checkbox', defaultValue: true },
         ]}
