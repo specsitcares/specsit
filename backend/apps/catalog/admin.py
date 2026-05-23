@@ -6,7 +6,7 @@ Description: Product management, categories, brands, and inventory catalog. Regi
 from django.contrib import admin
 from .models import (
     Category, Brand, Manufacturer, Product, Variant, VariantImage, Collection, 
-    LensPackage, Lens, Prescription, UserFace, Review
+    LensPackage, Lens, Prescription, UserFace, Review, LensConstraint
 )
 
 @admin.register(Category)
@@ -52,10 +52,16 @@ class LensPackageAdmin(admin.ModelAdmin):
     list_display = ('name', 'description')
     search_fields = ('name',)
 
+@admin.register(LensConstraint)
+class LensConstraintAdmin(admin.ModelAdmin):
+    list_display = ('name', 'description')
+    search_fields = ('name',)
+
 @admin.register(Lens)
 class LensAdmin(admin.ModelAdmin):
     list_display = ('package', 'type', 'index', 'price', 'is_for_sunglasses')
     list_filter = ('package', 'type', 'is_for_sunglasses')
+    filter_horizontal = ('constraints',)  # Nice multi-select interface for ManyToMany
 
 @admin.register(Prescription)
 class PrescriptionAdmin(admin.ModelAdmin):

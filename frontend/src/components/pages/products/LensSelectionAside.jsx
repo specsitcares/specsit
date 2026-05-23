@@ -7,83 +7,83 @@ import apiClient from '../../../services/api';
    ════════════════════════════════════════════════════════ */
 const IconWithPower = () => (
     <svg width="21" height="14" viewBox="0 0 21 14" fill="none">
-        <ellipse cx="10.5" cy="7" rx="9.5" ry="6" stroke="#68408D" strokeWidth="1.3"/>
-        <circle cx="10.5" cy="7" r="2.5" stroke="#68408D" strokeWidth="1.3"/>
-        <line x1="1" y1="7" x2="4" y2="7" stroke="#68408D" strokeWidth="1.3" strokeLinecap="round"/>
-        <line x1="17" y1="7" x2="20" y2="7" stroke="#68408D" strokeWidth="1.3" strokeLinecap="round"/>
+        <ellipse cx="10.5" cy="7" rx="9.5" ry="6" stroke="#68408D" strokeWidth="1.3" />
+        <circle cx="10.5" cy="7" r="2.5" stroke="#68408D" strokeWidth="1.3" />
+        <line x1="1" y1="7" x2="4" y2="7" stroke="#68408D" strokeWidth="1.3" strokeLinecap="round" />
+        <line x1="17" y1="7" x2="20" y2="7" stroke="#68408D" strokeWidth="1.3" strokeLinecap="round" />
     </svg>
 );
 const IconZeroPower = () => (
     <svg width="17" height="18" viewBox="0 0 17 18" fill="none">
-        <rect x="1" y="1" width="15" height="13" rx="2" stroke="#71717A" strokeWidth="1.3"/>
-        <path d="M5 17H12" stroke="#71717A" strokeWidth="1.3" strokeLinecap="round"/>
-        <path d="M8.5 14V17" stroke="#71717A" strokeWidth="1.3" strokeLinecap="round"/>
-        <circle cx="8.5" cy="7.5" r="2" stroke="#71717A" strokeWidth="1.1"/>
+        <rect x="1" y="1" width="15" height="13" rx="2" stroke="#71717A" strokeWidth="1.3" />
+        <path d="M5 17H12" stroke="#71717A" strokeWidth="1.3" strokeLinecap="round" />
+        <path d="M8.5 14V17" stroke="#71717A" strokeWidth="1.3" strokeLinecap="round" />
+        <circle cx="8.5" cy="7.5" r="2" stroke="#71717A" strokeWidth="1.1" />
     </svg>
 );
 const IconProgressive = () => (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-        <path d="M2 7C2 4.79 3.79 3 6 3H14C16.21 3 18 4.79 18 7V9C18 11.21 16.21 13 14 13H6C3.79 13 2 11.21 2 9V7Z" stroke="#71717A" strokeWidth="1.3"/>
-        <line x1="2" y1="10" x2="18" y2="10" stroke="#71717A" strokeWidth="1" strokeDasharray="2 2"/>
-        <path d="M5 17L15 17" stroke="#71717A" strokeWidth="1.3" strokeLinecap="round"/>
+        <path d="M2 7C2 4.79 3.79 3 6 3H14C16.21 3 18 4.79 18 7V9C18 11.21 16.21 13 14 13H6C3.79 13 2 11.21 2 9V7Z" stroke="#71717A" strokeWidth="1.3" />
+        <line x1="2" y1="10" x2="18" y2="10" stroke="#71717A" strokeWidth="1" strokeDasharray="2 2" />
+        <path d="M5 17L15 17" stroke="#71717A" strokeWidth="1.3" strokeLinecap="round" />
     </svg>
 );
 const IconFrameOnly = () => (
     <svg width="20" height="14" viewBox="0 0 20 14" fill="none">
-        <path d="M1 4H4L5 1H9L10 4H11L12 1H16L17 4H19V10C19 11.1 18.1 12 17 12H12C10.9 12 10 11.1 10 10V8H10C10 9.1 9.1 10 8 10H3C1.9 10 1 9.1 1 8V4Z" stroke="#71717A" strokeWidth="1.3" strokeLinejoin="round"/>
+        <path d="M1 4H4L5 1H9L10 4H11L12 1H16L17 4H19V10C19 11.1 18.1 12 17 12H12C10.9 12 10 11.1 10 10V8H10C10 9.1 9.1 10 8 10H3C1.9 10 1 9.1 1 8V4Z" stroke="#71717A" strokeWidth="1.3" strokeLinejoin="round" />
     </svg>
 );
 const ChevronRight = () => (
     <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
-        <path d="M1 1L6 6L1 11" stroke="#040205" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M1 1L6 6L1 11" stroke="#040205" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
 );
 const ChevronLeft = () => (
     <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
-        <path d="M6 1L1 6L6 11" stroke="#040205" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M6 1L1 6L6 11" stroke="#040205" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
 );
 const ChevronDown = () => (
     <svg width="12" height="7" viewBox="0 0 12 7" fill="none">
-        <path d="M1 1L6 6L11 1" stroke="#040205" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M1 1L6 6L11 1" stroke="#040205" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
 );
 const PlusIcon = () => (
     <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-        <path d="M6.5 1V12M1 6.5H12" stroke="#71717A" strokeWidth="1.4" strokeLinecap="round"/>
+        <path d="M6.5 1V12M1 6.5H12" stroke="#71717A" strokeWidth="1.4" strokeLinecap="round" />
     </svg>
 );
 const CloseIcon = () => (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-        <path d="M1 1L13 13M13 1L1 13" stroke="#040205" strokeWidth="1.5" strokeLinecap="round"/>
+        <path d="M1 1L13 13M13 1L1 13" stroke="#040205" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
 );
 const WarrantyIcon = () => (
     <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-        <circle cx="5" cy="5" r="4.5" stroke="#0D9488" strokeWidth="0.8"/>
-        <path d="M3 5L4.5 6.5L7 3.5" stroke="#0D9488" strokeWidth="0.9" strokeLinecap="round" strokeLinejoin="round"/>
+        <circle cx="5" cy="5" r="4.5" stroke="#0D9488" strokeWidth="0.8" />
+        <path d="M3 5L4.5 6.5L7 3.5" stroke="#0D9488" strokeWidth="0.9" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
 );
 const IconPrescriptionDoc = () => (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <rect x="4" y="2" width="13" height="17" rx="2" stroke="#68408D" strokeWidth="1.4"/>
-        <path d="M8 7H13" stroke="#68408D" strokeWidth="1.2" strokeLinecap="round"/>
-        <path d="M8 10H13" stroke="#68408D" strokeWidth="1.2" strokeLinecap="round"/>
-        <path d="M8 13H11" stroke="#68408D" strokeWidth="1.2" strokeLinecap="round"/>
-        <path d="M12.5 15.5L14.5 17.5M14.5 15.5L12.5 17.5" stroke="#68408D" strokeWidth="1.2" strokeLinecap="round"/>
+        <rect x="4" y="2" width="13" height="17" rx="2" stroke="#68408D" strokeWidth="1.4" />
+        <path d="M8 7H13" stroke="#68408D" strokeWidth="1.2" strokeLinecap="round" />
+        <path d="M8 10H13" stroke="#68408D" strokeWidth="1.2" strokeLinecap="round" />
+        <path d="M8 13H11" stroke="#68408D" strokeWidth="1.2" strokeLinecap="round" />
+        <path d="M12.5 15.5L14.5 17.5M14.5 15.5L12.5 17.5" stroke="#68408D" strokeWidth="1.2" strokeLinecap="round" />
     </svg>
 );
 const IconUploadPdf = () => (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <path d="M12 15V8M12 8L9.5 10.5M12 8L14.5 10.5" stroke="#68408D" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-        <path d="M6 17H18" stroke="#68408D" strokeWidth="1.3" strokeLinecap="round"/>
-        <rect x="3" y="3" width="18" height="18" rx="3" stroke="#68408D" strokeWidth="1.3"/>
+        <path d="M12 15V8M12 8L9.5 10.5M12 8L14.5 10.5" stroke="#68408D" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M6 17H18" stroke="#68408D" strokeWidth="1.3" strokeLinecap="round" />
+        <rect x="3" y="3" width="18" height="18" rx="3" stroke="#68408D" strokeWidth="1.3" />
     </svg>
 );
 const IconClock = () => (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <circle cx="12" cy="12" r="9" stroke="#68408D" strokeWidth="1.4"/>
-        <path d="M12 7V12L15 14" stroke="#68408D" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+        <circle cx="12" cy="12" r="9" stroke="#68408D" strokeWidth="1.4" />
+        <path d="M12 7V12L15 14" stroke="#68408D" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
 );
 
@@ -123,7 +123,7 @@ const Stepper = ({ current }) => (
                     <div className={`lsa-step__circle${i < current ? ' lsa-step__circle--done' : i === current ? ' lsa-step__circle--active' : ''}`}>
                         {i < current ? (
                             <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-                                <path d="M1 4L4 7L9 1" stroke="#FEFCFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path d="M1 4L4 7L9 1" stroke="#FEFCFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                         ) : (
                             <span>{i + 1}</span>
@@ -142,33 +142,22 @@ const Stepper = ({ current }) => (
 );
 
 /* ════════════════════════════════════════════════════════
-   GROUP LENSES BY BRAND, THEN BY TYPE, THEN PACKAGES
+   GROUP LENSES BY BRAND, THEN PACKAGES
    ════════════════════════════════════════════════════════ */
-const groupLensesByBrandAndTypeAndPackage = (lenses) => {
+const groupLensesByBrandAndPackage = (lenses) => {
     const brandMap = {};
-    
+
     lenses.forEach(lens => {
         const brandName = lens.brand_name || 'Other';
-        const typeName = lens.type_label || 'General';
-        
+
         if (!brandMap[brandName]) {
-            brandMap[brandName] = { id: brandName, name: brandName, types: {} };
+            brandMap[brandName] = { id: brandName, name: brandName, lenses: [] };
         }
-        
-        if (!brandMap[brandName].types[typeName]) {
-            brandMap[brandName].types[typeName] = { id: typeName, name: typeName, lenses: [] };
-        }
-        
-        brandMap[brandName].types[typeName].lenses.push(lens);
+
+        brandMap[brandName].lenses.push(lens);
     });
-    
-    // Convert types object to array
-    const brands = Object.values(brandMap).map(brand => ({
-        ...brand,
-        types: Object.values(brand.types)
-    }));
-    
-    return brands;
+
+    return Object.values(brandMap);
 };
 
 /* ════════════════════════════════════════════════════════
@@ -177,11 +166,11 @@ const groupLensesByBrandAndTypeAndPackage = (lenses) => {
 const LensPreview = ({ selected }) => (
     <div className={`lsa-lens-preview${selected ? ' lsa-lens-preview--selected' : ''}`}>
         <svg width="70%" height="70%" viewBox="0 0 80 56" fill="none">
-            <ellipse cx="40" cy="28" rx="38" ry="26" fill={selected ? '#EBE3F2' : '#F4F3F5'}/>
-            <ellipse cx="40" cy="28" rx="38" ry="26" stroke={selected ? '#68408D' : '#D4D2D6'} strokeWidth="1.5"/>
+            <ellipse cx="40" cy="28" rx="38" ry="26" fill={selected ? '#EBE3F2' : '#F4F3F5'} />
+            <ellipse cx="40" cy="28" rx="38" ry="26" stroke={selected ? '#68408D' : '#D4D2D6'} strokeWidth="1.5" />
             {/* AR coating shimmer */}
-            <ellipse cx="28" cy="18" rx="12" ry="7" fill="white" fillOpacity="0.35" transform="rotate(-20 28 18)"/>
-            <ellipse cx="52" cy="36" rx="8" ry="4" fill="white" fillOpacity="0.2" transform="rotate(-20 52 36)"/>
+            <ellipse cx="28" cy="18" rx="12" ry="7" fill="white" fillOpacity="0.35" transform="rotate(-20 28 18)" />
+            <ellipse cx="52" cy="36" rx="8" ry="4" fill="white" fillOpacity="0.2" transform="rotate(-20 52 36)" />
         </svg>
         <div className="lsa-lens-preview__warranty">
             <WarrantyIcon />
@@ -196,6 +185,9 @@ const LensPreview = ({ selected }) => (
 const LensPackageCard = ({ pkg, selected, onSelect, productBasePrice = 0 }) => {
     const features = Array.isArray(pkg.features) ? pkg.features : [];
     const lensPrice = parseFloat(pkg.price || 0);
+    const warranty = pkg.package_warranty_months || 0;
+    const lensIndex = pkg.index || '—';
+
     return (
         <button
             className={`lsa-pkg-card${selected ? ' lsa-pkg-card--selected' : ''}`}
@@ -205,9 +197,11 @@ const LensPackageCard = ({ pkg, selected, onSelect, productBasePrice = 0 }) => {
                 <LensPreview selected={selected} />
                 <div className="lsa-pkg-card__info">
                     <h4 className="lsa-pkg-card__name">{pkg.package_name || pkg.name}</h4>
-                    {pkg.description && (
-                        <p style={{ fontSize: 11, color: '#71717a', margin: '2px 0 4px' }}>{pkg.description}</p>
-                    )}
+                    {/* Customer-facing info: Features, Index, Warranty */}
+                    <div style={{ fontSize: 11, color: '#71717a', marginBottom: 6 }}>
+                        <div>Index: {lensIndex}</div>
+                        {warranty > 0 && <div>Warranty: {warranty} months</div>}
+                    </div>
                     {features.length > 0 && (
                         <ul className="lsa-pkg-card__features">
                             {features.map((f, i) => <li key={i}>{f}</li>)}
@@ -231,51 +225,10 @@ const LensPackageCard = ({ pkg, selected, onSelect, productBasePrice = 0 }) => {
 };
 
 /* ════════════════════════════════════════════════════════
-   TYPE ACCORDION (nested under brand)
-   ════════════════════════════════════════════════════════ */
-const TypeAccordion = ({ type, isOpen, onToggle, selectedLens, onSelectLens, productBasePrice }) => (
-    <div className={`lsa-brand lsa-brand--type${isOpen ? ' lsa-brand--open' : ''}`} style={{ marginLeft: 12 }}>
-        <button className="lsa-brand__header" onClick={onToggle}>
-            <div className="lsa-brand__header-left">
-                <div className="lsa-brand__logo" style={{ background: '#F3E8FF', color: '#9333EA', fontSize: 11 }}>
-                    {(type.name || '').slice(0, 2).toUpperCase()}
-                </div>
-                <div className="lsa-brand__meta">
-                    <span className="lsa-brand__name" style={{ fontSize: 13 }}>{type.name}</span>
-                    <span className="lsa-brand__tagline">{type.lenses.length} package{type.lenses.length !== 1 ? 's' : ''}</span>
-                </div>
-            </div>
-            <span className="lsa-brand__toggle-icon">
-                {isOpen ? <ChevronDown /> : <PlusIcon />}
-            </span>
-        </button>
-
-        {isOpen && (
-            <div className="lsa-brand__body">
-                {type.lenses.map(pkg => (
-                    <LensPackageCard
-                        key={pkg.id}
-                        pkg={pkg}
-                        selected={selectedLens === pkg.id}
-                        onSelect={onSelectLens}
-                        productBasePrice={productBasePrice}
-                    />
-                ))}
-            </div>
-        )}
-    </div>
-);
-
-/* ════════════════════════════════════════════════════════
-   BRAND ACCORDION (now contains types)
+   BRAND ACCORDION (now contains lenses directly)
    ════════════════════════════════════════════════════════ */
 const BrandAccordion = ({ brand, selectedLens, onSelectLens, productBasePrice }) => {
     const [openBrand, setOpenBrand] = React.useState(false);
-    const [openTypes, setOpenTypes] = React.useState({});
-
-    const toggleType = (typeId) => {
-        setOpenTypes(prev => ({ ...prev, [typeId]: !prev[typeId] }));
-    };
 
     return (
         <div className={`lsa-brand${openBrand ? ' lsa-brand--open' : ''}`}>
@@ -286,7 +239,7 @@ const BrandAccordion = ({ brand, selectedLens, onSelectLens, productBasePrice })
                     </div>
                     <div className="lsa-brand__meta">
                         <span className="lsa-brand__name">{brand.name}</span>
-                        <span className="lsa-brand__tagline">{brand.types.length} lens type{brand.types.length !== 1 ? 's' : ''}</span>
+                        <span className="lsa-brand__tagline">{brand.lenses.length} package{brand.lenses.length !== 1 ? 's' : ''}</span>
                     </div>
                 </div>
                 <span className="lsa-brand__toggle-icon">
@@ -295,15 +248,13 @@ const BrandAccordion = ({ brand, selectedLens, onSelectLens, productBasePrice })
             </button>
 
             {openBrand && (
-                <div className="lsa-brand__body">
-                    {brand.types.map(type => (
-                        <TypeAccordion
-                            key={type.id}
-                            type={type}
-                            isOpen={openTypes[type.id] || false}
-                            onToggle={() => toggleType(type.id)}
-                            selectedLens={selectedLens}
-                            onSelectLens={onSelectLens}
+                <div className="lsa-brand__body" style={{ padding: '0 12px 12px' }}>
+                    {brand.lenses.map(pkg => (
+                        <LensPackageCard
+                            key={pkg.id}
+                            pkg={pkg}
+                            selected={selectedLens === pkg.id}
+                            onSelect={onSelectLens}
                             productBasePrice={productBasePrice}
                         />
                     ))}
@@ -317,10 +268,10 @@ const BrandAccordion = ({ brand, selectedLens, onSelectLens, productBasePrice })
    STEP 1 — Power Type
    ════════════════════════════════════════════════════════ */
 const POWER_OPTIONS = [
-    { id: 'with_power',  icon: <IconWithPower />,  iconBg: 'purple', title: 'With Power',            subtitle: 'Positive, Negative or Cylindrical', badge: 'Popular' },
-    { id: 'zero_power',  icon: <IconZeroPower />,  iconBg: 'grey',   title: 'Zero Power',            subtitle: 'BLU Screen lenses, blue light block' },
-    { id: 'progressive', icon: <IconProgressive />, iconBg: 'grey',  title: 'Progressive / Bifocals', subtitle: 'Two powers in one eye' },
-    { id: 'frame_only',  icon: <IconFrameOnly />,  iconBg: 'grey',   title: 'Frame Only',            subtitle: 'With no lenses' },
+    { id: 'with_power', icon: <IconWithPower />, iconBg: 'purple', title: 'With Power', subtitle: 'Positive, Negative or Cylindrical', badge: 'Popular' },
+    { id: 'zero_power', icon: <IconZeroPower />, iconBg: 'grey', title: 'Zero Power', subtitle: 'BLU Screen lenses, blue light block' },
+    { id: 'progressive', icon: <IconProgressive />, iconBg: 'grey', title: 'Progressive / Bifocals', subtitle: 'Two powers in one eye' },
+    { id: 'frame_only', icon: <IconFrameOnly />, iconBg: 'grey', title: 'Frame Only', subtitle: 'With no lenses' },
 ];
 
 const StepPower = ({ selected, onSelect }) => (
@@ -394,15 +345,15 @@ const StepLenses = ({ selectedLens, onSelectLens, productBasePrice, lensGroups, 
    PD MEASURE MODAL — inline camera + AI measurement
    ════════════════════════════════════════════════════════ */
 const PDMeasureModal = ({ onClose, onPdMeasured }) => {
-    const videoRef   = useRef(null);
-    const canvasRef  = useRef(null);
-    const streamRef  = useRef(null);
+    const videoRef = useRef(null);
+    const canvasRef = useRef(null);
+    const streamRef = useRef(null);
 
     const [capturedImage, setCapturedImage] = useState(null);
-    const [measuring,     setMeasuring]     = useState(false);
-    const [result,        setResult]        = useState(null);
-    const [error,         setError]         = useState(null);
-    const [camReady,      setCamReady]      = useState(false);
+    const [measuring, setMeasuring] = useState(false);
+    const [result, setResult] = useState(null);
+    const [error, setError] = useState(null);
+    const [camReady, setCamReady] = useState(false);
 
     const stopCamera = useCallback(() => {
         if (streamRef.current) {
@@ -434,7 +385,7 @@ const PDMeasureModal = ({ onClose, onPdMeasured }) => {
     const capturePhoto = () => {
         if (!videoRef.current || !canvasRef.current) return;
         const ctx = canvasRef.current.getContext('2d');
-        canvasRef.current.width  = videoRef.current.videoWidth;
+        canvasRef.current.width = videoRef.current.videoWidth;
         canvasRef.current.height = videoRef.current.videoHeight;
         ctx.drawImage(videoRef.current, 0, 0);
         const dataUrl = canvasRef.current.toDataURL('image/jpeg');
@@ -503,12 +454,12 @@ const PDMeasureModal = ({ onClose, onPdMeasured }) => {
                     <div className="lsa-pd-modal__header-left">
                         <div className="lsa-pd-modal__icon">
                             <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                                <circle cx="9" cy="9" r="7.5" stroke="#68408D" strokeWidth="1.3"/>
-                                <circle cx="5" cy="9" r="1.2" fill="#68408D"/>
-                                <circle cx="13" cy="9" r="1.2" fill="#68408D"/>
-                                <line x1="1.5" y1="9" x2="3.5" y2="9" stroke="#68408D" strokeWidth="1.3" strokeLinecap="round"/>
-                                <line x1="14.5" y1="9" x2="16.5" y2="9" stroke="#68408D" strokeWidth="1.3" strokeLinecap="round"/>
-                                <line x1="5" y1="9" x2="13" y2="9" stroke="#68408D" strokeWidth="1" strokeDasharray="1.5 1.5"/>
+                                <circle cx="9" cy="9" r="7.5" stroke="#68408D" strokeWidth="1.3" />
+                                <circle cx="5" cy="9" r="1.2" fill="#68408D" />
+                                <circle cx="13" cy="9" r="1.2" fill="#68408D" />
+                                <line x1="1.5" y1="9" x2="3.5" y2="9" stroke="#68408D" strokeWidth="1.3" strokeLinecap="round" />
+                                <line x1="14.5" y1="9" x2="16.5" y2="9" stroke="#68408D" strokeWidth="1.3" strokeLinecap="round" />
+                                <line x1="5" y1="9" x2="13" y2="9" stroke="#68408D" strokeWidth="1" strokeDasharray="1.5 1.5" />
                             </svg>
                         </div>
                         <div>
@@ -581,11 +532,11 @@ const PDMeasureModal = ({ onClose, onPdMeasured }) => {
                             disabled={!camReady || !!error}
                         >
                             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                                <circle cx="7" cy="7" r="3" stroke="#FEFCFF" strokeWidth="1.4"/>
-                                <path d="M1 5V3C1 2 2 1 3 1H5" stroke="#FEFCFF" strokeWidth="1.3" strokeLinecap="round"/>
-                                <path d="M9 1H11C12 1 13 2 13 3V5" stroke="#FEFCFF" strokeWidth="1.3" strokeLinecap="round"/>
-                                <path d="M1 9V11C1 12 2 13 3 13H5" stroke="#FEFCFF" strokeWidth="1.3" strokeLinecap="round"/>
-                                <path d="M9 13H11C12 13 13 12 13 11V9" stroke="#FEFCFF" strokeWidth="1.3" strokeLinecap="round"/>
+                                <circle cx="7" cy="7" r="3" stroke="#FEFCFF" strokeWidth="1.4" />
+                                <path d="M1 5V3C1 2 2 1 3 1H5" stroke="#FEFCFF" strokeWidth="1.3" strokeLinecap="round" />
+                                <path d="M9 1H11C12 1 13 2 13 3V5" stroke="#FEFCFF" strokeWidth="1.3" strokeLinecap="round" />
+                                <path d="M1 9V11C1 12 2 13 3 13H5" stroke="#FEFCFF" strokeWidth="1.3" strokeLinecap="round" />
+                                <path d="M9 13H11C12 13 13 12 13 11V9" stroke="#FEFCFF" strokeWidth="1.3" strokeLinecap="round" />
                             </svg>
                             Capture Photo
                         </button>
@@ -661,7 +612,7 @@ const ManualPowerForm = ({ rx, onRxChange, rxMeta, onMetaChange, powerType }) =>
                     <span className={`lsa-manual-checkbox__box${samePower ? ' lsa-manual-checkbox__box--checked' : ''}`}>
                         {samePower && (
                             <svg width="11" height="8" viewBox="0 0 11 8" fill="none">
-                                <path d="M1 4L4 7L10 1" stroke="#FEFCFF" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path d="M1 4L4 7L10 1" stroke="#FEFCFF" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                         )}
                     </span>
@@ -677,7 +628,7 @@ const ManualPowerForm = ({ rx, onRxChange, rxMeta, onMetaChange, powerType }) =>
                     <span className={`lsa-manual-checkbox__box${hasCyl ? ' lsa-manual-checkbox__box--checked' : ''}`}>
                         {hasCyl && (
                             <svg width="11" height="8" viewBox="0 0 11 8" fill="none">
-                                <path d="M1 4L4 7L10 1" stroke="#FEFCFF" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path d="M1 4L4 7L10 1" stroke="#FEFCFF" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                         )}
                     </span>
@@ -765,12 +716,12 @@ const ManualPowerForm = ({ rx, onRxChange, rxMeta, onMetaChange, powerType }) =>
                         title="Measure PD with AI camera"
                     >
                         <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-                            <circle cx="6.5" cy="6.5" r="5.5" stroke="#68408D" strokeWidth="1.2"/>
-                            <circle cx="3.5" cy="6.5" r="0.9" fill="#68408D"/>
-                            <circle cx="9.5" cy="6.5" r="0.9" fill="#68408D"/>
-                            <line x1="0.5" y1="6.5" x2="2.5" y2="6.5" stroke="#68408D" strokeWidth="1.2" strokeLinecap="round"/>
-                            <line x1="10.5" y1="6.5" x2="12.5" y2="6.5" stroke="#68408D" strokeWidth="1.2" strokeLinecap="round"/>
-                            <line x1="3.5" y1="6.5" x2="9.5" y2="6.5" stroke="#68408D" strokeWidth="0.9" strokeDasharray="1.2 1.2"/>
+                            <circle cx="6.5" cy="6.5" r="5.5" stroke="#68408D" strokeWidth="1.2" />
+                            <circle cx="3.5" cy="6.5" r="0.9" fill="#68408D" />
+                            <circle cx="9.5" cy="6.5" r="0.9" fill="#68408D" />
+                            <line x1="0.5" y1="6.5" x2="2.5" y2="6.5" stroke="#68408D" strokeWidth="1.2" strokeLinecap="round" />
+                            <line x1="10.5" y1="6.5" x2="12.5" y2="6.5" stroke="#68408D" strokeWidth="1.2" strokeLinecap="round" />
+                            <line x1="3.5" y1="6.5" x2="9.5" y2="6.5" stroke="#68408D" strokeWidth="0.9" strokeDasharray="1.2 1.2" />
                         </svg>
                         {pd ? 'Re-measure' : 'Measure PD'}
                     </button>
@@ -784,7 +735,7 @@ const ManualPowerForm = ({ rx, onRxChange, rxMeta, onMetaChange, powerType }) =>
                     />
                 )}
 
-            {/* Progressive ADD power row */}
+                {/* Progressive ADD power row */}
                 {powerType === 'progressive' && (
                     <div className="lsa-power-grid__add-row">
                         <span className="lsa-power-grid__add-label">ADD Power</span>
@@ -830,9 +781,9 @@ const ManualPowerForm = ({ rx, onRxChange, rxMeta, onMetaChange, powerType }) =>
             {/* Help / call link */}
             <div className="lsa-manual-help">
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                    <circle cx="9" cy="9" r="8" stroke="#71717A" strokeWidth="1.2"/>
-                    <path d="M9 13V9" stroke="#71717A" strokeWidth="1.4" strokeLinecap="round"/>
-                    <circle cx="9" cy="6.5" r="0.75" fill="#71717A"/>
+                    <circle cx="9" cy="9" r="8" stroke="#71717A" strokeWidth="1.2" />
+                    <path d="M9 13V9" stroke="#71717A" strokeWidth="1.4" strokeLinecap="round" />
+                    <circle cx="9" cy="6.5" r="0.75" fill="#71717A" />
                 </svg>
                 <span className="lsa-manual-help__text">Can't find your power?</span>
                 <a href="tel:+9100000000" className="lsa-manual-help__call">Call +91 00000000</a>
@@ -877,8 +828,8 @@ const StepRx = ({ powerType, rx, onRxChange, rxMode, setRxMode, onUpload, upload
                 </p>
                 <div className="lsa-rx-skip-card">
                     <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-                        <circle cx="20" cy="20" r="19" stroke="#EBE3F2" strokeWidth="1.5"/>
-                        <path d="M13 20L18 25L27 15" stroke="#68408D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <circle cx="20" cy="20" r="19" stroke="#EBE3F2" strokeWidth="1.5" />
+                        <path d="M13 20L18 25L27 15" stroke="#68408D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                     <p>You're all set — proceed to add to bag.</p>
                 </div>
@@ -894,8 +845,8 @@ const StepRx = ({ powerType, rx, onRxChange, rxMode, setRxMode, onUpload, upload
             <div className="lsa-rx-help-banner">
                 <div className="lsa-rx-help-banner__icon">
                     <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                        <circle cx="10" cy="10" r="9" stroke="#22c55e" strokeWidth="1.5"/>
-                        <path d="M6 10L9 13L14 7" stroke="#22c55e" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                        <circle cx="10" cy="10" r="9" stroke="#22c55e" strokeWidth="1.5" />
+                        <path d="M6 10L9 13L14 7" stroke="#22c55e" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                 </div>
                 <div className="lsa-rx-help-banner__text">
@@ -972,9 +923,9 @@ const StepRx = ({ powerType, rx, onRxChange, rxMode, setRxMode, onUpload, upload
             {rxMode === 'later' && (
                 <div className="lsa-rx-skip-card" style={{ marginTop: 8 }}>
                     <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-                        <circle cx="20" cy="20" r="19" stroke="#EBE3F2" strokeWidth="1.5"/>
-                        <circle cx="20" cy="20" r="9" stroke="#68408D" strokeWidth="1.4"/>
-                        <path d="M20 15V20L23 22" stroke="#68408D" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <circle cx="20" cy="20" r="19" stroke="#EBE3F2" strokeWidth="1.5" />
+                        <circle cx="20" cy="20" r="9" stroke="#68408D" strokeWidth="1.4" />
+                        <path d="M20 15V20L23 22" stroke="#68408D" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                     <p>We'll remind you to submit your prescription within 15 days of delivery.</p>
                     <button className="lsa-rx-back-link" style={{ marginTop: 4 }} onClick={() => setRxMode(null)}>← Change option</button>
@@ -1015,31 +966,20 @@ const LensSelectionAside = ({ isOpen, onClose, product, onAddToCart }) => {
     const [lensesLoading, setLensesLoading] = useState(false);
 
     useEffect(() => {
-        if (!isOpen || allLenses.length > 0) return;
+        if (!isOpen || !product?.id) return;
+        // Reset lenses when product changes
+        setAllLenses([]);
         setLensesLoading(true);
-        apiClient.get('/catalog/lenses/', { params: { is_active: true } })
+        apiClient.get(`/catalog/products/${product.id}/recommended_lenses/`)
             .then(res => {
                 const lenses = res.data.results || res.data;
                 setAllLenses(Array.isArray(lenses) ? lenses : []);
             })
             .catch(() => setAllLenses([]))
             .finally(() => setLensesLoading(false));
-    }, [isOpen]);
+    }, [isOpen, product?.id]);
 
-    const categoryName = product?.category_name || product?.category?.name || '';
-    const isSunglasses = categoryName.toLowerCase().includes('sunglass') || 
-                        product?.title?.toLowerCase().includes('sunglass');
-
-    console.log(`[Lens Filter] Frame: "${product?.title}", Category: "${categoryName}", IsSunglasses: ${isSunglasses}`);
-
-    const lensGroups = groupLensesByBrandAndTypeAndPackage(
-        allLenses.filter(l => {
-            if (l.is_active === false) return false;
-            // Strict filter: if frame is sunglasses, show only is_for_sunglasses. Otherwise show is_for_eyeglasses.
-            if (isSunglasses) return l.is_for_sunglasses;
-            return l.is_for_eyeglasses;
-        })
-    );
+    const lensGroups = groupLensesByBrandAndPackage(allLenses);
 
     const basePrice = parseFloat(product?.base_price ?? 0);
 
@@ -1080,6 +1020,10 @@ const LensSelectionAside = ({ isOpen, onClose, product, onAddToCart }) => {
 
     const handleLensSelect = (id) => {
         setSelectedLensId(id);
+        // Automatically proceed to Rx step after a brief delay for visual feedback
+        setTimeout(() => {
+            setStep(2);
+        }, 300);
     };
 
     const handleAddToCart = () => {
@@ -1088,8 +1032,8 @@ const LensSelectionAside = ({ isOpen, onClose, product, onAddToCart }) => {
         const prescriptionObj = needsRx && rxMode === 'manual'
             ? { ...rx, pd: rxMeta.pd, name: rxMeta.name, phone: rxMeta.phone }
             : needsRx && (rxMode === 'upload' || rxMode === 'later') && rxMeta.name
-            ? { name: rxMeta.name }
-            : null;
+                ? { name: rxMeta.name }
+                : null;
         const pdfUrl = rxMode === 'upload' && uploadedFile
             ? URL.createObjectURL(uploadedFile)
             : null;
@@ -1174,37 +1118,39 @@ const LensSelectionAside = ({ isOpen, onClose, product, onAddToCart }) => {
                     )}
                 </div>
 
-                {/* Sticky footer CTA */}
-                <div className="lsa-footer">
-                    <button
-                        className="lsa-footer__cta"
-                        style={cta.style}
-                        disabled={cta.disabled}
-                        onClick={cta.action}
-                    >
-                        {cta.label}
-                    </button>
-                    {step === 2 && rxMode === 'manual' ? (
-                        <div className="lsa-footer__secondary-actions">
-                            <button className="lsa-footer__sec-btn">
-                                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                                    <circle cx="7" cy="7" r="6" stroke="#71717A" strokeWidth="1.2"/>
-                                    <path d="M7 10V7" stroke="#71717A" strokeWidth="1.3" strokeLinecap="round"/>
-                                    <circle cx="7" cy="5" r="0.65" fill="#71717A"/>
-                                </svg>
-                                Help
-                            </button>
-                            <button className="lsa-footer__sec-btn">
-                                <svg width="10" height="13" viewBox="0 0 10 13" fill="none">
-                                    <path d="M1 1.5H9V11.5L5 9.5L1 11.5V1.5Z" stroke="#71717A" strokeWidth="1.2" strokeLinejoin="round"/>
-                                </svg>
-                                Save Draft
-                            </button>
-                        </div>
-                    ) : (
-                        cta.sub && <p className="lsa-footer__sub">{cta.sub}</p>
-                    )}
-                </div>
+                {/* Sticky footer CTA (hidden on step 1 since it auto-advances) */}
+                {step !== 1 && (
+                    <div className="lsa-footer">
+                        <button
+                            className="lsa-footer__cta"
+                            style={cta.style}
+                            disabled={cta.disabled}
+                            onClick={cta.action}
+                        >
+                            {cta.label}
+                        </button>
+                        {step === 2 && rxMode === 'manual' ? (
+                            <div className="lsa-footer__secondary-actions">
+                                <button className="lsa-footer__sec-btn">
+                                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                                        <circle cx="7" cy="7" r="6" stroke="#71717A" strokeWidth="1.2" />
+                                        <path d="M7 10V7" stroke="#71717A" strokeWidth="1.3" strokeLinecap="round" />
+                                        <circle cx="7" cy="5" r="0.65" fill="#71717A" />
+                                    </svg>
+                                    Help
+                                </button>
+                                <button className="lsa-footer__sec-btn">
+                                    <svg width="10" height="13" viewBox="0 0 10 13" fill="none">
+                                        <path d="M1 1.5H9V11.5L5 9.5L1 11.5V1.5Z" stroke="#71717A" strokeWidth="1.2" strokeLinejoin="round" />
+                                    </svg>
+                                    Save Draft
+                                </button>
+                            </div>
+                        ) : (
+                            cta.sub && <p className="lsa-footer__sub">{cta.sub}</p>
+                        )}
+                    </div>
+                )}
             </aside>
         </>
     );

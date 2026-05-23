@@ -77,7 +77,7 @@ class Order(models.Model):
         ('complete_cod', 'Complete COD'),
         ('complete_online', 'Complete Online'),
         ('partial_payment', 'Partial Payment'),
-        # Legacy values kept for backward compat
+        #  values kept for backward compat
         ('COD', 'Cash on Delivery'),
         ('ONLINE', 'Full Online Payment'),
         ('PARTIAL', 'Partial (Online + COD)'),
@@ -97,7 +97,7 @@ class Order(models.Model):
     razorpay_payment_id = models.CharField(max_length=255, blank=True, null=True)
     razorpay_signature = models.CharField(max_length=255, blank=True, null=True)
 
-    # Legacy MetadataItem status (kept for backward compat)
+    #  MetadataItem status (kept for backward compat)
     status = models.ForeignKey(MetadataItem, on_delete=models.SET_NULL, null=True, blank=True, related_name='order_status')
 
     coupon = models.ForeignKey(Coupon, on_delete=models.SET_NULL, null=True, blank=True)

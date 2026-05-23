@@ -22,7 +22,7 @@ const ProductTable = () => {
 
   const fetchData = async () => {
     try {
-      const res = await apiClient.get('/catalog/products/');
+      const res = await apiClient.get('/catalog/products/?admin=true');
       setProducts(Array.isArray(res.data) ? res.data : (res.data.results || []));
     } catch (err) { 
       console.error('Fetch error', err); 
@@ -52,10 +52,17 @@ const ProductTable = () => {
   const handleDeleteClick = async (id) => {
     if (window.confirm('Are you sure you want to delete this product? This will remove all variants and images.')) {
       try {
-        await apiClient.delete(`/catalog/products/${id}/`);
+        const res = await apiClient.delete(`/catalog/products/${id}/`);
+        // 200 = soft-deleted (has order history), 204 = hard-deleted
+        if (res.data?.detail) {
+          alert(res.data.detail);
+        }
         fetchData();
       } catch (err) {
-        console.error('Delete failed', err);
+        const status = err.response?.status;
+        const detail = err.response?.data?.detail || err.message || 'Unknown error';
+        console.error('Delete failed', status, detail, err);
+        alert(`Failed to delete product: ${status ? `(${status}) ` : ''}${detail}`);
       }
     }
   };

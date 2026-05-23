@@ -355,7 +355,7 @@ const RejectModal = ({ onClose, onConfirm, saving }) => {
 };
 
 /* ─── Notes + Action buttons (shared by both paths) ───── */
-const NotesAndActions = ({ notes, setNotes, submit, saving, error, success, onReuploadClick, onRejectClick }) => (
+const NotesAndActions = ({ notes, setNotes, submit, saving, error, success, onReuploadClick, onRejectClick, isApproved }) => (
   <>
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       <label style={{ fontSize: 14, fontWeight: 500, color: '#0f172a', lineHeight: '16px' }}>
@@ -367,6 +367,7 @@ const NotesAndActions = ({ notes, setNotes, submit, saving, error, success, onRe
           onChange={e => setNotes(e.target.value)}
           placeholder="Notes for team (not visible to customer)..."
           rows={3}
+          disabled={isApproved}
           style={{
             width: '100%', boxSizing: 'border-box', padding: '10px',
             border: 'none', borderRadius: 10, fontSize: 14,
@@ -391,11 +392,11 @@ const NotesAndActions = ({ notes, setNotes, submit, saving, error, success, onRe
     <div style={{ display: 'flex', gap: 12, alignItems: 'center', paddingTop: 8 }}>
       <button
         onClick={() => submit('Approved')}
-        disabled={saving}
+        disabled={saving || isApproved}
         style={{
           flex: 1, padding: '10px 12px', borderRadius: 6, border: 'none',
-          background: saving ? '#6ee7b7' : '#10b981', color: '#fff',
-          fontSize: 14, fontWeight: 500, cursor: saving ? 'not-allowed' : 'pointer',
+          background: saving || isApproved ? '#6ee7b7' : '#10b981', color: '#fff',
+          fontSize: 14, fontWeight: 500, cursor: saving || isApproved ? 'not-allowed' : 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}
       >
@@ -403,12 +404,12 @@ const NotesAndActions = ({ notes, setNotes, submit, saving, error, success, onRe
       </button>
       <button
         onClick={onReuploadClick}
-        disabled={saving}
+        disabled={saving || isApproved}
         style={{
           flex: 1, padding: '10px 12px', borderRadius: 6,
           border: '1px solid #d1d5db', background: '#fff',
           color: '#0f172a', fontSize: 14, fontWeight: 500,
-          cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1,
+          cursor: saving || isApproved ? 'not-allowed' : 'pointer', opacity: saving || isApproved ? 0.6 : 1,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}
       >
@@ -416,12 +417,12 @@ const NotesAndActions = ({ notes, setNotes, submit, saving, error, success, onRe
       </button>
       <button
         onClick={onRejectClick}
-        disabled={saving}
+        disabled={saving || isApproved}
         style={{
           flex: 1, padding: '10px 12px', borderRadius: 6,
           border: 'none', background: 'transparent',
           color: '#ef4444', fontSize: 14, fontWeight: 500,
-          cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1,
+          cursor: saving || isApproved ? 'not-allowed' : 'pointer', opacity: saving || isApproved ? 0.6 : 1,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}
       >
@@ -546,6 +547,8 @@ const DetailPanel = ({ rx, onReviewed, autoOpenReupload, onAutoOpenReuploadDone 
     </td>
   );
 
+  const isApproved = rx.status_label && rx.status_label.toLowerCase() === 'approved';
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#f3f0ff', overflow: 'hidden' }}>
 
@@ -630,7 +633,7 @@ const DetailPanel = ({ rx, onReviewed, autoOpenReupload, onAutoOpenReuploadDone 
                   <Eye size={14} /> Open PDF in new tab
                 </a>
               )}
-              <NotesAndActions notes={notes} setNotes={setNotes} submit={submit} saving={saving} error={error} success={success} onReuploadClick={() => setShowReupload(true)} onRejectClick={() => setShowRejectModal(true)} />
+              <NotesAndActions notes={notes} setNotes={setNotes} submit={submit} saving={saving} error={error} success={success} onReuploadClick={() => setShowReupload(true)} onRejectClick={() => setShowRejectModal(true)} isApproved={isApproved} />
             </div>
           </>
         ) : (
@@ -701,7 +704,7 @@ const DetailPanel = ({ rx, onReviewed, autoOpenReupload, onAutoOpenReuploadDone 
               </div>
             </div>
 
-            <NotesAndActions notes={notes} setNotes={setNotes} submit={submit} saving={saving} error={error} success={success} onReuploadClick={() => setShowReupload(true)} onRejectClick={() => setShowRejectModal(true)} />
+            <NotesAndActions notes={notes} setNotes={setNotes} submit={submit} saving={saving} error={error} success={success} onReuploadClick={() => setShowReupload(true)} onRejectClick={() => setShowRejectModal(true)} isApproved={isApproved} />
           </div>
         )}
 

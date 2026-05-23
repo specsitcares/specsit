@@ -46,7 +46,7 @@ const FrameForm = ({ productId, onBack, onSaved }) => {
       try {
         const [catRes, brandRes] = await Promise.all([
           apiClient.get('/catalog/categories/?is_active=true'),
-          apiClient.get('/catalog/products/?product_type=frame&page_size=100'),
+          apiClient.get('/catalog/products/?product_type=frame&page_size=100&admin=true'),
         ]);
         const cats = Array.isArray(catRes.data) ? catRes.data : (catRes.data.results || []);
         setCategories(cats.filter(c => c.category_type === 'Frame' || !c.category_type));

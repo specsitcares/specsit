@@ -194,10 +194,6 @@ const OrderDetail = ({ orderId, onBack }) => {
 
   const handleDispatchConfirm = async () => {
     if (!activeItemForAction) return;
-    if (!dispatchForm.booking_id.trim() || !dispatchForm.rider_name.trim() || !dispatchForm.rider_phone.trim()) {
-      alert('Please fill in all required fields (Booking ID, Rider Name, Rider Phone).');
-      return;
-    }
     setDispatchSaving(true);
     try {
       const now = new Date().toISOString();
@@ -896,7 +892,7 @@ const OrderDetail = ({ orderId, onBack }) => {
 
                 {/* Porter booking ID */}
                 <div className="dm-field">
-                  <label className="dm-label">Porter booking ID <span className="dm-required">*</span></label>
+                  <label className="dm-label">Porter booking ID</label>
                   <input
                     className="dm-input"
                     placeholder="e.g. PRT-7782"
@@ -907,7 +903,7 @@ const OrderDetail = ({ orderId, onBack }) => {
 
                 {/* Rider full name */}
                 <div className="dm-field">
-                  <label className="dm-label">Rider full name <span className="dm-required">*</span></label>
+                  <label className="dm-label">Rider full name</label>
                   <input
                     className="dm-input"
                     placeholder="e.g. Rakesh"
@@ -918,7 +914,7 @@ const OrderDetail = ({ orderId, onBack }) => {
 
                 {/* Carrier Company */}
                 <div className="dm-field">
-                  <label className="dm-label">Carrier Company <span className="dm-required">*</span></label>
+                  <label className="dm-label">Carrier Company</label>
                   <input
                     className="dm-input"
                     placeholder="e.g. DTDC, FedEx, Delhivery, Porter"
@@ -1300,7 +1296,7 @@ const OrderDetail = ({ orderId, onBack }) => {
 
                 {/* Porter booking ID */}
                 <div className="dm-field">
-                  <label className="dm-label">Porter booking ID <span className="dm-required">*</span></label>
+                  <label className="dm-label">Porter booking ID</label>
                   <input
                     className="dm-input"
                     placeholder="e.g. PRT-7782"
@@ -1311,7 +1307,7 @@ const OrderDetail = ({ orderId, onBack }) => {
 
                 {/* Rider full name */}
                 <div className="dm-field">
-                  <label className="dm-label">Rider full name <span className="dm-required">*</span></label>
+                  <label className="dm-label">Rider full name</label>
                   <input
                     className="dm-input"
                     placeholder="e.g. Rakesh"
@@ -1320,10 +1316,21 @@ const OrderDetail = ({ orderId, onBack }) => {
                   />
                 </div>
 
+                {/* Carrier Company */}
+                <div className="dm-field">
+                  <label className="dm-label">Carrier Company</label>
+                  <input
+                    className="dm-input"
+                    placeholder="e.g. DTDC, FedEx, Delhivery, Porter"
+                    value={tracking.courier_company}
+                    onChange={e => setTracking(t => ({ ...t, courier_company: e.target.value }))}
+                  />
+                </div>
+
                 {/* Rider phone + Vehicle type */}
                 <div className="dm-row">
                   <div className="dm-field">
-                    <label className="dm-label">Rider phone <span className="dm-required">*</span></label>
+                    <label className="dm-label">Rider phone</label>
                     <input
                       className="dm-input"
                       placeholder="+91-9876543210"
@@ -1332,7 +1339,7 @@ const OrderDetail = ({ orderId, onBack }) => {
                     />
                   </div>
                   <div className="dm-field">
-                    <label className="dm-label">Vehicle type <span className="dm-required">*</span></label>
+                    <label className="dm-label">Vehicle type</label>
                     <div className="dm-select-wrap">
                       <select
                         className="dm-select"

@@ -15,6 +15,7 @@ class Category(models.Model):
         ('accessory', 'Accessories'),
     ]
     group = models.CharField(max_length=20, choices=GROUP_CHOICES, default='frame')
+    category_type = models.CharField(max_length=10, choices=[('Lens', 'Lens'), ('Frame', 'Frame')], default='Frame')
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True)
     updated_at = models.DateTimeField(auto_now=True, null=True)
@@ -132,6 +133,7 @@ class Variant(models.Model):
 
     # Marketing and Tax
     stock = models.IntegerField(default=0)
+    stock_by_size = models.JSONField(default=dict, blank=True)
     price_adjustment = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     tax_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
     discount_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
@@ -201,12 +203,22 @@ class Collection(models.Model):
 
 # --- Consolidated Eyewear/Lenses Features ---
 
+class LensConstraint(models.Model):
+    name = models.CharField(max_length=100, unique=True) # e.g. "Rimless", "Half Rim", "Full Rim"
+    description = models.TextField(blank=True)
+    
+    def __str__(self): return self.name
+
 class LensPackage(models.Model):
     name = models.CharField(max_length=100) # Silver, Gold, Platinum
     description = models.TextField(blank=True)
     features = models.JSONField(default=list) # e.g. ["Anti-glare", "UV Protection"]
     is_active = models.BooleanField(default=True)
     categories = models.ManyToManyField(Category, blank=True, related_name='lens_packages')
+    # Financial and warranty fields for packages
+    cost_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True)
+    selling_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True)
+    warranty_months = models.IntegerField(default=0)
     def __str__(self): return self.name
 
 class Lens(models.Model):
@@ -215,10 +227,12 @@ class Lens(models.Model):
     type = models.ForeignKey(MetadataItem, on_delete=models.SET_NULL, null=True, blank=True, limit_choices_to={'group__name': 'Lens Type'})
     brand = models.ForeignKey(Brand, on_delete=models.SET_NULL, null=True, blank=True, related_name='lenses')
     price = models.DecimalField(max_digits=10, decimal_places=2)
-    index = models.CharField(max_length=10, blank=True) # 1.5, 1.61, 1.67, 1.74
+    index = models.CharField(max_length=10, null=True, blank=True)  # e.g., "1.5", "1.61", "1.67", "1.74"
     is_active = models.BooleanField(default=True)
     is_for_sunglasses = models.BooleanField(default=False)
     is_for_eyeglasses = models.BooleanField(default=True)
+    constraints = models.ManyToManyField(LensConstraint, blank=True, related_name='lenses')
+    
     def __str__(self): return f"{self.package.name}: {self.type.label if self.type else 'Generic'}"
 
 class Prescription(models.Model):

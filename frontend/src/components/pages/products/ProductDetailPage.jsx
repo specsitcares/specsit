@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import {
     Zap, ShoppingBag, Check, ChevronRight,
@@ -54,7 +54,7 @@ const ProductDetailPage = () => {
         const fetchReviews = () =>
             apiClient.get(`/catalog/reviews/?product=${id}`)
                 .then(r => setReviews(r.data.results || r.data || []))
-                .catch(() => {});
+                .catch(() => { });
         fetchReviews();
     }, [id]);
 
@@ -162,14 +162,10 @@ const ProductDetailPage = () => {
         .map(v => ({
             name: v.color || v.frame_color || 'Default',
             code: v.color_code || '#555555',
-            id:   v.id,
+            id: v.id,
             images: (v.images || []).map(img => img.image || img).filter(Boolean),
         }))
         .filter((v, i, arr) => arr.findIndex(a => a.name === v.name) === i);
-
-    const variantSizes = [...new Set(
-        (product.variants || []).map(v => v.frame_size).filter(Boolean)
-    )];
 
     // ── Selected variant object — drives price, stock, wishlist ───────────────
     // Match by color name; fall back to first variant so UI never shows product-level stale data
@@ -177,18 +173,24 @@ const ProductDetailPage = () => {
         v => (v.color || v.frame_color || 'Default') === selectedColor
     ) || product.variants?.[0] || null;
 
+    const stockBySize = selectedVariantObj?.stock_by_size || {};
+    const sizeKeys = Object.keys(stockBySize);
+    const variantSizes = sizeKeys.length > 0
+        ? sizeKeys
+        : [...new Set((product.variants || []).map(v => v.frame_size).filter(Boolean))];
+
     // ── Variant-aware pricing — cascading: variant.selling_price → variant.discount_percent → product.selling_price → product.discount_percentage
-    const mrp            = Math.round(parseFloat(selectedVariantObj?.base_price || product.base_price || 0));
+    const mrp = Math.round(parseFloat(selectedVariantObj?.base_price || product.base_price || 0));
     const variantSelling = parseFloat(selectedVariantObj?.selling_price || 0);
     const variantDiscPct = parseFloat(selectedVariantObj?.discount_percent || 0);
     const productSelling = parseFloat(product.selling_price || 0);
     const productDiscPct = parseFloat(product.discount_percentage || 0);
     let finalPrice;
-    if (variantSelling > 0 && variantSelling < mrp)       finalPrice = Math.round(variantSelling);
-    else if (variantDiscPct > 0)                           finalPrice = Math.round(mrp * (1 - variantDiscPct / 100));
-    else if (productSelling > 0 && productSelling < mrp)  finalPrice = Math.round(productSelling);
-    else if (productDiscPct > 0)                           finalPrice = Math.round(mrp * (1 - productDiscPct / 100));
-    else                                                   finalPrice = mrp;
+    if (variantSelling > 0 && variantSelling < mrp) finalPrice = Math.round(variantSelling);
+    else if (variantDiscPct > 0) finalPrice = Math.round(mrp * (1 - variantDiscPct / 100));
+    else if (productSelling > 0 && productSelling < mrp) finalPrice = Math.round(productSelling);
+    else if (productDiscPct > 0) finalPrice = Math.round(mrp * (1 - productDiscPct / 100));
+    else finalPrice = mrp;
     const discountPct = mrp > 0 && finalPrice < mrp ? Math.round(((mrp - finalPrice) / mrp) * 100) : 0;
     const hasDiscount = discountPct > 0;
 
@@ -203,7 +205,7 @@ const ProductDetailPage = () => {
         : product.main_image ? [product.main_image] : ['https://placehold.co/600x600/efedf0/040205?text=Eyewear'];
 
     // ── Rating from real reviews ──────────────────────────────────────────────
-    const avgRating   = reviews.length > 0
+    const avgRating = reviews.length > 0
         ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)
         : null;
     const reviewCount = reviews.length;
@@ -245,8 +247,8 @@ const ProductDetailPage = () => {
                             {/* Virtual Try-On pill button — top-right (Figma 401:13013) */}
                             <button className="pd-vto-pill-btn" onClick={() => setIsVTOModalOpen(true)}>
                                 <svg width="14" height="12" viewBox="0 0 14 12" fill="none">
-                                    <path d="M5 1H9L10.5 3H13V11H1V3H3.5L5 1Z" stroke="#FEFCFF" strokeWidth="1.3" strokeLinejoin="round"/>
-                                    <circle cx="7" cy="7" r="2.2" stroke="#FEFCFF" strokeWidth="1.3"/>
+                                    <path d="M5 1H9L10.5 3H13V11H1V3H3.5L5 1Z" stroke="#FEFCFF" strokeWidth="1.3" strokeLinejoin="round" />
+                                    <circle cx="7" cy="7" r="2.2" stroke="#FEFCFF" strokeWidth="1.3" />
                                 </svg>
                                 Virtual Try-On
                             </button>
@@ -492,15 +494,22 @@ const ProductDetailPage = () => {
                             <div className="pd-selector-item">
                                 <label className="pd-coupon-label">Frame Size</label>
                                 <div className="pd-size-btns">
-                                    {(variantSizes.length > 0 ? variantSizes : [product.frame_width]).map(size => (
-                                        <button
-                                            key={size}
-                                            className={`pd-size-btn ${selectedSize === size ? 'active' : ''}`}
-                                            onClick={() => setSelectedSize(size)}
-                                        >
-                                            {size}
-                                        </button>
-                                    ))}
+                                    {(variantSizes.length > 0 ? variantSizes : [product.frame_width]).map(size => {
+                                        const sizeStock = stockBySize[size];
+                                        const isOutOfStock = sizeStock !== undefined && Number(sizeStock) === 0;
+                                        return (
+                                            <button
+                                                key={size}
+                                                className={`pd-size-btn ${selectedSize === size ? 'active' : ''}`}
+                                                onClick={() => !isOutOfStock && setSelectedSize(size)}
+                                                style={{ opacity: isOutOfStock ? 0.5 : 1, textDecoration: isOutOfStock ? 'line-through' : 'none', cursor: isOutOfStock ? 'not-allowed' : 'pointer' }}
+                                                disabled={isOutOfStock}
+                                                title={isOutOfStock ? "Out of Stock" : ""}
+                                            >
+                                                {size}
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         )}

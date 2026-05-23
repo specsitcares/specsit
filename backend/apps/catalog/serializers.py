@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from decimal import Decimal
-from .models import Category, Brand, Manufacturer, Product, Variant, VariantImage, Collection, LensPackage, Lens, Prescription, UserFace, Review
+from .models import Category, Brand, Manufacturer, Product, Variant, VariantImage, Collection, LensPackage, Lens, Prescription, UserFace, Review, LensConstraint
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -27,7 +27,7 @@ class VariantSerializer(serializers.ModelSerializer):
     product_name = serializers.ReadOnlyField(source='product.title')
     category_name = serializers.ReadOnlyField(source='product.category.name')
     brand_name   = serializers.SerializerMethodField()
-    stock = serializers.SerializerMethodField()
+    stock = serializers.IntegerField(required=False, default=0)
     effective_stock = serializers.SerializerMethodField()
 
     def get_brand_name(self, obj):
@@ -47,8 +47,11 @@ class VariantSerializer(serializers.ModelSerializer):
         except Exception:
             return 0
 
-    def get_stock(self, obj):
-        return self.get_effective_stock(obj)
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # On read, return effective stock (variant stock or product fallback)
+        data['stock'] = self.get_effective_stock(instance)
+        return data
 
     class Meta:
         model = Variant
@@ -124,7 +127,6 @@ class CollectionSerializer(serializers.ModelSerializer):
         model = Collection
         fields = '__all__'
 
-# --- Eyewear Specific Serializers ---
 
 class LensPackageSerializer(serializers.ModelSerializer):
     categories = serializers.PrimaryKeyRelatedField(many=True, queryset=Category.objects.all(), required=False)
@@ -133,18 +135,30 @@ class LensPackageSerializer(serializers.ModelSerializer):
         model = LensPackage
         fields = '__all__'
 
+class LensConstraintSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LensConstraint
+        fields = '__all__'
+
+
 class LensSerializer(serializers.ModelSerializer):
     package_name = serializers.CharField(required=False)
     description = serializers.CharField(required=False, allow_blank=True)
     features = serializers.JSONField(required=False)
     category_ids = serializers.ListField(child=serializers.IntegerField(), required=False, write_only=True)
+    package_cost_price = serializers.DecimalField(max_digits=12, decimal_places=2, required=False)
+    package_selling_price = serializers.DecimalField(max_digits=12, decimal_places=2, required=False)
+    package_warranty_months = serializers.IntegerField(required=False)
+    index_value = serializers.CharField(source='index', read_only=True)
+    constraints = LensConstraintSerializer(many=True, read_only=True)
+    constraint_ids = serializers.ListField(child=serializers.IntegerField(), required=False, write_only=True)
 
     class Meta:
         model = Lens
         fields = [
             'id', 'name', 'package', 'package_name', 'description', 'features',
-            'type', 'price', 'index', 'is_active', 'is_for_sunglasses', 'is_for_eyeglasses',
-            'brand', 'category_ids'
+            'type', 'price', 'index', 'index_value', 'is_active', 'is_for_sunglasses', 'is_for_eyeglasses',
+            'brand', 'category_ids', 'package_cost_price', 'package_selling_price', 'package_warranty_months', 'constraints', 'constraint_ids'
         ]
         extra_kwargs = {
             'package': {'read_only': True}
@@ -157,6 +171,9 @@ class LensSerializer(serializers.ModelSerializer):
             data['description'] = instance.package.description
             data['features'] = instance.package.features
             data['categories'] = list(instance.package.categories.values('id', 'name'))
+            data['package_cost_price'] = float(instance.package.cost_price or 0)
+            data['package_selling_price'] = float(instance.package.selling_price or 0)
+            data['package_warranty_months'] = instance.package.warranty_months
         if instance.brand:
             data['brand_name'] = instance.brand.name
         if instance.type:
@@ -167,20 +184,38 @@ class LensSerializer(serializers.ModelSerializer):
         package_name = validated_data.pop('package_name', 'Basic')
         description = validated_data.pop('description', '')
         features = validated_data.pop('features', [])
+        cost_price = validated_data.pop('package_cost_price', validated_data.pop('cost_price', None))
+        selling_price = validated_data.pop('package_selling_price', validated_data.pop('selling_price', None))
+        warranty_months = validated_data.pop('package_warranty_months', validated_data.pop('warranty_months', None))
         category_ids = validated_data.pop('category_ids', [])
+        constraint_ids = validated_data.pop('constraint_ids', [])
+        defaults = {'description': description, 'features': features}
+        if cost_price is not None:
+            defaults['cost_price'] = cost_price
+        if selling_price is not None:
+            defaults['selling_price'] = selling_price
+        if warranty_months is not None:
+            defaults['warranty_months'] = warranty_months
         package, _ = LensPackage.objects.get_or_create(
             name=package_name,
-            defaults={'description': description, 'features': features}
+            defaults=defaults
         )
         if category_ids:
             package.categories.set(category_ids)
-        return Lens.objects.create(package=package, **validated_data)
+        lens = Lens.objects.create(package=package, **validated_data)
+        if constraint_ids:
+            lens.constraints.set(constraint_ids)
+        return lens
 
     def update(self, instance, validated_data):
         package_name = validated_data.pop('package_name', None)
         description = validated_data.pop('description', None)
         features = validated_data.pop('features', None)
+        cost_price = validated_data.pop('package_cost_price', None)
+        selling_price = validated_data.pop('package_selling_price', None)
+        warranty_months = validated_data.pop('package_warranty_months', None)
         category_ids = validated_data.pop('category_ids', None)
+        constraint_ids = validated_data.pop('constraint_ids', None)
         if package_name or description is not None or features is not None:
             package = instance.package
             if package_name:
@@ -189,9 +224,17 @@ class LensSerializer(serializers.ModelSerializer):
                 package.description = description
             if features is not None:
                 package.features = features
+            if cost_price is not None:
+                package.cost_price = cost_price
+            if selling_price is not None:
+                package.selling_price = selling_price
+            if warranty_months is not None:
+                package.warranty_months = warranty_months
             package.save()
         if category_ids is not None:
             instance.package.categories.set(category_ids)
+        if constraint_ids is not None:
+            instance.constraints.set(constraint_ids)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()

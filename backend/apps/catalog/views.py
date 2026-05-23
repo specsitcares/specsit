@@ -2,12 +2,12 @@ from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .models import Category, Brand, Manufacturer, Product, Variant, VariantImage, Collection, LensPackage, Lens, Prescription, UserFace, Review
+from .models import Category, Brand, Manufacturer, Product, Variant, VariantImage, Collection, LensPackage, Lens, Prescription, UserFace, Review, LensConstraint
 from .serializers import (
     CategorySerializer, BrandSerializer, ManufacturerSerializer,
     ProductSerializer, VariantSerializer, CollectionSerializer,
     LensPackageSerializer, LensSerializer, PrescriptionSerializer, UserFaceSerializer,
-    ReviewSerializer, VariantImageSerializer
+    ReviewSerializer, VariantImageSerializer, LensConstraintSerializer
 )
 from decimal import Decimal
 import logging
@@ -143,27 +143,63 @@ class ProductViewSet(viewsets.ModelViewSet):
     def recommended_lenses(self, request, pk=None):
         from .models import Lens
         from .serializers import LensSerializer
+        from django.db.models import Q, Count
+        
         product = self.get_object()
         lenses = Lens.objects.filter(is_active=True)
-        serializer = LensSerializer(lenses, many=True)
+        
+        if product.category:
+            # 1. Package must be linked to product category
+            lenses = lenses.filter(package__categories=product.category)
+            
+            # 2. Match sunglass vs eyeglasses based on category name
+            if 'sunglass' in product.category.name.lower():
+                lenses = lenses.filter(is_for_sunglasses=True)
+            else:
+                lenses = lenses.filter(is_for_eyeglasses=True)
+                
+        # 3. Filter by frame constraints
+        lenses = lenses.annotate(constraint_count=Count('constraints'))
+        if product.frame_type:
+            lenses = lenses.filter(
+                Q(constraint_count=0) | Q(constraints__name__iexact=product.frame_type)
+            )
+        else:
+            lenses = lenses.filter(constraint_count=0)
+            
+        serializer = LensSerializer(lenses.distinct(), many=True)
         return Response(serializer.data)
 
     def perform_create(self, serializer):
         serializer.save()
 
-    def perform_destroy(self, instance):
+    def destroy(self, request, *args, **kwargs):
         from apps.sales.models import OrderItem
+        instance = self.get_object()
         if OrderItem.objects.filter(variant__product=instance).exists():
             # Keep product data for order history but hide it
             instance.is_active = False
             instance.save()
+            # Also delist all variants so they don't appear anywhere
+            instance.variants.update(is_listed=False)
+            return Response(
+                {'detail': 'Product deactivated (has order history). It will no longer appear on the store.'},
+                status=status.HTTP_200_OK
+            )
         else:
+            # No order history — safe to hard-delete
             instance.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
     def get_queryset(self):
         from django.db.models import Exists, OuterRef, Prefetch
         params = self.request.query_params
-        
+
+        # Staff performing write operations (update/delete) need access to ALL products
+        # regardless of is_active or variant status, otherwise destroy/update will 404.
+        if self.request.user.is_staff and self.action in ('retrieve', 'update', 'partial_update', 'destroy'):
+            return Product.objects.select_related('category', 'brand').prefetch_related('variants').all()
+
         # Base filter: Always hide inactive products unless explicitly requested by staff
         is_active_filter = params.get('is_active')
         if is_active_filter == 'false' and self.request.user.is_staff:
@@ -175,7 +211,8 @@ class ProductViewSet(viewsets.ModelViewSet):
 
         # Variant filtering: Hide products without listed variants for customers.
         # For staff, we also hide them by default on the website, but show them in the admin dashboard.
-        is_admin_request = self.request.user.is_staff and (params.get('product_type') or params.get('admin') == 'true')
+        # Staff users always get admin-level access to see all their products.
+        is_admin_request = self.request.user.is_staff and params.get('admin') == 'true'
         
         if not is_admin_request:
             listed_variants = Variant.objects.filter(is_listed=True, stock__gt=0)
@@ -355,6 +392,59 @@ class VariantViewSet(viewsets.ModelViewSet):
             )
         return qs.order_by('-id')
 
+    def _parse_stock_by_size(self, data):
+        """
+        Multipart/form-data sends JSON fields as plain strings.
+        Parse stock_by_size string to compute total stock,
+        but leave it as a valid JSON string for the serializer's JSONField.
+        Returns a mutable QueryDict copy with corrected stock value.
+        """
+        import json
+        data = data.copy()
+        raw = data.get('stock_by_size')
+        if raw and isinstance(raw, str):
+            try:
+                parsed = json.loads(raw)
+                if isinstance(parsed, dict):
+                    # Auto-compute the total stock from per-size counts
+                    total = sum(
+                        int(v) for v in parsed.values()
+                        if str(v).lstrip('-').isdigit() and int(v) >= 0
+                    )
+                    data['stock'] = total
+                    # Keep stock_by_size as-is (valid JSON string) for the serializer
+            except (json.JSONDecodeError, ValueError, TypeError):
+                pass
+        return data
+
+    def create(self, request, *args, **kwargs):
+        data = self._parse_stock_by_size(request.data)
+        serializer = self.get_serializer(data=data)
+        try:
+            serializer.is_valid(raise_exception=True)
+        except Exception as e:
+            print("Validation Errors:", getattr(e, 'detail', str(e)))
+            raise e
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        data = self._parse_stock_by_size(request.data)
+        serializer = self.get_serializer(instance, data=data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        if getattr(instance, '_prefetched_objects_cache', None):
+            instance._prefetched_objects_cache = {}
+        return Response(serializer.data)
+
+    def partial_update(self, request, *args, **kwargs):
+        kwargs['partial'] = True
+        return self.update(request, *args, **kwargs)
+
+
 class CollectionViewSet(viewsets.ModelViewSet):
     queryset = Collection.objects.prefetch_related('products').all().order_by('id')
     serializer_class = CollectionSerializer
@@ -371,6 +461,11 @@ class LensPackageViewSet(viewsets.ModelViewSet):
     queryset = LensPackage.objects.all()
     serializer_class = LensPackageSerializer
     permission_classes = [permissions.IsAdminUser]
+
+class LensConstraintViewSet(viewsets.ModelViewSet):
+    queryset = LensConstraint.objects.all()
+    serializer_class = LensConstraintSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
 class LensViewSet(viewsets.ModelViewSet):
     serializer_class = LensSerializer
@@ -398,6 +493,13 @@ class LensViewSet(viewsets.ModelViewSet):
             qs = qs.filter(is_for_eyeglasses=True)
         elif is_eyeglasses == 'false':
             qs = qs.filter(is_for_eyeglasses=False)
+
+        constraint = params.get('constraint')
+        if constraint:
+            if constraint.isdigit():
+                qs = qs.filter(constraint_id=constraint)
+            else:
+                qs = qs.filter(constraint__name__iexact=constraint)
             
         return qs
 

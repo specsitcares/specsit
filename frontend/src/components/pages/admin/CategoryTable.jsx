@@ -58,6 +58,7 @@ const CategoryTable = () => {
     const data = new FormData();
     Object.keys(formData).forEach(k => {
       if (formData[k] != null) {
+        if (k === 'parent' && formData[k] === '') return;
         if (k === 'image' && typeof formData[k] === 'string') return;
         data.append(k, formData[k]);
       }
@@ -84,7 +85,7 @@ const CategoryTable = () => {
 
   const filtered = categories
     .filter(c => ((c.group || c.category_type || 'frame').toString().toLowerCase()) === activeTab)
-    .filter(c => [c.name, c.slug, c.description].some(v => v?.toLowerCase().includes(searchQuery.toLowerCase())));
+    .filter(c => [c.name, c.slug, c.description].some(v => (v || '').toLowerCase().includes(searchQuery.toLowerCase())));
 
   const paginated = filtered.slice((page - 1) * perPage, page * perPage);
 
@@ -215,7 +216,7 @@ const CategoryTable = () => {
         }
       />
 
-        <FormModal isOpen={showForm} onClose={() => setShowForm(false)} onSubmit={handleFormSubmit}
+      <FormModal isOpen={showForm} onClose={() => setShowForm(false)} onSubmit={handleFormSubmit}
         onDelete={handleFormDelete} mode={formMode} title="Category"
         fields={[
           { name: 'name', label: 'Category Name', type: 'text', required: true },

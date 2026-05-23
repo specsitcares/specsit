@@ -54,6 +54,7 @@ const DEFAULT_VARIANT = () => ({
   variantName: '',
   colorName: '',
   quantity: 0,
+  stock_by_size: { 'Small': 0, 'Medium': 0, 'Large': 0 },
   colorMethod: 'code',
   colorCode: '#000000',
   paletteImage: null,
@@ -150,6 +151,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
               variantName: '',
               colorName: v.color || '',
               quantity: v.stock || 0,
+              stock_by_size: v.stock_by_size || { 'Small': 0, 'Medium': 0, 'Large': 0 },
               colorMethod: v.color_selection_method || 'code',
               colorCode: v.color_code || '#000000',
               paletteImage: v.palette_image
@@ -208,7 +210,24 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
   }, [editProduct?.id]);
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const updatedData = { ...prev, [field]: value };
+      
+      // Auto-update tax based on category selection
+      if (field === 'category') {
+        const selectedCategory = categories.find(c => String(c.id) === String(value));
+        if (selectedCategory) {
+          const catName = selectedCategory.name.toLowerCase();
+          if (catName.includes('eyeglass')) {
+            updatedData.taxPercent = '5';
+          } else if (catName.includes('sunglass')) {
+            updatedData.taxPercent = '18';
+          }
+        }
+      }
+      return updatedData;
+    });
+
     if (errors[field]) {
       setErrors(prev => {
         const updated = { ...prev };
@@ -330,6 +349,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
         variantPayload.append('frame_size', v.frame_size || '');
         variantPayload.append('frame_weight', v.frame_weight || '');
         variantPayload.append('stock', parseInt(v.quantity) || 0);
+        variantPayload.append('stock_by_size', JSON.stringify(v.stock_by_size || {}));
         variantPayload.append('base_price', parseFloat(v.base_price) || 0);
         variantPayload.append('selling_price', parseFloat(v.selling_price) || parseFloat(v.base_price) || 0);
         variantPayload.append('cost_price', parseFloat(v.cost_price) || 0);
