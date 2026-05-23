@@ -250,7 +250,7 @@ const FrameForm = ({ productId, onBack, onSaved }) => {
           <FIELD label="Frame Size" required error={errors.frame_size}>
             <select style={INPUT_STYLE} value={form.frame_size} onChange={e => set('frame_size', e.target.value)}>
               <option value="">Select size...</option>
-              {['Small', 'Medium', 'Large', 'One Size'].map(s => <option key={s} value={s}>{s}</option>)}
+              {['Small', 'Medium', 'Large'].map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </FIELD>
           <FIELD label="Frame Color">

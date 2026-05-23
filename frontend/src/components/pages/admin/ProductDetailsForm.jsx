@@ -16,7 +16,6 @@ const FRAME_WIDTH_OPTIONS = [
   { value: 'Small (115mm)', label: 'Small (115mm)' },
   { value: 'Medium (130mm)', label: 'Medium (130mm)' },
   { value: 'Large (140mm)', label: 'Large (140mm)' },
-  { value: 'Extra Large (150mm)', label: 'Extra Large (150mm)' },
 ];
 
 const FRAME_TYPE_OPTIONS = [

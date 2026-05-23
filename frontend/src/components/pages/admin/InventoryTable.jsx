@@ -57,7 +57,36 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
       let url = '/catalog/variants/?page_size=1000&admin=true';
       if (activeCategory) url += `&category=${encodeURIComponent(activeCategory)}`;
       const res = await apiClient.get(url);
-      setVariants(Array.isArray(res.data) ? res.data : (res.data.results || []));
+      
+      const rawData = Array.isArray(res.data) ? res.data : (res.data.results || []);
+      const processed = rawData.map(v => {
+        let calculatedStock = v.stock ?? 0;
+        let parsedStockBySize = v.stock_by_size || {};
+        
+        if (typeof parsedStockBySize === 'string') {
+          try {
+            parsedStockBySize = JSON.parse(parsedStockBySize);
+          } catch (e) {
+            parsedStockBySize = {};
+          }
+        }
+
+        if (parsedStockBySize && typeof parsedStockBySize === 'object' && Object.keys(parsedStockBySize).length > 0) {
+          calculatedStock = 0;
+          for (const val of Object.values(parsedStockBySize)) {
+            let qty = 0;
+            if (typeof val === 'string' && val.startsWith('U:')) {
+              qty = parseInt(val.replace('U:', ''), 10) || 0;
+            } else {
+              qty = parseInt(val, 10) || 0;
+            }
+            calculatedStock += qty;
+          }
+        }
+        return { ...v, stock: calculatedStock, stock_by_size: parsedStockBySize };
+      });
+      
+      setVariants(processed);
     } catch { } finally { setLoading(false); }
   };
 
@@ -205,9 +234,10 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
     const isSelected = selectedIds.has(v.id);
     const isExpanded = expandedRows.includes(v.id);
 
-    // Check if we have size data
+    // Always show 3 sizes: Small, Medium, Large
+    const ALLOWED_SIZES = ['Small', 'Medium', 'Large'];
     const sizes = v.stock_by_size || {};
-    const hasSizes = Object.keys(sizes).length > 0;
+    const filteredSizeEntries = ALLOWED_SIZES.map(s => [s, sizes[s] ?? 0]);
 
     return (
       <React.Fragment key={v.id}>
@@ -342,9 +372,9 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
           </td>
         </tr>
 
-        {/* Sub-rows for each size */}
-        {isExpanded && hasSizes && Object.entries(sizes).map(([sizeName, rawQty], index) => {
-          const isLast = index === Object.keys(sizes).length - 1;
+        {/* Sub-rows for each size — only Small, Medium, Large */}
+        {isExpanded && filteredSizeEntries.map(([sizeName, rawQty], index) => {
+          const isLast = index === filteredSizeEntries.length - 1;
           
           let qty = 0;
           let isSizeListed = true;
@@ -469,31 +499,7 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
           );
         })}
 
-        {/* Sub-row for Standard Size if no sizes exist */}
-        {isExpanded && !hasSizes && (
-          <tr style={{ borderBottom: '1px solid #e0e0e0', background: '#F9FAFB' }}>
-            <td style={{ ...CELL, width: 60, paddingLeft: 24 }}>
-              <div style={{ width: 16, height: 16, borderLeft: '2px solid #D0D5DD', borderBottom: '2px solid #D0D5DD', borderBottomLeftRadius: 4, marginTop: -16 }} />
-            </td>
-            <td style={{ ...CELL, minWidth: 176 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ padding: '4px 10px', background: '#F2F4F7', color: '#344054', borderRadius: 6, fontSize: 11, fontWeight: 600 }}>
-                  Standard Size
-                </div>
-              </div>
-            </td>
-            <td style={{ ...CELL, minWidth: 112 }}><span style={{ ...TXT, fontFamily: 'monospace', color: '#667085' }}>{v.sku || '—'}</span></td>
-            <td style={{ ...CELL, minWidth: 104 }}><span style={{ ...TXT, color: '#667085' }}>{v.color || 'Standard'}</span></td>
-            <td style={{ ...CELL, minWidth: 96 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ width: 16, height: 16, borderRadius: '50%', background: dot, flexShrink: 0, display: 'inline-block' }} />
-                <span style={{ ...TXT, fontWeight: 600 }}>{v.stock ?? 0}</span>
-              </div>
-            </td>
-            <td style={{ ...CELL, minWidth: 80 }}><span style={{ ...TXT, color: '#667085' }}>{threshold}</span></td>
-            <td colSpan={4}></td>
-          </tr>
-        )}
+
       </React.Fragment>
     );
   };
