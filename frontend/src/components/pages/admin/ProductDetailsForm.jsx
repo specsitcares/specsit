@@ -74,6 +74,7 @@ const DEFAULT_VARIANT = () => ({
   frame_size: 'Medium',
   frame_weight: 'Standard',
   is_listed: true,
+  is_warranty_eligible: true,
 });
 
 const ProductDetailsForm = ({ onBack, editProduct = null }) => {
@@ -178,6 +179,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
               frame_size: v.frame_size || 'Medium',
               frame_weight: v.frame_weight || 'Standard',
               is_listed: v.is_listed !== undefined ? v.is_listed : true,
+              is_warranty_eligible: v.is_warranty_eligible !== undefined ? v.is_warranty_eligible : true,
             };
           };
 
@@ -356,6 +358,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
         variantPayload.append('discount_percent', parseFloat(formData.discountPercent) || 0);
         variantPayload.append('is_bogo', formData.isBogo ? 'true' : 'false');
         variantPayload.append('is_listed', v.is_listed !== false ? 'true' : 'false');
+        variantPayload.append('is_warranty_eligible', v.is_warranty_eligible !== false ? 'true' : 'false');
         if (formData.discountStartDate) variantPayload.append('discount_start_date', formData.discountStartDate);
         if (formData.discountEndDate) variantPayload.append('discount_end_date', formData.discountEndDate);
 

@@ -73,6 +73,7 @@ const EMPTY_VARIANT = () => ({
   frame_size: 'Medium',
   frame_weight: 'Standard',
   is_listed: true,
+  is_warranty_eligible: true,
 });
 
 const VariantsPricingForm = ({ formData, onFormDataChange, saving, errors = {}, onVariantRemoved, onImageRemoved, globalTemplates }) => {
@@ -482,6 +483,22 @@ const VariantsPricingForm = ({ formData, onFormDataChange, saving, errors = {}, 
                             <option value="Heavy">Heavy</option>
                           </select>
                           <span className="select-chevron"><ChevronDown size={14} /></span>
+                        </div>
+                      </div>
+                      <div className="form-field" style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '2px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '8px 0' }}>
+                          <div>
+                            <div style={{ fontSize: '12px', fontWeight: 500, color: '#344054' }}>Warranty Eligible</div>
+                            <div style={{ fontSize: '11px', color: '#9ca3af' }}>Enable warranty claim for this variant</div>
+                          </div>
+                          <label className="toggle-switch">
+                            <input
+                              type="checkbox"
+                              checked={v.is_warranty_eligible !== false}
+                              onChange={(e) => updateVariant(v.id, 'is_warranty_eligible', e.target.checked)}
+                            />
+                            <span className="toggle-slider" />
+                          </label>
                         </div>
                       </div>
                     </div>

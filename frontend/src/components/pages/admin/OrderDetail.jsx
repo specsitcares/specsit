@@ -33,7 +33,7 @@ const OrderDetail = ({ orderId, onBack }) => {
   const [riderEditModalOpen, setRiderEditModalOpen] = useState(false);
   const [dispatchModalOpen, setDispatchModalOpen] = useState(false);
   const [dispatchForm, setDispatchForm] = useState({
-    booking_id: '', rider_name: '', rider_phone: '', vehicle_type: 'Bike', carrier_company: '', eta: '',
+    booking_id: '', rider_name: '', rider_phone: '', vehicle_type: 'Bike', carrier_company: '', eta: '', tracking_link: '', sms_message: '',
   });
   const [dispatchSaving, setDispatchSaving] = useState(false);
   const [deliveryModalOpen, setDeliveryModalOpen] = useState(false);
@@ -203,13 +203,14 @@ const OrderDetail = ({ orderId, onBack }) => {
         delivery_agent_phone: dispatchForm.rider_phone,
         courier_company: dispatchForm.carrier_company || dispatchForm.vehicle_type,
         shipped_date: now,
+        tracking_link: dispatchForm.tracking_link || null,
       };
       await apiClient.post(`/sales/orders/${orderId}/update_tracking/`, trackingPayload);
       setTracking(prev => ({ ...prev, ...trackingPayload }));
       setEtaMinutes(parseEtaMinutes(dispatchForm.eta));
       await handleItemStatusUpdate(activeItemForAction.id, 'in_transit');
       setDispatchModalOpen(false);
-      setDispatchForm({ booking_id: '', rider_name: '', rider_phone: '', vehicle_type: 'Bike', carrier_company: '', eta: '' });
+      setDispatchForm({ booking_id: '', rider_name: '', rider_phone: '', vehicle_type: 'Bike', carrier_company: '', eta: '', tracking_link: '', sms_message: '' });
       setActiveItemForAction(null);
     } catch (err) {
       alert('Failed to dispatch order. Please try again.');
@@ -962,20 +963,26 @@ const OrderDetail = ({ orderId, onBack }) => {
                   />
                 </div>
 
-                {/* SMS preview */}
+                {/* Tracking Link */}
+                <div className="dm-field">
+                  <label className="dm-label">Tracking Link <span style={{ fontSize: 11, fontWeight: 400, color: '#9ca3af' }}>(optional)</span></label>
+                  <input
+                    className="dm-input"
+                    placeholder="e.g. https://track.delhivery.com/123456"
+                    value={dispatchForm.tracking_link}
+                    onChange={e => setDispatchForm(f => ({ ...f, tracking_link: e.target.value }))}
+                  />
+                </div>
+
+                {/* SMS message */}
                 <div className="dm-sms-box">
-                  <p className="dm-sms-label">SMS preview to customer</p>
+                  <p className="dm-sms-label">SMS to customer <span style={{ fontSize: 11, fontWeight: 400, color: '#9ca3af' }}>(editable)</span></p>
                   <textarea
                     className="dm-sms-preview"
-                    readOnly
-                    value={(() => {
-                      const firstName = order.customer_name?.split(' ')[0] || 'Customer';
-                      const orderNum = `#LO-${String(order.id).padStart(7, '0')}`;
-                      const riderName = dispatchForm.rider_name || '[Rider name]';
-                      const riderPhone = dispatchForm.rider_phone || '[Phone]';
-                      const etaText = dispatchForm.eta ? ` in ~${dispatchForm.eta}` : '';
-                      return `Hi ${firstName}, your eyewear order ${orderNum} is on its way. Rider ${riderName} (${riderPhone}) will deliver${etaText}. Track via app.`;
-                    })()}
+                    placeholder="Write your message..."
+                    value={dispatchForm.sms_message}
+                    onChange={e => setDispatchForm(f => ({ ...f, sms_message: e.target.value }))}
+                    style={{ cursor: 'text' }}
                   />
                 </div>
 
@@ -1355,19 +1362,15 @@ const OrderDetail = ({ orderId, onBack }) => {
                   </div>
                 </div>
 
-                {/* SMS preview */}
+                {/* SMS message */}
                 <div className="dm-sms-box">
-                  <p className="dm-sms-label">SMS preview to customer</p>
+                  <p className="dm-sms-label">SMS to customer <span style={{ fontSize: 11, fontWeight: 400, color: '#9ca3af' }}>(editable)</span></p>
                   <textarea
                     className="dm-sms-preview"
-                    readOnly
-                    value={(() => {
-                      const firstName = order.customer_name?.split(' ')[0] || 'Customer';
-                      const orderNum = `#LO-${String(order.id).padStart(7, '0')}`;
-                      const riderName = tracking.delivery_agent_name || '[Rider name]';
-                      const riderPhone = tracking.delivery_agent_phone || '[Phone]';
-                      return `Hi ${firstName}, your eyewear order ${orderNum} is on its way. Rider ${riderName} (${riderPhone}) will deliver. Track via app.`;
-                    })()}
+                    placeholder="Write your message..."
+                    value={tracking.sms_message || ''}
+                    onChange={e => setTracking(t => ({ ...t, sms_message: e.target.value }))}
+                    style={{ cursor: 'text' }}
                   />
                 </div>
 
