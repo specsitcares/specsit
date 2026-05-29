@@ -123,39 +123,34 @@ const messageTemplate = (reason, customerName) => {
   const name = customerName || 'there';
   const templates = {
     'Image blurry or illegible':
-      `Hi ${name}, we received your prescription but unfortunately the image is too blurry for us to verify the values safely. Could you please re-upload a clearer photo?`,
+      `Hi ${name}, your prescription image is blurry or hard to read. Please reupload a clear image so we can process your order promptly.`,
     'Prescription expired':
-      `Hi ${name}, the prescription you uploaded appears to have expired. Please upload a valid prescription issued within the last 2 years.`,
+      `Hi ${name}, the prescription you uploaded has expired. Please provide a current prescription to continue with your order.`,
     'Missing information':
-      `Hi ${name}, the prescription you uploaded is missing some required information. Please upload a complete prescription with all eye power details visible.`,
+      `Hi ${name}, some required details are missing from your prescription. Please reupload it with all necessary information visible.`,
     'Incorrect format':
-      `Hi ${name}, the file you uploaded isn't in a supported format. Please re-upload as a clear photo (JPG/PNG) or PDF.`,
+      `Hi ${name}, the uploaded file format is not supported. Please reupload your prescription in a clear image format such as JPG or PNG.`,
     'Incomplete prescription':
-      `Hi ${name}, the prescription you uploaded appears incomplete. Please ensure both eyes (OD and OS) are clearly visible in the document.`,
+      `Hi ${name}, the prescription appears incomplete. Please reupload the full prescription so we can complete your order.`,
     'Other':
-      `Hi ${name}, we need you to re-upload your prescription document. Please contact us if you have any questions.`,
+      `Hi ${name}, we need you to reupload your prescription with a clearer image or correct details. Please provide a new upload so we can process your request.`,
   };
   return templates[reason] || templates['Other'];
 };
 
 const ReuploadDrawer = ({ rx, onClose, onSend }) => {
   const [reason, setReason]   = useState(REUPLOAD_REASONS[0]);
-  const [message, setMessage] = useState(() => messageTemplate(REUPLOAD_REASONS[0], rx.user_name));
+  const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError]     = useState('');
 
   const handleReasonChange = (r) => {
     setReason(r);
-    setMessage(messageTemplate(r, rx.user_name));
+    setMessage('');
   };
 
   const handleSend = async () => {
     if (!message.trim()) { setError('Message to customer is required.'); return; }
-    const templateMessage = messageTemplate(reason, rx.user_name);
-    if (message === templateMessage) {
-      setError('Please customize the message before sending.');
-      return;
-    }
     setSending(true);
     setError('');
     try {
@@ -354,6 +349,38 @@ const RejectModal = ({ onClose, onConfirm, saving }) => {
   );
 };
 
+/* ─── Revert/Reupload Confirmation Modal ───────────────── */
+const RevertModal = ({ onClose, onConfirm }) => {
+  return (
+    <div
+      onClick={onClose}
+      style={{ position: 'fixed', inset: 0, zIndex: 1200, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{ background: '#fff', borderRadius: 12, padding: 24, width: 420, maxWidth: '90vw', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}
+      >
+        <h3 style={{ fontSize: 16, fontWeight: 600, color: '#0f172a', margin: '0 0 6px' }}>Request Prescription Reupload</h3>
+        <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 14px' }}>You are about to request the customer to reupload their prescription. This will put the order on hold until they provide a new document. Continue?</p>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
+          <button
+            onClick={onClose}
+            style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid #e2e8f0', background: '#fff', color: '#0f172a', fontSize: 13, cursor: 'pointer' }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            style={{ padding: '7px 14px', borderRadius: 6, border: 'none', background: '#f59e0b', color: '#fff', fontSize: 13, cursor: 'pointer' }}
+          >
+            Continue to Request
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 /* ─── Notes + Action buttons (shared by both paths) ───── */
 const NotesAndActions = ({ notes, setNotes, submit, saving, error, success, onReuploadClick, onRejectClick, isApproved }) => (
   <>
@@ -441,6 +468,7 @@ const DetailPanel = ({ rx, onReviewed, autoOpenReupload, onAutoOpenReuploadDone 
   const [success, setSuccess]       = useState('');
   const [showReupload, setShowReupload] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showRevertModal, setShowRevertModal] = useState(false);
   const [pdfLoadError, setPdfLoadError] = useState(false);
   const [pdfBlobUrl, setPdfBlobUrl] = useState(null);
 
@@ -451,6 +479,7 @@ const DetailPanel = ({ rx, onReviewed, autoOpenReupload, onAutoOpenReuploadDone 
     setZoom(100);
     setShowReupload(false);
     setShowRejectModal(false);
+    setShowRevertModal(false);
     setPdfLoadError(false);
     setPdfBlobUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null; });
   }, [rx.id]);
@@ -704,7 +733,7 @@ const DetailPanel = ({ rx, onReviewed, autoOpenReupload, onAutoOpenReuploadDone 
               </div>
             </div>
 
-            <NotesAndActions notes={notes} setNotes={setNotes} submit={submit} saving={saving} error={error} success={success} onReuploadClick={() => setShowReupload(true)} onRejectClick={() => setShowRejectModal(true)} isApproved={isApproved} />
+            <NotesAndActions notes={notes} setNotes={setNotes} submit={submit} saving={saving} error={error} success={success} onReuploadClick={() => setShowRevertModal(true)} onRejectClick={() => setShowRejectModal(true)} isApproved={isApproved} />
           </div>
         )}
 
@@ -725,6 +754,14 @@ const DetailPanel = ({ rx, onReviewed, autoOpenReupload, onAutoOpenReuploadDone 
           onClose={() => setShowRejectModal(false)}
           onConfirm={handleRejectConfirm}
           saving={saving}
+        />
+      )}
+
+      {/* Revert/Reupload confirmation modal */}
+      {showRevertModal && (
+        <RevertModal
+          onClose={() => setShowRevertModal(false)}
+          onConfirm={() => { setShowRevertModal(false); setShowReupload(true); }}
         />
       )}
     </div>

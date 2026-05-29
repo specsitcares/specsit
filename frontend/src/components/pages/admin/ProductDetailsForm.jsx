@@ -101,6 +101,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
     variants: [DEFAULT_VARIANT()],
     taxPercent: '0',
     discountPercent: '0',
+    gender: 'Unisex',
     isBogo: false,
     discountStartDate: '',
     discountEndDate: '',
@@ -276,10 +277,10 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
       frame_type: firstVariant?.frame_type || '',
       frame_shape: firstVariant?.frame_shape || '',
       frame_width: firstVariant?.frame_width || '',
-      gender: firstVariant?.gender || 'Unisex',
+      gender: formData.gender || firstVariant?.gender || 'Unisex',
       base_price: parseFloat(firstVariant?.base_price) || 0,
       selling_price: parseFloat(firstVariant?.selling_price) || parseFloat(firstVariant?.base_price) || 0,
-      discount_percentage: 0,
+      discount_percentage: parseFloat(formData.discountPercent) || 0,
       frame_only_mode: !!firstVariant?.frame_only_mode,
       is_active: isActive,
     };
@@ -626,6 +627,54 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
                     value={formData.taxPercent || '0'}
                     onChange={(e) => handleInputChange('taxPercent', e.target.value)}
                   />
+                </div>
+
+                <div className="form-field" style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '2px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '8px 0' }}>
+                    <div>
+                      <div style={{ fontSize: '12px', fontWeight: 500, color: '#344054' }}>Warranty Eligible</div>
+                      <div style={{ fontSize: '11px', color: '#9ca3af' }}>Enable warranty claim for this product</div>
+                    </div>
+                    <label className="toggle-switch">
+                      <input 
+                        type="checkbox" 
+                        checked={formData.variants?.[0]?.is_warranty_eligible !== false} 
+                        onChange={(e) => {
+                          const updated = [...formData.variants];
+                          if (updated[0]) {
+                            updated[0] = { ...updated[0], is_warranty_eligible: e.target.checked };
+                            setFormData({ ...formData, variants: updated });
+                          }
+                        }}
+                      />
+                      <span className="toggle-slider" />
+                    </label>
+                  </div>
+                </div>
+
+                <div className="form-field-row">
+                  <div className="form-field">
+                    <label className="form-field-label">Gender</label>
+                    <div className="form-field-select-wrapper">
+                      <select
+                        value={formData.gender || 'Unisex'}
+                        onChange={(e) => handleInputChange('gender', e.target.value)}
+                      >
+                        {GENDER_OPTIONS.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}
+                      </select>
+                      <span className="select-chevron"><ChevronDown size={16} /></span>
+                    </div>
+                  </div>
+                  <div className="form-field">
+                    <label className="form-field-label">Discount %</label>
+                    <input
+                      type="number"
+                      className="form-field-input"
+                      placeholder="0"
+                      value={formData.discountPercent || '0'}
+                      onChange={(e) => handleInputChange('discountPercent', e.target.value)}
+                    />
+                  </div>
                 </div>
               </div>
             )}

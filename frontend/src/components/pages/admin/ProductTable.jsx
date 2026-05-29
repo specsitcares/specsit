@@ -89,7 +89,9 @@ const ProductTable = () => {
     { label: 'Brand / Manufacturer', key: 'brand', sortable: true },
     { label: 'Base Value', key: 'price', sortable: true },
     { label: 'Live Status', key: 'status', sortable: true },
-    { label: 'Action', key: 'action', align: 'right' }
+    { label: 'discount', key: 'percentage', sortable: true},
+    { label: 'Action', key: 'action', align: 'right' },
+    { label: 'Gender', key: 'gender'}
   ];
 
   const renderRow = (p, idx) => (
@@ -130,6 +132,9 @@ const ProductTable = () => {
         </div>
       </td>
       <td style={{ padding: '16px 24px' }}>
+        <span style={{ fontWeight: 600, color: '#475467', fontSize: '11px' }}>{p.discount_percentage || 0}%</span>
+      </td>
+      <td style={{ padding: '16px 24px' }}>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
           <div
             onClick={() => handleEditClick(p)}
@@ -147,6 +152,9 @@ const ProductTable = () => {
           </div>
         </div>
       </td>
+      <td style={{ padding: '16px 24px' }}>
+        <span style={{ fontWeight: 600, color: '#475467', fontSize: '11px' }}>{p.gender || 'Unisex'}</span>
+      </td>
     </tr>
   );
 
@@ -161,6 +169,8 @@ const ProductTable = () => {
       columns={columns}
       data={paginated}
       loading={loading}
+      discount={discount_percentage}
+      gender={gender}
       renderRow={renderRow}
       pagination={{
         page,

@@ -64,7 +64,7 @@ const VariantCard = ({ product, variant }) => {
           }
         </div>
         <div className="product-card__overlay-row">
-          {product.is_best_seller
+          {variant?.is_bestseller
             ? <div className="product-card__badge"><span className="product-card__badge-text">Best Seller</span></div>
             : <span />
           }
@@ -151,7 +151,7 @@ const ProductListingPage = () => {
     const [productType, setProductType] = useState('frame');
     const [selectedBrand, setSelectedBrand] = useState(searchParams.get('brand_name') || '');
     const [maxPrice, setMaxPrice] = useState(searchParams.get('max_price') || 50000);
-    const [sortBy, setSortBy] = useState('newest');
+    const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'newest');
     const [brands, setBrands] = useState([]);
     const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
     const [currentPage, setCurrentPage] = useState(1);
@@ -221,6 +221,7 @@ const ProductListingPage = () => {
         // Server-side sorting
         const sortMap = {
             'newest': '-created_at',
+            'bestsellers': '-created_at',  // Will filter on client-side
             'price-low': 'final_price',
             'price-high': '-final_price',
             'name': 'title',
@@ -282,11 +283,19 @@ const ProductListingPage = () => {
                     );
                 }
 
+
                 // New Arrivals: products created in the last 30 days
                 if (avail.includes('New Arrivals')) {
                     const cutoff = new Date();
                     cutoff.setDate(cutoff.getDate() - 30);
                     data = data.filter(p => new Date(p.created_at) >= cutoff);
+                }
+
+                // Best Sellers: filter products that have bestseller variants
+                if (sortBy === 'bestsellers') {
+                    data = data.filter(p => 
+                        p.variants && p.variants.some(v => v.is_bestseller)
+                    );
                 }
 
                 setProducts(data);
@@ -805,6 +814,7 @@ const ProductListingPage = () => {
                                         onChange={(e) => setSortBy(e.target.value)}
                                     >
                                         <option value="newest">New Arrivals</option>
+                                        <option value="bestsellers">Best Sellers</option>
                                         <option value="price-low">Price: Low to High</option>
                                         <option value="price-high">Price: High to Low</option>
                                         <option value="name">Name: A to Z</option>

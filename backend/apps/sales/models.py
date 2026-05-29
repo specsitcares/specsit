@@ -1,7 +1,9 @@
 from django.db import models
 from django.contrib.auth.models import User
 from decimal import Decimal
+# pyrefly: ignore [missing-import]
 from apps.catalog.models import Variant, Lens, Prescription
+# pyrefly: ignore [missing-import]
 from apps.catalog.core.models import MetadataItem
 
 class PaymentGatewayConfig(models.Model):
@@ -14,7 +16,7 @@ class PaymentGatewayConfig(models.Model):
     key_secret = models.CharField(max_length=255, blank=True, help_text="Razorpay Key Secret")
     is_sandbox = models.BooleanField(default=True, help_text="Toggle between Test and Live mode")
     is_active = models.BooleanField(default=True)
-    cod_enabled = models.BooleanField(
+    cod_enabled = models.BooleanField(  
         default=True,
         help_text="Show the Cash on Delivery option to customers at checkout"
     )
@@ -56,13 +58,13 @@ class Coupon(models.Model):
     def __str__(self): return self.code
 
 ORDER_STATUS_CHOICES = [
-    ('pending', 'Pending'),
-    ('confirmed', 'Confirmed'),
-    ('preparing', 'Preparing'),
+    ('order_received', 'Order Received'),
+    ('order_accepted', 'Order Accepted'),
+    ('preparing_glasses', 'Preparing Glasses'),
+    ('quality_check', 'Quality Check'),
     ('ready_to_dispatch', 'Ready to Dispatch'),
-    ('in_transit', 'In Transit'),
+    ('in_transit', 'In Transit / Out for Delivery'),
     ('delivered', 'Delivered'),
-    ('cancelled', 'Cancelled'),
 ]
 
 class Order(models.Model):

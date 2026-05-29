@@ -17,16 +17,22 @@ import '../../../styles/home.css';
 
 const HomePage = () => {
   const [products, setProducts] = useState([]);
+  const [variants, setVariants] = useState([]);
   const [loading, setLoading] = useState(true);
   const revealRefs = useRef([]);
 
-  // Fetch products
+  // Fetch products and bestseller variants
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await apiClient.get('/catalog/products/');
-        const data = response.data;
-        setProducts(Array.isArray(data) ? data : data.results || []);
+        const [productsRes, variantsRes] = await Promise.all([
+          apiClient.get('/catalog/products/'),
+          apiClient.get('/catalog/variants/?page_size=1000')
+        ]);
+        const productsData = productsRes.data;
+        const variantsData = variantsRes.data;
+        setProducts(Array.isArray(productsData) ? productsData : productsData.results || []);
+        setVariants(Array.isArray(variantsData) ? variantsData : variantsData.results || []);
       } catch (err) {
         console.warn('Homepage data fetch error:', err);
       } finally {
@@ -57,7 +63,17 @@ const HomePage = () => {
 
   // Derive display data
   const newArrivals = products.slice(0, 8);
-  const bestSellers = products.filter(p => p.is_bestseller).slice(0, 8);
+  
+  // Collect bestseller product IDs from variants
+  const bestsellProductIds = new Set(
+    variants.filter(v => v.is_bestseller).map(v => v.product)
+  );
+  
+  // Filter products that have bestseller variants
+  const bestSellers = products
+    .filter(p => bestsellProductIds.has(p.id))
+    .slice(0, 8);
+  
   const displayBestSellers = bestSellers.length > 0 ? bestSellers : products.slice(4, 12);
 
   return (

@@ -567,7 +567,6 @@ const OrderTable = ({ category = null, onViewDetails, hideKPIs = false }) => {
                     <th style={{ padding: '10px 16px', minWidth: '100px', width: '100px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Date</th>
                     <th style={{ padding: '10px 16px', minWidth: '130px', width: '130px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Prescription</th>
                     <th style={{ padding: '10px 16px', minWidth: '100px', width: '100px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Total</th>
-                    <th style={{ padding: '10px 16px', minWidth: '80px', width: '80px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>QC</th>
                   </>
                 )}
 
@@ -738,19 +737,6 @@ const OrderTable = ({ category = null, onViewDetails, hideKPIs = false }) => {
                           })()}
                         </td>
                         <td style={{ padding: '12px 16px', fontWeight: 700, fontSize: '13px', whiteSpace: 'nowrap' }}>₹{Number(o.total_amount).toLocaleString('en-IN')}</td>
-                        <td style={{ padding: '12px 16px' }}>
-                          {o.tracking?.qc_image_url ? (
-                            <img
-                              src={o.tracking.qc_image_url}
-                              alt="QC"
-                              onClick={(e) => { e.stopPropagation(); setQcLightbox(o.tracking.qc_image_url); }}
-                              style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 6, border: '1px solid #D0D5DD', cursor: 'pointer' }}
-                              title="View QC image"
-                            />
-                          ) : (
-                            <span style={{ backgroundColor: '#FFFAEB', color: '#B54708', padding: '5px 12px', borderRadius: '100px', fontSize: '12px', fontWeight: 600 }}>Pending</span>
-                          )}
-                        </td>
                       </>
                     )}
                     <td style={{ padding: '12px 16px', backgroundColor: expandedRows.includes(o.id) ? '#F5F3FF' : 'inherit' }}>
@@ -855,13 +841,7 @@ const OrderTable = ({ category = null, onViewDetails, hideKPIs = false }) => {
 
                               <div style={{ padding: '10px 0', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, color: '#101828', fontSize: '12px' }}>
                                 ₹{Number(item.price || item.unit_price || item.price_at_purchase || 0).toLocaleString('en-IN')}
-                                <div
-                                  onClick={(e) => { e.stopPropagation(); handleDownloadPDF(o); }}
-                                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F04438', color: '#ffffff', padding: '3px', borderRadius: '3px', cursor: 'pointer' }}
-                                  title="Download Item PDF"
-                                >
-                                  <FileDown size={12} strokeWidth={2.5} />
-                                </div>
+                                
                               </div>
 
                               <div style={{ padding: '10px 0', display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>

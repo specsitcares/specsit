@@ -81,6 +81,7 @@ class Product(models.Model):
     # Pricing
     base_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     selling_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    discount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     discount_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
     final_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     cost_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True)
@@ -143,6 +144,7 @@ class Variant(models.Model):
 
     # Storefront visibility — auto-cleared when stock hits 0; manually re-enabled by admin
     is_listed = models.BooleanField(default=True)
+    is_bestseller = models.BooleanField(default=False)
 
     # Stock tracking timestamps
     last_restocked = models.DateTimeField(null=True, blank=True)

@@ -343,7 +343,6 @@ const PrescriptionOffcanvas = ({ order, onClose, onApproved }) => {
             <textarea
               value={rejectReason}
               onChange={e => { setRejectReason(e.target.value); setRejectError(''); }}
-              placeholder={`Enter reason for ${rejectMode.toLowerCase()}…`}
               rows={3}
               style={{
                 width: '100%', boxSizing: 'border-box', padding: '8px 10px',

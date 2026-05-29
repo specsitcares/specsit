@@ -71,6 +71,8 @@ const VariantRow = ({ v, onEdit, onDelete, productType }) => {
   const imgUrl = v.images?.[0]?.image || null;
   const color = v.color || v.frame_color || v.lens_color || '—';
   const price = v.selling_price || v.base_price || v.sale_price || v.price || '—';
+  const discount = v.discount_percentage || 0;
+  const gender = v.gender || '—';
   return (
     <tr style={{ borderBottom: '1px solid #EAECF0', backgroundColor: '#fff' }}>
       <td style={{ padding: '14px 24px' }}>
@@ -104,6 +106,8 @@ const VariantRow = ({ v, onEdit, onDelete, productType }) => {
       )}
       <td style={{ padding: '14px 24px', fontSize: 13 }}><StockBadge qty={v.stock ?? 0} threshold={5} /></td>
       <td style={{ padding: '14px 24px', color: '#344054', fontWeight: 600, fontSize: 13 }}>{price !== '—' ? formatPrice(price) : '—'}</td>
+      <td style={{ padding: '14px 24px', color: '#667085', fontSize: 13 }}>{discount}%</td>
+      <td style={{ padding: '14px 24px', color: '#667085', fontSize: 13 }}>{gender}</td>
       <td style={{ padding: '14px 24px' }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
           <ActionBtn onClick={() => onEdit(productType, v.product)}><Edit2 size={16} /></ActionBtn>
@@ -166,6 +170,8 @@ const LensesTab = ({ onAdd, onEdit }) => {
     { label: 'Color', key: 'color' },
     { label: 'Stock', key: 'stock' },
     { label: 'Price', key: 'price' },
+    { label: 'Discount %', key: 'discount' },
+    { label: 'Gender', key: 'gender' },
     { label: 'Actions', key: 'actions', align: 'right' },
   ];
 
@@ -207,6 +213,8 @@ const CategoryTab = ({ title, categoryName, onAdd, onEdit }) => {
     { label: 'Material', key: 'material' },
     { label: 'Stock', key: 'stock' },
     { label: 'Price', key: 'price' },
+    { label: 'Discount %', key: 'discount' },
+    { label: 'Gender', key: 'gender' },
     { label: 'Actions', key: 'actions', align: 'right' },
   ];
 
