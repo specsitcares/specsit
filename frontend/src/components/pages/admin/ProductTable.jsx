@@ -120,6 +120,9 @@ const ProductTable = () => {
       <td style={{ padding: '16px 24px' }}>
         <span style={{ fontWeight: 600, color: '#475467', fontSize: '11px' }}>{p.brand_name || 'Ray-Ban'}</span>
       </td>
+      <td style = {{padding: '16px 24px'}}>
+        <span style = {{fontweight: 600, color: '#475467', fontsize:'11px'}}>{p.gender || 'male'}</span>
+      </td>
       <td style={{ padding: '16px 24px' }}>
         <div style={{ color: '#7F56D9', fontWeight: 700, fontSize: '11px' }}>₹{Number(p.base_price || 0).toLocaleString('en-IN')}</div>
       </td>
@@ -130,9 +133,6 @@ const ProductTable = () => {
              {p.is_active ? 'Published' : 'Draft'}
            </span>
         </div>
-      </td>
-      <td style={{ padding: '16px 24px' }}>
-        <span style={{ fontWeight: 600, color: '#475467', fontSize: '11px' }}>{p.discount_percentage || 0}%</span>
       </td>
       <td style={{ padding: '16px 24px' }}>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
@@ -151,9 +151,6 @@ const ProductTable = () => {
             <Trash2 size={16} />
           </div>
         </div>
-      </td>
-      <td style={{ padding: '16px 24px' }}>
-        <span style={{ fontWeight: 600, color: '#475467', fontSize: '11px' }}>{p.gender || 'Unisex'}</span>
       </td>
     </tr>
   );

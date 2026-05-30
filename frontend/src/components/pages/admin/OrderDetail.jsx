@@ -43,7 +43,6 @@ const OrderDetail = ({ orderId, onBack }) => {
   const [etaMinutes, setEtaMinutes] = useState(null);
   const [activeItemIndex, setActiveItemIndex] = useState(0);
   const [activeItemForAction, setActiveItemForAction] = useState(null);
-  const [selectedPrescriptionPerItem, setSelectedPrescriptionPerItem] = useState({});
 
   const fetchOrder = async () => {
     try {
@@ -285,12 +284,11 @@ const OrderDetail = ({ orderId, onBack }) => {
   // ── Lifecycle steps ───────────────────────────────────────────────────────
   const getStepsForItem = (item) => {
     const isFrameOnly = !item?.lens;
-    const hasNoPrescription = !isFrameOnly && !item?.prescription;
     const rxStatus = (item?.prescription_status || 'Pending Review').toLowerCase();
     const allRxApproved = rxStatus === 'approved';
     const anyRxRejected = rxStatus === 'rejected';
     const anyRxReupload = rxStatus.includes('reupload');
-    const prescriptionBlocked = !isFrameOnly && (!allRxApproved || hasNoPrescription);
+    const prescriptionBlocked = !isFrameOnly && !allRxApproved;
 
     const ORDER_STATUS_TO_ID = {
       pending: 3, confirmed: 4, preparing: 5, ready_to_dispatch: 8, in_transit: 9, delivered: 10,
@@ -306,9 +304,7 @@ const OrderDetail = ({ orderId, onBack }) => {
       return id >= 8;
     });
 
-    const rxBlockMessage = hasNoPrescription
-      ? 'Prescription not yet uploaded. Waiting for customer to submit their prescription.'
-      : anyRxRejected
+    const rxBlockMessage = anyRxRejected
       ? 'Prescription rejected. Customer must upload a new prescription before this item can proceed.'
       : anyRxReupload
       ? 'Reupload requested. Waiting for customer to submit a new prescription.'
@@ -332,7 +328,6 @@ const OrderDetail = ({ orderId, onBack }) => {
           ? (paymentConfirmedAt || orderPlacedAt || '—')
           : anyRxRejected ? 'Prescription rejected'
           : anyRxReupload ? 'Awaiting reupload'
-          : hasNoPrescription ? 'Awaiting prescription'
           : 'Awaiting prescription approval',
         status: currentStatusId >= 4 ? 'completed' : currentStatusId === 3 ? 'current' : 'upcoming',
       },
@@ -817,135 +812,44 @@ const OrderDetail = ({ orderId, onBack }) => {
                             <div className="spec-label">Prescription Details</div>
                             <span className="verified-badge">{item.prescription_status || 'Verified'}</span>
                           </div>
-                      {(() => {
-                        // Collect all prescriptions from all items
-                        const allPrescriptions = order.items
-                          ?.flatMap((itm, idx) => itm.prescription ? [{ ...itm.prescription, itemIndex: idx, itemName: itm.variant_name || itm.variant_sku || `Item ${idx + 1}` }] : [])
-                          || [];
-
-                        // If no prescriptions for this item or no multiple prescriptions overall, show simple view
-                        if (!item.prescription) {
-                          return (
-                            <div style={{ fontSize: 13, color: '#64748b', fontStyle: 'italic', padding: '6px 0' }}>
-                              No prescription provided
+                          {item.prescription.prescription_file && !item.prescription.od_sphere && !item.prescription.os_sphere ? (
+                            <div style={{ fontSize: 13, color: '#64748b', padding: '6px 0' }}>
+                              Prescription submitted as document.{' '}
+                              <a
+                                href={item.prescription.prescription_file}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ color: '#68408d', textDecoration: 'underline' }}
+                              >
+                                View file
+                              </a>
                             </div>
-                          );
-                        }
-
-                        // Show dropdown if there are multiple prescriptions in the order
-                        if (allPrescriptions.length > 1) {
-                          const selectedRx = selectedPrescriptionPerItem[idx] 
-                            ? allPrescriptions.find(p => p.id === selectedPrescriptionPerItem[idx])
-                            : item.prescription;
-                          
-                          return (
-                            <div style={{ marginBottom: '12px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                                <label style={{ fontSize: 12, fontWeight: 500, color: '#64748b' }}>Select prescription:</label>
-                                <select
-                                  value={selectedRx?.id || item.prescription.id}
-                                  onChange={(e) => setSelectedPrescriptionPerItem(prev => ({ ...prev, [idx]: parseInt(e.target.value) }))}
-                                  style={{
-                                    padding: '6px 8px',
-                                    border: '1px solid #d2d2d2',
-                                    borderRadius: '4px',
-                                    fontSize: '12px',
-                                    cursor: 'pointer'
-                                  }}
-                                >
-                                  {allPrescriptions.map(p => (
-                                    <option key={p.id} value={p.id}>
-                                      {p.itemName} {p.prescription_file && !p.od_sphere ? '(PDF)' : '(Manually entered)'}
-                                    </option>
-                                  ))}
-                                </select>
-                              </div>
-
-                              {selectedRx?.prescription_file && !selectedRx?.od_sphere && !selectedRx?.os_sphere ? (
-                                <div style={{ fontSize: 13, color: '#64748b', padding: '6px 0' }}>
-                                  <a
-                                    href={selectedRx.prescription_file}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    style={{ color: '#68408d', textDecoration: 'underline' }}
-                                  >
-                                    📄 View PDF: {selectedRx.prescription_file.split('/').pop()}
-                                  </a>
-                                </div>
-                              ) : (
-                                <table className="prescription-table">
-                                  <thead>
-                                    <tr>
-                                      <th>Eye</th><th>SPH</th><th>CYL</th><th>AXIS</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    <tr>
-                                      <td className="prescription-type">OD (Right)</td>
-                                      <td>{selectedRx?.od_sphere || '—'}</td>
-                                      <td>{selectedRx?.od_cylinder || '—'}</td>
-                                      <td>{selectedRx?.od_axis || '—'}</td>
-                                    </tr>
-                                    <tr>
-                                      <td className="prescription-type">OS (Left)</td>
-                                      <td>{selectedRx?.os_sphere || '—'}</td>
-                                      <td>{selectedRx?.os_cylinder || '—'}</td>
-                                      <td>{selectedRx?.os_axis || '—'}</td>
-                                    </tr>
-                                    <tr className="pd-row">
-                                      <td colSpan="4">Pupillary Distance (PD): {selectedRx?.pd_distance || '—'}mm</td>
-                                    </tr>
-                                  </tbody>
-                                </table>
-                              )}
-                            </div>
-                          );
-                        }
-
-                        // Single prescription - show as before
-                        return (
-                          <>
-                            {item.prescription.prescription_file && !item.prescription.od_sphere && !item.prescription.os_sphere ? (
-                              <div style={{ fontSize: 13, color: '#64748b', padding: '6px 0' }}>
-                                Prescription submitted as document.{' '}
-                                <a
-                                  href={item.prescription.prescription_file}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  style={{ color: '#68408d', textDecoration: 'underline' }}
-                                >
-                                  View file
-                                </a>
-                              </div>
-                            ) : (
-                              <table className="prescription-table">
-                                <thead>
-                                  <tr>
-                                    <th>Eye</th><th>SPH</th><th>CYL</th><th>AXIS</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  <tr>
-                                    <td className="prescription-type">OD (Right)</td>
-                                    <td>{item.prescription.od_sphere}</td>
-                                    <td>{item.prescription.od_cylinder}</td>
-                                    <td>{item.prescription.od_axis}</td>
-                                  </tr>
-                                  <tr>
-                                    <td className="prescription-type">OS (Left)</td>
-                                    <td>{item.prescription.os_sphere}</td>
-                                    <td>{item.prescription.os_cylinder}</td>
-                                    <td>{item.prescription.os_axis}</td>
-                                  </tr>
-                                  <tr className="pd-row">
-                                    <td colSpan="4">Pupillary Distance (PD): {item.prescription.pd_distance}mm</td>
-                                  </tr>
-                                </tbody>
-                              </table>
-                            )}
-                          </>
-                        );
-                      })()}
+                          ) : (
+                            <table className="prescription-table">
+                              <thead>
+                                <tr>
+                                  <th>Eye</th><th>SPH</th><th>CYL</th><th>AXIS</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                <tr>
+                                  <td className="prescription-type">OD (Right)</td>
+                                  <td>{item.prescription.od_sphere}</td>
+                                  <td>{item.prescription.od_cylinder}</td>
+                                  <td>{item.prescription.od_axis}</td>
+                                </tr>
+                                <tr>
+                                  <td className="prescription-type">OS (Left)</td>
+                                  <td>{item.prescription.os_sphere}</td>
+                                  <td>{item.prescription.os_cylinder}</td>
+                                  <td>{item.prescription.os_axis}</td>
+                                </tr>
+                                <tr className="pd-row">
+                                  <td colSpan="4">Pupillary Distance (PD): {item.prescription.pd_distance}mm</td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          )}
                         </div>
                       )}
                     </React.Fragment>
@@ -1233,10 +1137,9 @@ const OrderDetail = ({ orderId, onBack }) => {
         return (
           <div className="qc-modal-overlay" onClick={(e) => e.target === e.currentTarget && handleQcClose()}>
             <div className="qc-modal-card">
-              <div className="qc-modal-content">
 
-                {/* ── Section 1: Specs Being Checked ── */}
-                <div className="qc-specs-card">
+              {/* ── Section 1: Specs Being Checked ── */}
+              <div className="qc-specs-card">
                 <div className="qc-specs-header">
                   <p className="qc-specs-title">Specs being checked</p>
                   <p className="qc-specs-sub">Verify before uploading proof image</p>
@@ -1338,7 +1241,12 @@ const OrderDetail = ({ orderId, onBack }) => {
                     <span className="qc-radio-label">No issues — pass</span>
                     <span className="qc-radio-desc">Order moves to Ready for Dispatch</span>
                   </div>
-                </div> 
+                </div>
+
+                <div
+                  className={`qc-radio-option ${qcOutcome === 'send_back' ? 'selected' : ''}`}
+                  onClick={() => setQcOutcome('send_back')}
+                > 
                 </div>
               </div>
 
@@ -1351,9 +1259,9 @@ const OrderDetail = ({ orderId, onBack }) => {
                   Complete QC &amp; proceed
                 </button>
               </div>
-             </div>
 
             </div>
+          </div>
         );
       })()}
 

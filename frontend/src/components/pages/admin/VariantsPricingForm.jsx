@@ -34,7 +34,7 @@ const FRAME_SHAPE_OPTIONS = [
   { value: 'Clubmaster', label: 'Clubmaster' },
   { value: 'Oval', label: 'Oval' },
   { value: 'Square', label: 'Square' },
-  { value: 'Geometric', label: 'Geometric' },
+  { value: 'Geometric', label: 'Geometric'}
 ];
 
 const GENDER_OPTIONS = [

@@ -148,10 +148,6 @@ const CategoryTable = () => {
         {/* end of container */}
       </td>
       {/* END */}
-      {/* parent name (THIS IS OPTIONAL AND CAN BE REMOVED AFTER A CLARITY ON THE FEATURE) */}
-      
-      {/* description of the cateogory (THIS IS OPTIONAL AND CAN BE REMOVED AFTER A CALRITY ON THE FEATURE) */}
-      
       {/* status which decides weather a cateogory to be shown in the website or not  */}
       <td style={{ padding: '16px 24px' }}>
         <span style={{

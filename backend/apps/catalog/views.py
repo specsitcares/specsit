@@ -370,6 +370,7 @@ class VariantViewSet(viewsets.ModelViewSet):
             qs = qs.filter(is_listed=True).filter(
                 Q(stock__gt=0) | Q(product__stock_quantity__gt=0)
             )
+        
 
         # NEW: Filter by product type if requested (crucial for segregating frames vs contact lenses in UI)
         ptype = params.get('product_type')

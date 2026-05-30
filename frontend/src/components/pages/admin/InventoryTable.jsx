@@ -9,6 +9,7 @@ const STATUS_OPTS = [
   { key: 'in', label: 'In Stock' },
   { key: 'low', label: 'Low Stock' },
   { key: 'out', label: 'Out of Stock' },
+  { key: 'best', label: 'bestseller'}
 ];
 
 const InventoryTable = ({ initialFilter = 'all' }) => {
@@ -83,7 +84,7 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
             calculatedStock += qty;
           }
         }
-        return { ...v, stock: calculatedStock, stock_by_size: parsedStockBySize, is_bestseller: v.is_bestseller ?? false };
+        return { ...v, stock: calculatedStock, stock_by_size: parsedStockBySize };
       });
       
       setVariants(processed);
@@ -113,6 +114,9 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
     }
     setShowForm(true);
   };
+  
+  
+
   const handleFormSubmit = async (fd) => {
     try {
       if (selectedVariant._sizeName) {
@@ -138,17 +142,6 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
     } catch (err) {
       // Roll back on failure
       setVariants(prev => prev.map(x => x.id === v.id ? { ...x, is_listed: v.is_listed } : x));
-    }
-  };
-
-  const handleToggleBestseller = async (v) => {
-    const newVal = !v.is_bestseller;
-    setVariants(prev => prev.map(x => x.id === v.id ? { ...x, is_bestseller: newVal } : x));
-    try {
-      await apiClient.patch(`/catalog/variants/${v.id}/`, { is_bestseller: newVal });
-    } catch (err) {
-      // Roll back on failure
-      setVariants(prev => prev.map(x => x.id === v.id ? { ...x, is_bestseller: v.is_bestseller } : x));
     }
   };
 
@@ -204,6 +197,7 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
     if (stockFilter === 'in') return v.stock > 0;
     if (stockFilter === 'low') return v.stock > 0 && v.stock <= 20;
     if (stockFilter === 'out') return v.stock <= 0;
+    if (stockFilter === 'bestseller') return variants
     return true;
   });
 
@@ -232,7 +226,6 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
     { label: 'Last Restocked', key: 'last_restocked' },
     { label: 'Last Sold', key: 'last_sold' },
     { label: 'Listed', key: 'is_listed' },
-    { label: 'Bestseller', key: 'is_bestseller' },
     { label: 'Action', key: 'action' },
   ];
 
@@ -347,24 +340,17 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
             </div>
           </td>
           {/* bestseller toggle */}
-          <td style={{ ...CELL, minWidth: 80 }}>
+          <td style = {{ ...CELL, minwidth: 80}}>
             <div
-              onClick={() => handleToggleBestseller(v)}
+              onClick={()=> handleBestseller(v)}
               style={{
                 width: 36, height: 20, borderRadius: 10, position: 'relative', cursor: 'pointer',
-                background: v.is_bestseller ? '#7F56D9' : '#D0D5DD',
+                background: v.is_listed ? '#7F56D9' : '#D0D5DD',
                 transition: 'background 0.2s',
                 flexShrink: 0,
                 display: 'inline-block',
               }}
-            >
-              <span style={{
-                position: 'absolute', top: 2, left: v.is_bestseller ? 18 : 2,
-                width: 16, height: 16, borderRadius: '50%', background: '#fff',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                transition: 'left 0.2s',
-              }} />
-            </div>
+            ></div>
           </td>
 
           {/* Action */}
