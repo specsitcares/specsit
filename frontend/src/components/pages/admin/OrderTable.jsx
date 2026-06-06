@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Search, Filter, Download,
-  ChevronDown, ChevronRight, ChevronLeft,
-  Edit, Trash2, FileText,
+  ChevronDown, ChevronRight, ChevronLeft, Trash2, FileText,
   Clock, Package, ArrowUpDown, FileDown, Glasses, Edit2, Briefcase, Check,
   RefreshCw, CircleDollarSign, Truck, ShieldCheck
 } from 'lucide-react';
@@ -845,12 +844,7 @@ const OrderTable = ({ category = null, onViewDetails, hideKPIs = false }) => {
                               </div>
 
                               <div style={{ padding: '10px 0', display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); handleEdit(o); }}
-                                  style={{ width: '29px', height: '29px', border: '1px solid #EAECF0', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#ffffff', color: '#667085' }}
-                                >
-                                  <Edit2 size={16} />
-                                </button>
+                                
                               </div>
                             </div>
                           ))) : (

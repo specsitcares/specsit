@@ -975,7 +975,10 @@ const LensSelectionAside = ({ isOpen, onClose, product, onAddToCart }) => {
                 const lenses = res.data.results || res.data;
                 setAllLenses(Array.isArray(lenses) ? lenses : []);
             })
-            .catch(() => setAllLenses([]))
+            .catch((err) => {
+                console.error('[LensSelection] Failed to load lenses:', err?.response?.status, err?.response?.data || err?.message);
+                setAllLenses([]);
+            })
             .finally(() => setLensesLoading(false));
     }, [isOpen, product?.id]);
 

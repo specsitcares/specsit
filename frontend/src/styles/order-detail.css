@@ -169,6 +169,8 @@
   display: flex;
   flex-direction: column;
   gap: 19px;
+  position: sticky;
+  top: 20px;
 }
 
 /* ═══════════════════════════════════════
@@ -817,10 +819,12 @@
   box-shadow: 0px 1px 1.5px rgba(0, 0, 0, 0.05), 0px 16px 48px rgba(0, 0, 0, 0.18);
   width: 100%;
   max-width: 590px;
+  height: 90vh;
   max-height: 90vh;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  position: relative;
 }
 
 /* ── Header ── */
@@ -878,9 +882,15 @@
 /* ── Body ── */
 .dm-body {
   padding: 19px;
+  padding-right: 12px;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  overflow-y: scroll;
+  flex: 1;
+  min-height: 0;
+  scrollbar-width: auto;
+  scrollbar-gutter: stable;
 }
 
 /* ── Alert banner ── */
@@ -1036,6 +1046,10 @@
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
+  flex-shrink: 0;
+  padding: 16px 19px;
+  border-top: 1px solid #e5e7eb;
+  background: #fff;
 }
 
 .dm-btn-cancel {
@@ -1067,6 +1081,26 @@
 
 .dm-btn-primary:hover { background: #5a3391; }
 .dm-btn-primary:disabled { background: #a78cc4; cursor: not-allowed; }
+
+/* ── Scrollbar styling for dm-body ── */
+.dm-body::-webkit-scrollbar {
+  width: 12px;
+}
+
+.dm-body::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 5px 0;
+}
+
+.dm-body::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 6px;
+  min-height: 40px;
+}
+
+.dm-body::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
 
 /* ═══════════════════════════════════════
    STEPPER INLINE WIDGETS
@@ -1251,11 +1285,15 @@
 
 .qc-modal-content {
   padding: 19px;
+  padding-right: 12px;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  overflow-y: auto;
+  overflow-y: scroll;
   flex: 1;
+  min-height: 0;
+  scrollbar-width: auto;
+  scrollbar-gutter: stable;
 }
 
 /* ── Section 1: Specs Being Checked ── */
@@ -1509,9 +1547,10 @@
   justify-content: flex-end;
   align-items: center;
   gap: 10px;
-  padding-top: 16px;
-  margin-top: 8px;
+  padding: 16px 19px;
   border-top: 1px solid #E5E7EB;
+  background: #fff;
+  flex-shrink: 0;
 }
 
 .qc-btn-secondary {
@@ -1549,6 +1588,26 @@
 .qc-btn-primary:disabled {
   background: #a78cc4;
   cursor: not-allowed;
+}
+
+/* ── Scrollbar styling for qc-modal-content ── */
+.qc-modal-content::-webkit-scrollbar {
+  width: 12px;
+}
+
+.qc-modal-content::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 5px 0;
+}
+
+.qc-modal-content::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 6px;
+  min-height: 40px;
+}
+
+.qc-modal-content::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 /* ═══════════════════════════════════════

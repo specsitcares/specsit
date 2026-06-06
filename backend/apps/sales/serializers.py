@@ -5,19 +5,57 @@ from apps.catalog.core.models import MetadataItem
 from apps.catalog.serializers import PrescriptionSerializer, LensSerializer
 
 class CouponSerializer(serializers.ModelSerializer):
+    brand_names = serializers.SerializerMethodField()
     category_names = serializers.SerializerMethodField()
+    brand_details = serializers.SerializerMethodField()
+    category_details = serializers.SerializerMethodField()
 
     class Meta:
         model = Coupon
-        fields = '__all__'
+        fields = [
+            'id', 'code', 'discount_percentage', 'min_cart_value',
+            'valid_from', 'valid_until', 'is_active', 'is_bogo',
+            'brands', 'categories',
+            'brand_names', 'category_names', 'category_details', 'brand_details', 'created_at'
+        ]
+        extra_kwargs = {
+            'brands': {'write_only': True, 'required': False},
+            'categories': {'write_only': True, 'required': False},
+        }
+
+    def get_brand_names(self, obj):
+        """Get names of applicable brands"""
+        brands = obj.brands.all()
+        if not brands.exists():
+            return []
+        return [b.name for b in brands]
 
     def get_category_names(self, obj):
-        return [c.name for c in obj.categories.all()]
+        """Get names of applicable categories"""
+        categories = obj.categories.all()
+        if not categories.exists():
+            return []
+        return [c.name for c in categories]
 
-    def validate_categories(self, value):
-        if not value:
-            raise serializers.ValidationError('At least one category must be selected for a coupon.')
-        return value
+    def get_brand_details(self, obj):
+        brands = obj.brands.all()
+        return [{'id': b.id, 'name': b.name} for b in brands]
+
+    def get_category_details(self, obj):
+        categories = obj.categories.all()
+        return [
+            {
+                'id': c.id,
+                'name': c.name,
+                'parent_id': c.parent_id,
+                'parent_name': c.parent.name if c.parent else None,
+            }
+            for c in categories
+        ]
+
+    def validate(self, data):
+        return data
+
 
 
 class OrderItemSerializer(serializers.ModelSerializer):

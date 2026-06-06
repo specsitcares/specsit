@@ -6,7 +6,6 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('sales', '0013_return_request_warranty_claim'),
         ('sales', '0013_returnrequest_warrantyclaim'),
     ]
 

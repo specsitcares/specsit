@@ -419,6 +419,24 @@ input:checked+.toggle-slider:before {
   cursor: not-allowed;
 }
 
+.pf-btn-secondary {
+  background: #5CB518;
+  border: 1px solid #5CB518;
+  color: #FEFCFF;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pf-btn-secondary:hover {
+  background: #4a9010;
+}
+
+.pf-btn-secondary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 /* ──── Stepper ───────────────────────────────────────────── */
 .pf-stepper {
   display: flex;

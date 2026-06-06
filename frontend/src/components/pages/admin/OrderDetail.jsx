@@ -30,7 +30,7 @@ const OrderDetail = ({ orderId, onBack }) => {
   const qcFileInputRef = React.useRef(null);
   const [qcFileName, setQcFileName] = useState('');
   const [qcImageLightbox, setQcImageLightbox] = useState(false);
-  const [riderEditModalOpen, setRiderEditModalOpen] = useState(false);
+
   const [dispatchModalOpen, setDispatchModalOpen] = useState(false);
   const [dispatchForm, setDispatchForm] = useState({
     booking_id: '', rider_name: '', rider_phone: '', vehicle_type: 'Bike', carrier_company: '', eta: '', tracking_link: '', sms_message: '',
@@ -118,27 +118,6 @@ const OrderDetail = ({ orderId, onBack }) => {
     }
   };
 
-  const [trackingSaving, setTrackingSaving] = useState(false);
-
-  const handleSaveTracking = async () => {
-    setTrackingSaving(true);
-    try {
-      const payload = {
-        delivery_agent_name: tracking.delivery_agent_name,
-        delivery_agent_phone: tracking.delivery_agent_phone,
-        courier_company: tracking.courier_company,
-        tracking_number: tracking.tracking_number || null,
-      };
-      if (tracking.shipped_date) payload.shipped_date = tracking.shipped_date;
-      if (tracking.estimated_delivery_date) payload.estimated_delivery_date = tracking.estimated_delivery_date;
-      await apiClient.post(`/sales/orders/${orderId}/update_tracking/`, payload);
-      fetchOrder();
-    } catch (err) {
-      alert('Failed to save tracking info.');
-    } finally {
-      setTrackingSaving(false);
-    }
-  };
 
   const handleQcFileSelect = (file) => {
     if (!file) return;
@@ -202,13 +181,21 @@ const OrderDetail = ({ orderId, onBack }) => {
         delivery_agent_name: dispatchForm.rider_name,
         delivery_agent_phone: dispatchForm.rider_phone,
         courier_company: dispatchForm.carrier_company || dispatchForm.vehicle_type,
-        shipped_date: now,
         tracking_link: dispatchForm.tracking_link || null,
+        sms_message: dispatchForm.sms_message || '',
       };
+      const isNewDispatch = !order.tracking?.shipped_date;
+      if (isNewDispatch) trackingPayload.shipped_date = now;
+
       await apiClient.post(`/sales/orders/${orderId}/update_tracking/`, trackingPayload);
       setTracking(prev => ({ ...prev, ...trackingPayload }));
       setEtaMinutes(parseEtaMinutes(dispatchForm.eta));
-      await handleItemStatusUpdate(activeItemForAction.id, 'in_transit');
+      
+      const ORDER_STATUS_TO_ID = { pending: 3, confirmed: 4, preparing: 5, ready_to_dispatch: 8, in_transit: 9, delivered: 10 };
+      const currentStatusId = ORDER_STATUS_TO_ID[activeItemForAction.status] || 4;
+      if (currentStatusId < 9) {
+        await handleItemStatusUpdate(activeItemForAction.id, 'in_transit');
+      }
       setDispatchModalOpen(false);
       setDispatchForm({ booking_id: '', rider_name: '', rider_phone: '', vehicle_type: 'Bike', carrier_company: '', eta: '', tracking_link: '', sms_message: '' });
       setActiveItemForAction(null);
@@ -459,7 +446,22 @@ const OrderDetail = ({ orderId, onBack }) => {
                       </div>
                       <button
                         className="step-rider-edit-btn"
-                        onClick={() => setRiderEditModalOpen(true)}
+                        onClick={() => {
+                          setActiveItemForAction(item);
+                          const t = order.tracking || {};
+                          const isVehicle = ['Bike', 'Car', 'Auto', 'Van', 'Truck'].includes(t.courier_company);
+                          setDispatchForm({
+                            booking_id: t.tracking_number || '',
+                            rider_name: t.delivery_agent_name || '',
+                            rider_phone: t.delivery_agent_phone || '',
+                            vehicle_type: isVehicle ? t.courier_company : 'Bike',
+                            carrier_company: isVehicle ? '' : (t.courier_company || ''),
+                            eta: '', 
+                            tracking_link: t.tracking_link || '',
+                            sms_message: t.sms_message || ''
+                          });
+                          setDispatchModalOpen(true);
+                        }}
                       >
                         Edit
                       </button>
@@ -484,6 +486,8 @@ const OrderDetail = ({ orderId, onBack }) => {
                     </span>
                   </div>
                 )}
+
+
 
                 {/* Action button */}
                 {step.hasAction && (
@@ -523,6 +527,8 @@ const OrderDetail = ({ orderId, onBack }) => {
       })}
     </div>
   );
+
+
 
   const addr = order.shipping_address_detail || {};
 
@@ -757,114 +763,96 @@ const OrderDetail = ({ orderId, onBack }) => {
           </div>
 
 
-          {/* Delivered Result Banner */}
-          {deliveredResult && (
-            <div style={{ gridColumn: '1 / -1', background: '#d1fae5', border: '1px solid #6ee7b7', borderRadius: 12, padding: 20, marginBottom: 16 }}>
-              <p style={{ margin: '0 0 8px', fontWeight: 700, color: '#065f46', fontSize: 15 }}>
-                {order.items?.length > 1 ? 'Item marked as delivered.' : 'Order marked as delivered.'}
-              </p>
-              <p style={{ margin: '0 0 12px', color: '#047857', fontSize: 13 }}>Review links generated for each ordered product:</p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {deliveredResult.review_links?.map(rl => (
-                  <a key={rl.product_id} href={rl.review_url} target="_blank" rel="noopener noreferrer"
-                    style={{ background: '#fff', border: '1px solid #6ee7b7', borderRadius: 6, padding: '4px 12px', fontSize: 12, color: '#065f46', textDecoration: 'none' }}>
-                    Review: {rl.product_name}
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
+        </div>
 
-          {/* ── Product Specifications ── */}
-          <div style={{ gridColumn: '1 / -1' }}>
-            <div className="product-spec-card">
-              <div className="card-header">
-                <h3 className="card-title">Product Specifications</h3>
-              </div>
-              <div className="card-content">
-                <div className="spec-vertical-list">
-                  {order.items?.map((item, idx) => (
-                    <React.Fragment key={idx}>
-                      <div className="spec-info-group">
-                        <div className="spec-label">Selected Frame</div>
-                        <div className="spec-value-main">{item.variant_name || item.variant_sku || '—'}</div>
-                        <div className="spec-subtext">{item.variant_sku || ''}</div>
+        {/* ── Product Specifications (Moved outside grid to prevent sticky overlap) ── */}
+        <div className="product-spec-card" style={{ marginTop: '19px' }}>
+          <div className="card-header">
+            <h3 className="card-title">Product Specifications</h3>
+          </div>
+          <div className="card-content">
+            <div className="spec-vertical-list">
+              {order.items?.map((item, idx) => (
+                <React.Fragment key={idx}>
+                  <div className="spec-info-group">
+                    <div className="spec-label">Selected Frame</div>
+                    <div className="spec-value-main">{item.variant_name || item.variant_sku || '—'}</div>
+                    <div className="spec-subtext">{item.variant_sku || ''}</div>
+                  </div>
+
+                  {item.lens && (
+                    <div className="spec-info-group">
+                      <div className="spec-label">Lens Type</div>
+                      <div className="spec-value-main">{item.lens.name}</div>
+                      <div className="spec-subtext">Index: {item.lens.index || 'N/A'}</div>
+                    </div>
+                  )}
+
+                  {item.lens_pd && (
+                    <div className="spec-info-group">
+                      <div className="spec-label">Pupillary Distance (PD)</div>
+                      <div className="spec-value-main">{item.lens_pd}mm</div>
+                    </div>
+                  )}
+
+                  {item.prescription && (
+                    <div className="spec-info-group" style={{ border: 'none', padding: 0 }}>
+                      <div className="spec-header-row">
+                        <div className="spec-label">Prescription Details</div>
+                        <span className="verified-badge">{item.prescription_status || 'Verified'}</span>
                       </div>
-
-                      {item.lens && (
-                        <div className="spec-info-group">
-                          <div className="spec-label">Lens Type</div>
-                          <div className="spec-value-main">{item.lens.name}</div>
-                          <div className="spec-subtext">Index: {item.lens.index || 'N/A'}</div>
+                      {item.prescription.prescription_file && !item.prescription.od_sphere && !item.prescription.os_sphere ? (
+                        <div style={{ fontSize: 13, color: '#64748b', padding: '6px 0' }}>
+                          Prescription submitted as document.{' '}
+                          <a
+                            href={item.prescription.prescription_file}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ color: '#68408d', textDecoration: 'underline' }}
+                          >
+                            View file
+                          </a>
                         </div>
+                      ) : (
+                        <table className="prescription-table">
+                          <thead>
+                            <tr>
+                              <th>Eye</th><th>SPH</th><th>CYL</th><th>AXIS</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td className="prescription-type">OD (Right)</td>
+                              <td>{item.prescription.od_sphere}</td>
+                              <td>{item.prescription.od_cylinder}</td>
+                              <td>{item.prescription.od_axis}</td>
+                            </tr>
+                            <tr>
+                              <td className="prescription-type">OS (Left)</td>
+                              <td>{item.prescription.os_sphere}</td>
+                              <td>{item.prescription.os_cylinder}</td>
+                              <td>{item.prescription.os_axis}</td>
+                            </tr>
+                            <tr className="pd-row">
+                              <td colSpan="4">Pupillary Distance (PD): {item.prescription.pd_distance}mm</td>
+                            </tr>
+                          </tbody>
+                        </table>
                       )}
-
-                      {item.lens_pd && (
-                        <div className="spec-info-group">
-                          <div className="spec-label">Pupillary Distance (PD)</div>
-                          <div className="spec-value-main">{item.lens_pd}mm</div>
-                        </div>
-                      )}
-
-                      {item.prescription && (
-                        <div className="spec-info-group" style={{ border: 'none', padding: 0 }}>
-                          <div className="spec-header-row">
-                            <div className="spec-label">Prescription Details</div>
-                            <span className="verified-badge">{item.prescription_status || 'Verified'}</span>
-                          </div>
-                          {item.prescription.prescription_file && !item.prescription.od_sphere && !item.prescription.os_sphere ? (
-                            <div style={{ fontSize: 13, color: '#64748b', padding: '6px 0' }}>
-                              Prescription submitted as document.{' '}
-                              <a
-                                href={item.prescription.prescription_file}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                style={{ color: '#68408d', textDecoration: 'underline' }}
-                              >
-                                View file
-                              </a>
-                            </div>
-                          ) : (
-                            <table className="prescription-table">
-                              <thead>
-                                <tr>
-                                  <th>Eye</th><th>SPH</th><th>CYL</th><th>AXIS</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                <tr>
-                                  <td className="prescription-type">OD (Right)</td>
-                                  <td>{item.prescription.od_sphere}</td>
-                                  <td>{item.prescription.od_cylinder}</td>
-                                  <td>{item.prescription.od_axis}</td>
-                                </tr>
-                                <tr>
-                                  <td className="prescription-type">OS (Left)</td>
-                                  <td>{item.prescription.os_sphere}</td>
-                                  <td>{item.prescription.os_cylinder}</td>
-                                  <td>{item.prescription.os_axis}</td>
-                                </tr>
-                                <tr className="pd-row">
-                                  <td colSpan="4">Pupillary Distance (PD): {item.prescription.pd_distance}mm</td>
-                                </tr>
-                              </tbody>
-                            </table>
-                          )}
-                        </div>
-                      )}
-                    </React.Fragment>
-                  ))}
-                </div>
-              </div>
+                    </div>
+                  )}
+                </React.Fragment>
+              ))}
             </div>
           </div>
         </div>
+
       </div>
 
       {/* ── Dispatch Modal ── */}
       {dispatchModalOpen && (
         <div className="dispatch-modal-overlay" onClick={(e) => e.target === e.currentTarget && setDispatchModalOpen(false)}>
-          <div className="dispatch-modal-card">
+          <div className="dispatch-modal-card" style={{ height: '90vh', maxHeight: '90vh' }}>
 
             {/* Header */}
             <div className="dm-header">
@@ -1092,21 +1080,22 @@ const OrderDetail = ({ orderId, onBack }) => {
                 </div>
               )}
 
-              {/* Footer */}
-              <div className="dm-footer">
-                <button className="dm-btn-cancel" onClick={() => { setDeliveryModalOpen(false); setDeliveryError(null); }}>
-                  Cancel
-                </button>
-                <button
-                  className="dm-btn-primary"
-                  onClick={handleDeliveryConfirm}
-                  disabled={!deliveryChecks.confirmed || !deliveryChecks.noDamage || confirmingDelivery}
-                >
-                  {confirmingDelivery ? 'Confirming…' : 'Confirm delivery'}
-                </button>
-              </div>
-
             </div>
+
+            {/* Footer */}
+            <div className="dm-footer">
+              <button className="dm-btn-cancel" onClick={() => { setDeliveryModalOpen(false); setDeliveryError(null); }}>
+                Cancel
+              </button>
+              <button
+                className="dm-btn-primary"
+                onClick={handleDeliveryConfirm}
+                disabled={!deliveryChecks.confirmed || !deliveryChecks.noDamage || confirmingDelivery}
+              >
+                {confirmingDelivery ? 'Confirming…' : 'Confirm delivery'}
+              </button>
+            </div>
+
           </div>
         </div>
       )}
@@ -1138,116 +1127,121 @@ const OrderDetail = ({ orderId, onBack }) => {
           <div className="qc-modal-overlay" onClick={(e) => e.target === e.currentTarget && handleQcClose()}>
             <div className="qc-modal-card">
 
-              {/* ── Section 1: Specs Being Checked ── */}
-              <div className="qc-specs-card">
-                <div className="qc-specs-header">
-                  <p className="qc-specs-title">Specs being checked</p>
-                  <p className="qc-specs-sub">Verify before uploading proof image</p>
-                </div>
-                <div className="qc-specs-rows">
-                  <div className="qc-spec-row">
-                    <div className="qc-spec-col">
-                      <span className="qc-spec-label">Frame</span>
-                      <span className="qc-spec-value">{qcItem?.variant_name || '—'}</span>
-                    </div>
-                    <div className="qc-spec-col">
-                      <span className="qc-spec-label">Color / SKU</span>
-                      <span className="qc-spec-value">{qcItem?.variant_sku || '—'}</span>
-                    </div>
+              {/* ── Scrollable Content ── */}
+              <div className="qc-modal-content">
+
+                {/* ── Section 1: Specs Being Checked ── */}
+                <div className="qc-specs-card">
+                  <div className="qc-specs-header">
+                    <p className="qc-specs-title">Specs being checked</p>
+                    <p className="qc-specs-sub">Verify before uploading proof image</p>
                   </div>
-                  {qcItem?.lens && (
+                  <div className="qc-specs-rows">
                     <div className="qc-spec-row">
                       <div className="qc-spec-col">
-                        <span className="qc-spec-label">Lens</span>
-                        <span className="qc-spec-value">{qcItem.lens.name}</span>
+                        <span className="qc-spec-label">Frame</span>
+                        <span className="qc-spec-value">{qcItem?.variant_name || '—'}</span>
                       </div>
                       <div className="qc-spec-col">
-                        <span className="qc-spec-label">Index</span>
-                        <span className="qc-spec-value">{qcItem.lens.index || '—'}</span>
+                        <span className="qc-spec-label">Color / SKU</span>
+                        <span className="qc-spec-value">{qcItem?.variant_sku || '—'}</span>
                       </div>
                     </div>
-                  )}
-                  {rx && (
-                    <div className="qc-spec-row">
-                      <div className="qc-spec-col">
-                        <span className="qc-spec-label">SPH (R / L)</span>
-                        <span className="qc-spec-value">{rx.od_sphere || '—'} / {rx.os_sphere || '—'}</span>
+                    {qcItem?.lens && (
+                      <div className="qc-spec-row">
+                        <div className="qc-spec-col">
+                          <span className="qc-spec-label">Lens</span>
+                          <span className="qc-spec-value">{qcItem.lens.name}</span>
+                        </div>
+                        <div className="qc-spec-col">
+                          <span className="qc-spec-label">Index</span>
+                          <span className="qc-spec-value">{qcItem.lens.index || '—'}</span>
+                        </div>
                       </div>
-                      <div className="qc-spec-col">
-                        <span className="qc-spec-label">CYL (R / L)</span>
-                        <span className="qc-spec-value">{rx.od_cylinder || '—'} / {rx.os_cylinder || '—'}</span>
+                    )}
+                    {rx && (
+                      <div className="qc-spec-row">
+                        <div className="qc-spec-col">
+                          <span className="qc-spec-label">SPH (R / L)</span>
+                          <span className="qc-spec-value">{rx.od_sphere || '—'} / {rx.os_sphere || '—'}</span>
+                        </div>
+                        <div className="qc-spec-col">
+                          <span className="qc-spec-label">CYL (R / L)</span>
+                          <span className="qc-spec-value">{rx.od_cylinder || '—'} / {rx.os_cylinder || '—'}</span>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* ── Section 2: Upload Finished Product Image ── */}
-              <div className="qc-upload-card">
-                <div className="qc-upload-header">
-                  <p className="qc-upload-title">Upload finished product image</p>
-                  <p className="qc-upload-sub">Customer will see this image as proof of build quality</p>
-                </div>
-                <input
-                  ref={qcFileInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,video/mp4,application/pdf"
-                  style={{ display: 'none' }}
-                  onChange={(e) => handleQcFileSelect(e.target.files[0])}
-                />
-                <div
-                  className={`qc-dropzone ${qcDragging ? 'dragging' : ''} ${qcImageFile ? 'has-file' : ''}`}
-                  onClick={() => qcFileInputRef.current?.click()}
-                  onDragOver={(e) => { e.preventDefault(); setQcDragging(true); }}
-                  onDragLeave={() => setQcDragging(false)}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    setQcDragging(false);
-                    handleQcFileSelect(e.dataTransfer.files[0]);
-                  }}
-                >
-                  {qcImagePreview ? (
-                    <>
-                      <img src={qcImagePreview} alt="Preview" className="qc-image-preview" />
-                      <span className="qc-file-name">{qcImageFile.name}</span>
-                    </>
-                  ) : (
-                    <>
-                      <p className="qc-dropzone__primary">Choose a file or drag &amp; drop it here</p>
-                      <p className="qc-dropzone__hint">JPEG, PNG, PDF, and MP4 formats, up to 50MB</p>
-                      <button
-                        className="qc-browse-btn"
-                        onClick={(e) => { e.stopPropagation(); qcFileInputRef.current?.click(); }}
-                      >
-                        Browse File
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* ── Section 3: QC Outcome ── */}
-              <div className="qc-outcome-card">
-                <p className="qc-outcome-title">QC outcome</p>
-
-                <div
-                  className={`qc-radio-option ${qcOutcome === 'pass' ? 'selected' : ''}`}
-                  onClick={() => setQcOutcome('pass')}
-                >
-                  <div className={`qc-radio-circle ${qcOutcome === 'pass' ? 'selected' : ''}`}>
-                    {qcOutcome === 'pass' && <div className="qc-radio-dot" />}
-                  </div>
-                  <div className="qc-radio-body">
-                    <span className="qc-radio-label">No issues — pass</span>
-                    <span className="qc-radio-desc">Order moves to Ready for Dispatch</span>
+                    )}
                   </div>
                 </div>
 
-                <div
-                  className={`qc-radio-option ${qcOutcome === 'send_back' ? 'selected' : ''}`}
-                  onClick={() => setQcOutcome('send_back')}
-                > 
+                {/* ── Section 2: Upload Finished Product Image ── */}
+                <div className="qc-upload-card">
+                  <div className="qc-upload-header">
+                    <p className="qc-upload-title">Upload finished product image</p>
+                    <p className="qc-upload-sub">Customer will see this image as proof of build quality</p>
+                  </div>
+                  <input
+                    ref={qcFileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,video/mp4,application/pdf"
+                    style={{ display: 'none' }}
+                    onChange={(e) => handleQcFileSelect(e.target.files[0])}
+                  />
+                  <div
+                    className={`qc-dropzone ${qcDragging ? 'dragging' : ''} ${qcImageFile ? 'has-file' : ''}`}
+                    onClick={() => qcFileInputRef.current?.click()}
+                    onDragOver={(e) => { e.preventDefault(); setQcDragging(true); }}
+                    onDragLeave={() => setQcDragging(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setQcDragging(false);
+                      handleQcFileSelect(e.dataTransfer.files[0]);
+                    }}
+                  >
+                    {qcImagePreview ? (
+                      <>
+                        <img src={qcImagePreview} alt="Preview" className="qc-image-preview" />
+                        <span className="qc-file-name">{qcImageFile.name}</span>
+                      </>
+                    ) : (
+                      <>
+                        <p className="qc-dropzone__primary">Choose a file or drag &amp; drop it here</p>
+                        <p className="qc-dropzone__hint">JPEG, PNG, PDF, and MP4 formats, up to 50MB</p>
+                        <button
+                          className="qc-browse-btn"
+                          onClick={(e) => { e.stopPropagation(); qcFileInputRef.current?.click(); }}
+                        >
+                          Browse File
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
+
+                {/* ── Section 3: QC Outcome ── */}
+                <div className="qc-outcome-card">
+                  <p className="qc-outcome-title">QC outcome</p>
+
+                  <div
+                    className={`qc-radio-option ${qcOutcome === 'pass' ? 'selected' : ''}`}
+                    onClick={() => setQcOutcome('pass')}
+                  >
+                    <div className={`qc-radio-circle ${qcOutcome === 'pass' ? 'selected' : ''}`}>
+                      {qcOutcome === 'pass' && <div className="qc-radio-dot" />}
+                    </div>
+                    <div className="qc-radio-body">
+                      <span className="qc-radio-label">No issues — pass</span>
+                      <span className="qc-radio-desc">Order moves to Ready for Dispatch</span>
+                    </div>
+                  </div>
+
+                  <div
+                    className={`qc-radio-option ${qcOutcome === 'send_back' ? 'selected' : ''}`}
+                    onClick={() => setQcOutcome('send_back')}
+                  > 
+                  </div>
+                </div>
+
               </div>
 
               {/* ── Footer ── */}
@@ -1265,128 +1259,7 @@ const OrderDetail = ({ orderId, onBack }) => {
         );
       })()}
 
-      {/* ── Rider Edit Modal ── */}
-      {riderEditModalOpen && (
-        <div className="dispatch-modal-overlay" onClick={(e) => e.target === e.currentTarget && setRiderEditModalOpen(false)}>
-          <div className="dispatch-modal-card">
 
-            {/* Header */}
-            <div className="dm-header">
-              <div className="dm-header-content">
-                <p className="dm-header-title">Enter Porter rider details</p>
-                <p className="dm-header-sub">
-                  Order #LO-{String(order.id).padStart(7, '0')} · {order.customer_name || 'Customer'} · {addr.city || addr.street || '—'}
-                </p>
-              </div>
-              <button className="dm-close-btn" onClick={() => setRiderEditModalOpen(false)}>
-                <X size={15} />
-              </button>
-            </div>
-
-            {/* Body */}
-            <div className="dm-body">
-
-              {/* Tip alert */}
-              <div className="dm-alert">
-                <p className="dm-alert-title">Tip:</p>
-                <p className="dm-alert-body">Enter exactly what the Porter SMS shows. The rider's name and phone will be sent to the customer.</p>
-              </div>
-
-              <div className="dm-form">
-
-                {/* Porter booking ID */}
-                <div className="dm-field">
-                  <label className="dm-label">Porter booking ID</label>
-                  <input
-                    className="dm-input"
-                    placeholder="e.g. PRT-7782"
-                    value={tracking.tracking_number}
-                    onChange={e => setTracking(t => ({ ...t, tracking_number: e.target.value }))}
-                  />
-                </div>
-
-                {/* Rider full name */}
-                <div className="dm-field">
-                  <label className="dm-label">Rider full name</label>
-                  <input
-                    className="dm-input"
-                    placeholder="e.g. Rakesh"
-                    value={tracking.delivery_agent_name}
-                    onChange={e => setTracking(t => ({ ...t, delivery_agent_name: e.target.value }))}
-                  />
-                </div>
-
-                {/* Carrier Company */}
-                <div className="dm-field">
-                  <label className="dm-label">Carrier Company</label>
-                  <input
-                    className="dm-input"
-                    placeholder="e.g. DTDC, FedEx, Delhivery, Porter"
-                    value={tracking.courier_company}
-                    onChange={e => setTracking(t => ({ ...t, courier_company: e.target.value }))}
-                  />
-                </div>
-
-                {/* Rider phone + Vehicle type */}
-                <div className="dm-row">
-                  <div className="dm-field">
-                    <label className="dm-label">Rider phone</label>
-                    <input
-                      className="dm-input"
-                      placeholder="+91-9876543210"
-                      value={tracking.delivery_agent_phone}
-                      onChange={e => setTracking(t => ({ ...t, delivery_agent_phone: e.target.value }))}
-                    />
-                  </div>
-                  <div className="dm-field">
-                    <label className="dm-label">Vehicle type</label>
-                    <div className="dm-select-wrap">
-                      <select
-                        className="dm-select"
-                        value={tracking.courier_company || 'Bike'}
-                        onChange={e => setTracking(t => ({ ...t, courier_company: e.target.value }))}
-                      >
-                        {['Bike', 'Car', 'Auto', 'Van', 'Truck'].map(v => (
-                          <option key={v} value={v}>{v}</option>
-                        ))}
-                      </select>
-                      <ChevronDown size={14} className="dm-select-chevron" />
-                    </div>
-                  </div>
-                </div>
-
-                {/* SMS message */}
-                <div className="dm-sms-box">
-                  <p className="dm-sms-label">SMS to customer <span style={{ fontSize: 11, fontWeight: 400, color: '#9ca3af' }}>(editable)</span></p>
-                  <textarea
-                    className="dm-sms-preview"
-                    placeholder="Write your message..."
-                    value={tracking.sms_message || ''}
-                    onChange={e => setTracking(t => ({ ...t, sms_message: e.target.value }))}
-                    style={{ cursor: 'text' }}
-                  />
-                </div>
-
-              </div>
-
-              {/* Footer */}
-              <div className="dm-footer">
-                <button className="dm-btn-cancel" onClick={() => setRiderEditModalOpen(false)}>
-                  Cancel
-                </button>
-                <button
-                  className="dm-btn-primary"
-                  onClick={async () => { await handleSaveTracking(); setRiderEditModalOpen(false); }}
-                  disabled={trackingSaving}
-                >
-                  {trackingSaving ? 'Saving…' : 'Save changes'}
-                </button>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      )}
 
     </div>
   );

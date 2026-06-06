@@ -60,6 +60,7 @@ const CheckoutPage = () => {
     const [paymentErrorCode, setPaymentErrorCode] = useState('');
     const [showConfirmation, setShowConfirmation] = useState(false);
     const [pendingOrderId, setPendingOrderId] = useState(null);
+    const idempotencyKeyRef = useRef(null); // stable per checkout session
 
     const PAYMENT_ERROR_MESSAGES = {
         '#LO-VAL-400': 'There was a problem with your order details. Please review and try again.',
@@ -281,9 +282,17 @@ const CheckoutPage = () => {
         setLoading(true);
         setError(null);
 
+        // Generate a stable idempotency key for this order attempt.
+        // Reuse the same key on retries so the backend deduplicates correctly.
+        if (!idempotencyKeyRef.current) {
+            idempotencyKeyRef.current = `checkout-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+        }
+
         try {
             const prescriptionIds = await savePrescriptionsForCart();
-            const orderResponse = await apiClient.post('/sales/orders/', buildOrderPayload(prescriptionIds));
+            const orderResponse = await apiClient.post('/sales/orders/', buildOrderPayload(prescriptionIds), {
+                headers: { 'Idempotency-Key': idempotencyKeyRef.current },
+            });
             const localOrder = orderResponse.data;
             setPendingOrderId(localOrder.id);
 
@@ -302,6 +311,7 @@ const CheckoutPage = () => {
             );
 
             if (paymentMethod === 'complete_cod') {
+                idempotencyKeyRef.current = null; // reset for next checkout session
                 clearCart();
                 navigate(getPostOrderRoute(localOrder.id), { replace: true });
                 return;
@@ -311,7 +321,13 @@ const CheckoutPage = () => {
         } catch (err) {
             setPaymentFailed(true);
             if (err.response?.status === 400) {
-                const errMsg = err.response?.data?.error || err.response?.data?.detail || 'Invalid request';
+                const errData = err.response?.data || {};
+                // If backend signals a real validation error (not a duplicate replay),
+                // reset the key so a corrected retry is treated as a fresh attempt.
+                if (errData.code !== 'MISSING_IDEMPOTENCY_KEY') {
+                    idempotencyKeyRef.current = null;
+                }
+                const errMsg = errData.error || errData.detail || 'Invalid request';
                 setError(errMsg);
                 setPaymentErrorCode('#LO-VAL-400');
             } else if (err.response?.status === 404) {
@@ -389,6 +405,7 @@ const CheckoutPage = () => {
                             razorpay_signature: response.razorpay_signature,
                             local_order_id: localOrderId,
                         });
+                        idempotencyKeyRef.current = null; // reset for next checkout session
                         clearCart();
                         navigate(getPostOrderRoute(localOrderId), { replace: true });
                     } catch (err) {

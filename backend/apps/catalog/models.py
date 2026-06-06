@@ -124,14 +124,18 @@ class Variant(models.Model):
     
     # Frame Details (from Figma Node 76:8389)
     frame_material = models.CharField(max_length=100, blank=True, default='')
-    frame_size = models.CharField(max_length=100, blank=True, default='')
-    frame_weight = models.CharField(max_length=100, blank=True, default='')
     
     # Per-variant pricing
     base_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True)
     selling_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True)
     cost_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True)
 
+    # sizes 
+    small = models.IntegerField(default = 0)
+    bride_lentgh = models.IntegerField(default=0)
+    temple_length = models.IntegerField(default=0)
+    lens_width = models.IntegerField(default=0)
+    
     # Marketing and Tax
     stock = models.IntegerField(default=0)
     stock_by_size = models.JSONField(default=dict, blank=True)

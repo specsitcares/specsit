@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Check, ChevronDown, AlertCircle, Trash2, Plus, Info, ArrowLeft } from 'lucide-react';
 import apiClient from '../../../services/api';
 import VariantsPricingForm from './VariantsPricingForm';
@@ -38,14 +38,6 @@ const FRAME_SHAPE_OPTIONS = [
   { value: 'Geometric', label: 'Geometric' },
 ];
 
-const GENDER_OPTIONS = [
-  { value: '', label: 'Select gender' },
-  { value: 'Men', label: 'Men' },
-  { value: 'Women', label: 'Women' },
-  { value: 'Unisex', label: 'Unisex' },
-  { value: 'Kids', label: 'Kids' },
-];
-
 const DEFAULT_VARIANT = () => ({
   id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
   expanded: true,
@@ -53,7 +45,11 @@ const DEFAULT_VARIANT = () => ({
   variantName: '',
   colorName: '',
   quantity: 0,
-  stock_by_size: { 'Small': 0, 'Medium': 0, 'Large': 0 },
+  stock_by_size: {
+    'Small': { bridge_length: '', lens_width: '', temple_length: '', quantity: 0 },
+    'Medium': { bridge_length: '', lens_width: '', temple_length: '', quantity: 0 },
+    'Large': { bridge_length: '', lens_width: '', temple_length: '', quantity: 0 }
+  },
   colorMethod: 'code',
   colorCode: '#000000',
   paletteImage: null,
@@ -87,6 +83,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
   const [errors, setErrors] = useState({});
   const [confirmed, setConfirmed] = useState(false);
   const [globalTemplates, setGlobalTemplates] = useState(null);
+  const variantFormRef = useRef(null);
 
   // Track DB-side items removed in edit mode so we can DELETE them on submit
   const [deletedVariantIds, setDeletedVariantIds] = useState([]);
@@ -100,8 +97,6 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
     short_description: '',
     variants: [DEFAULT_VARIANT()],
     taxPercent: '0',
-    discountPercent: '0',
-    gender: 'Unisex',
     isBogo: false,
     discountStartDate: '',
     discountEndDate: '',
@@ -152,7 +147,11 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
               variantName: '',
               colorName: v.color || '',
               quantity: v.stock || 0,
-              stock_by_size: v.stock_by_size || { 'Small': 0, 'Medium': 0, 'Large': 0 },
+              stock_by_size: v.stock_by_size || {
+                'Small': { bridge_length: '', lens_width: '', temple_length: '', quantity: 0 },
+                'Medium': { bridge_length: '', lens_width: '', temple_length: '', quantity: 0 },
+                'Large': { bridge_length: '', lens_width: '', temple_length: '', quantity: 0 }
+              },
               colorMethod: v.color_selection_method || 'code',
               colorCode: v.color_code || '#000000',
               paletteImage: v.palette_image
@@ -196,7 +195,6 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
             short_description: p.short_description || '',
             variants: (p.variants || []).map(mapVariant),
             taxPercent: firstVariant.tax_percent != null ? String(firstVariant.tax_percent) : '0',
-            discountPercent: firstVariant.discount_percent != null ? String(firstVariant.discount_percent) : '0',
             isBogo: firstVariant.is_bogo || false,
             discountStartDate: firstVariant.discount_start_date || '',
             discountEndDate: firstVariant.discount_end_date || '',
@@ -277,10 +275,10 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
       frame_type: firstVariant?.frame_type || '',
       frame_shape: firstVariant?.frame_shape || '',
       frame_width: firstVariant?.frame_width || '',
-      gender: formData.gender || firstVariant?.gender || 'Unisex',
+      gender: firstVariant?.gender || 'Unisex',
       base_price: parseFloat(firstVariant?.base_price) || 0,
       selling_price: parseFloat(firstVariant?.selling_price) || parseFloat(firstVariant?.base_price) || 0,
-      discount_percentage: parseFloat(formData.discountPercent) || 0,
+      discount_percentage: parseFloat(firstVariant?.discount_percentage) || 0,
       frame_only_mode: !!firstVariant?.frame_only_mode,
       is_active: isActive,
     };
@@ -356,7 +354,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
         variantPayload.append('selling_price', parseFloat(v.selling_price) || parseFloat(v.base_price) || 0);
         variantPayload.append('cost_price', parseFloat(v.cost_price) || 0);
         variantPayload.append('tax_percent', parseFloat(formData.taxPercent) || 0);
-        variantPayload.append('discount_percent', parseFloat(formData.discountPercent) || 0);
+        variantPayload.append('discount_percent', parseFloat(v.discount_percentage) || 0);
         variantPayload.append('is_bogo', formData.isBogo ? 'true' : 'false');
         variantPayload.append('is_listed', v.is_listed !== false ? 'true' : 'false');
         variantPayload.append('is_warranty_eligible', v.is_warranty_eligible !== false ? 'true' : 'false');
@@ -651,36 +649,12 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
                     </label>
                   </div>
                 </div>
-
-                <div className="form-field-row">
-                  <div className="form-field">
-                    <label className="form-field-label">Gender</label>
-                    <div className="form-field-select-wrapper">
-                      <select
-                        value={formData.gender || 'Unisex'}
-                        onChange={(e) => handleInputChange('gender', e.target.value)}
-                      >
-                        {GENDER_OPTIONS.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}
-                      </select>
-                      <span className="select-chevron"><ChevronDown size={16} /></span>
-                    </div>
-                  </div>
-                  <div className="form-field">
-                    <label className="form-field-label">Discount %</label>
-                    <input
-                      type="number"
-                      className="form-field-input"
-                      placeholder="0"
-                      value={formData.discountPercent || '0'}
-                      onChange={(e) => handleInputChange('discountPercent', e.target.value)}
-                    />
-                  </div>
-                </div>
               </div>
             )}
 
             {currentStep === 2 && (
               <VariantsPricingForm
+                ref={variantFormRef}
                 formData={formData}
                 onFormDataChange={setFormData}
                 saving={saving}
@@ -709,6 +683,16 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
           </button>
 
           <div className="product-form-footer-right">
+            {currentStep === 2 && (
+              <button
+                className="pf-btn pf-btn-secondary"
+                onClick={() => variantFormRef.current?.addVariant()}
+                disabled={saving}
+              >
+                <Plus size={18} />
+                Add Variant
+              </button>
+            )}
             <button className="pf-btn pf-btn-outline" onClick={handleSaveDraft} disabled={saving}>
               {saving ? 'Saving...' : 'Save as Draft'}
             </button>

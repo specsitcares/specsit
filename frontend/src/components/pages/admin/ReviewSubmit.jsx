@@ -123,7 +123,6 @@ const ReviewSubmit = ({ formData, categories, brands, confirmed, setConfirmed, e
                 <F label="Frame Type"      value={v.frame_type} />
                 <F label="Frame Shape"     value={v.frame_shape} />
                 <F label="Frame Size"      value={v.frame_size} />
-                <F label="Frame Weight"    value={v.frame_weight} />
                 <F label="Gender Target"   value={v.gender} />
                 <F label="Frame Only Mode" value={v.frame_only_mode ? 'Enabled' : 'Disabled'} />
                 <F label="Warranty Eligible" value={v.is_warranty_eligible !== false ? 'Yes' : 'No'} />
