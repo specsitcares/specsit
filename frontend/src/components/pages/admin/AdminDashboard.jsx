@@ -25,6 +25,7 @@ import CmsManagement from './CmsManagement';
 import StoreSettings from './StoreSettings';
 import PaymentSettings from './PaymentSettings';
 import QueryTable from './QueryTable';
+import AnalyticsPage from './AnalyticsPage';
 import { useAuth } from '../../../context/AuthContext';
 import OrderDetail from './OrderDetail';
 import '../../../styles/admin.css';
@@ -182,13 +183,7 @@ const AdminDashboard = () => {
               <Route path="customers/inquiries" element={<QueryTable />} />
 
               {/* Analytics */}
-              <Route path="analytics" element={
-                <DashboardHome
-                  recentOrders={recentOrders}
-                  onOrderClick={id => navigate(`/admin/orders/${id}`)}
-                  onNavigate={handleDashboardNavigate}
-                />
-              } />
+              <Route path="analytics" element={<AnalyticsPage />} />
 
               {/* Settings */}
               <Route path="settings"         element={<StoreSettings />} />

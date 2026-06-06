@@ -3,6 +3,11 @@ from decimal import Decimal
 from .models import Category, Brand, Manufacturer, Product, Variant, VariantImage, Collection, LensPackage, Lens, Prescription, UserFace, Review, LensConstraint
 
 class CategorySerializer(serializers.ModelSerializer):
+    parent_name = serializers.SerializerMethodField()
+    
+    def get_parent_name(self, obj):
+        return obj.parent.name if obj.parent else None
+    
     class Meta:
         model = Category
         fields = '__all__'
@@ -46,6 +51,43 @@ class VariantSerializer(serializers.ModelSerializer):
             return obj.product.stock_quantity or 0
         except Exception:
             return 0
+
+    def validate_stock_by_size(self, value):
+        """
+        Validate stock_by_size structure.
+        Each size must have: bridge_length, temple_length, lens_width, quantity
+        """
+        if not isinstance(value, dict):
+            raise serializers.ValidationError("stock_by_size must be a dictionary")
+        
+        for size_name, size_data in value.items():
+            if not isinstance(size_data, dict):
+                raise serializers.ValidationError(f"Size '{size_name}' data must be a dictionary")
+            
+            required_fields = ['bridge_length', 'temple_length', 'lens_width', 'quantity']
+            missing_fields = [f for f in required_fields if f not in size_data]
+            
+            if missing_fields:
+                raise serializers.ValidationError(
+                    f"Size '{size_name}' is missing fields: {', '.join(missing_fields)}"
+                )
+            
+            # Coerce string quantities (JS inputs always produce strings) to numeric
+            raw_qty = size_data['quantity']
+            try:
+                qty = float(raw_qty)
+            except (TypeError, ValueError):
+                raise serializers.ValidationError(
+                    f"Size '{size_name}' quantity must be a non-negative number"
+                )
+            if qty < 0:
+                raise serializers.ValidationError(
+                    f"Size '{size_name}' quantity must be a non-negative number"
+                )
+            # Normalise back to int for clean storage
+            size_data['quantity'] = int(qty)
+        
+        return value
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

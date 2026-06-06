@@ -6,6 +6,7 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from django.conf import settings
 from django.db import transaction
+from apps.core_utils.idempotency import idempotent_payment_operation
 from .models import PaymentGatewayConfig, Order, Payment
 
 
@@ -77,6 +78,7 @@ def _get_razorpay_client():
 class PaymentInitiateView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @idempotent_payment_operation
     def post(self, request):
         payment_method = request.data.get('payment_method')
         amount = request.data.get('amount')

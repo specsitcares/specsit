@@ -47,11 +47,17 @@ class Coupon(models.Model):
     valid_until = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
     is_bogo = models.BooleanField(default=False)
+    brands = models.ManyToManyField(
+        'catalog.Brand',
+        blank=True,
+        related_name='coupons',
+        help_text='Brands this coupon applies to. Leave empty to apply to all brands.'
+    )
     categories = models.ManyToManyField(
         'catalog.Category',
         blank=True,
         related_name='coupons',
-        help_text='Categories this coupon applies to. Leave empty to apply to all categories.'
+        help_text='Child categories (subcategories) this coupon applies to. Leave empty to apply to all categories.'
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -123,6 +129,16 @@ class Order(models.Model):
     discount_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     tax_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     shipping_cost = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+
+    # Idempotency tracking
+    creation_idempotency_key = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        unique=True,
+        db_index=True,
+        help_text="Idempotency key used to create this order"
+    )
 
     def __str__(self): return f"Order #{self.id}"
 

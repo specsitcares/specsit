@@ -4,10 +4,12 @@ from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from django.db.models import Sum, Count, Q
 from django.utils import timezone
+from django.db import transaction
 import time
 from datetime import timedelta, datetime
 from .models import Order, OrderItem, Cart, Wishlist, Coupon, Shipment, LiveSession, OrderTracking, Payment, ReturnRequest, WarrantyClaim
 from apps.catalog.models import Prescription, Variant
+from apps.core_utils.idempotency import idempotent_endpoint
 from .serializers import (
     OrderSerializer, OrderItemSerializer, CartSerializer,
     WishlistSerializer, CouponSerializer, ShipmentSerializer,
@@ -323,6 +325,31 @@ class OrderViewSet(viewsets.ModelViewSet):
             })
 
         return Response(response_data)
+
+    @idempotent_endpoint('create_order', max_age_seconds=86400)
+    def create(self, request, *args, **kwargs):
+        """
+        Create an order with idempotency support.
+        Requires Idempotency-Key header to prevent duplicate orders.
+        """
+        response = super().create(request, *args, **kwargs)
+        
+        # Store idempotency key in order for future reference
+        if response.status_code in [201, 200]:
+            try:
+                idempotency_key = request.headers.get('Idempotency-Key')
+                order_id = response.data.get('id')
+                if order_id and idempotency_key:
+                    Order.objects.filter(id=order_id).update(
+                        creation_idempotency_key=idempotency_key
+                    )
+            except Exception as e:
+                # Log but don't fail the entire request
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Failed to store idempotency key: {str(e)}")
+        
+        return response
 
     def perform_create(self, serializer):
         from django.db import transaction
@@ -759,14 +786,18 @@ class OrderViewSet(viewsets.ModelViewSet):
         order = self.get_object()
         tracking, _ = OrderTracking.objects.get_or_create(order=order)
 
-        # Fix unique constraint: clear the same tracking_number from any other order
-        new_tracking_number = request.data.get('tracking_number')
+        # Handle empty strings for unique tracking_number by converting them to None
+        data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
+        if 'tracking_number' in data and data['tracking_number'] == '':
+            data['tracking_number'] = None
+
+        new_tracking_number = data.get('tracking_number')
         if new_tracking_number and new_tracking_number != tracking.tracking_number:
             OrderTracking.objects.filter(
                 tracking_number=new_tracking_number
             ).exclude(pk=tracking.pk).update(tracking_number=None)
 
-        serializer = OrderTrackingSerializer(tracking, data=request.data, partial=True)
+        serializer = OrderTrackingSerializer(tracking, data=data, partial=True)
         serializer.is_valid(raise_exception=True)
         instance = serializer.save(order=order)
 
@@ -810,7 +841,7 @@ class CouponViewSet(viewsets.ModelViewSet):
             return Response({'valid': False, 'message': 'Please enter a coupon code.'})
 
         try:
-            coupon = Coupon.objects.prefetch_related('categories').get(code=code, is_active=True)
+            coupon = Coupon.objects.prefetch_related('brands', 'categories').get(code=code, is_active=True)
         except Coupon.DoesNotExist:
             return Response({'valid': False, 'message': 'Invalid coupon code. Please try again.'})
 
@@ -825,13 +856,17 @@ class CouponViewSet(viewsets.ModelViewSet):
                 'message': f'Minimum cart value ₹{int(coupon.min_cart_value)} required for this coupon.',
             })
 
-        # Category-restricted coupon logic (M2M)
+        # Get coupon restrictions
+        coupon_brands = list(coupon.brands.all())
         coupon_categories = list(coupon.categories.all())
+        coupon_brand_ids = {b.id for b in coupon_brands}
         coupon_category_ids = {c.id for c in coupon_categories}
+        brand_names_str = ', '.join(b.name for b in coupon_brands)
         category_names_str = ', '.join(c.name for c in coupon_categories)
 
-        if coupon_category_ids and items:
-            # Build a map of variant_id -> category_id using a single DB query
+        # If either brands or categories are restricted, validate items
+        if (coupon_brand_ids or coupon_category_ids) and items:
+            # Build a map of variant_id -> (brand_id, category_id) using a single DB query
             variant_ids = []
             for item in items:
                 vid = item.get('variant_id') or item.get('variant')
@@ -842,10 +877,10 @@ class CouponViewSet(viewsets.ModelViewSet):
                         pass
 
             if variant_ids:
-                variant_category_map = {
-                    v['id']: v['product__category']
+                variant_details_map = {
+                    v['id']: {'brand': v['product__brand'], 'category': v['product__category']}
                     for v in Variant.objects.filter(id__in=variant_ids)
-                        .values('id', 'product__category')
+                        .values('id', 'product__brand', 'product__category')
                 }
 
                 applicable_subtotal = 0.0
@@ -855,18 +890,41 @@ class CouponViewSet(viewsets.ModelViewSet):
                         vid = int(vid) if vid else None
                     except (ValueError, TypeError):
                         vid = None
-                    if vid and variant_category_map.get(vid) in coupon_category_ids:
-                        price = float(item.get('price', 0) or 0)
-                        qty = int(item.get('quantity', 1) or 1)
-                        applicable_subtotal += price * qty
+                    
+                    if vid and vid in variant_details_map:
+                        details = variant_details_map[vid]
+                        brand_id = details['brand']
+                        category_id = details['category']
+                        
+                        # Check brand restriction
+                        brand_matches = not coupon_brand_ids or brand_id in coupon_brand_ids
+                        # Check category restriction
+                        category_matches = not coupon_category_ids or category_id in coupon_category_ids
+                        
+                        if brand_matches and category_matches:
+                            price = float(item.get('price', 0) or 0)
+                            qty = int(item.get('quantity', 1) or 1)
+                            applicable_subtotal += price * qty
 
                 if applicable_subtotal == 0:
+                    restriction_msg = []
+                    if brand_names_str:
+                        restriction_msg.append(f"brand '{brand_names_str}'")
+                    if category_names_str:
+                        restriction_msg.append(f"category '{category_names_str}'")
+                    restriction_text = ' and '.join(restriction_msg)
                     return Response({
                         'valid': False,
-                        'message': f"This coupon is only valid for '{category_names_str}' products. No eligible items found in your cart.",
+                        'message': f"This coupon is only valid for {restriction_text} products. No eligible items found in your cart.",
                     })
 
                 savings = round(applicable_subtotal * coupon.discount_percentage / 100, 2)
+                restriction_msg = []
+                if brand_names_str:
+                    restriction_msg.append(f"brand '{brand_names_str}'")
+                if category_names_str:
+                    restriction_msg.append(f"subcategory '{category_names_str}'")
+                restriction_text = ' and '.join(restriction_msg)
                 return Response({
                     'valid': True,
                     'code': coupon.code,
@@ -875,10 +933,11 @@ class CouponViewSet(viewsets.ModelViewSet):
                     'applicableSubtotal': applicable_subtotal,
                     'categoryRestricted': True,
                     'categoryName': category_names_str,
-                    'message': f"Coupon '{coupon.code}' applied for {category_names_str} items! You saved ₹{savings}",
+                    'brandName': brand_names_str,
+                    'message': f"Coupon '{coupon.code}' applied for {restriction_text} items! You saved ₹{savings}",
                 })
 
-        # No category restriction — discount on full cart
+        # No restrictions — discount on full cart
         savings = round(cart_value * coupon.discount_percentage / 100, 2) if cart_value else 0
 
         return Response({
@@ -886,8 +945,9 @@ class CouponViewSet(viewsets.ModelViewSet):
             'code': coupon.code,
             'discountPercentage': coupon.discount_percentage,
             'savings': savings,
-            'categoryRestricted': bool(coupon_category_ids),
+            'categoryRestricted': bool(coupon_category_ids or coupon_brand_ids),
             'categoryName': category_names_str or None,
+            'brandName': brand_names_str or None,
             'message': f"Coupon '{coupon.code}' applied! You saved ₹{savings}" if savings else f"Coupon '{coupon.code}' applied!",
         })
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]

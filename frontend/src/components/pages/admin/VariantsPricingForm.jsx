@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, forwardRef, useImperativeHandle } from 'react';
 import {
   Plus,
   ChevronDown,
@@ -10,12 +10,7 @@ import {
 } from 'lucide-react';
 import '../../../styles/variants_pricing.css';
 
-const FRAME_WIDTH_OPTIONS = [
-  { value: '', label: 'Select frame width' },
-  { value: 'Small (115mm)', label: 'Small (115mm)' },
-  { value: 'Medium (130mm)', label: 'Medium (130mm)' },
-  { value: 'Large (140mm)', label: 'Large (140mm)' },
-];
+
 
 const FRAME_TYPE_OPTIONS = [
   { value: '', label: 'Select frame type' },
@@ -52,7 +47,11 @@ const EMPTY_VARIANT = () => ({
   variantName: '',
   colorName: '',
   quantity: 0,
-  stock_by_size: { 'Small': 0, 'Medium': 0, 'Large': 0 },
+  stock_by_size: {
+    'Small': { bridge_length: '', lens_width: '', temple_length: '', quantity: 0 },
+    'Medium': { bridge_length: '', lens_width: '', temple_length: '', quantity: 0 },
+    'Large': { bridge_length: '', lens_width: '', temple_length: '', quantity: 0 }
+  },
   colorMethod: 'code',
   colorCode: '#000000',
   paletteImage: null,
@@ -64,7 +63,6 @@ const EMPTY_VARIANT = () => ({
   meta_title: '',
   meta_description: '',
   meta_auto: true,
-  frame_width: '',
   frame_type: '',
   frame_shape: '',
   gender: 'Unisex',
@@ -76,7 +74,7 @@ const EMPTY_VARIANT = () => ({
   is_warranty_eligible: true,
 });
 
-const VariantsPricingForm = ({ formData, onFormDataChange, saving, errors = {}, onVariantRemoved, onImageRemoved, globalTemplates }) => {
+const VariantsPricingForm = forwardRef(({ formData, onFormDataChange, saving, errors = {}, onVariantRemoved, onImageRemoved, globalTemplates }, ref) => {
   const resolveTemplate = (tpl, variantName) => (tpl || '')
     .replace(/{product_name}/g, formData.title || '')
     .replace(/{variant_name}/g, variantName || 'Variant Name')
@@ -90,6 +88,11 @@ const VariantsPricingForm = ({ formData, onFormDataChange, saving, errors = {}, 
     return ids;
   });
 
+  const [frameShapeOptions, setFrameShapeOptions] = useState(FRAME_SHAPE_OPTIONS);
+  const [showShapeModal, setShowShapeModal] = useState(false);
+  const [newShapeValue, setNewShapeValue] = useState('');
+  const [targetVariantForShape, setTargetVariantForShape] = useState(null);
+
   const fileInputRefs = useRef({});
 
   // All variant mutations go directly to the parent
@@ -101,11 +104,38 @@ const VariantsPricingForm = ({ formData, onFormDataChange, saving, errors = {}, 
     onFormDataChange({ ...formData, [field]: value });
   };
 
+  const handleFrameShapeChange = (vId, value) => {
+    if (value === '__add_new__') {
+      setTargetVariantForShape(vId);
+      setNewShapeValue('');
+      setShowShapeModal(true);
+    } else {
+      updateVariant(vId, 'frame_shape', value);
+    }
+  };
+
+  const handleShapeSubmit = () => {
+    if (newShapeValue && newShapeValue.trim() !== '') {
+      const shapeValue = newShapeValue.trim();
+      if (!frameShapeOptions.find(o => o.value.toLowerCase() === shapeValue.toLowerCase())) {
+        setFrameShapeOptions(prev => [...prev, { value: shapeValue, label: shapeValue }]);
+      }
+      if (targetVariantForShape) {
+        updateVariant(targetVariantForShape, 'frame_shape', shapeValue);
+      }
+    }
+    setShowShapeModal(false);
+  };
+
   const addVariant = () => {
     const nv = EMPTY_VARIANT();
     setExpandedIds(prev => ({ ...prev, [nv.id]: true }));
     updateVariants([...(formData.variants || []), nv]);
   };
+
+  useImperativeHandle(ref, () => ({
+    addVariant,
+  }));
 
   const removeVariant = (variantId) => {
     const current = formData.variants || [];
@@ -203,10 +233,6 @@ const VariantsPricingForm = ({ formData, onFormDataChange, saving, errors = {}, 
       {/* ──── Color Variant Header ──── */}
       <div className="vp-variant-header">
         <h3>Color Variant</h3>
-        <button className="vp-add-variant-btn" onClick={addVariant} type="button">
-          <Plus size={16} />
-          <span>Add Color Variant</span>
-        </button>
       </div>
 
       {/* ──── Variants List ──── */}
@@ -292,51 +318,89 @@ const VariantsPricingForm = ({ formData, onFormDataChange, saving, errors = {}, 
                   <div className="vp-row" style={{ marginBottom: '16px' }}>
                     <div className="form-field" style={{ width: '100%' }}>
                       <label className="form-field-label">Stock by Size</label>
-                      <div style={{ display: 'flex', gap: '12px' }}>
+                      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                         {['Small', 'Medium', 'Large'].map((size) => {
-                          const rawVal = v.stock_by_size?.[size];
-                          let isListed = true;
-                          let displayQty = rawVal || 0;
-                          
-                          if (typeof rawVal === 'string' && rawVal.startsWith('U:')) {
-                              isListed = false;
-                              displayQty = parseInt(rawVal.replace('U:', ''), 10) || 0;
-                          } else {
-                              isListed = true;
-                              displayQty = parseInt(rawVal, 10) || 0;
-                          }
+                          const sizeData = v.stock_by_size?.[size] || {};
+                          // Backward compatibility: if it's just a number or string
+                          const data = typeof sizeData === 'object' ? sizeData : {
+                            bridge_length: '',
+                            lens_width: '',
+                            temple_length: '',
+                            quantity: typeof sizeData === 'string' && sizeData.startsWith('U:') 
+                              ? (parseInt(sizeData.replace('U:', ''), 10) || 0)
+                              : (parseInt(sizeData, 10) || 0)
+                          };
+
+                          const updateSizeField = (field, val) => {
+                            const newSizeData = { ...data, [field]: val };
+                            const newStockBySize = { ...v.stock_by_size, [size]: newSizeData };
+                            
+                            // Recompute total quantity
+                            let newQuantity = 0;
+                            for (const key in newStockBySize) {
+                              const sd = newStockBySize[key];
+                              if (typeof sd === 'object' && sd !== null) {
+                                newQuantity += parseInt(sd.quantity, 10) || 0;
+                              } else if (typeof sd === 'number') {
+                                newQuantity += sd;
+                              } else if (typeof sd === 'string' && !sd.startsWith('U:')) {
+                                newQuantity += parseInt(sd, 10) || 0;
+                              }
+                            }
+                            
+                            const updated = (formData.variants || []).map(va =>
+                              va.id === v.id ? { ...va, stock_by_size: newStockBySize, quantity: newQuantity } : va
+                            );
+                            updateVariants(updated);
+                          };
 
                           return (
-                            <div key={size} style={{ flex: 1 }}>
-                              <label style={{ fontSize: '11px', color: '#697177', display: 'block', marginBottom: '4px' }}>
-                                {size} {isListed ? '' : '(Unlisted)'}
+                            <div key={size} style={{ flex: 1, minWidth: '140px', background: '#F9FAFB', padding: '10px', borderRadius: '8px', border: '1px solid #EAECF0' }}>
+                              <label style={{ fontSize: '13px', fontWeight: 600, color: '#344054', display: 'block', marginBottom: '8px' }}>
+                                {size}
                               </label>
-                              <input
-                                type="number"
-                                className="form-field-input"
-                                placeholder="0"
-                                value={displayQty}
-                                onChange={(e) => {
-                                  const num = parseInt(e.target.value) || 0;
-                                  const newVal = isListed ? num : `U:${num}`;
-                                  const newStockBySize = { ...v.stock_by_size, [size]: newVal };
-                                  
-                                  // Compute sum properly ignoring U: values
-                                  let newQuantity = 0;
-                                  for (const key in newStockBySize) {
-                                      const val = newStockBySize[key];
-                                      if (typeof val === 'number') newQuantity += val;
-                                      else if (typeof val === 'string' && !val.startsWith('U:')) {
-                                          newQuantity += parseInt(val, 10) || 0;
-                                      }
-                                  }
-                                  
-                                  const updated = (formData.variants || []).map(va =>
-                                    va.id === v.id ? { ...va, stock_by_size: newStockBySize, quantity: newQuantity } : va
-                                  );
-                                  updateVariants(updated);
-                                }}
-                              />
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <div>
+                                  <label style={{ fontSize: '11px', color: '#697177', display: 'block', marginBottom: '2px' }}>Bridge Length</label>
+                                  <input
+                                    type="text"
+                                    className="form-field-input"
+                                    placeholder="e.g. 18mm"
+                                    value={data.bridge_length || ''}
+                                    onChange={(e) => updateSizeField('bridge_length', e.target.value)}
+                                  />
+                                </div>
+                                <div>
+                                  <label style={{ fontSize: '11px', color: '#697177', display: 'block', marginBottom: '2px' }}>Lens Width</label>
+                                  <input
+                                    type="text"
+                                    className="form-field-input"
+                                    placeholder="e.g. 50mm"
+                                    value={data.lens_width || ''}
+                                    onChange={(e) => updateSizeField('lens_width', e.target.value)}
+                                  />
+                                </div>
+                                <div>
+                                  <label style={{ fontSize: '11px', color: '#697177', display: 'block', marginBottom: '2px' }}>Temple Length</label>
+                                  <input
+                                    type="text"
+                                    className="form-field-input"
+                                    placeholder="e.g. 140mm"
+                                    value={data.temple_length || ''}
+                                    onChange={(e) => updateSizeField('temple_length', e.target.value)}
+                                  />
+                                </div>
+                                <div>
+                                  <label style={{ fontSize: '11px', color: '#697177', display: 'block', marginBottom: '2px' }}>Quantity</label>
+                                  <input
+                                    type="number"
+                                    className="form-field-input"
+                                    placeholder="0"
+                                    value={data.quantity || 0}
+                                    onChange={(e) => updateSizeField('quantity', e.target.value)}
+                                  />
+                                </div>
+                              </div>
                             </div>
                           );
                         })}
@@ -441,15 +505,7 @@ const VariantsPricingForm = ({ formData, onFormDataChange, saving, errors = {}, 
                           onChange={(e) => updateVariant(v.id, 'frame_material', e.target.value)}
                         />
                       </div>
-                      <div className="form-field">
-                        <label className="form-field-label">Frame Width</label>
-                        <div className="form-field-select-wrapper">
-                          <select value={v.frame_width || ''} onChange={(e) => updateVariant(v.id, 'frame_width', e.target.value)}>
-                            {FRAME_WIDTH_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                          </select>
-                          <span className="select-chevron"><ChevronDown size={14} /></span>
-                        </div>
-                      </div>
+                      
                     </div>
 
                     <div className="vp-row">
@@ -465,22 +521,9 @@ const VariantsPricingForm = ({ formData, onFormDataChange, saving, errors = {}, 
                       <div className="form-field">
                         <label className="form-field-label">Frame Shape</label>
                         <div className="form-field-select-wrapper">
-                          <select value={v.frame_shape || ''} onChange={(e) => updateVariant(v.id, 'frame_shape', e.target.value)}>
-                            {FRAME_SHAPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                          </select>
-                          <span className="select-chevron"><ChevronDown size={14} /></span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="vp-row">
-                      <div className="form-field">
-                        <label className="form-field-label">Frame Weight</label>
-                        <div className="form-field-select-wrapper">
-                          <select value={v.frame_weight || 'Standard'} onChange={(e) => updateVariant(v.id, 'frame_weight', e.target.value)}>
-                            <option value="Lightweight">Lightweight</option>
-                            <option value="Standard">Standard</option>
-                            <option value="Heavy">Heavy</option>
+                          <select value={v.frame_shape || ''} onChange={(e) => handleFrameShapeChange(v.id, e.target.value)}>
+                            {frameShapeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                            <option value="__add_new__" style={{ fontWeight: 'bold', color: '#6941C6' }}>+ Add Another Shape...</option>
                           </select>
                           <span className="select-chevron"><ChevronDown size={14} /></span>
                         </div>
@@ -729,41 +772,66 @@ const VariantsPricingForm = ({ formData, onFormDataChange, saving, errors = {}, 
         })}
       </div>
 
-      {/* ──── Product-Level Fields ──── */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '19px', marginTop: '19px' }}>
-        <div className="vp-marketing-box">
-          <div
-            className="vp-bogo-row"
-            onClick={() => updateProductField('isBogo', !formData.isBogo)}
-          >
-            <div className={`vp-checkbox ${formData.isBogo ? 'checked' : ''}`}>
-              {formData.isBogo && <Check size={12} color="white" />}
+      {/* ── Custom Shape Modal ── */}
+      {showShapeModal && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 1300, background: 'rgba(16, 24, 40, 0.4)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16
+        }} onClick={() => setShowShapeModal(false)}>
+          <div style={{
+            background: '#fff', borderRadius: '12px', width: '100%', maxWidth: '320px',
+            boxShadow: '0 20px 48px rgba(16,24,40,0.18)', overflow: 'hidden'
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #EAECF0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#101828' }}>Add Custom Shape</h3>
+              <button onClick={() => setShowShapeModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#667085', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <X size={20} />
+              </button>
             </div>
-            <label>Buy 1 Get 1 (enable BOGO on this variant)</label>
-          </div>
-
-          <div className="vp-date-picker-row">
-            <div className="vp-date-field">
-              <label>Discount Start Date</label>
+            <div style={{ padding: '20px' }}>
+              <label style={{ fontSize: '13px', fontWeight: 500, color: '#344054', display: 'block', marginBottom: '8px' }}>Shape Name</label>
               <input
-                type="date"
-                value={formData.discountStartDate || ''}
-                onChange={(e) => updateProductField('discountStartDate', e.target.value)}
+                autoFocus
+                type="text"
+                placeholder="e.g. Hexagon"
+                value={newShapeValue}
+                onChange={(e) => setNewShapeValue(e.target.value)}
+                style={{
+                  width: '100%', padding: '10px 12px', borderRadius: '8px', boxSizing: 'border-box',
+                  border: '1px solid #D0D5DD', fontSize: '13px', outline: 'none'
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleShapeSubmit();
+                }}
               />
-            </div>
-            <div className="vp-date-field">
-              <label>Discount End Date</label>
-              <input
-                type="date"
-                value={formData.discountEndDate || ''}
-                onChange={(e) => updateProductField('discountEndDate', e.target.value)}
-              />
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowShapeModal(false)}
+                  style={{
+                    padding: '8px 14px', borderRadius: '8px', border: '1px solid #D0D5DD',
+                    background: '#fff', color: '#344054', fontSize: '13px', fontWeight: 500, cursor: 'pointer'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleShapeSubmit()}
+                  style={{
+                    padding: '8px 14px', borderRadius: '8px', border: 'none',
+                    background: '#6941C6', color: '#fff', fontSize: '13px', fontWeight: 500, cursor: 'pointer'
+                  }}
+                >
+                  Add Shape
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
-};
+});
 
 export default VariantsPricingForm;

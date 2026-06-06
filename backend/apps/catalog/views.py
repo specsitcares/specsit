@@ -117,6 +117,79 @@ class CategoryViewSet(viewsets.ModelViewSet):
             groups.append({'key': key, 'label': label, 'categories': data})
         return Response(groups)
 
+    @action(detail=False, methods=['get'], permission_classes=[permissions.AllowAny])
+    def subcategories_by_brand(self, request):
+        """Get subcategories (child categories) for a given brand.
+        Query params:
+        - brand_id: Brand ID to filter by
+        Returns only child categories (categories with a parent)
+        """
+        brand_id = request.query_params.get('brand_id')
+        if not brand_id:
+            return Response({'error': 'brand_id parameter is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            brand_id = int(brand_id)
+        except (ValueError, TypeError):
+            return Response({'error': 'brand_id must be an integer'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Get categories that have products from this brand and are child categories (parent is not null)
+        categories = Category.objects.filter(
+            products__brand_id=brand_id,
+            parent__isnull=False
+        ).distinct().order_by('parent', 'name')
+        
+        data = CategorySerializer(categories, many=True, context={'request': request}).data
+        return Response(data)
+
+    @action(detail=False, methods=['get'], permission_classes=[permissions.AllowAny])
+    def categories_by_brand(self, request):
+        """Get parent categories for a given brand.
+        Query params:
+        - brand_id: Brand ID to filter by
+        Returns only parent categories (parent is null)
+        """
+        brand_id = request.query_params.get('brand_id')
+        if not brand_id:
+            return Response({'error': 'brand_id parameter is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            brand_id = int(brand_id)
+        except (ValueError, TypeError):
+            return Response({'error': 'brand_id must be an integer'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Get categories that have products from this brand and are parent categories (parent is null)
+        categories = Category.objects.filter(
+            products__brand_id=brand_id,
+            parent__isnull=True
+        ).distinct().order_by('name')
+        
+        data = CategorySerializer(categories, many=True, context={'request': request}).data
+        return Response(data)
+
+    @action(detail=False, methods=['get'], permission_classes=[permissions.AllowAny])
+    def children(self, request):
+        """Get child categories (subcategories) for a given parent.
+        Query params:
+        - parent_id: Parent category ID
+        Returns only direct children of the given parent
+        """
+        parent_id = request.query_params.get('parent_id')
+        if not parent_id:
+            return Response({'error': 'parent_id parameter is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            parent_id = int(parent_id)
+        except (ValueError, TypeError):
+            return Response({'error': 'parent_id must be an integer'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Get only direct children of the given parent
+        categories = Category.objects.filter(parent_id=parent_id).order_by('name')
+        
+        data = CategorySerializer(categories, many=True, context={'request': request}).data
+        return Response(data)
+
+
 class BrandViewSet(viewsets.ModelViewSet):
     queryset = Brand.objects.all().order_by('id')
     serializer_class = BrandSerializer
@@ -139,35 +212,15 @@ class ProductViewSet(viewsets.ModelViewSet):
     serializer_class = ProductSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
-    @action(detail=True, methods=['get'])
+    @action(detail=True, methods=['get'], permission_classes=[permissions.AllowAny])
     def recommended_lenses(self, request, pk=None):
         from .models import Lens
         from .serializers import LensSerializer
-        from django.db.models import Q, Count
-        
-        product = self.get_object()
-        lenses = Lens.objects.filter(is_active=True)
-        
-        if product.category:
-            # 1. Package must be linked to product category
-            lenses = lenses.filter(package__categories=product.category)
-            
-            # 2. Match sunglass vs eyeglasses based on category name
-            if 'sunglass' in product.category.name.lower():
-                lenses = lenses.filter(is_for_sunglasses=True)
-            else:
-                lenses = lenses.filter(is_for_eyeglasses=True)
-                
-        # 3. Filter by frame constraints
-        lenses = lenses.annotate(constraint_count=Count('constraints'))
-        if product.frame_type:
-            lenses = lenses.filter(
-                Q(constraint_count=0) | Q(constraints__name__iexact=product.frame_type)
-            )
-        else:
-            lenses = lenses.filter(constraint_count=0)
-            
-        serializer = LensSerializer(lenses.distinct(), many=True)
+
+        # Return ALL active lenses — no category/constraint filtering
+        # so the customer always sees available lenses in the order flow.
+        lenses = Lens.objects.filter(is_active=True).select_related('package', 'brand', 'type')
+        serializer = LensSerializer(lenses, many=True)
         return Response(serializer.data)
 
     def perform_create(self, serializer):
@@ -407,11 +460,18 @@ class VariantViewSet(viewsets.ModelViewSet):
             try:
                 parsed = json.loads(raw)
                 if isinstance(parsed, dict):
-                    # Auto-compute the total stock from per-size counts
-                    total = sum(
-                        int(v) for v in parsed.values()
-                        if str(v).lstrip('-').isdigit() and int(v) >= 0
-                    )
+                    total = 0
+                    for v in parsed.values():
+                        if isinstance(v, dict):
+                            # New nested format: {bridge_length, lens_width, temple_length, quantity}
+                            try:
+                                total += int(float(v.get('quantity', 0) or 0))
+                            except (TypeError, ValueError):
+                                pass
+                        elif isinstance(v, (int, float)):
+                            # Legacy flat format
+                            if v >= 0:
+                                total += int(v)
                     data['stock'] = total
                     # Keep stock_by_size as-is (valid JSON string) for the serializer
             except (json.JSONDecodeError, ValueError, TypeError):

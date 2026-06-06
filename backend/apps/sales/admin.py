@@ -1,5 +1,7 @@
 from django.contrib import admin
 from .models import Order, OrderItem, Cart, Wishlist, Coupon, Shipment, PaymentGatewayConfig, OrderTracking, Payment
+from .forms import CouponAdminForm
+from apps.catalog.models import Category, Brand
 
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
@@ -14,9 +16,45 @@ class OrderAdmin(admin.ModelAdmin):
 
 @admin.register(Coupon)
 class CouponAdmin(admin.ModelAdmin):
-    list_display = ('code', 'discount_percentage', 'is_active', 'valid_until')
+    form = CouponAdminForm
+    list_display = ('code', 'discount_percentage', 'is_active', 'valid_until', 'get_brands_display', 'get_categories_display')
     list_filter = ('is_active',)
     search_fields = ('code',)
+
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('code', 'discount_percentage', 'min_cart_value', 'is_active', 'is_bogo')
+        }),
+        ('Validity Period', {
+            'fields': ('valid_from', 'valid_until'),
+        }),
+        ('Filters', {
+            'fields': ('brand_filter', 'category_filter', 'subcategory_filter'),
+            'description': 'Select a brand, category, and subcategory. The dropdowns will filter dynamically.'
+        }),
+    )
+
+    def get_brands_display(self, obj):
+        """Display brands in list view"""
+        brands = obj.brands.all()
+        if brands:
+            brand_list = ', '.join([b.name for b in brands[:2]])
+            if brands.count() > 2:
+                brand_list += f' +{brands.count() - 2}'
+            return brand_list
+        return '—'
+    get_brands_display.short_description = 'Brands'
+
+    def get_categories_display(self, obj):
+        """Display categories in list view"""
+        categories = obj.categories.all()
+        if categories:
+            cat_list = ', '.join([c.name for c in categories[:2]])
+            if categories.count() > 2:
+                cat_list += f' +{categories.count() - 2}'
+            return cat_list
+        return 'All'
+    get_categories_display.short_description = 'Categories'
 
 @admin.register(Shipment)
 class ShipmentAdmin(admin.ModelAdmin):

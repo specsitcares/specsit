@@ -809,3 +809,8 @@
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* ──── Add Variant Button (Bottom) ────────────────────────────────── */
+.vp-add-variant-container {
+  display: none;
+}

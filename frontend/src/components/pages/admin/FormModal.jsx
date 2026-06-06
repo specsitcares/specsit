@@ -14,7 +14,7 @@ const S = {
     boxShadow: '0 20px 48px rgba(16,24,40,0.18), 0 8px 20px rgba(16,24,40,0.10)',
     border: '1px solid #EAECF0',
     width: '100%', maxWidth: '460px',
-    maxHeight: '90vh', display: 'flex', flexDirection: 'column',
+    height: '90vh', maxHeight: '90vh', display: 'flex', flexDirection: 'column',
     overflow: 'hidden',
   },
   header: {
@@ -30,7 +30,7 @@ const S = {
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     flexShrink: 0, transition: 'background 0.15s',
   },
-  body: { padding: '20px 22px', overflowY: 'auto', flex: 1 },
+  body: { padding: '20px 18px 20px 22px', overflowY: 'scroll', flex: 1, minHeight: 0, scrollbarGutter: 'stable' },
   footer: {
     display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8,
     padding: '14px 22px', borderTop: '1px solid #EAECF0',
@@ -121,12 +121,19 @@ const FormModal = ({
   };
 
   // Toggle a value in/out of a checkbox-group array field
-  const handleCheckboxGroupToggle = (fieldName, val) => {
+  const handleCheckboxGroupToggle = (fieldName, val, field) => {
     const numVal = Number(val);
     setFormData(prev => {
       const current = Array.isArray(prev[fieldName]) ? prev[fieldName] : [];
       const exists = current.includes(numVal);
-      return { ...prev, [fieldName]: exists ? current.filter(v => v !== numVal) : [...current, numVal] };
+      const newValue = exists ? current.filter(v => v !== numVal) : [...current, numVal];
+      
+      // Call onChange callback if provided (for dynamic filtering)
+      if (field?.onChange) {
+        field.onChange(newValue);
+      }
+      
+      return { ...prev, [fieldName]: newValue };
     });
     if (errors[fieldName]) setErrors(prev => ({ ...prev, [fieldName]: '' }));
   };
@@ -203,7 +210,7 @@ const FormModal = ({
         {/* ── Form body ── */}
         {!showDeleteConfirm ? (
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-            <div style={{ ...S.body, maxHeight: '58vh' }}>
+            <div className="form-modal-body" style={{ ...S.body }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 {fields.map(field => {
                   if (field.readOnly && mode === 'create') return null;
@@ -226,9 +233,14 @@ const FormModal = ({
                           style={{ ...inputStyle(fieldError), minHeight: 80, resize: 'vertical' }}
                         />
                       ) : field.type === 'select' ? (
+                        <div>
                         <select
                           id={field.name} name={field.name}
-                          value={fieldValue} onChange={handleInputChange}
+                          value={fieldValue}
+                          onChange={(e) => {
+                            handleInputChange(e);
+                            if (field.onChange) field.onChange(e.target.value);
+                          }}
                           disabled={isSubmitting || field.readOnly}
                           style={{
                             ...inputStyle(fieldError), appearance: 'none', cursor: 'pointer',
@@ -242,6 +254,12 @@ const FormModal = ({
                             <option key={opt.value} value={opt.value}>{opt.label}</option>
                           ))}
                         </select>
+                        {field.helpText && (
+                          <div style={{ fontSize: 11, color: '#667085', marginTop: 6, fontStyle: 'italic' }}>
+                            ℹ️ {field.helpText}
+                          </div>
+                        )}
+                        </div>
                       ) : field.type === 'checkbox' ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 2 }}>
                           <div
@@ -281,27 +299,34 @@ const FormModal = ({
                           )}
                         </div>
                       ) : field.type === 'checkbox-group' ? (
-                        <div style={{
-                          border: '1px solid #D0D5DD', borderRadius: 8,
-                          maxHeight: 160, overflowY: 'auto', padding: '8px 12px',
-                          display: 'flex', flexDirection: 'column', gap: 8,
-                        }}>
-                          {(field.options || []).map(opt => {
-                            const currentArr = Array.isArray(formData[field.name]) ? formData[field.name] : [];
-                            const isChecked = currentArr.includes(Number(opt.value));
-                            return (
-                              <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 12, color: '#344054' }}>
-                                <input
-                                  type="checkbox"
-                                  checked={isChecked}
-                                  onChange={() => handleCheckboxGroupToggle(field.name, opt.value)}
-                                  disabled={isSubmitting || field.readOnly}
-                                  style={{ accentColor: '#68408D', width: 14, height: 14, flexShrink: 0 }}
-                                />
-                                {opt.label}
-                              </label>
-                            );
-                          })}
+                        <div>
+                          <div style={{
+                            border: '1px solid #D0D5DD', borderRadius: 8,
+                            maxHeight: 200, overflowY: 'auto', padding: '8px 12px',
+                            display: 'flex', flexDirection: 'column', gap: 8,
+                          }}>
+                            {(field.options || []).map(opt => {
+                              const currentArr = Array.isArray(formData[field.name]) ? formData[field.name] : [];
+                              const isChecked = currentArr.includes(Number(opt.value));
+                              return (
+                                <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 12, color: '#344054' }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={() => handleCheckboxGroupToggle(field.name, opt.value, field)}
+                                    disabled={isSubmitting || field.readOnly}
+                                    style={{ accentColor: '#68408D', width: 14, height: 14, flexShrink: 0 }}
+                                  />
+                                  {opt.label}
+                                </label>
+                              );
+                            })}
+                          </div>
+                          {field.helpText && (
+                            <div style={{ fontSize: 11, color: '#667085', marginTop: 8, fontStyle: 'italic' }}>
+                              ℹ️ {field.helpText}
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <input

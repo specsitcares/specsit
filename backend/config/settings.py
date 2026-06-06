@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'corsheaders',
     # Local Domain Apps
+    'apps.core_utils',   # Idempotency, Shared Utilities
     'apps.catalog',      # Products, Lenses, Prescriptions, Faces
     'apps.sales',        # Orders, Coupons, Shipments, Cart
     'apps.accounts',     # Users, Employees, Addresses, Queries
@@ -72,6 +73,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'apps.core_utils.middleware.IdempotencyMiddleware',  # Idempotency handling
     # 'core.middleware.RedisRateLimitMiddleware',  # Disabled temporarily as Redis is not running locally
 ]
 
@@ -137,7 +139,6 @@ DATABASES = {
         'PASSWORD': env('DB_PASSWORD', default=''),
         'HOST': env('DB_HOST', default=''),
         'PORT': env('DB_PORT', default=''),
-        'OPTIONS': {}
     }
 }
 

@@ -9,7 +9,7 @@ const STATUS_OPTS = [
   { key: 'in', label: 'In Stock' },
   { key: 'low', label: 'Low Stock' },
   { key: 'out', label: 'Out of Stock' },
-  { key: 'best', label: 'bestseller'}
+  { key: 'best', label: 'bestseller' }
 ];
 
 const InventoryTable = ({ initialFilter = 'all' }) => {
@@ -58,12 +58,12 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
       let url = '/catalog/variants/?page_size=1000&admin=true';
       if (activeCategory) url += `&category=${encodeURIComponent(activeCategory)}`;
       const res = await apiClient.get(url);
-      
+
       const rawData = Array.isArray(res.data) ? res.data : (res.data.results || []);
       const processed = rawData.map(v => {
         let calculatedStock = v.stock ?? 0;
         let parsedStockBySize = v.stock_by_size || {};
-        
+
         if (typeof parsedStockBySize === 'string') {
           try {
             parsedStockBySize = JSON.parse(parsedStockBySize);
@@ -75,18 +75,22 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
         if (parsedStockBySize && typeof parsedStockBySize === 'object' && Object.keys(parsedStockBySize).length > 0) {
           calculatedStock = 0;
           for (const val of Object.values(parsedStockBySize)) {
-            let qty = 0;
-            if (typeof val === 'string' && val.startsWith('U:')) {
-              qty = parseInt(val.replace('U:', ''), 10) || 0;
+            if (typeof val === 'object' && val !== null) {
+              calculatedStock += parseInt(val.quantity, 10) || 0;
             } else {
-              qty = parseInt(val, 10) || 0;
+              let qty = 0;
+              if (typeof val === 'string' && val.startsWith('U:')) {
+                qty = parseInt(val.replace('U:', ''), 10) || 0;
+              } else {
+                qty = parseInt(val, 10) || 0;
+              }
+              calculatedStock += qty;
             }
-            calculatedStock += qty;
           }
         }
         return { ...v, stock: calculatedStock, stock_by_size: parsedStockBySize };
       });
-      
+
       setVariants(processed);
     } catch { } finally { setLoading(false); }
   };
@@ -95,35 +99,54 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
     if (sizeName) {
       const rawVal = v.stock_by_size[sizeName];
       let actualQty = 0;
-      let isListed = true;
-      if (typeof rawVal === 'string' && rawVal.startsWith('U:')) {
-          isListed = false;
-          actualQty = parseInt(rawVal.replace('U:', ''), 10) || 0;
+      let actualBridge = '';
+      let actualLens = '';
+      let actualTemple = '';
+      if (typeof rawVal === 'object' && rawVal !== null) {
+        actualQty = parseInt(rawVal.quantity, 10) || 0;
+        actualBridge = rawVal.bridge_length || '';
+        actualLens = rawVal.lens_width || '';
+        actualTemple = rawVal.temple_length || '';
       } else {
-          isListed = true;
+        if (typeof rawVal === 'string' && rawVal.startsWith('U:')) {
+          actualQty = parseInt(rawVal.replace('U:', ''), 10) || 0;
+        } else {
           actualQty = parseInt(rawVal, 10) || 0;
+        }
       }
       setSelectedVariant({
         ...v,
         stock: actualQty,
-        _sizeName: sizeName,
-        _isListed: isListed
+        bridge_length: actualBridge,
+        lens_width: actualLens,
+        temple_length: actualTemple,
+        _sizeName: sizeName
       });
     } else {
       setSelectedVariant(v);
     }
     setShowForm(true);
   };
-  
-  
+
+
 
   const handleFormSubmit = async (fd) => {
     try {
       if (selectedVariant._sizeName) {
         // Edit stock for a specific size
         const stockVal = Number(fd.stock);
-        const finalVal = selectedVariant._isListed ? stockVal : `U:${stockVal}`;
-        const updatedSizes = { ...selectedVariant.stock_by_size, [selectedVariant._sizeName]: finalVal };
+        const bridgeVal = fd.bridge_length || '';
+        const lensVal = fd.lens_width || '';
+        const templeVal = fd.temple_length || '';
+        const updatedSizes = {
+          ...selectedVariant.stock_by_size,
+          [selectedVariant._sizeName]: {
+            bridge_length: bridgeVal,
+            lens_width: lensVal,
+            temple_length: templeVal,
+            quantity: stockVal
+          }
+        };
         await apiClient.patch(`/catalog/variants/${selectedVariant.id}/`, { stock_by_size: JSON.stringify(updatedSizes) });
       } else {
         // Edit overall stock
@@ -141,34 +164,47 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
       await apiClient.patch(`/catalog/variants/${v.id}/`, { is_listed: newVal });
     } catch (err) {
       // Roll back on failure
-      setVariants(prev => prev.map(x => x.id === v.id ? { ...x, is_listed: v.is_listed } : x));
     }
   };
 
   const handleToggleSizeListed = async (v, sizeName) => {
-    const rawVal = v.stock_by_size[sizeName];
-    let qty = 0;
-    let currentlyListed = true;
-    
-    if (typeof rawVal === 'string' && rawVal.startsWith('U:')) {
-        currentlyListed = false;
-        qty = parseInt(rawVal.replace('U:', ''), 10) || 0;
+    const sizeData = v.stock_by_size[sizeName];
+    // Default to true if not explicitly false
+    const currentlyListed = sizeData?.is_listed !== false;
+    const newVal = !currentlyListed;
+
+    let updatedSizeData;
+    if (typeof sizeData === 'object' && sizeData !== null) {
+      updatedSizeData = { ...sizeData, is_listed: newVal };
     } else {
-        currentlyListed = true;
-        qty = parseInt(rawVal, 10) || 0;
+      let qty = 0;
+      if (typeof sizeData === 'string' && sizeData.startsWith('U:')) {
+        qty = parseInt(sizeData.replace('U:', ''), 10) || 0;
+      } else {
+        qty = parseInt(sizeData, 10) || 0;
+      }
+      updatedSizeData = { quantity: qty, is_listed: newVal };
     }
-    
-    const newVal = currentlyListed ? `U:${qty}` : qty;
-    const updatedSizes = { ...v.stock_by_size, [sizeName]: newVal };
-    
+    const updatedSizes = { ...v.stock_by_size, [sizeName]: updatedSizeData };
+
     // Optimistic update
     setVariants(prev => prev.map(x => x.id === v.id ? { ...x, stock_by_size: updatedSizes } : x));
-    
+
     try {
       await apiClient.patch(`/catalog/variants/${v.id}/`, { stock_by_size: JSON.stringify(updatedSizes) });
     } catch (err) {
       // Roll back
       setVariants(prev => prev.map(x => x.id === v.id ? { ...x, stock_by_size: v.stock_by_size } : x));
+    }
+  };
+
+  const handleBestseller = async (v) => {
+    const newVal = !v.is_bestseller;
+    setVariants(prev => prev.map(x => x.id === v.id ? { ...x, is_bestseller: newVal } : x));
+    try {
+      await apiClient.patch(`/catalog/variants/${v.id}/`, { is_bestseller: newVal });
+    } catch (err) {
+      setVariants(prev => prev.map(x => x.id === v.id ? { ...x, is_bestseller: v.is_bestseller } : x));
     }
   };
 
@@ -226,6 +262,7 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
     { label: 'Last Restocked', key: 'last_restocked' },
     { label: 'Last Sold', key: 'last_sold' },
     { label: 'Listed', key: 'is_listed' },
+    { label: 'Bestseller', key: 'is_bestseller' },
     { label: 'Action', key: 'action' },
   ];
 
@@ -340,17 +377,24 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
             </div>
           </td>
           {/* bestseller toggle */}
-          <td style = {{ ...CELL, minwidth: 80}}>
+          <td style={{ ...CELL, minWidth: 80 }}>
             <div
-              onClick={()=> handleBestseller(v)}
+              onClick={() => handleBestseller(v)}
               style={{
                 width: 36, height: 20, borderRadius: 10, position: 'relative', cursor: 'pointer',
-                background: v.is_listed ? '#7F56D9' : '#D0D5DD',
+                background: v.is_bestseller ? '#7F56D9' : '#D0D5DD',
                 transition: 'background 0.2s',
                 flexShrink: 0,
                 display: 'inline-block',
               }}
-            ></div>
+            >
+              <span style={{
+                position: 'absolute', top: 2, left: v.is_bestseller ? 18 : 2,
+                width: 16, height: 16, borderRadius: '50%', background: '#fff',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                transition: 'left 0.2s',
+              }} />
+            </div>
           </td>
 
           {/* Action */}
@@ -393,17 +437,22 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
         {/* Sub-rows for each size — only Small, Medium, Large */}
         {isExpanded && filteredSizeEntries.map(([sizeName, rawQty], index) => {
           const isLast = index === filteredSizeEntries.length - 1;
-          
+
           let qty = 0;
           let isSizeListed = true;
-          if (typeof rawQty === 'string' && rawQty.startsWith('U:')) {
-              isSizeListed = false;
-              qty = parseInt(rawQty.replace('U:', ''), 10) || 0;
+          if (typeof rawQty === 'object' && rawQty !== null) {
+            qty = parseInt(rawQty.quantity, 10) || 0;
+            isSizeListed = rawQty.is_listed !== false;
           } else {
-              isSizeListed = true;
+            if (typeof rawQty === 'string' && rawQty.startsWith('U:')) {
+              qty = parseInt(rawQty.replace('U:', ''), 10) || 0;
+              isSizeListed = false;
+            } else {
               qty = parseInt(rawQty, 10) || 0;
+              isSizeListed = true;
+            }
           }
-          
+
           return (
             <tr key={`${v.id}-${sizeName}`} style={{ borderBottom: isLast ? '1px solid #e0e0e0' : '1px solid #EAECF0', background: '#F9FAFB' }}>
               {/* Checkbox column - empty but indented to show hierarchy */}
@@ -457,7 +506,7 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
                 </span>
               </td>
 
-              {/* Listed toggle */}
+              {/* Listed toggle for Size */}
               <td style={{ ...CELL, minWidth: 80 }}>
                 <div
                   onClick={() => handleToggleSizeListed(v, sizeName)}
@@ -476,6 +525,9 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
                     transition: 'left 0.2s',
                   }} />
                 </div>
+              </td>
+              {/* Empty column for Bestseller toggle to align */}
+              <td style={{ ...CELL, minWidth: 80 }}>
               </td>
 
               {/* Action */}
@@ -621,11 +673,15 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
           { name: 'product_name', label: 'Product Name', type: 'text', readOnly: true },
           { name: 'sku', label: 'SKU Code', type: 'text', readOnly: true },
           { name: 'stock', label: 'Stock Quantity', type: 'number', required: true, min: 0 },
+          ...(selectedVariant?._sizeName ? [
+            { name: 'bridge_length', label: 'Bridge Length', type: 'text' },
+            { name: 'lens_width', label: 'Lens Width', type: 'text' },
+            { name: 'temple_length', label: 'Temple Length', type: 'text' },
+          ] : [])
         ]}
         initialData={selectedVariant || {}}
       />
     </div>
   );
 };
-
 export default InventoryTable;
