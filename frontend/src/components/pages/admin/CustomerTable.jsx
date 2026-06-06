@@ -21,12 +21,12 @@ const CustomerTable = () => {
   const [selectedIds, setSelectedIds] = useState(new Set());
 
   const customerFormFields = [
-    { name: 'username',   label: 'Username',     type: 'text',     required: true, placeholder: 'username' },
-    { name: 'email',      label: 'Email',        type: 'email',    required: true, placeholder: 'user@example.com' },
-    { name: 'first_name', label: 'First Name',   type: 'text',     placeholder: 'First name' },
-    { name: 'last_name',  label: 'Last Name',    type: 'text',     placeholder: 'Last name' },
-    { name: 'password',   label: 'Password',     type: 'password', placeholder: 'Leave empty to keep current' },
-    { name: 'is_staff',   label: 'Admin Status', type: 'checkbox', defaultValue: false },
+    { name: 'username', label: 'Username', type: 'text', required: true, placeholder: 'username' },
+    { name: 'email', label: 'Email', type: 'email', required: true, placeholder: 'user@example.com' },
+    { name: 'first_name', label: 'First Name', type: 'text', placeholder: 'First name' },
+    { name: 'last_name', label: 'Last Name', type: 'text', placeholder: 'Last name' },
+    { name: 'phone', label: 'Phone Number', type: 'tel', placeholder: 'Phone number' },
+    { name: 'password', label: 'Password', type: 'password', placeholder: 'Leave empty to keep current' },
   ];
 
   const fetchCustomers = async () => {
@@ -47,7 +47,7 @@ const CustomerTable = () => {
 
   const bulkDelete = async () => {
     if (!window.confirm(`Delete ${selectedIds.size} customer(s)?`)) return;
-    await Promise.all([...selectedIds].map(id => apiClient.delete(`/accounts/users/${id}/`).catch(() => {})));
+    await Promise.all([...selectedIds].map(id => apiClient.delete(`/accounts/users/${id}/`).catch(() => { })));
     setSelectedIds(new Set());
     fetchCustomers();
   };
@@ -57,8 +57,8 @@ const CustomerTable = () => {
   ];
 
   const handleCreateClick = () => { setFormMode('create'); setSelectedCustomer(null); setShowForm(true); };
-  const handleEditClick   = (c)  => { setFormMode('edit');   setSelectedCustomer(c);    setShowForm(true); };
-  const handleDeleteClick = (c)  => { setFormMode('edit');   setSelectedCustomer(c);    setShowForm(true); };
+  const handleEditClick = (c) => { setFormMode('edit'); setSelectedCustomer(c); setShowForm(true); };
+  const handleDeleteClick = (c) => { setFormMode('edit'); setSelectedCustomer(c); setShowForm(true); };
 
   const handleFormSubmit = async (formData) => {
     try {
@@ -89,17 +89,17 @@ const CustomerTable = () => {
   const paginated = filtered.slice((page - 1) * perPage, page * perPage);
 
   const initials = (u) => (u.first_name?.[0] || u.username?.[0] || '?').toUpperCase();
-  const avatarColors = ['#F9F5FF','#EFF8FF','#ECFDF3','#FFFAEB','#FEF3F2'];
-  const textColors   = ['#6941C6','#1570EF','#067647','#B54708','#B42318'];
-  const colorIdx     = (id) => id % avatarColors.length;
+  const avatarColors = ['#F9F5FF', '#EFF8FF', '#ECFDF3', '#FFFAEB', '#FEF3F2'];
+  const textColors = ['#6941C6', '#1570EF', '#067647', '#B54708', '#B42318'];
+  const colorIdx = (id) => id % avatarColors.length;
 
   const columns = [
-    { label: 'Customer',   key: 'customer',    sortable: true },
-    { label: 'Email',      key: 'email',        sortable: true },
-    { label: 'Phone',      key: 'phone',        sortable: false },
-    { label: 'Total Bill', key: 'total_bill',   sortable: true },
-    { label: 'Joined',     key: 'joined',       sortable: true },
-    { label: 'Action',     key: 'action',       align: 'right' }
+    { label: 'Customer', key: 'customer', sortable: true },
+    { label: 'Email', key: 'email', sortable: true },
+    { label: 'Phone', key: 'phone', sortable: false },
+    { label: 'Total Bill', key: 'total_bill', sortable: true },
+    { label: 'Joined', key: 'joined', sortable: true },
+    { label: 'Action', key: 'action', align: 'right' }
   ];
 
   const renderRow = (u, idx, { isSelected, onToggle } = {}) => (
@@ -196,8 +196,8 @@ const CustomerTable = () => {
         setShowFilters={setShowFilters}
         filterContent={
           <div style={{ display: 'flex', gap: '13px' }}>
-             {/* Add customer specific filters here if needed */}
-             <div style={{ fontSize: '11px', color: '#667085' }}>No active filters available for customers.</div>
+            {/* Add customer specific filters here if needed */}
+            <div style={{ fontSize: '11px', color: '#667085' }}>No active filters available for customers.</div>
           </div>
         }
       />

@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import SimpleRouter
 from .views import (
     CategoryViewSet, BrandViewSet, ManufacturerViewSet, ProductViewSet, VariantViewSet,
-    VariantImageViewSet, CollectionViewSet, LensPackageViewSet, LensViewSet,
+    VariantImageViewSet, CollectionViewSet, LensPackageViewSet, LensViewSet, LensConstraintViewSet,
     PrescriptionViewSet, UserFaceViewSet, ReviewViewSet, MeasurePDView
 )
 
@@ -17,6 +17,7 @@ router.register(r'collections', CollectionViewSet)
 
 # Eyewear Features
 router.register(r'lens-packages', LensPackageViewSet)
+router.register(r'lens-constraints', LensConstraintViewSet, basename='lens-constraint')
 router.register(r'lenses', LensViewSet, basename='lens')
 router.register(r'prescriptions', PrescriptionViewSet, basename='prescription')
 router.register(r'user-face', UserFaceViewSet, basename='user-face')

@@ -22,7 +22,7 @@ const ProductTable = () => {
 
   const fetchData = async () => {
     try {
-      const res = await apiClient.get('/catalog/products/');
+      const res = await apiClient.get('/catalog/products/?admin=true');
       setProducts(Array.isArray(res.data) ? res.data : (res.data.results || []));
     } catch (err) { 
       console.error('Fetch error', err); 
@@ -52,10 +52,17 @@ const ProductTable = () => {
   const handleDeleteClick = async (id) => {
     if (window.confirm('Are you sure you want to delete this product? This will remove all variants and images.')) {
       try {
-        await apiClient.delete(`/catalog/products/${id}/`);
+        const res = await apiClient.delete(`/catalog/products/${id}/`);
+        // 200 = soft-deleted (has order history), 204 = hard-deleted
+        if (res.data?.detail) {
+          alert(res.data.detail);
+        }
         fetchData();
       } catch (err) {
-        console.error('Delete failed', err);
+        const status = err.response?.status;
+        const detail = err.response?.data?.detail || err.message || 'Unknown error';
+        console.error('Delete failed', status, detail, err);
+        alert(`Failed to delete product: ${status ? `(${status}) ` : ''}${detail}`);
       }
     }
   };
@@ -82,7 +89,9 @@ const ProductTable = () => {
     { label: 'Brand / Manufacturer', key: 'brand', sortable: true },
     { label: 'Base Value', key: 'price', sortable: true },
     { label: 'Live Status', key: 'status', sortable: true },
-    { label: 'Action', key: 'action', align: 'right' }
+    { label: 'discount', key: 'percentage', sortable: true},
+    { label: 'Action', key: 'action', align: 'right' },
+    { label: 'Gender', key: 'gender'}
   ];
 
   const renderRow = (p, idx) => (
@@ -110,6 +119,9 @@ const ProductTable = () => {
       </td>
       <td style={{ padding: '16px 24px' }}>
         <span style={{ fontWeight: 600, color: '#475467', fontSize: '11px' }}>{p.brand_name || 'Ray-Ban'}</span>
+      </td>
+      <td style = {{padding: '16px 24px'}}>
+        <span style = {{fontweight: 600, color: '#475467', fontsize:'11px'}}>{p.gender || 'male'}</span>
       </td>
       <td style={{ padding: '16px 24px' }}>
         <div style={{ color: '#7F56D9', fontWeight: 700, fontSize: '11px' }}>₹{Number(p.base_price || 0).toLocaleString('en-IN')}</div>
@@ -154,6 +166,8 @@ const ProductTable = () => {
       columns={columns}
       data={paginated}
       loading={loading}
+      discount={discount_percentage}
+      gender={gender}
       renderRow={renderRow}
       pagination={{
         page,

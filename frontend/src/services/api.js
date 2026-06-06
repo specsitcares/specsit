@@ -23,13 +23,13 @@ apiClient.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Token ${token}`;
     }
-    
+
     // For FormData, let the browser set Content-Type + boundary automatically.
-    // axios v1.x uses AxiosHeaders — delete operator is a no-op on it, must use .delete()
+    // axios v1.x uses AxiosHeaders — de88lete operator is a no-op on it, must use .delete()
     if (config.data instanceof FormData) {
       config.headers.delete('Content-Type');
     }
-    
+
     return config;
   },
   (error) => Promise.reject(error)

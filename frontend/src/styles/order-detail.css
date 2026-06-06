@@ -1239,14 +1239,23 @@
   background: #fff;
   border-radius: 10px;
   box-shadow: 0px 16px 48px rgba(0, 0, 0, 0.18);
-  padding: 19px;
+  padding: 0;
   width: 100%;
   max-width: 480px;
   max-height: 88vh;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow: hidden;
+}
+
+.qc-modal-content {
+  padding: 19px;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  overflow-y: auto;
+  flex: 1;
 }
 
 /* ── Section 1: Specs Being Checked ── */
@@ -1497,9 +1506,12 @@
 /* ── Modal Footer ── */
 .qc-modal-footer {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
-  padding-top: 3px;
+  gap: 10px;
+  padding-top: 16px;
+  margin-top: 8px;
+  border-top: 1px solid #E5E7EB;
 }
 
 .qc-btn-secondary {

@@ -16,7 +16,7 @@ env = environ.Env(
     ALLOWED_HOSTS=(list, ['*'])
 )
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+# Build paths inside the project like this: BASE_DIR / 'subdir'. 
 # BASE_DIR is backend/ folder
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -212,16 +212,8 @@ REST_FRAMEWORK = {
 
 # CORS Configuration
 CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[
-    'http://localhost:3000',
-    'http://localhost:5173',
     'http://localhost:5174',
-    'http://localhost:5175',
-    'http://localhost:5176',
-    'http://127.0.0.1:3000',
-    'http://127.0.0.1:5173',
     'http://127.0.0.1:5174',
-    'http://127.0.0.1:5175',
-    'http://127.0.0.1:5176',
 ])
 
 # Logging Configuration

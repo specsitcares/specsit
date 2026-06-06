@@ -157,6 +157,37 @@ class EmployeeViewSet(viewsets.ModelViewSet):
 
         serializer.save(user=user)
 
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        user = instance.user
+        data = self.request.data
+
+        # Update associated User fields
+        name = data.get('name')
+        if name:
+            user.first_name = name.split(' ')[0]
+            user.last_name = ' '.join(name.split(' ')[1:]) if ' ' in name else ''
+        
+        email = data.get('email')
+        if email:
+            user.email = email
+            
+        role = data.get('role')
+        if role:
+            user.is_staff = role in ('Admin', 'Manager')
+            
+        password = data.get('password')
+        if password:
+            user.set_password(password)
+            
+        user.save()
+
+    def perform_destroy(self, instance):
+        user = instance.user
+        instance.delete()
+        if user:
+            user.delete()
+
 class CustomerQueryViewSet(viewsets.ModelViewSet):
     serializer_class = CustomerQuerySerializer
     permission_classes = [permissions.AllowAny]
@@ -186,8 +217,17 @@ class UserViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         is_staff = self.request.query_params.get('is_staff')
         if is_staff == 'true':
-            return User.objects.filter(is_staff=True).order_by('id')
-        return User.objects.filter(is_superuser=False).order_by('id')
+            from django.db.models import Q
+            return User.objects.filter(
+                Q(is_staff=True) | Q(employee_profile_v2__isnull=False)
+            ).distinct().order_by('id')
+        
+        return User.objects.filter(
+            is_superuser=False,
+            is_staff=False
+        ).exclude(
+            employee_profile_v2__isnull=False
+        ).order_by('id')
 
 class GoogleOAuthView(APIView):
     permission_classes = [permissions.AllowAny]

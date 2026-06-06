@@ -5,9 +5,20 @@ from apps.catalog.core.models import MetadataItem
 from apps.catalog.serializers import PrescriptionSerializer, LensSerializer
 
 class CouponSerializer(serializers.ModelSerializer):
+    category_names = serializers.SerializerMethodField()
+
     class Meta:
         model = Coupon
         fields = '__all__'
+
+    def get_category_names(self, obj):
+        return [c.name for c in obj.categories.all()]
+
+    def validate_categories(self, value):
+        if not value:
+            raise serializers.ValidationError('At least one category must be selected for a coupon.')
+        return value
+
 
 class OrderItemSerializer(serializers.ModelSerializer):
     variant_name = serializers.SerializerMethodField()
@@ -47,7 +58,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
         if obj.prescription:
             return 'Pending Review'
         if obj.lens:
-            return 'Awaiting Submission'
+            return 'Not Submitted'
         return 'Frame Only'
 
     class Meta:
@@ -291,7 +302,15 @@ class OrderSerializer(serializers.ModelSerializer):
         subtotal = sum(oi.item_total for oi in order.items.all())
         discount_amount = Decimal('0')
         if order.coupon:
-            discount_amount = (subtotal * Decimal(str(order.coupon.discount_percentage)) / Decimal('100')).quantize(Decimal('0.01'))
+            coupon_category_ids = set(order.coupon.categories.values_list('id', flat=True))
+            if coupon_category_ids:
+                applicable_subtotal = sum(
+                    oi.item_total for oi in order.items.all()
+                    if oi.variant and oi.variant.product and oi.variant.product.category_id in coupon_category_ids
+                )
+                discount_amount = (applicable_subtotal * Decimal(str(order.coupon.discount_percentage)) / Decimal('100')).quantize(Decimal('0.01'))
+            else:
+                discount_amount = (subtotal * Decimal(str(order.coupon.discount_percentage)) / Decimal('100')).quantize(Decimal('0.01'))
         total_amount = subtotal - discount_amount
         Order.objects.filter(pk=order.pk).update(
             subtotal=subtotal,

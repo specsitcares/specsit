@@ -23,7 +23,7 @@ const VariantTable = () => {
     try {
       const [varRes, prodRes] = await Promise.all([
         apiClient.get('/catalog/variants/'),
-        apiClient.get('/catalog/products/')
+        apiClient.get('/catalog/products/?admin=true')
       ]);
       setVariants(Array.isArray(varRes.data) ? varRes.data : (varRes.data.results || []));
       setProducts(Array.isArray(prodRes.data) ? prodRes.data : (prodRes.data.results || []));

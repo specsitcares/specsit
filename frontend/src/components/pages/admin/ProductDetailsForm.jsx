@@ -16,7 +16,6 @@ const FRAME_WIDTH_OPTIONS = [
   { value: 'Small (115mm)', label: 'Small (115mm)' },
   { value: 'Medium (130mm)', label: 'Medium (130mm)' },
   { value: 'Large (140mm)', label: 'Large (140mm)' },
-  { value: 'Extra Large (150mm)', label: 'Extra Large (150mm)' },
 ];
 
 const FRAME_TYPE_OPTIONS = [
@@ -54,6 +53,7 @@ const DEFAULT_VARIANT = () => ({
   variantName: '',
   colorName: '',
   quantity: 0,
+  stock_by_size: { 'Small': 0, 'Medium': 0, 'Large': 0 },
   colorMethod: 'code',
   colorCode: '#000000',
   paletteImage: null,
@@ -73,6 +73,8 @@ const DEFAULT_VARIANT = () => ({
   frame_material: '',
   frame_size: 'Medium',
   frame_weight: 'Standard',
+  is_listed: true,
+  is_warranty_eligible: true,
 });
 
 const ProductDetailsForm = ({ onBack, editProduct = null }) => {
@@ -99,6 +101,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
     variants: [DEFAULT_VARIANT()],
     taxPercent: '0',
     discountPercent: '0',
+    gender: 'Unisex',
     isBogo: false,
     discountStartDate: '',
     discountEndDate: '',
@@ -149,6 +152,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
               variantName: '',
               colorName: v.color || '',
               quantity: v.stock || 0,
+              stock_by_size: v.stock_by_size || { 'Small': 0, 'Medium': 0, 'Large': 0 },
               colorMethod: v.color_selection_method || 'code',
               colorCode: v.color_code || '#000000',
               paletteImage: v.palette_image
@@ -175,6 +179,8 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
               frame_material: v.frame_material || '',
               frame_size: v.frame_size || 'Medium',
               frame_weight: v.frame_weight || 'Standard',
+              is_listed: v.is_listed !== undefined ? v.is_listed : true,
+              is_warranty_eligible: v.is_warranty_eligible !== undefined ? v.is_warranty_eligible : true,
             };
           };
 
@@ -206,7 +212,24 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
   }, [editProduct?.id]);
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const updatedData = { ...prev, [field]: value };
+      
+      // Auto-update tax based on category selection
+      if (field === 'category') {
+        const selectedCategory = categories.find(c => String(c.id) === String(value));
+        if (selectedCategory) {
+          const catName = selectedCategory.name.toLowerCase();
+          if (catName.includes('eyeglass')) {
+            updatedData.taxPercent = '5';
+          } else if (catName.includes('sunglass')) {
+            updatedData.taxPercent = '18';
+          }
+        }
+      }
+      return updatedData;
+    });
+
     if (errors[field]) {
       setErrors(prev => {
         const updated = { ...prev };
@@ -254,10 +277,10 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
       frame_type: firstVariant?.frame_type || '',
       frame_shape: firstVariant?.frame_shape || '',
       frame_width: firstVariant?.frame_width || '',
-      gender: firstVariant?.gender || 'Unisex',
+      gender: formData.gender || firstVariant?.gender || 'Unisex',
       base_price: parseFloat(firstVariant?.base_price) || 0,
       selling_price: parseFloat(firstVariant?.selling_price) || parseFloat(firstVariant?.base_price) || 0,
-      discount_percentage: 0,
+      discount_percentage: parseFloat(formData.discountPercent) || 0,
       frame_only_mode: !!firstVariant?.frame_only_mode,
       is_active: isActive,
     };
@@ -328,12 +351,15 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
         variantPayload.append('frame_size', v.frame_size || '');
         variantPayload.append('frame_weight', v.frame_weight || '');
         variantPayload.append('stock', parseInt(v.quantity) || 0);
+        variantPayload.append('stock_by_size', JSON.stringify(v.stock_by_size || {}));
         variantPayload.append('base_price', parseFloat(v.base_price) || 0);
         variantPayload.append('selling_price', parseFloat(v.selling_price) || parseFloat(v.base_price) || 0);
         variantPayload.append('cost_price', parseFloat(v.cost_price) || 0);
         variantPayload.append('tax_percent', parseFloat(formData.taxPercent) || 0);
         variantPayload.append('discount_percent', parseFloat(formData.discountPercent) || 0);
         variantPayload.append('is_bogo', formData.isBogo ? 'true' : 'false');
+        variantPayload.append('is_listed', v.is_listed !== false ? 'true' : 'false');
+        variantPayload.append('is_warranty_eligible', v.is_warranty_eligible !== false ? 'true' : 'false');
         if (formData.discountStartDate) variantPayload.append('discount_start_date', formData.discountStartDate);
         if (formData.discountEndDate) variantPayload.append('discount_end_date', formData.discountEndDate);
 
@@ -601,6 +627,54 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
                     value={formData.taxPercent || '0'}
                     onChange={(e) => handleInputChange('taxPercent', e.target.value)}
                   />
+                </div>
+
+                <div className="form-field" style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '2px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '8px 0' }}>
+                    <div>
+                      <div style={{ fontSize: '12px', fontWeight: 500, color: '#344054' }}>Warranty Eligible</div>
+                      <div style={{ fontSize: '11px', color: '#9ca3af' }}>Enable warranty claim for this product</div>
+                    </div>
+                    <label className="toggle-switch">
+                      <input 
+                        type="checkbox" 
+                        checked={formData.variants?.[0]?.is_warranty_eligible !== false} 
+                        onChange={(e) => {
+                          const updated = [...formData.variants];
+                          if (updated[0]) {
+                            updated[0] = { ...updated[0], is_warranty_eligible: e.target.checked };
+                            setFormData({ ...formData, variants: updated });
+                          }
+                        }}
+                      />
+                      <span className="toggle-slider" />
+                    </label>
+                  </div>
+                </div>
+
+                <div className="form-field-row">
+                  <div className="form-field">
+                    <label className="form-field-label">Gender</label>
+                    <div className="form-field-select-wrapper">
+                      <select
+                        value={formData.gender || 'Unisex'}
+                        onChange={(e) => handleInputChange('gender', e.target.value)}
+                      >
+                        {GENDER_OPTIONS.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}
+                      </select>
+                      <span className="select-chevron"><ChevronDown size={16} /></span>
+                    </div>
+                  </div>
+                  <div className="form-field">
+                    <label className="form-field-label">Discount %</label>
+                    <input
+                      type="number"
+                      className="form-field-input"
+                      placeholder="0"
+                      value={formData.discountPercent || '0'}
+                      onChange={(e) => handleInputChange('discountPercent', e.target.value)}
+                    />
+                  </div>
                 </div>
               </div>
             )}

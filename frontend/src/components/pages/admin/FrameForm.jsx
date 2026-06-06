@@ -46,7 +46,7 @@ const FrameForm = ({ productId, onBack, onSaved }) => {
       try {
         const [catRes, brandRes] = await Promise.all([
           apiClient.get('/catalog/categories/?is_active=true'),
-          apiClient.get('/catalog/products/?product_type=frame&page_size=100'),
+          apiClient.get('/catalog/products/?product_type=frame&page_size=100&admin=true'),
         ]);
         const cats = Array.isArray(catRes.data) ? catRes.data : (catRes.data.results || []);
         setCategories(cats.filter(c => c.category_type === 'Frame' || !c.category_type));
@@ -250,7 +250,7 @@ const FrameForm = ({ productId, onBack, onSaved }) => {
           <FIELD label="Frame Size" required error={errors.frame_size}>
             <select style={INPUT_STYLE} value={form.frame_size} onChange={e => set('frame_size', e.target.value)}>
               <option value="">Select size...</option>
-              {['Small', 'Medium', 'Large', 'One Size'].map(s => <option key={s} value={s}>{s}</option>)}
+              {['Small', 'Medium', 'Large'].map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </FIELD>
           <FIELD label="Frame Color">

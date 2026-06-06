@@ -179,21 +179,32 @@ class OrderViewSet(viewsets.ModelViewSet):
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
-        if instance.order_status == 'pending':
-            lens_items = [
-                i for i in instance.items.select_related('lens', 'prescription__status').all()
-                if i.lens_id
-            ]
-            if lens_items and all(
-                i.prescription and i.prescription.status and
-                i.prescription.status.label == 'Approved'
-                for i in lens_items
-            ):
-                conf_meta = self._get_status_meta('Confirmed', 'confirmed')
-                Order.objects.filter(pk=instance.pk).update(
-                    order_status='confirmed', status=conf_meta
-                )
-                instance.refresh_from_db()
+        
+        items_updated = False
+        has_pending_items = False
+
+        for i in instance.items.select_related('lens', 'prescription__status').all():
+            if i.status == 'pending':
+                is_frame_only = not i.lens_id
+                rx_approved = i.prescription and i.prescription.status and i.prescription.status.label == 'Approved'
+                
+                if is_frame_only or rx_approved:
+                    i.status = 'confirmed'
+                    i.save(update_fields=['status'])
+                    items_updated = True
+                else:
+                    has_pending_items = True
+
+        if items_updated:
+            instance.refresh_from_db()
+
+        if instance.order_status == 'pending' and not has_pending_items and instance.items.exists():
+            conf_meta = self._get_status_meta('Confirmed', 'confirmed')
+            Order.objects.filter(pk=instance.pk).update(
+                order_status='confirmed', status=conf_meta
+            )
+            instance.refresh_from_db()
+            
         return super().retrieve(request, *args, **kwargs)
 
     @action(detail=False, methods=['get'])
@@ -622,8 +633,39 @@ class OrderViewSet(viewsets.ModelViewSet):
         if not new_status:
             return Response({'error': 'Status is required'}, status=status.HTTP_400_BAD_REQUEST)
             
-        item.status = new_status
-        item.save()
+        if new_status == 'in_transit':
+            all_items = order.items.all()
+            not_ready = [i for i in all_items if i.status not in ['ready_to_dispatch', 'in_transit', 'delivered'] and i.id != item.id]
+            if not_ready:
+                return Response({'error': 'Cannot dispatch order until all items have completed QC and are ready for dispatch.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            for i in all_items:
+                if i.status in ['ready_to_dispatch', 'preparing', 'confirmed', 'pending']:
+                    i.status = 'in_transit'
+                    i.save(update_fields=['status'])
+            
+            from apps.catalog.core.models import MetadataGroup, MetadataItem as MI
+            group, _ = MetadataGroup.objects.get_or_create(name='Order Status')
+            transit_meta, _ = MI.objects.get_or_create(
+                group=group, label='In Transit',
+                defaults={'value': 'in_transit', 'is_active': True},
+            )
+            order.order_status = 'in_transit'
+            order.status = transit_meta
+            order.save()
+            
+            from .models import Shipment
+            ship_group, _ = MetadataGroup.objects.get_or_create(name='Shipment Status')
+            shipped_status, _ = MI.objects.get_or_create(
+                group=ship_group, label='Shipped',
+                defaults={'value': 'shipped', 'is_active': True},
+            )
+            Shipment.objects.filter(order=order).update(status=shipped_status)
+            
+            item.refresh_from_db()
+        else:
+            item.status = new_status
+            item.save()
         
         # Optional: Auto-update parent order status based on items
         # e.g., if all items are 'delivered', parent becomes 'delivered'
@@ -636,11 +678,52 @@ class OrderViewSet(viewsets.ModelViewSet):
                     group=group, label='Delivered',
                     defaults={'value': 'delivered', 'is_active': True},
                 )
+                now = timezone.now()
                 order.order_status = 'delivered'
                 order.status = delivered_meta
                 if not order.delivery_date:
-                    order.delivery_date = timezone.now()
+                    order.delivery_date = now
+                if order.payment_method in ('complete_cod', 'COD'):
+                    order.payment_status = 'paid'
                 order.save()
+
+                # Sync OrderTracking
+                from .models import OrderTracking, Payment, Shipment
+                tracking, _ = OrderTracking.objects.get_or_create(order=order)
+                tracking.actual_delivery_date = now
+                tracking.current_status = 'delivered'
+                tracking.save()
+
+                # Sync Payment for COD
+                if order.payment_method in ('complete_cod', 'COD') and not order.payments.filter(payment_status='completed').exists():
+                    Payment.objects.create(
+                        order=order,
+                        payment_method='cod',
+                        amount_paid=order.total_amount,
+                        payment_status='completed',
+                        transaction_id=f"cod_{order.id}_{uuid.uuid4().hex[:8]}",
+                    )
+
+                # Sync Shipment
+                ship_group, _ = MetadataGroup.objects.get_or_create(name='Shipment Status')
+                delivered_ship_status, _ = MI.objects.get_or_create(
+                    group=ship_group, label='Delivered',
+                    defaults={'value': 'delivered', 'is_active': True},
+                )
+                Shipment.objects.filter(order=order).update(status=delivered_ship_status)
+
+        elif all(i.status == 'ready_to_dispatch' for i in all_items):
+            if order.order_status not in ['ready_to_dispatch', 'in_transit', 'delivered']:
+                from apps.catalog.core.models import MetadataGroup, MetadataItem as MI
+                group, _ = MetadataGroup.objects.get_or_create(name='Order Status')
+                ready_meta, _ = MI.objects.get_or_create(
+                    group=group, label='Ready to Dispatch',
+                    defaults={'value': 'ready_to_dispatch', 'is_active': True},
+                )
+                order.order_status = 'ready_to_dispatch'
+                order.status = ready_meta
+                order.save()
+                
         elif any(i.status in ['in_transit', 'delivered'] for i in all_items):
             # If any item has moved forward, order is no longer just 'pending'
             if order.order_status == 'pending':
@@ -654,7 +737,20 @@ class OrderViewSet(viewsets.ModelViewSet):
                 order.status = processing_meta
                 order.save()
 
-        return Response(OrderItemSerializer(item).data)
+        # Build response with serialized item and review links if item is delivered
+        serializer_data = OrderItemSerializer(item).data
+        if new_status == 'delivered':
+            review_links = []
+            if item.variant:
+                product_id = item.variant.product_id
+                review_links.append({
+                    'product_id': product_id,
+                    'product_name': item.variant.product.title,
+                    'review_url': f'/review/create/{product_id}/{order.id}',
+                })
+            serializer_data['review_links'] = review_links
+
+        return Response(serializer_data)
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
     def update_tracking(self, request, pk=None):
@@ -704,14 +800,17 @@ class CouponViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'], url_path='validate',
             permission_classes=[permissions.AllowAny])
     def validate_coupon(self, request):
+        from apps.catalog.models import Variant
         code = request.data.get('code', '').strip().upper()
         cart_value = float(request.data.get('cartValue', 0) or 0)
+        # items is a list of {variant_id, quantity, price} sent by the frontend
+        items = request.data.get('items', [])
 
         if not code:
             return Response({'valid': False, 'message': 'Please enter a coupon code.'})
 
         try:
-            coupon = Coupon.objects.get(code=code, is_active=True)
+            coupon = Coupon.objects.prefetch_related('categories').get(code=code, is_active=True)
         except Coupon.DoesNotExist:
             return Response({'valid': False, 'message': 'Invalid coupon code. Please try again.'})
 
@@ -726,6 +825,60 @@ class CouponViewSet(viewsets.ModelViewSet):
                 'message': f'Minimum cart value ₹{int(coupon.min_cart_value)} required for this coupon.',
             })
 
+        # Category-restricted coupon logic (M2M)
+        coupon_categories = list(coupon.categories.all())
+        coupon_category_ids = {c.id for c in coupon_categories}
+        category_names_str = ', '.join(c.name for c in coupon_categories)
+
+        if coupon_category_ids and items:
+            # Build a map of variant_id -> category_id using a single DB query
+            variant_ids = []
+            for item in items:
+                vid = item.get('variant_id') or item.get('variant')
+                if vid:
+                    try:
+                        variant_ids.append(int(vid))
+                    except (ValueError, TypeError):
+                        pass
+
+            if variant_ids:
+                variant_category_map = {
+                    v['id']: v['product__category']
+                    for v in Variant.objects.filter(id__in=variant_ids)
+                        .values('id', 'product__category')
+                }
+
+                applicable_subtotal = 0.0
+                for item in items:
+                    vid = item.get('variant_id') or item.get('variant')
+                    try:
+                        vid = int(vid) if vid else None
+                    except (ValueError, TypeError):
+                        vid = None
+                    if vid and variant_category_map.get(vid) in coupon_category_ids:
+                        price = float(item.get('price', 0) or 0)
+                        qty = int(item.get('quantity', 1) or 1)
+                        applicable_subtotal += price * qty
+
+                if applicable_subtotal == 0:
+                    return Response({
+                        'valid': False,
+                        'message': f"This coupon is only valid for '{category_names_str}' products. No eligible items found in your cart.",
+                    })
+
+                savings = round(applicable_subtotal * coupon.discount_percentage / 100, 2)
+                return Response({
+                    'valid': True,
+                    'code': coupon.code,
+                    'discountPercentage': coupon.discount_percentage,
+                    'savings': savings,
+                    'applicableSubtotal': applicable_subtotal,
+                    'categoryRestricted': True,
+                    'categoryName': category_names_str,
+                    'message': f"Coupon '{coupon.code}' applied for {category_names_str} items! You saved ₹{savings}",
+                })
+
+        # No category restriction — discount on full cart
         savings = round(cart_value * coupon.discount_percentage / 100, 2) if cart_value else 0
 
         return Response({
@@ -733,6 +886,8 @@ class CouponViewSet(viewsets.ModelViewSet):
             'code': coupon.code,
             'discountPercentage': coupon.discount_percentage,
             'savings': savings,
+            'categoryRestricted': bool(coupon_category_ids),
+            'categoryName': category_names_str or None,
             'message': f"Coupon '{coupon.code}' applied! You saved ₹{savings}" if savings else f"Coupon '{coupon.code}' applied!",
         })
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
@@ -1177,6 +1332,8 @@ class PrescriptionUploadView(views.APIView):
         from apps.catalog.models import Prescription
 
         prescription = None
+        order_item_id = request.data.get('order_item_id')
+
         try:
             with transaction.atomic():
                 prescription = Prescription.objects.create(
@@ -1184,7 +1341,11 @@ class PrescriptionUploadView(views.APIView):
                     prescription_file=prescription_file,
                     status=pending_status,
                 )
-                updated_count = order.items.update(prescription=prescription)
+                if order_item_id:
+                    updated_count = order.items.filter(id=order_item_id).update(prescription=prescription)
+                else:
+                    updated_count = order.items.update(prescription=prescription)
+                    
                 if updated_count == 0:
                     raise ValueError('Prescription was saved but could not be linked to any order items.')
         except ValueError as e:
@@ -1244,6 +1405,8 @@ class PrescriptionManualView(views.APIView):
 
         from apps.catalog.models import Prescription
 
+        order_item_id = request.data.get('order_item_id')
+
         with transaction.atomic():
             prescription = Prescription.objects.create(
                 user=request.user,
@@ -1259,8 +1422,11 @@ class PrescriptionManualView(views.APIView):
                 os_add=os_data.get('add') or 0,
                 status=pending_status,
             )
-            # Replace any existing prescription on all items for this order
-            order.items.update(prescription=prescription)
+            # Replace any existing prescription on specified item (or all items for this order)
+            if order_item_id:
+                order.items.filter(id=order_item_id).update(prescription=prescription)
+            else:
+                order.items.update(prescription=prescription)
 
         return Response({'detail': 'Prescription saved successfully.', 'prescription_id': prescription.id})
 

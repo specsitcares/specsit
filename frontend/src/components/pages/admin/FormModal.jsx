@@ -97,7 +97,13 @@ const FormModal = ({
         setFormData(initialData);
       } else {
         const empty = {};
-        fields.forEach(f => { empty[f.name] = f.defaultValue !== undefined ? f.defaultValue : ''; });
+        fields.forEach(f => {
+          if (f.type === 'checkbox-group') {
+            empty[f.name] = f.defaultValue !== undefined ? f.defaultValue : [];
+          } else {
+            empty[f.name] = f.defaultValue !== undefined ? f.defaultValue : '';
+          }
+        });
         setFormData(empty);
       }
       setErrors({});
@@ -112,6 +118,17 @@ const FormModal = ({
     else if (type === 'file') setFormData(prev => ({ ...prev, [name]: files[0] }));
     else setFormData(prev => ({ ...prev, [name]: value }));
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
+  };
+
+  // Toggle a value in/out of a checkbox-group array field
+  const handleCheckboxGroupToggle = (fieldName, val) => {
+    const numVal = Number(val);
+    setFormData(prev => {
+      const current = Array.isArray(prev[fieldName]) ? prev[fieldName] : [];
+      const exists = current.includes(numVal);
+      return { ...prev, [fieldName]: exists ? current.filter(v => v !== numVal) : [...current, numVal] };
+    });
+    if (errors[fieldName]) setErrors(prev => ({ ...prev, [fieldName]: '' }));
   };
 
   const handleSubmit = async (e) => {
@@ -213,7 +230,8 @@ const FormModal = ({
                           id={field.name} name={field.name}
                           value={fieldValue} onChange={handleInputChange}
                           disabled={isSubmitting || field.readOnly}
-                          style={{ ...inputStyle(fieldError), appearance: 'none', cursor: 'pointer',
+                          style={{
+                            ...inputStyle(fieldError), appearance: 'none', cursor: 'pointer',
                             backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23667085' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
                             backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center',
                             paddingRight: 32,
@@ -261,6 +279,29 @@ const FormModal = ({
                               Current: {fieldValue.split('/').pop()}
                             </div>
                           )}
+                        </div>
+                      ) : field.type === 'checkbox-group' ? (
+                        <div style={{
+                          border: '1px solid #D0D5DD', borderRadius: 8,
+                          maxHeight: 160, overflowY: 'auto', padding: '8px 12px',
+                          display: 'flex', flexDirection: 'column', gap: 8,
+                        }}>
+                          {(field.options || []).map(opt => {
+                            const currentArr = Array.isArray(formData[field.name]) ? formData[field.name] : [];
+                            const isChecked = currentArr.includes(Number(opt.value));
+                            return (
+                              <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 12, color: '#344054' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() => handleCheckboxGroupToggle(field.name, opt.value)}
+                                  disabled={isSubmitting || field.readOnly}
+                                  style={{ accentColor: '#68408D', width: 14, height: 14, flexShrink: 0 }}
+                                />
+                                {opt.label}
+                              </label>
+                            );
+                          })}
                         </div>
                       ) : (
                         <input

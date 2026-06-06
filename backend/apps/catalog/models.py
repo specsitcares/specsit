@@ -8,6 +8,14 @@ class Category(models.Model):
     description = models.TextField(blank=True)
     image = models.ImageField(upload_to='categories/', blank=True, null=True)
     parent = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='subcategories')
+    # Grouping for admin tabs: frame, lens, accessory
+    GROUP_CHOICES = [
+        ('frame', 'Frames'),
+        ('lens', 'Contact Lenses'),
+        ('accessory', 'Accessories'),
+    ]
+    group = models.CharField(max_length=20, choices=GROUP_CHOICES, default='frame')
+    category_type = models.CharField(max_length=10, choices=[('Lens', 'Lens'), ('Frame', 'Frame')], default='Frame')
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True)
     updated_at = models.DateTimeField(auto_now=True, null=True)
@@ -87,6 +95,7 @@ class Product(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    is_bestseller = models.BooleanField(default=True)
 
     def save(self, *args, **kwargs):
         if self.lens_type == 'Progressive':
@@ -125,6 +134,7 @@ class Variant(models.Model):
 
     # Marketing and Tax
     stock = models.IntegerField(default=0)
+    stock_by_size = models.JSONField(default=dict, blank=True)
     price_adjustment = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     tax_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
     discount_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
@@ -135,6 +145,10 @@ class Variant(models.Model):
     # Storefront visibility — auto-cleared when stock hits 0; manually re-enabled by admin
     is_listed = models.BooleanField(default=True)
 
+    # Stock tracking timestamps
+    last_restocked = models.DateTimeField(null=True, blank=True)
+    last_sold = models.DateTimeField(null=True, blank=True)
+
     # SEO Fields (per-variant)
     meta_title = models.CharField(max_length=255, blank=True)
     meta_description = models.TextField(blank=True)
@@ -143,7 +157,32 @@ class Variant(models.Model):
     vto_image_front = models.ImageField(upload_to='vto_assets/', blank=True, null=True)
     vto_video = models.FileField(upload_to='vto_assets/', blank=True, null=True)
 
+    is_warranty_eligible = models.BooleanField(default=True)
+
     def save(self, *args, **kwargs):
+        from django.utils import timezone
+        if self.pk:
+            try:
+                orig = Variant.objects.get(pk=self.pk)
+                if self.stock > orig.stock:
+                    self.last_restocked = timezone.now()
+                    if kwargs.get('update_fields') is not None:
+                        fields = list(kwargs['update_fields'])
+                        if 'last_restocked' not in fields:
+                            fields.append('last_restocked')
+                        kwargs['update_fields'] = fields
+                elif self.stock < orig.stock:
+                    self.last_sold = timezone.now()
+                    if kwargs.get('update_fields') is not None:
+                        fields = list(kwargs['update_fields'])
+                        if 'last_sold' not in fields:
+                            fields.append('last_sold')
+                        kwargs['update_fields'] = fields
+            except Variant.DoesNotExist:
+                pass
+        else:
+            if self.stock > 0:
+                self.last_restocked = timezone.now()
         super().save(*args, **kwargs)
 
     def __str__(self): return f"{self.product.title} [{self.sku}]"
@@ -167,12 +206,22 @@ class Collection(models.Model):
 
 # --- Consolidated Eyewear/Lenses Features ---
 
+class LensConstraint(models.Model):
+    name = models.CharField(max_length=100, unique=True) # e.g. "Rimless", "Half Rim", "Full Rim"
+    description = models.TextField(blank=True)
+    
+    def __str__(self): return self.name
+
 class LensPackage(models.Model):
     name = models.CharField(max_length=100) # Silver, Gold, Platinum
     description = models.TextField(blank=True)
     features = models.JSONField(default=list) # e.g. ["Anti-glare", "UV Protection"]
     is_active = models.BooleanField(default=True)
     categories = models.ManyToManyField(Category, blank=True, related_name='lens_packages')
+    # Financial and warranty fields for packages
+    cost_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True)
+    selling_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True)
+    warranty_months = models.IntegerField(default=0)
     def __str__(self): return self.name
 
 class Lens(models.Model):
@@ -181,10 +230,12 @@ class Lens(models.Model):
     type = models.ForeignKey(MetadataItem, on_delete=models.SET_NULL, null=True, blank=True, limit_choices_to={'group__name': 'Lens Type'})
     brand = models.ForeignKey(Brand, on_delete=models.SET_NULL, null=True, blank=True, related_name='lenses')
     price = models.DecimalField(max_digits=10, decimal_places=2)
-    index = models.CharField(max_length=10, blank=True) # 1.5, 1.61, 1.67, 1.74
+    index = models.CharField(max_length=10, null=True, blank=True)  # e.g., "1.5", "1.61", "1.67", "1.74"
     is_active = models.BooleanField(default=True)
     is_for_sunglasses = models.BooleanField(default=False)
     is_for_eyeglasses = models.BooleanField(default=True)
+    constraints = models.ManyToManyField(LensConstraint, blank=True, related_name='lenses')
+    
     def __str__(self): return f"{self.package.name}: {self.type.label if self.type else 'Generic'}"
 
 class Prescription(models.Model):

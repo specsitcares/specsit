@@ -34,7 +34,7 @@ const PrescriptionOffcanvas = ({ order, onClose, onApproved }) => {
       .then(res => {
         const list = Array.isArray(res.data) ? res.data : (res.data.results || []);
         // Double check filtering if API doesn't support order_id param yet
-        const filtered = list.filter(p => p.order_id === order.id);
+        const filtered = list.filter(p => String(p.order_id) === String(order.id));
         setPrescriptions(filtered);
       })
       .catch(() => setPrescriptions([]))
@@ -343,7 +343,6 @@ const PrescriptionOffcanvas = ({ order, onClose, onApproved }) => {
             <textarea
               value={rejectReason}
               onChange={e => { setRejectReason(e.target.value); setRejectError(''); }}
-              placeholder={`Enter reason for ${rejectMode.toLowerCase()}…`}
               rows={3}
               style={{
                 width: '100%', boxSizing: 'border-box', padding: '8px 10px',

@@ -510,7 +510,7 @@ const OrderTable = ({ category = null, onViewDetails, hideKPIs = false }) => {
           <table className="figma-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#fff', borderBottom: '1px solid #EAECF0' }}>
-                <th style={{ padding: '10px 16px', width: 40, textAlign: 'left' }}>
+                <th style={{ padding: '10px 16px', minWidth: '40px', width: '40px', textAlign: 'left' }}>
                   <input type="checkbox"
                     checked={orders.length > 0 && orders.every(o => selectedIds.has(o.id))}
                     ref={el => { if (el) el.indeterminate = orders.some(o => selectedIds.has(o.id)) && !orders.every(o => selectedIds.has(o.id)); }}
@@ -518,11 +518,11 @@ const OrderTable = ({ category = null, onViewDetails, hideKPIs = false }) => {
                     style={{ cursor: 'pointer', borderRadius: '3px', accentColor: '#7F56D9' }}
                   />
                 </th>
-                <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left', textTransform: 'capitalize' }}>
+                <th style={{ padding: '10px 16px', minWidth: '120px', width: '120px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left', textTransform: 'capitalize' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>Order <ArrowUpDown size={12} /></div>
                 </th>
-                <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left', textTransform: 'capitalize' }}>Customer Name</th>
-                <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left', textTransform: 'capitalize' }}>Items</th>
+                <th style={{ padding: '10px 16px', minWidth: '150px', width: '150px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left', textTransform: 'capitalize' }}>Customer Name</th>
+                <th style={{ padding: '10px 16px', minWidth: '250px', width: '250px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left', textTransform: 'capitalize' }}>Items</th>
 
                 {/* Granular Return Sub-tab Headers */}
                 {category === 'returns' ? (
@@ -564,15 +564,14 @@ const OrderTable = ({ category = null, onViewDetails, hideKPIs = false }) => {
                   </>
                 ) : (
                   <>
-                    <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Date</th>
-                    <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Prescription</th>
-                    <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Total</th>
-                    <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>QC</th>
+                    <th style={{ padding: '10px 16px', minWidth: '100px', width: '100px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Date</th>
+                    <th style={{ padding: '10px 16px', minWidth: '130px', width: '130px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Prescription</th>
+                    <th style={{ padding: '10px 16px', minWidth: '100px', width: '100px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Total</th>
                   </>
                 )}
 
-                <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left', textTransform: 'capitalize' }}>Status</th>
-                <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'right' }}>action</th>
+                <th style={{ padding: '10px 16px', minWidth: '100px', width: '100px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left', textTransform: 'capitalize' }}>Status</th>
+                <th style={{ padding: '10px 16px', minWidth: '80px', width: '80px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'right' }}>action</th>
               </tr>
             </thead>
             <tbody style={{ backgroundColor: '#fff' }}>
@@ -718,7 +717,15 @@ const OrderTable = ({ category = null, onViewDetails, hideKPIs = false }) => {
                         <td style={{ padding: '12px 16px', color: '#667085', fontSize: '13px', whiteSpace: 'nowrap' }}>{new Date(o.created_at).toLocaleDateString('en-GB')}</td>
                         <td style={{ padding: '12px 16px' }}>
                           {(() => {
-                            const ps = (o.items?.[0]?.prescription_status || 'Frame Only');
+                            const hasApproved = o.items?.some(item => (item.prescription_status || '').toLowerCase() === 'approved');
+                            const isFrameOnly = o.items?.every(item => (item.prescription_status || 'Frame Only').toLowerCase() === 'frame only');
+                            let ps = 'Pending Review';
+                            if (hasApproved) ps = 'Approved';
+                            else if (isFrameOnly) ps = 'Frame Only';
+                            else {
+                              ps = o.items?.[0]?.prescription_status || 'Pending Review';
+                            }
+
                             const psl = ps.toLowerCase();
                             const bg = psl === 'approved' ? '#ECFDF3' : psl === 'frame only' ? '#F2F4F7' : '#FFFAEB';
                             const color = psl === 'approved' ? '#027A48' : psl === 'frame only' ? '#344054' : '#B54708';
@@ -730,19 +737,6 @@ const OrderTable = ({ category = null, onViewDetails, hideKPIs = false }) => {
                           })()}
                         </td>
                         <td style={{ padding: '12px 16px', fontWeight: 700, fontSize: '13px', whiteSpace: 'nowrap' }}>₹{Number(o.total_amount).toLocaleString('en-IN')}</td>
-                        <td style={{ padding: '12px 16px' }}>
-                          {o.tracking?.qc_image_url ? (
-                            <img
-                              src={o.tracking.qc_image_url}
-                              alt="QC"
-                              onClick={(e) => { e.stopPropagation(); setQcLightbox(o.tracking.qc_image_url); }}
-                              style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 6, border: '1px solid #D0D5DD', cursor: 'pointer' }}
-                              title="View QC image"
-                            />
-                          ) : (
-                            <span style={{ backgroundColor: '#FFFAEB', color: '#B54708', padding: '5px 12px', borderRadius: '100px', fontSize: '12px', fontWeight: 600 }}>Pending</span>
-                          )}
-                        </td>
                       </>
                     )}
                     <td style={{ padding: '12px 16px', backgroundColor: expandedRows.includes(o.id) ? '#F5F3FF' : 'inherit' }}>
@@ -764,8 +758,9 @@ const OrderTable = ({ category = null, onViewDetails, hideKPIs = false }) => {
                         <div
                           onClick={(e) => {
                             e.stopPropagation();
-                            const ps = (o.items?.[0]?.prescription_status || 'Frame Only').toLowerCase();
-                            if (ps === 'approved' || ps === 'frame only') {
+                            const hasApproved = o.items?.some(item => (item.prescription_status || '').toLowerCase() === 'approved');
+                            const isFrameOnly = o.items?.every(item => (item.prescription_status || 'Frame Only').toLowerCase() === 'frame only');
+                            if (hasApproved || isFrameOnly) {
                               onViewDetails(o.id);
                             } else {
                               setRxOffcanvasOrder(o);
@@ -797,13 +792,12 @@ const OrderTable = ({ category = null, onViewDetails, hideKPIs = false }) => {
                               key={item.id || si}
                               style={{
                                 display: 'grid',
-                                gridTemplateColumns: '80px 1.2fr 1.8fr 180px 160px 100px',
+                                gridTemplateColumns: '80px 15% 30% 10% 15% 1fr 60px',
                                 alignItems: 'center',
                                 padding: '2px 0',
                                 borderBottom: si === o.items.length - 1 ? 'none' : '1px solid #F2F4F7',
                                 background: '#ffffff'
-                              }}
-                            >
+                              }}>
                               <div style={{ width: 80 }}></div>
 
                               <div style={{ padding: '10px 0', fontWeight: 600, color: '#101828', fontSize: '11px' }}>
@@ -827,6 +821,9 @@ const OrderTable = ({ category = null, onViewDetails, hideKPIs = false }) => {
                                 </div>
                               </div>
 
+                              {/* Spacer for Date column */}
+                              <div></div>
+
                               <div style={{ padding: '10px 0', display: 'flex', justifyContent: 'flex-start' }}>
                                 {(() => {
                                   const ps = item.prescription_status || item.status || 'Frame Only';
@@ -844,13 +841,7 @@ const OrderTable = ({ category = null, onViewDetails, hideKPIs = false }) => {
 
                               <div style={{ padding: '10px 0', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, color: '#101828', fontSize: '12px' }}>
                                 ₹{Number(item.price || item.unit_price || item.price_at_purchase || 0).toLocaleString('en-IN')}
-                                <div
-                                  onClick={(e) => { e.stopPropagation(); handleDownloadPDF(o); }}
-                                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F04438', color: '#ffffff', padding: '3px', borderRadius: '3px', cursor: 'pointer' }}
-                                  title="Download Item PDF"
-                                >
-                                  <FileDown size={12} strokeWidth={2.5} />
-                                </div>
+                                
                               </div>
 
                               <div style={{ padding: '10px 0', display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>

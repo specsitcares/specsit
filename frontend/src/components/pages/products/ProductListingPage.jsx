@@ -64,7 +64,7 @@ const VariantCard = ({ product, variant }) => {
           }
         </div>
         <div className="product-card__overlay-row">
-          {product.is_best_seller
+          {variant?.is_bestseller
             ? <div className="product-card__badge"><span className="product-card__badge-text">Best Seller</span></div>
             : <span />
           }
@@ -148,9 +148,10 @@ const ProductListingPage = () => {
     // Core filter states (API-connected)
     const [categories, setCategories] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '');
+    const [productType, setProductType] = useState('frame');
     const [selectedBrand, setSelectedBrand] = useState(searchParams.get('brand_name') || '');
     const [maxPrice, setMaxPrice] = useState(searchParams.get('max_price') || 50000);
-    const [sortBy, setSortBy] = useState('newest');
+    const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'newest');
     const [brands, setBrands] = useState([]);
     const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
     const [currentPage, setCurrentPage] = useState(1);
@@ -212,6 +213,7 @@ const ProductListingPage = () => {
         const params = new URLSearchParams();
 
         if (selectedCategory) params.append('category', selectedCategory);
+        if (productType) params.append('product_type', productType);
         if (selectedBrand) params.append('brand_name', selectedBrand);
         if (searchQuery) params.append('search', searchQuery);
         if (maxPrice < 50000) params.append('max_price', maxPrice);
@@ -219,6 +221,7 @@ const ProductListingPage = () => {
         // Server-side sorting
         const sortMap = {
             'newest': '-created_at',
+            'bestsellers': '-created_at',  // Will filter on client-side
             'price-low': 'final_price',
             'price-high': '-final_price',
             'name': 'title',
@@ -280,11 +283,19 @@ const ProductListingPage = () => {
                     );
                 }
 
+
                 // New Arrivals: products created in the last 30 days
                 if (avail.includes('New Arrivals')) {
                     const cutoff = new Date();
                     cutoff.setDate(cutoff.getDate() - 30);
                     data = data.filter(p => new Date(p.created_at) >= cutoff);
+                }
+
+                // Best Sellers: filter products that have bestseller variants
+                if (sortBy === 'bestsellers') {
+                    data = data.filter(p => 
+                        p.variants && p.variants.some(v => v.is_bestseller)
+                    );
                 }
 
                 setProducts(data);
@@ -364,6 +375,31 @@ const ProductListingPage = () => {
                     <p className="plp-subtitle">Elevate your vision with our curated atelier collection.</p>
                 </div>
             </header>
+
+            {/* Category Tabs */}
+            <div style={{ margin: '12px 0 20px' }}>
+                <div style={{ display: 'flex', gap: 8 }}>
+                    {['Eyeglasses', 'Sunglasses', 'Accessories', 'Contact Lenses'].map(tab => (
+                        <button
+                            key={tab}
+                            onClick={() => {
+                                if (tab === 'Contact Lenses') {
+                                    setProductType('lens');
+                                    setSelectedCategory('');
+                                } else {
+                                    setProductType('frame');
+                                    const cat = categories.find(c => c.name === tab);
+                                    setSelectedCategory(cat ? String(cat.id) : '');
+                                }
+                                setCurrentPage(1);
+                            }}
+                            style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #E6E6E6', background: (productType === 'lens' && tab === 'Contact Lenses') || (productType === 'frame' && categories.find(c => c.id.toString() === selectedCategory)?.name === tab) ? '#fff' : 'transparent', cursor: 'pointer' }}
+                        >
+                            {tab}
+                        </button>
+                    ))}
+                </div>
+            </div>
 
             {/* Main Container: Sidebar + Content */}
             <div className="plp-layout">
@@ -778,6 +814,7 @@ const ProductListingPage = () => {
                                         onChange={(e) => setSortBy(e.target.value)}
                                     >
                                         <option value="newest">New Arrivals</option>
+                                        <option value="bestsellers">Best Sellers</option>
                                         <option value="price-low">Price: Low to High</option>
                                         <option value="price-high">Price: High to Low</option>
                                         <option value="name">Name: A to Z</option>

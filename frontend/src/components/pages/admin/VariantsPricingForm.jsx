@@ -15,7 +15,6 @@ const FRAME_WIDTH_OPTIONS = [
   { value: 'Small (115mm)', label: 'Small (115mm)' },
   { value: 'Medium (130mm)', label: 'Medium (130mm)' },
   { value: 'Large (140mm)', label: 'Large (140mm)' },
-  { value: 'Extra Large (150mm)', label: 'Extra Large (150mm)' },
 ];
 
 const FRAME_TYPE_OPTIONS = [
@@ -35,7 +34,7 @@ const FRAME_SHAPE_OPTIONS = [
   { value: 'Clubmaster', label: 'Clubmaster' },
   { value: 'Oval', label: 'Oval' },
   { value: 'Square', label: 'Square' },
-  { value: 'Geometric', label: 'Geometric' },
+  { value: 'Geometric', label: 'Geometric'}
 ];
 
 const GENDER_OPTIONS = [
@@ -53,6 +52,7 @@ const EMPTY_VARIANT = () => ({
   variantName: '',
   colorName: '',
   quantity: 0,
+  stock_by_size: { 'Small': 0, 'Medium': 0, 'Large': 0 },
   colorMethod: 'code',
   colorCode: '#000000',
   paletteImage: null,
@@ -73,6 +73,7 @@ const EMPTY_VARIANT = () => ({
   frame_size: 'Medium',
   frame_weight: 'Standard',
   is_listed: true,
+  is_warranty_eligible: true,
 });
 
 const VariantsPricingForm = ({ formData, onFormDataChange, saving, errors = {}, onVariantRemoved, onImageRemoved, globalTemplates }) => {
@@ -274,15 +275,71 @@ const VariantsPricingForm = ({ formData, onFormDataChange, saving, errors = {}, 
                       )}
                     </div>
                     <div className="form-field">
-                      <label className="form-field-label">Quantity <span className="required-star">*</span></label>
+                      <label className="form-field-label">Total Stock (Auto) <span className="required-star">*</span></label>
                       <div className="form-field-input-wrapper">
                         <input
                           type="number"
                           className="form-field-input"
                           placeholder="0"
                           value={v.quantity}
-                          onChange={(e) => updateVariant(v.id, 'quantity', parseInt(e.target.value) || 0)}
+                          readOnly
+                          style={{ backgroundColor: '#F9FAFB', color: '#697177' }}
                         />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="vp-row" style={{ marginBottom: '16px' }}>
+                    <div className="form-field" style={{ width: '100%' }}>
+                      <label className="form-field-label">Stock by Size</label>
+                      <div style={{ display: 'flex', gap: '12px' }}>
+                        {['Small', 'Medium', 'Large'].map((size) => {
+                          const rawVal = v.stock_by_size?.[size];
+                          let isListed = true;
+                          let displayQty = rawVal || 0;
+                          
+                          if (typeof rawVal === 'string' && rawVal.startsWith('U:')) {
+                              isListed = false;
+                              displayQty = parseInt(rawVal.replace('U:', ''), 10) || 0;
+                          } else {
+                              isListed = true;
+                              displayQty = parseInt(rawVal, 10) || 0;
+                          }
+
+                          return (
+                            <div key={size} style={{ flex: 1 }}>
+                              <label style={{ fontSize: '11px', color: '#697177', display: 'block', marginBottom: '4px' }}>
+                                {size} {isListed ? '' : '(Unlisted)'}
+                              </label>
+                              <input
+                                type="number"
+                                className="form-field-input"
+                                placeholder="0"
+                                value={displayQty}
+                                onChange={(e) => {
+                                  const num = parseInt(e.target.value) || 0;
+                                  const newVal = isListed ? num : `U:${num}`;
+                                  const newStockBySize = { ...v.stock_by_size, [size]: newVal };
+                                  
+                                  // Compute sum properly ignoring U: values
+                                  let newQuantity = 0;
+                                  for (const key in newStockBySize) {
+                                      const val = newStockBySize[key];
+                                      if (typeof val === 'number') newQuantity += val;
+                                      else if (typeof val === 'string' && !val.startsWith('U:')) {
+                                          newQuantity += parseInt(val, 10) || 0;
+                                      }
+                                  }
+                                  
+                                  const updated = (formData.variants || []).map(va =>
+                                    va.id === v.id ? { ...va, stock_by_size: newStockBySize, quantity: newQuantity } : va
+                                  );
+                                  updateVariants(updated);
+                                }}
+                              />
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
@@ -417,17 +474,6 @@ const VariantsPricingForm = ({ formData, onFormDataChange, saving, errors = {}, 
                     </div>
 
                     <div className="vp-row">
-                      <div className="form-field">
-                        <label className="form-field-label">Frame Size</label>
-                        <div className="form-field-select-wrapper">
-                          <select value={v.frame_size || 'Medium'} onChange={(e) => updateVariant(v.id, 'frame_size', e.target.value)}>
-                            <option value="Small">Small</option>
-                            <option value="Medium">Medium</option>
-                            <option value="Large">Large</option>
-                          </select>
-                          <span className="select-chevron"><ChevronDown size={14} /></span>
-                        </div>
-                      </div>
                       <div className="form-field">
                         <label className="form-field-label">Frame Weight</label>
                         <div className="form-field-select-wrapper">
@@ -597,7 +643,7 @@ const VariantsPricingForm = ({ formData, onFormDataChange, saving, errors = {}, 
                         <div className="vp-alert-icon"><AlertTriangle size={18} /></div>
                         <div className="vp-alert-body">
                           <strong>Images missing</strong>
-                          <span>A minimum of 4 images is required for the store listing.</span>
+                          <span>A maximum of 4 images are required for the store listing.</span>
                         </div>
                       </div>
                     )}

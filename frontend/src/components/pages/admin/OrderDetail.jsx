@@ -33,7 +33,7 @@ const OrderDetail = ({ orderId, onBack }) => {
   const [riderEditModalOpen, setRiderEditModalOpen] = useState(false);
   const [dispatchModalOpen, setDispatchModalOpen] = useState(false);
   const [dispatchForm, setDispatchForm] = useState({
-    booking_id: '', rider_name: '', rider_phone: '', vehicle_type: 'Bike', carrier_company: '', eta: '',
+    booking_id: '', rider_name: '', rider_phone: '', vehicle_type: 'Bike', carrier_company: '', eta: '', tracking_link: '', sms_message: '',
   });
   const [dispatchSaving, setDispatchSaving] = useState(false);
   const [deliveryModalOpen, setDeliveryModalOpen] = useState(false);
@@ -41,6 +41,8 @@ const OrderDetail = ({ orderId, onBack }) => {
   const [confirmingDelivery, setConfirmingDelivery] = useState(false);
   const [deliveryError, setDeliveryError] = useState(null);
   const [etaMinutes, setEtaMinutes] = useState(null);
+  const [activeItemIndex, setActiveItemIndex] = useState(0);
+  const [activeItemForAction, setActiveItemForAction] = useState(null);
 
   const fetchOrder = async () => {
     try {
@@ -81,6 +83,15 @@ const OrderDetail = ({ orderId, onBack }) => {
     }
   };
 
+  const handleItemStatusUpdate = async (itemId, itemStatus) => {
+    try {
+      await apiClient.patch(`/sales/orders/${orderId}/items/${itemId}/status/`, { status: itemStatus });
+      fetchOrder();
+    } catch (err) {
+      alert('Failed to update item status. Please check your connection.');
+    }
+  };
+
 
   const handleMarkDelivered = () => {
     setDeliveryError(null);
@@ -88,13 +99,15 @@ const OrderDetail = ({ orderId, onBack }) => {
   };
 
   const handleDeliveryConfirm = async () => {
+    if (!activeItemForAction) return;
     setConfirmingDelivery(true);
     setDeliveryError(null);
     try {
-      const res = await apiClient.post(`/sales/orders/${orderId}/mark_delivered/`);
+      const res = await apiClient.patch(`/sales/orders/${orderId}/items/${activeItemForAction.id}/status/`, { status: 'delivered' });
       setDeliveredResult(res.data);
       setDeliveryModalOpen(false);
       setDeliveryChecks({ confirmed: false, noDamage: false });
+      setActiveItemForAction(null);
       fetchOrder();
     } catch (err) {
       const msg = err.response?.data?.detail || err.response?.data?.[0] || 'Failed to mark as delivered.';
@@ -136,6 +149,7 @@ const OrderDetail = ({ orderId, onBack }) => {
   };
 
   const handleQcComplete = async () => {
+    if (!activeItemForAction) return;
     if (qcImageFile) {
       try {
         const fd = new FormData();
@@ -147,14 +161,15 @@ const OrderDetail = ({ orderId, onBack }) => {
       }
     }
     if (qcOutcome === 'pass') {
-      await handleStatusUpdate('ready_to_dispatch');
+      await handleItemStatusUpdate(activeItemForAction.id, 'ready_to_dispatch');
     } else {
-      await handleStatusUpdate('preparing');
+      await handleItemStatusUpdate(activeItemForAction.id, 'preparing');
     }
     setQcModalOpen(false);
     setQcImageFile(null);
     setQcImagePreview(null);
     setQcOutcome('pass');
+    setActiveItemForAction(null);
     fetchOrder();
   };
 
@@ -163,6 +178,7 @@ const OrderDetail = ({ orderId, onBack }) => {
     setQcImageFile(null);
     setQcImagePreview(null);
     setQcOutcome('pass');
+    setActiveItemForAction(null);
   };
 
   const parseEtaMinutes = (text) => {
@@ -177,10 +193,7 @@ const OrderDetail = ({ orderId, onBack }) => {
   };
 
   const handleDispatchConfirm = async () => {
-    if (!dispatchForm.booking_id.trim() || !dispatchForm.rider_name.trim() || !dispatchForm.rider_phone.trim()) {
-      alert('Please fill in all required fields (Booking ID, Rider Name, Rider Phone).');
-      return;
-    }
+    if (!activeItemForAction) return;
     setDispatchSaving(true);
     try {
       const now = new Date().toISOString();
@@ -190,13 +203,15 @@ const OrderDetail = ({ orderId, onBack }) => {
         delivery_agent_phone: dispatchForm.rider_phone,
         courier_company: dispatchForm.carrier_company || dispatchForm.vehicle_type,
         shipped_date: now,
+        tracking_link: dispatchForm.tracking_link || null,
       };
       await apiClient.post(`/sales/orders/${orderId}/update_tracking/`, trackingPayload);
       setTracking(prev => ({ ...prev, ...trackingPayload }));
       setEtaMinutes(parseEtaMinutes(dispatchForm.eta));
-      await handleStatusUpdate('in_transit');
+      await handleItemStatusUpdate(activeItemForAction.id, 'in_transit');
       setDispatchModalOpen(false);
-      setDispatchForm({ booking_id: '', rider_name: '', rider_phone: '', vehicle_type: 'Bike', carrier_company: '', eta: '' });
+      setDispatchForm({ booking_id: '', rider_name: '', rider_phone: '', vehicle_type: 'Bike', carrier_company: '', eta: '', tracking_link: '', sms_message: '' });
+      setActiveItemForAction(null);
     } catch (err) {
       alert('Failed to dispatch order. Please try again.');
     } finally {
@@ -267,116 +282,247 @@ const OrderDetail = ({ orderId, onBack }) => {
   const deliveredAt         = formatDate(order.delivery_date || order.tracking?.actual_delivery_date);
 
   // ── Lifecycle steps ───────────────────────────────────────────────────────
-  const lensItems = order.items?.filter(item => item.lens) || [];
-  const isFrameOnly = lensItems.length === 0;
+  const getStepsForItem = (item) => {
+    const isFrameOnly = !item?.lens;
+    const rxStatus = (item?.prescription_status || 'Pending Review').toLowerCase();
+    const allRxApproved = rxStatus === 'approved';
+    const anyRxRejected = rxStatus === 'rejected';
+    const anyRxReupload = rxStatus.includes('reupload');
+    const prescriptionBlocked = !isFrameOnly && !allRxApproved;
 
-  const rxStatuses = lensItems.map(i => (i.prescription_status || 'Pending Review').toLowerCase());
-  const allRxApproved  = lensItems.length > 0 && rxStatuses.every(s => s === 'approved');
-  const anyRxRejected  = rxStatuses.some(s => s === 'rejected');
-  const anyRxReupload  = rxStatuses.some(s => s.includes('reupload'));
+    const ORDER_STATUS_TO_ID = {
+      pending: 3, confirmed: 4, preparing: 5, ready_to_dispatch: 8, in_transit: 9, delivered: 10,
+    };
+    const idFromItemStatus = ORDER_STATUS_TO_ID[item?.status] || 4;
+    const currentStatusId = (() => {
+      if (prescriptionBlocked) return 3;
+      return idFromItemStatus;
+    })();
 
-  const prescriptionBlocked = !isFrameOnly && !allRxApproved;
+    const allItemsQcCompleted = order.items?.every(i => {
+      const id = ORDER_STATUS_TO_ID[i.status] || 4;
+      return id >= 8;
+    });
 
-  // Use status_label (MetadataItem label string) to determine the step — avoids
-  // depending on MetadataItem PKs which are auto-incremented and unpredictable.
-  const labelToStepId = (label) => {
-    const l = (label || '').toLowerCase();
-    if (l.includes('deliver')) return 10;
-    if (l.includes('transit')) return 9;
-    if (l.includes('ready')) return 8;
-    if (l.includes('prepar') || l.includes('quality')) return 5;
-    return 4;
+    const rxBlockMessage = anyRxRejected
+      ? 'Prescription rejected. Customer must upload a new prescription before this item can proceed.'
+      : anyRxReupload
+      ? 'Reupload requested. Waiting for customer to submit a new prescription.'
+      : 'Prescription is pending review. Approve it in the Prescriptions panel to advance this item.';
+
+    return [
+      {
+        title: 'Order Received',
+        desc: 'Order placed and payment confirmed',
+        time: orderPlacedAt || 'Just now',
+        status: 'completed',
+        rxBlockMessage: prescriptionBlocked ? rxBlockMessage : null,
+        isRxRejected: anyRxRejected,
+      },
+      {
+        title: 'Order Accepted',
+        desc: isCOD
+          ? 'COD order accepted for processing'
+          : `Payment of ₹${fmt(paid)} confirmed`,
+        time: currentStatusId >= 4
+          ? (paymentConfirmedAt || orderPlacedAt || '—')
+          : anyRxRejected ? 'Prescription rejected'
+          : anyRxReupload ? 'Awaiting reupload'
+          : 'Awaiting prescription approval',
+        status: currentStatusId >= 4 ? 'completed' : currentStatusId === 3 ? 'current' : 'upcoming',
+      },
+      {
+        title: 'Preparing Glasses',
+        desc: 'Glasses are being prepared',
+        time: currentStatusId > 4 ? 'Completed' : currentStatusId === 4 ? 'In progress' : 'Pending',
+        status: currentStatusId > 4 ? 'completed' : currentStatusId === 4 ? 'current' : 'upcoming',
+        hasAction: currentStatusId === 4,
+        blocked: currentStatusId === 4 && prescriptionBlocked,
+        actionLabel: 'Mark as Prepared',
+        nextStatus: 'preparing',
+      },
+      {
+        title: 'Quality Check',
+        desc: 'Upload proof and complete quality inspection',
+        time: currentStatusId > 5 ? 'Completed' : currentStatusId === 5 ? 'In progress' : 'Pending',
+        status: currentStatusId > 5 ? 'completed' : currentStatusId === 5 ? 'current' : 'upcoming',
+        hasAction: currentStatusId === 5,
+        isQC: true,
+        actionLabel: 'Complete Quality Check',
+        nextStatus: 'Ready for Dispatch',
+        showQcFile: currentStatusId > 5 && !!(order.tracking?.qc_image_url),
+        qcFile: order.tracking?.qc_image_url,
+      },
+      {
+        title: 'Ready for Dispatch',
+        desc: 'Order is packed and ready to ship',
+        time: currentStatusId > 8 ? 'Completed' : currentStatusId === 8 ? 'In progress' : 'Pending',
+        status: currentStatusId > 8 ? 'completed' : currentStatusId === 8 ? 'current' : 'upcoming',
+        hasAction: currentStatusId === 8,
+        blocked: currentStatusId === 8 && !allItemsQcCompleted,
+        dispatchBlockMessage: (currentStatusId === 8 && !allItemsQcCompleted) ? 'Waiting for other items to complete QC before dispatch is enabled.' : null,
+        isDispatch: true,
+        actionLabel: 'Dispatch Order',
+        nextStatus: 'In Transit',
+        showBookingId: currentStatusId > 8,
+        bookingId: order.tracking?.tracking_number,
+      },
+      {
+        title: 'Out for Delivery',
+        desc: 'Rider details shared with customer via SMS',
+        time: currentStatusId >= 9
+          ? (formatDate(order.tracking?.dispatched_at) || 'In transit')
+          : 'Pending',
+        status: currentStatusId >= 9 ? 'completed' : 'upcoming',
+        showRiderCard: currentStatusId >= 9,
+      },
+      {
+        title: 'Delivered',
+        desc: 'Confirm once rider hands over the parcel',
+        time: deliveredAt || 'Pending',
+        status: currentStatusId >= 10 ? 'completed' : 'upcoming',
+        hasAction: currentStatusId === 9,
+        actionLabel: 'Mark as Delivered',
+        isDelivery: true,
+      },
+    ];
   };
-  const ORDER_STATUS_TO_ID = {
-    pending: 3, confirmed: 4, preparing: 5, ready_to_dispatch: 8, in_transit: 9, delivered: 10,
-  };
-  const idFromOrderStatus = ORDER_STATUS_TO_ID[order.order_status] || 4;
-  const idFromLabel = order.status_label ? labelToStepId(order.status_label) : 0;
-  const currentStatusId = (() => {
-    if (prescriptionBlocked) return 3;
-    if (order.order_status === 'pending') return 4;
-    return Math.max(idFromLabel, idFromOrderStatus);
-  })();
 
-  const rxBlockMessage = anyRxRejected
-    ? 'Prescription rejected. Customer must upload a new prescription before this order can proceed.'
-    : anyRxReupload
-    ? 'Reupload requested. Waiting for customer to submit a new prescription.'
-    : 'Prescription is pending review. Approve it in the Prescriptions panel to advance this order.';
+  const renderStepper = (steps, item) => (
+    <div className="stepper-container">
+      {steps.map((step, idx) => {
+        const hasExpandedContent =
+          (step.showQcFile && step.qcFile) ||
+          (step.showBookingId && step.bookingId) ||
+          step.showRiderCard;
+        const hasBtn = step.hasAction || (step.status === 'current' && step.isQC);
+        const useColumnLayout = hasBtn || hasExpandedContent || !!step.rxBlockMessage;
 
-  const steps = [
-    {
-      title: 'Order Received',
-      desc: 'Order placed and payment confirmed',
-      time: orderPlacedAt || 'Just now',
-      status: 'completed',
-      rxBlockMessage: prescriptionBlocked ? rxBlockMessage : null,
-    },
-    {
-      title: 'Order Accepted',
-      desc: isCOD
-        ? 'COD order accepted for processing'
-        : `Payment of ₹${fmt(paid)} confirmed`,
-      time: currentStatusId >= 4
-        ? (paymentConfirmedAt || orderPlacedAt || '—')
-        : anyRxRejected ? 'Prescription rejected'
-        : anyRxReupload ? 'Awaiting reupload'
-        : 'Awaiting prescription approval',
-      status: currentStatusId >= 4 ? 'completed' : currentStatusId === 3 ? 'current' : 'upcoming',
-    },
-    {
-      title: 'Preparing Glasses',
-      desc: 'Glasses are being prepared',
-      time: currentStatusId > 4 ? 'Completed' : currentStatusId === 4 ? 'In progress' : 'Pending',
-      status: currentStatusId > 4 ? 'completed' : currentStatusId === 4 ? 'current' : 'upcoming',
-      hasAction: currentStatusId === 4,
-      blocked: currentStatusId === 4 && prescriptionBlocked,
-      actionLabel: 'Mark as Prepared',
-      nextStatus: 'preparing',
-    },
-    {
-      title: 'Quality Check',
-      desc: 'Upload proof and complete quality inspection',
-      time: currentStatusId > 5 ? 'Completed' : currentStatusId === 5 ? 'In progress' : 'Pending',
-      status: currentStatusId > 5 ? 'completed' : currentStatusId === 5 ? 'current' : 'upcoming',
-      hasAction: currentStatusId === 5,
-      isQC: true,
-      actionLabel: 'Complete Quality Check',
-      nextStatus: 'Ready for Dispatch',
-      showQcFile: currentStatusId > 5 && !!(order.tracking?.qc_image_url),
-      qcFile: order.tracking?.qc_image_url,
-    },
-    {
-      title: 'Ready for Dispatch',
-      desc: 'Order is packed and ready to ship',
-      time: currentStatusId > 8 ? 'Completed' : currentStatusId === 8 ? 'In progress' : 'Pending',
-      status: currentStatusId > 8 ? 'completed' : currentStatusId === 8 ? 'current' : 'upcoming',
-      hasAction: currentStatusId === 8,
-      isDispatch: true,
-      actionLabel: 'Dispatch Order',
-      nextStatus: 'In Transit',
-      showBookingId: currentStatusId > 8,
-      bookingId: order.tracking?.tracking_number,
-    },
-    {
-      title: 'Out for Delivery',
-      desc: 'Rider details shared with customer via SMS',
-      time: currentStatusId >= 9
-        ? (formatDate(order.tracking?.dispatched_at) || 'In transit')
-        : 'Pending',
-      status: currentStatusId >= 9 ? 'completed' : 'upcoming',
-      showRiderCard: currentStatusId >= 9,
-    },
-    {
-      title: 'Delivered',
-      desc: 'Confirm once rider hands over the parcel',
-      time: deliveredAt || 'Pending',
-      status: currentStatusId >= 10 ? 'completed' : 'upcoming',
-      hasAction: currentStatusId === 9,
-      actionLabel: 'Mark as Delivered',
-      isDelivery: true,
-    },
-  ];
+        return (
+          <div key={idx} className={`step-item ${step.status}`}>
+            {/* Icon column */}
+            <div className="step-left">
+              <div className={`step-indicator ${step.status}`}>
+                {step.status === 'completed' && <Check size={16} color="white" strokeWidth={3} />}
+                {step.status === 'current' && <div className="step-dot" />}
+              </div>
+              {idx < steps.length - 1 && <div className="step-line" />}
+            </div>
+
+            {/* Content column */}
+            {useColumnLayout ? (
+              <div className="step-content-action">
+                <div className="step-row">
+                  <div className="step-row-left">
+                    <div className="step-title">{step.title}</div>
+                    <div className="step-description">{step.desc}</div>
+                  </div>
+                  <div className="step-time">{step.time}</div>
+                </div>
+
+                {/* QC proof file chip */}
+                {step.showQcFile && step.qcFile && (
+                  <div
+                    className="step-file-chip"
+                    onClick={() => setQcImageLightbox(true)}
+                    style={{ cursor: 'pointer' }}
+                    title="Click to view QC image"
+                  >
+                    <img
+                      src={step.qcFile}
+                      alt="QC"
+                      style={{ width: 24, height: 24, objectFit: 'cover', borderRadius: 4, flexShrink: 0 }}
+                    />
+                    <span className="step-file-chip__name">View QC Image</span>
+                  </div>
+                )}
+
+                {/* Dispatch booking ID badge */}
+                {step.showBookingId && step.bookingId && (
+                  <div className="step-dispatch-badge">
+                    Booking ID: {step.bookingId}
+                  </div>
+                )}
+
+                {/* Rider card */}
+                {step.showRiderCard && (
+                  <div className="step-rider-card">
+                    <div className="step-rider-display">
+                      <div className="step-rider-info">
+                        <span className="step-rider-name">
+                          {order.tracking?.delivery_agent_name || 'Rider not yet assigned'}
+                        </span>
+                        <span className="step-rider-meta">
+                          {[order.tracking?.delivery_agent_phone, order.tracking?.courier_company]
+                            .filter(Boolean).join(' · ') || 'No contact details on file'}
+                        </span>
+                      </div>
+                      <button
+                        className="step-rider-edit-btn"
+                        onClick={() => setRiderEditModalOpen(true)}
+                      >
+                        Edit
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Prescription block banner on Order Received */}
+                {step.rxBlockMessage && (
+                  <div style={{ marginTop: 8, background: step.isRxRejected ? '#fef2f2' : '#fffbeb', border: `1px solid ${step.isRxRejected ? '#fca5a5' : '#fcd34d'}`, borderRadius: 8, padding: '8px 12px' }}>
+                    <span style={{ fontSize: 13, color: step.isRxRejected ? '#991b1b' : '#92400e', lineHeight: 1.45 }}>
+                      {step.rxBlockMessage}
+                    </span>
+                  </div>
+                )}
+
+                {/* Dispatch block banner */}
+                {step.dispatchBlockMessage && (
+                  <div style={{ marginTop: 8, background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: 8, padding: '8px 12px' }}>
+                    <span style={{ fontSize: 13, color: '#92400e', lineHeight: 1.45 }}>
+                      {step.dispatchBlockMessage}
+                    </span>
+                  </div>
+                )}
+
+                {/* Action button */}
+                {step.hasAction && (
+                  step.blocked ? (
+                    <div>
+                      <button className="prepared-action-btn" disabled style={{ opacity: 0.45, cursor: 'not-allowed' }}>
+                        {step.actionLabel}
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      className="prepared-action-btn"
+                      onClick={() => {
+                        setActiveItemForAction(item);
+                        if (step.isQC) return setQcModalOpen(true);
+                        if (step.isDispatch) return setDispatchModalOpen(true);
+                        if (step.isDelivery) return handleMarkDelivered();
+                        handleItemStatusUpdate(item.id, step.nextStatus);
+                      }}
+                    >
+                      {step.actionLabel}
+                    </button>
+                  )
+                )}
+              </div>
+            ) : (
+              <div className="step-content">
+                <div className="step-row-left">
+                  <div className="step-title">{step.title}</div>
+                  <div className="step-description">{step.desc}</div>
+                </div>
+                <div className="step-time">{step.time}</div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
 
   const addr = order.shipping_address_detail || {};
 
@@ -409,135 +555,39 @@ const OrderDetail = ({ orderId, onBack }) => {
         <div className="order-detail-grid">
 
           {/* ── Left column: Lifecycle ── */}
-          <div className="order-lifecycle-card">
-            <div className="card-header">
-              <h3 className="card-title">Order Lifecycle</h3>
-            </div>
-            <div className="card-content">
-              <div className="stepper-container">
-                {steps.map((step, idx) => {
-                  const hasExpandedContent =
-                    (step.showQcFile && step.qcFile) ||
-                    (step.showBookingId && step.bookingId) ||
-                    step.showRiderCard;
-                  const hasBtn = step.hasAction || (step.status === 'current' && step.isQC);
-                  const useColumnLayout = hasBtn || hasExpandedContent || !!step.rxBlockMessage;
-
-                  return (
-                    <div key={idx} className={`step-item ${step.status}`}>
-                      {/* Icon column */}
-                      <div className="step-left">
-                        <div className={`step-indicator ${step.status}`}>
-                          {step.status === 'completed' && <Check size={16} color="white" strokeWidth={3} />}
-                          {step.status === 'current' && <div className="step-dot" />}
-                        </div>
-                        {idx < steps.length - 1 && <div className="step-line" />}
-                      </div>
-
-                      {/* Content column */}
-                      {useColumnLayout ? (
-                        <div className="step-content-action">
-                          <div className="step-row">
-                            <div className="step-row-left">
-                              <div className="step-title">{step.title}</div>
-                              <div className="step-description">{step.desc}</div>
-                            </div>
-                            <div className="step-time">{step.time}</div>
-                          </div>
-
-                          {/* QC proof file chip */}
-                          {step.showQcFile && step.qcFile && (
-                            <div
-                              className="step-file-chip"
-                              onClick={() => setQcImageLightbox(true)}
-                              style={{ cursor: 'pointer' }}
-                              title="Click to view QC image"
-                            >
-                              <img
-                                src={step.qcFile}
-                                alt="QC"
-                                style={{ width: 24, height: 24, objectFit: 'cover', borderRadius: 4, flexShrink: 0 }}
-                              />
-                              <span className="step-file-chip__name">View QC Image</span>
-                            </div>
-                          )}
-
-                          {/* Dispatch booking ID badge */}
-                          {step.showBookingId && step.bookingId && (
-                            <div className="step-dispatch-badge">
-                              Booking ID: {step.bookingId}
-                            </div>
-                          )}
-
-                          {/* Rider card */}
-                          {step.showRiderCard && (
-                            <div className="step-rider-card">
-                              <div className="step-rider-display">
-                                <div className="step-rider-info">
-                                  <span className="step-rider-name">
-                                    {order.tracking?.delivery_agent_name || 'Rider not yet assigned'}
-                                  </span>
-                                  <span className="step-rider-meta">
-                                    {[order.tracking?.delivery_agent_phone, order.tracking?.courier_company]
-                                      .filter(Boolean).join(' · ') || 'No contact details on file'}
-                                  </span>
-                                </div>
-                                <button
-                                  className="step-rider-edit-btn"
-                                  onClick={() => setRiderEditModalOpen(true)}
-                                >
-                                  Edit
-                                </button>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Prescription block banner on Order Received */}
-                          {step.rxBlockMessage && (
-                            <div style={{ marginTop: 8, background: anyRxRejected ? '#fef2f2' : '#fffbeb', border: `1px solid ${anyRxRejected ? '#fca5a5' : '#fcd34d'}`, borderRadius: 8, padding: '8px 12px' }}>
-                              <span style={{ fontSize: 13, color: anyRxRejected ? '#991b1b' : '#92400e', lineHeight: 1.45 }}>
-                                {step.rxBlockMessage}
-                              </span>
-                            </div>
-                          )}
-
-                          {/* Action button */}
-                          {step.hasAction && (
-                            step.blocked ? (
-                              <div>
-                                <button className="prepared-action-btn" disabled style={{ opacity: 0.45, cursor: 'not-allowed' }}>
-                                  {step.actionLabel}
-                                </button>
-                              </div>
-                            ) : (
-                              <button
-                                className="prepared-action-btn"
-                                onClick={() => {
-                                  if (step.isQC) return setQcModalOpen(true);
-                                  if (step.isDispatch) return setDispatchModalOpen(true);
-                                  if (step.isDelivery) return handleMarkDelivered();
-                                  handleStatusUpdate(step.nextStatus);
-                                }}
-                              >
-                                {step.actionLabel}
-                              </button>
-                            )
-                          )}
-                        </div>
-                      ) : (
-                        <div className="step-content">
-                          <div className="step-row-left">
-                            <div className="step-title">{step.title}</div>
-                            <div className="step-description">{step.desc}</div>
-                          </div>
-                          <div className="step-time">{step.time}</div>
-                        </div>
-                      )}
+          <div className="order-lifecycle-container" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {order.items?.length > 1 ? (
+              order.items.map((item, idx) => {
+                const isExpanded = activeItemIndex === idx;
+                const steps = getStepsForItem(item);
+                return (
+                  <div key={idx} className="order-lifecycle-card" style={{ marginBottom: 0 }}>
+                    <div 
+                      className="card-header" 
+                      onClick={() => setActiveItemIndex(isExpanded ? -1 : idx)}
+                      style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                    >
+                      <h3 className="card-title">Order {idx + 1}: {item.variant_name || 'Item'}</h3>
+                      {isExpanded ? <ChevronDown size={20} color="#64748b" /> : <ChevronRight size={20} color="#64748b" />}
                     </div>
-                  );
-                })}
+                    {isExpanded && (
+                      <div className="card-content" style={{ borderTop: '1px solid #EAECF0' }}>
+                        {renderStepper(steps, item)}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            ) : (
+              <div className="order-lifecycle-card" style={{ marginBottom: 0 }}>
+                <div className="card-header">
+                  <h3 className="card-title">Order Lifecycle</h3>
+                </div>
+                <div className="card-content">
+                  {renderStepper(getStepsForItem(order.items?.[0] || null), order.items?.[0] || null)}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* ── Right column ── */}
@@ -568,8 +618,19 @@ const OrderDetail = ({ orderId, onBack }) => {
                         <div className="product-options">
                           {item.lens?.name || 'No lens'} · Qty: {item.quantity}
                         </div>
-                        <span className="status-pill">
-                          {order.status_label || 'In Progress'}
+                        <span className={`status-pill ${item.status || 'pending'}`}>
+                          {(() => {
+                            const labels = {
+                              pending: 'Pending',
+                              confirmed: 'Confirmed',
+                              preparing: 'Preparing',
+                              ready_to_dispatch: 'Ready to Dispatch',
+                              in_transit: 'In Transit',
+                              delivered: 'Delivered',
+                              cancelled: 'Cancelled',
+                            };
+                            return labels[item.status] || item.status || 'Pending';
+                          })()}
                         </span>
                       </div>
                     </div>
@@ -699,7 +760,9 @@ const OrderDetail = ({ orderId, onBack }) => {
           {/* Delivered Result Banner */}
           {deliveredResult && (
             <div style={{ gridColumn: '1 / -1', background: '#d1fae5', border: '1px solid #6ee7b7', borderRadius: 12, padding: 20, marginBottom: 16 }}>
-              <p style={{ margin: '0 0 8px', fontWeight: 700, color: '#065f46', fontSize: 15 }}>Order marked as delivered.</p>
+              <p style={{ margin: '0 0 8px', fontWeight: 700, color: '#065f46', fontSize: 15 }}>
+                {order.items?.length > 1 ? 'Item marked as delivered.' : 'Order marked as delivered.'}
+              </p>
               <p style={{ margin: '0 0 12px', color: '#047857', fontSize: 13 }}>Review links generated for each ordered product:</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {deliveredResult.review_links?.map(rl => (
@@ -830,7 +893,7 @@ const OrderDetail = ({ orderId, onBack }) => {
 
                 {/* Porter booking ID */}
                 <div className="dm-field">
-                  <label className="dm-label">Porter booking ID <span className="dm-required">*</span></label>
+                  <label className="dm-label">Porter booking ID</label>
                   <input
                     className="dm-input"
                     placeholder="e.g. PRT-7782"
@@ -841,7 +904,7 @@ const OrderDetail = ({ orderId, onBack }) => {
 
                 {/* Rider full name */}
                 <div className="dm-field">
-                  <label className="dm-label">Rider full name <span className="dm-required">*</span></label>
+                  <label className="dm-label">Rider full name</label>
                   <input
                     className="dm-input"
                     placeholder="e.g. Rakesh"
@@ -852,7 +915,7 @@ const OrderDetail = ({ orderId, onBack }) => {
 
                 {/* Carrier Company */}
                 <div className="dm-field">
-                  <label className="dm-label">Carrier Company <span className="dm-required">*</span></label>
+                  <label className="dm-label">Carrier Company</label>
                   <input
                     className="dm-input"
                     placeholder="e.g. DTDC, FedEx, Delhivery, Porter"
@@ -864,7 +927,7 @@ const OrderDetail = ({ orderId, onBack }) => {
                 {/* Rider phone + Vehicle type */}
                 <div className="dm-row">
                   <div className="dm-field">
-                    <label className="dm-label">Rider phone <span className="dm-required">*</span></label>
+                    <label className="dm-label">Rider phone</label>
                     <input
                       className="dm-input"
                       placeholder="+91-9876543210"
@@ -873,7 +936,7 @@ const OrderDetail = ({ orderId, onBack }) => {
                     />
                   </div>
                   <div className="dm-field">
-                    <label className="dm-label">Vehicle type <span className="dm-required">*</span></label>
+                    <label className="dm-label">Vehicle type</label>
                     <div className="dm-select-wrap">
                       <select
                         className="dm-select"
@@ -900,20 +963,26 @@ const OrderDetail = ({ orderId, onBack }) => {
                   />
                 </div>
 
-                {/* SMS preview */}
+                {/* Tracking Link */}
+                <div className="dm-field">
+                  <label className="dm-label">Tracking Link <span style={{ fontSize: 11, fontWeight: 400, color: '#9ca3af' }}>(optional)</span></label>
+                  <input
+                    className="dm-input"
+                    placeholder="e.g. https://track.delhivery.com/123456"
+                    value={dispatchForm.tracking_link}
+                    onChange={e => setDispatchForm(f => ({ ...f, tracking_link: e.target.value }))}
+                  />
+                </div>
+
+                {/* SMS message */}
                 <div className="dm-sms-box">
-                  <p className="dm-sms-label">SMS preview to customer</p>
+                  <p className="dm-sms-label">SMS to customer <span style={{ fontSize: 11, fontWeight: 400, color: '#9ca3af' }}>(editable)</span></p>
                   <textarea
                     className="dm-sms-preview"
-                    readOnly
-                    value={(() => {
-                      const firstName = order.customer_name?.split(' ')[0] || 'Customer';
-                      const orderNum = `#LO-${String(order.id).padStart(7, '0')}`;
-                      const riderName = dispatchForm.rider_name || '[Rider name]';
-                      const riderPhone = dispatchForm.rider_phone || '[Phone]';
-                      const etaText = dispatchForm.eta ? ` in ~${dispatchForm.eta}` : '';
-                      return `Hi ${firstName}, your eyewear order ${orderNum} is on its way. Rider ${riderName} (${riderPhone}) will deliver${etaText}. Track via app.`;
-                    })()}
+                    placeholder="Write your message..."
+                    value={dispatchForm.sms_message}
+                    onChange={e => setDispatchForm(f => ({ ...f, sms_message: e.target.value }))}
+                    style={{ cursor: 'text' }}
                   />
                 </div>
 
@@ -1063,7 +1132,7 @@ const OrderDetail = ({ orderId, onBack }) => {
 
       {/* ── Quality Check Modal ── */}
       {qcModalOpen && (() => {
-        const qcItem = order.items?.[0];
+        const qcItem = activeItemForAction || order.items?.[0];
         const rx = qcItem?.prescription;
         return (
           <div className="qc-modal-overlay" onClick={(e) => e.target === e.currentTarget && handleQcClose()}>
@@ -1177,14 +1246,7 @@ const OrderDetail = ({ orderId, onBack }) => {
                 <div
                   className={`qc-radio-option ${qcOutcome === 'send_back' ? 'selected' : ''}`}
                   onClick={() => setQcOutcome('send_back')}
-                >
-                  <div className={`qc-radio-circle ${qcOutcome === 'send_back' ? 'selected' : ''}`}>
-                    {qcOutcome === 'send_back' && <div className="qc-radio-dot" />}
-                  </div>
-                  <div className="qc-radio-body">
-                    <span className="qc-radio-label">Issue found — send back to lab</span>
-                    <span className="qc-radio-desc">Add reason and reassign for rework</span>
-                  </div>
+                > 
                 </div>
               </div>
 
@@ -1234,7 +1296,7 @@ const OrderDetail = ({ orderId, onBack }) => {
 
                 {/* Porter booking ID */}
                 <div className="dm-field">
-                  <label className="dm-label">Porter booking ID <span className="dm-required">*</span></label>
+                  <label className="dm-label">Porter booking ID</label>
                   <input
                     className="dm-input"
                     placeholder="e.g. PRT-7782"
@@ -1245,7 +1307,7 @@ const OrderDetail = ({ orderId, onBack }) => {
 
                 {/* Rider full name */}
                 <div className="dm-field">
-                  <label className="dm-label">Rider full name <span className="dm-required">*</span></label>
+                  <label className="dm-label">Rider full name</label>
                   <input
                     className="dm-input"
                     placeholder="e.g. Rakesh"
@@ -1254,10 +1316,21 @@ const OrderDetail = ({ orderId, onBack }) => {
                   />
                 </div>
 
+                {/* Carrier Company */}
+                <div className="dm-field">
+                  <label className="dm-label">Carrier Company</label>
+                  <input
+                    className="dm-input"
+                    placeholder="e.g. DTDC, FedEx, Delhivery, Porter"
+                    value={tracking.courier_company}
+                    onChange={e => setTracking(t => ({ ...t, courier_company: e.target.value }))}
+                  />
+                </div>
+
                 {/* Rider phone + Vehicle type */}
                 <div className="dm-row">
                   <div className="dm-field">
-                    <label className="dm-label">Rider phone <span className="dm-required">*</span></label>
+                    <label className="dm-label">Rider phone</label>
                     <input
                       className="dm-input"
                       placeholder="+91-9876543210"
@@ -1266,7 +1339,7 @@ const OrderDetail = ({ orderId, onBack }) => {
                     />
                   </div>
                   <div className="dm-field">
-                    <label className="dm-label">Vehicle type <span className="dm-required">*</span></label>
+                    <label className="dm-label">Vehicle type</label>
                     <div className="dm-select-wrap">
                       <select
                         className="dm-select"
@@ -1282,19 +1355,15 @@ const OrderDetail = ({ orderId, onBack }) => {
                   </div>
                 </div>
 
-                {/* SMS preview */}
+                {/* SMS message */}
                 <div className="dm-sms-box">
-                  <p className="dm-sms-label">SMS preview to customer</p>
+                  <p className="dm-sms-label">SMS to customer <span style={{ fontSize: 11, fontWeight: 400, color: '#9ca3af' }}>(editable)</span></p>
                   <textarea
                     className="dm-sms-preview"
-                    readOnly
-                    value={(() => {
-                      const firstName = order.customer_name?.split(' ')[0] || 'Customer';
-                      const orderNum = `#LO-${String(order.id).padStart(7, '0')}`;
-                      const riderName = tracking.delivery_agent_name || '[Rider name]';
-                      const riderPhone = tracking.delivery_agent_phone || '[Phone]';
-                      return `Hi ${firstName}, your eyewear order ${orderNum} is on its way. Rider ${riderName} (${riderPhone}) will deliver. Track via app.`;
-                    })()}
+                    placeholder="Write your message..."
+                    value={tracking.sms_message || ''}
+                    onChange={e => setTracking(t => ({ ...t, sms_message: e.target.value }))}
+                    style={{ cursor: 'text' }}
                   />
                 </div>
 
