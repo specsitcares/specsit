@@ -47,8 +47,8 @@
 
 .navbar-logo {
   display: flex;
-  align-items: center;
-  gap: 6px;
+  align-items: flex-start;
+  gap: 5px;
   text-decoration: none;
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 800;
@@ -58,9 +58,10 @@
   flex-shrink: 0;
 }
 
-.logo-text {
-  color: #68408D;
-  font-weight: 900;
+.logo-img {
+  height: 32px;
+  width: auto;
+  display: block;
 }
 
 .navbar-menu {

@@ -1,6 +1,7 @@
-﻿import React, { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useCart } from '../../../context/CartContext';
+import specsitFullLogo from '../../../assets/specsit_full_logo.svg';
 import '../../../styles/visitor-header.css';
 import '../../../styles/nav-dropdown.css';
 import searchIcon from '../../../assets/icons/search-icon.svg';
@@ -63,7 +64,9 @@ const VisitorHeader = () => {
         >
             {/* Brand Logo */}
             <div className="visitor-brand">
-                <Link to="/" className="brand-logo">SPECSIT</Link>
+                <Link to="/" className="brand-logo">
+                    <img src={specsitFullLogo} alt="SPECSIT" className="brand-logo-img" />
+                </Link>
             </div>
 
             {/* Navigation Links (Center) */}

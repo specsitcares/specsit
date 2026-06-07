@@ -31,7 +31,14 @@
   color: #040205;
   text-decoration: none;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  gap: 5px;
+}
+
+.brand-logo-img {
+  height: 32px;
+  width: auto;
+  display: block;
 }
 
 .brand-logo:hover {

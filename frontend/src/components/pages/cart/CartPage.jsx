@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../../../context/CartContext';
 import apiClient from '../../../services/api';
+import specsitFullLogo from '../../../assets/specsit_full_logo.svg';
 import '../../../styles/checkout.css';
 
 /* ── Stepper ── */
@@ -418,7 +419,7 @@ const CartPage = () => {
 
             {/* ── FOOTER ── */}
             <div className="cart-mini-footer">
-                <span className="cart-mini-footer-brand">Specsit</span>
+                <img src={specsitFullLogo} alt="Specsit" style={{ height: '14px', width: 'auto' }} />
                 <div className="cart-mini-footer-links">
                     <Link to="/privacy-policy" className="cart-mini-footer-link">Privacy Policy</Link>
                     <Link to="/terms" className="cart-mini-footer-link">Terms of Service</Link>

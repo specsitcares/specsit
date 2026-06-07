@@ -1,8 +1,9 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { useCart } from '../../../context/CartContext';
 import { useTheme } from '../../../context/ThemeContext';
+import specsitFullLogo from '../../../assets/specsit_full_logo.svg';
 import '../../../styles/layout.css';
 
 const Navbar = () => {
@@ -34,7 +35,7 @@ const Navbar = () => {
             <div className="navbar-container">
                 {/* Logo */}
                 <Link to="/" className="navbar-logo">
-                    <span className="logo-text">Specsit</span>
+                    <img src={specsitFullLogo} alt="Specsit" className="logo-img" />
                 </Link>
 
                 {/* Desktop Menu */}

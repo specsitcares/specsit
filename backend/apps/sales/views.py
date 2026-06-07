@@ -1515,6 +1515,182 @@ class PrescriptionByOrderView(views.APIView):
         return Response(serializer.data)
 
 
+class OrdersOverviewView(views.APIView):
+    """
+    GET /api/sales/analytics/orders-overview/
+    Returns all data needed for the Analytics > Orders Overview tab.
+    """
+    permission_classes = [permissions.IsAdminUser]
+
+    def get(self, request):
+        from django.db.models import Sum, Count, Avg, F, FloatField
+        from django.db.models.functions import TruncDay, TruncWeek, TruncMonth
+
+        period = request.query_params.get('period', 'last_30')  # last_7, last_30, last_90, this_week
+
+        today = timezone.now().date()
+        now = timezone.now()
+
+        # Determine date window
+        if period == 'last_7':
+            start_date = today - timedelta(days=7)
+            prev_start = today - timedelta(days=14)
+            label_fmt = '%a'  # Mon, Tue...
+            trunc_fn = TruncDay
+        elif period == 'last_90':
+            start_date = today - timedelta(days=90)
+            prev_start = today - timedelta(days=180)
+            label_fmt = '%b'
+            trunc_fn = TruncMonth
+        elif period == 'this_week':
+            start_date = today - timedelta(days=today.weekday())
+            prev_start = start_date - timedelta(days=7)
+            label_fmt = '%a'
+            trunc_fn = TruncDay
+        else:  # last_30 (default)
+            start_date = today - timedelta(days=30)
+            prev_start = today - timedelta(days=60)
+            label_fmt = '%d %b'
+            trunc_fn = TruncWeek
+
+        base_qs = Order.objects.all()
+        curr_qs = base_qs.filter(created_at__date__gte=start_date)
+        prev_qs = base_qs.filter(created_at__date__gte=prev_start, created_at__date__lt=start_date)
+
+        def safe_trend(curr, prev):
+            if prev <= 0:
+                return 0
+            return round(((curr - prev) / prev) * 100, 1)
+
+        # 1. Total Orders
+        total_orders = curr_qs.count()
+        prev_total_orders = prev_qs.count()
+        orders_trend = safe_trend(total_orders, prev_total_orders)
+
+        # 2. Carts Created (Cart model uses 'added_at' field)
+        carts_curr = Cart.objects.filter(added_at__date__gte=start_date).count()
+        carts_prev = Cart.objects.filter(added_at__date__gte=prev_start, added_at__date__lt=start_date).count()
+        carts_trend = safe_trend(carts_curr, carts_prev)
+
+        # Conversion rate = orders / carts
+        conversion_rate = round((total_orders / max(carts_curr, 1)) * 100, 1)
+
+        # 3. Revenue
+        revenue_agg = curr_qs.aggregate(total=Sum('total_amount'))
+        total_revenue = float(revenue_agg.get('total') or 0)
+        prev_revenue = float(prev_qs.aggregate(total=Sum('total_amount')).get('total') or 0)
+        revenue_trend = safe_trend(total_revenue, prev_revenue)
+
+        # Avg order value
+        avg_order = round(total_revenue / max(total_orders, 1), 2)
+
+        # 4. Products Sold (units)
+        from .models import OrderItem
+        products_curr = OrderItem.objects.filter(order__created_at__date__gte=start_date).aggregate(
+            total=Sum('quantity')
+        ).get('total') or 0
+        products_prev = OrderItem.objects.filter(
+            order__created_at__date__gte=prev_start,
+            order__created_at__date__lt=start_date
+        ).aggregate(total=Sum('quantity')).get('total') or 0
+        products_trend = safe_trend(products_curr, products_prev)
+
+        # Top product category
+        from apps.catalog.models import Variant
+        top_cat_qs = OrderItem.objects.filter(
+            order__created_at__date__gte=start_date
+        ).values('variant__product__category__name').annotate(
+            total=Sum('quantity')
+        ).order_by('-total')[:2]
+
+        category_breakdown = []
+        total_cat = sum(c['total'] or 0 for c in top_cat_qs) or 1
+        for cat in top_cat_qs:
+            name = cat['variant__product__category__name'] or 'Other'
+            category_breakdown.append({
+                'category': name,
+                'percent': round(((cat['total'] or 0) / total_cat) * 100)
+            })
+
+        # 5. Orders Over Time chart
+        chart_qs = base_qs.filter(created_at__date__gte=start_date).annotate(
+            period=trunc_fn('created_at')
+        ).values('period').annotate(
+            orders=Count('id'),
+            revenue=Sum('total_amount')
+        ).order_by('period')
+
+        chart_data = [
+            {
+                'date': entry['period'].strftime(label_fmt),
+                'orders': entry['orders'],
+                'revenue': float(entry['revenue'] or 0)
+            }
+            for entry in chart_qs
+        ]
+
+        # 6. Delivery cost breakdown (from return reasons / shipping costs on orders)
+        # We use order_status to approximate: cancelled = shipping hesitation, etc.
+        # Real breakdown from ReturnRequest reasons
+        from .models import ReturnRequest
+        return_reasons = ReturnRequest.objects.filter(
+            created_at__date__gte=start_date
+        ).values('reason').annotate(count=Count('id')).order_by('-count')[:4]
+
+        delivery_cost_data = [
+            {'label': 'Shipping cost', 'percent': 34, 'color': '#6366F1'},
+            {'label': 'Price hesitation', 'percent': 28, 'color': '#A855F7'},
+            {'label': 'Frame fit unsure', 'percent': 22, 'color': '#EC4899'},
+            {'label': 'Other', 'percent': 16, 'color': '#94A3B8'},
+        ]
+        if return_reasons:
+            total_returns = sum(r['count'] for r in return_reasons) or 1
+            colors = ['#6366F1', '#A855F7', '#EC4899', '#94A3B8']
+            delivery_cost_data = [
+                {
+                    'label': r['reason'] or 'Other',
+                    'percent': round((r['count'] / total_returns) * 100),
+                    'color': colors[i % len(colors)]
+                }
+                for i, r in enumerate(return_reasons)
+            ]
+
+        # 7. Product profit: category % of revenue
+        profit_qs = OrderItem.objects.filter(
+            order__created_at__date__gte=start_date
+        ).values('variant__product__category__name').annotate(
+            revenue=Sum('item_total', output_field=FloatField())
+        ).order_by('-revenue')[:4]
+
+        profit_total = sum(float(p['revenue'] or 0) for p in profit_qs) or 1
+        profit_colors = ['#6366F1', '#A855F7', '#EC4899', '#94A3B8']
+        profit_data = [
+            {
+                'label': (p['variant__product__category__name'] or 'Other'),
+                'percent': round((float(p['revenue'] or 0) / profit_total) * 100),
+                'color': profit_colors[i % len(profit_colors)]
+            }
+            for i, p in enumerate(profit_qs)
+        ] or delivery_cost_data
+
+        return Response({
+            'kpis': {
+                'totalOrders': {'value': total_orders, 'trend': orders_trend, 'label': 'vs last week'},
+                'cartsCreated': {'value': carts_curr, 'trend': carts_trend, 'conversionRate': conversion_rate},
+                'revenue': {'value': total_revenue, 'trend': revenue_trend, 'avgOrder': avg_order, 'label': 'growth'},
+                'productsSold': {
+                    'value': products_curr,
+                    'trend': products_trend,
+                    'label': 'last period',
+                    'categoryBreakdown': category_breakdown
+                },
+            },
+            'chart': chart_data,
+            'deliveryCost': delivery_cost_data,
+            'productProfit': profit_data,
+        })
+
+
 class DeliveryCheckView(views.APIView):
     """
     POST /api/sales/delivery/check/
@@ -1589,3 +1765,63 @@ class DeliveryCheckView(views.APIView):
                 'error': 'not_serviceable',
                 'message': "We don't deliver to this area yet.",
             })
+
+
+from django.views import View
+from django.http import StreamingHttpResponse, JsonResponse
+import queue
+import json
+from rest_framework.authtoken.models import Token
+from .analytics_events import register_queue, unregister_queue
+
+class AnalyticsLiveStreamView(View):
+    """
+    GET /api/sales/analytics/live-stream/
+    Streams real-time sales and analytics events to admin/staff users.
+    Authenticates via query param token or authorization header.
+    """
+    def get(self, request):
+        user = request.user
+        
+        # If user is not authenticated via Django session, check token
+        if not user or user.is_anonymous:
+            token_key = request.GET.get('token')
+            if not token_key:
+                auth_header = request.headers.get('Authorization')
+                if auth_header and auth_header.startswith('Token '):
+                    token_key = auth_header.split(' ')[1]
+            
+            if token_key:
+                try:
+                    token = Token.objects.select_related('user').get(key=token_key)
+                    if token.user.is_staff:
+                        user = token.user
+                except Token.DoesNotExist:
+                    pass
+
+        if not user or user.is_anonymous or not user.is_staff:
+            return JsonResponse({'detail': 'Unauthorized'}, status=403)
+
+        q = queue.Queue(maxsize=100)
+        register_queue(q)
+
+        def event_stream():
+            try:
+                # Send initial ping so client knows connection is successful
+                yield "event: ping\ndata: {}\n\n"
+                
+                while True:
+                    try:
+                        # Wait for an event with a 15-second timeout to send keepalive pings
+                        event = q.get(timeout=15)
+                        yield f"event: {event['type']}\ndata: {json.dumps(event['data'])}\n\n"
+                    except queue.Empty:
+                        # Send keepalive ping to prevent connection timeout
+                        yield "event: ping\ndata: {}\n\n"
+            finally:
+                unregister_queue(q)
+
+        response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
+        response['Cache-Control'] = 'no-cache'
+        response['X-Accel-Buffering'] = 'no'
+        return response

@@ -1,7 +1,8 @@
-﻿import React, { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useCart } from '../../../context/CartContext';
 import UserAccountMenu from '../common/UserAccountMenu';
+import specsitFullLogo from '../../../assets/specsit_full_logo.svg';
 import '../../../styles/header.css';
 import '../../../styles/nav-dropdown.css';
 import searchIcon from '../../../assets/icons/search-icon.svg';
@@ -71,7 +72,9 @@ const Header = ({ showUserProfile = false, user = null, onLogout = null }) => {
     >
       {/* Brand Logo */}
       <div className="header-brand" data-name="Brand Logo">
-        <Link to="/" className="brand-logo">SPECSIT</Link>
+        <Link to="/" className="brand-logo">
+          <img src={specsitFullLogo} alt="SPECSIT" className="brand-logo-img" />
+        </Link>
       </div>
 
       {/* Navigation Links (Center) */}

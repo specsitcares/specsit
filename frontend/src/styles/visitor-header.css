@@ -26,6 +26,15 @@
     letter-spacing: -1px;
     color: #040205;
     text-decoration: none;
+    display: flex;
+    align-items: flex-start;
+    gap: 5px;
+}
+
+.visitor-brand .brand-logo-img {
+  height: 32px;
+  width: auto;
+  display: block;
 }
 
 .visitor-nav {

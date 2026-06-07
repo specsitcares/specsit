@@ -1,5 +1,6 @@
-﻿import React from 'react';
+import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import specsitFullLogo from '../../../assets/specsit_full_logo.svg';
 import '../../../styles/layout.css';
 
 const Footer = () => {
@@ -13,7 +14,9 @@ const Footer = () => {
                 <div className="footer-content">
                     {/* Brand Section (Node 401:8806) */}
                     <div className="footer-section footer-brand">
-                        <h2 className="footer-brand-name">Specsit</h2>
+                        <Link to="/" style={{ display: 'inline-block', textDecoration: 'none', marginBottom: '10px' }}>
+                            <img src={specsitFullLogo} alt="Specsit Logo" style={{ height: '22px', width: 'auto', display: 'block' }} />
+                        </Link>
                         <p className="footer-tagline">
                             Elevating your vision with curated international brands and bespoke craftsmanship. Hyderabad's premium eyewear atelier.
                         </p>

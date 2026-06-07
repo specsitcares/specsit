@@ -1,7 +1,8 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { useGoogleLogin } from '@react-oauth/google';
+import specsitFullLogo from '../../../assets/specsit_full_logo.svg';
 import '../../../styles/login.css';
 
 const LoginPage = () => {
@@ -200,7 +201,7 @@ const LoginPage = () => {
 
             {/* Footer */}
             <footer className="lp-footer">
-                <span className="lp-footer-brand">Specsit</span>
+                <img src={specsitFullLogo} alt="Specsit" style={{ height: '14px', width: 'auto' }} />
                 <span className="lp-footer-copy">© 2026 Specsit. All rights reserved.</span>
                 <div className="lp-footer-links">
                     <Link to="/privacy" className="lp-footer-link">Privacy Policy</Link>
