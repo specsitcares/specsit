@@ -6,9 +6,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap');
 
 /* ── page shell ── */
+.admin-main-container:has(.ao-page) {
+  background-color: #FEFCFF !important;
+  padding: 0 !important;
+}
+
 .ao-page {
   font-family: 'Roboto', sans-serif;
-  background: #F9FAFB;
+  background: #FEFCFF;
   min-height: 100vh;
   color: #040205;
 }
@@ -18,8 +23,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 18px 28px 14px;
-  background: #fff;
+  padding: 18px 24px 14px;
+  background: #FEFCFF;
   border-bottom: 1px solid #E0E0E0;
 }
 
@@ -117,9 +122,9 @@
 /* ── tabs ── */
 .ao-tabs {
   display: flex;
-  background: #fff;
+  background: #FEFCFF;
   border-bottom: 1px solid #E2E8F0;
-  padding: 0 28px;
+  padding: 0 24px;
   gap: 0;
 }
 
@@ -147,17 +152,17 @@
 
 /* ── content area ── */
 .ao-content {
-  padding: 20px 28px 40px;
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 16px;
 }
 
 /* ── KPI grid (4 cards) ── */
 .ao-kpi-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 24px;
+  gap: 12px;
 }
 
 /* ── KPI card ── */
@@ -165,7 +170,7 @@
   background: #fff;
   border: 1px solid #E0E0E0;
   border-radius: 12px;
-  padding: 20px;
+  padding: 16px 18px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -184,9 +189,9 @@
 }
 
 .ao-kpi-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 7px;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -377,7 +382,7 @@
 .ao-bottom-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 24px;
+  gap: 12px;
 }
 
 /* ── donut card ── */
@@ -405,11 +410,63 @@
   gap: 32px;
 }
 
-.ao-donut-svg {
-  width: 200px;
-  height: 200px;
-  flex-shrink: 0;
+.ao-donut-svg-wrap {
+  overflow-y: auto;
+  min-width: 140px;
 }
+
+/* ── bottom widgets (3 cols) ── */
+.ao-bottom-widgets {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.ao-widget-card {
+  background: #fff;
+  border: 1px solid #E0E0E0;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.ao-widget-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #040205;
+  margin-bottom: 16px;
+}
+
+/* table inside widget */
+.ao-table-wrap {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.ao-widget-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.ao-widget-table th {
+  padding-bottom: 8px;
+  color: #697177;
+  font-weight: 500;
+  border-bottom: 1px solid #E2E8F0;
+}
+
+.ao-widget-table td {
+  padding: 12px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.ao-widget-table tr:last-child td {
+  border-bottom: none;
+}
+
 
 /* legend */
 .ao-donut-legend {

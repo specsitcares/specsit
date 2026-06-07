@@ -6,7 +6,7 @@ from .views import (
     OrderTrackingViewSet, PaymentViewSet,
     PrescriptionUploadView, PrescriptionManualView, PrescriptionByOrderView,
     ReturnRequestViewSet, WarrantyClaimViewSet,
-    OrdersOverviewView,
+    OrdersOverviewView, AnalyticsLiveStreamView,
 )
 from .payment_views import PaymentInitiateView, PaymentVerifyView, PaymentCancelView, PaymentSettingsView
 
@@ -25,6 +25,7 @@ urlpatterns = [
     path('admin/stats/', AdminDashboardStatsView.as_view(), name='admin-stats'),
     path('admin/recent-orders/', RecentOrdersView.as_view(), name='admin-recent-orders'),
     path('analytics/orders-overview/', OrdersOverviewView.as_view(), name='orders-overview'),
+    path('analytics/live-stream/', AnalyticsLiveStreamView.as_view(), name='analytics-live-stream'),
     path('live/report-activity/', RecordLiveActivityView.as_view(), name='report-activity'),
     path('delivery/check/', DeliveryCheckView.as_view(), name='delivery-check'),
     path('prescriptions/upload/', PrescriptionUploadView.as_view(), name='prescription-upload'),

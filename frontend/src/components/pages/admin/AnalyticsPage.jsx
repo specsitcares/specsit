@@ -3,7 +3,12 @@ import {
   TrendingUp, TrendingDown, ShoppingBag, ShoppingCart,
   DollarSign, Package, ChevronDown, MoreVertical, RefreshCw
 } from 'lucide-react';
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
+  ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar
+} from 'recharts';
 import apiClient from '../../../services/api';
+import { getAuthToken } from '../../../utils/auth';
 import '../../../styles/analytics.css';
 
 /* ─── period options (matches backend) ─── */
@@ -32,12 +37,12 @@ const FALLBACK = {
     },
   },
   chart: [
-    { date: 'Jan', orders: 60,  revenue: 18000 },
-    { date: 'Feb', orders: 20,  revenue: 12000 },
-    { date: 'Mar', orders: -20, revenue: 8000  },
-    { date: 'Apr', orders: -60, revenue: 5000  },
-    { date: 'May', orders: 40,  revenue: 22000 },
-    { date: 'Jun', orders: 60,  revenue: 30000 },
+    { date: 'Jan', val1: 20,  val2: -20 },
+    { date: 'Feb', val1: 40,  val2: 10  },
+    { date: 'Mar', val1: -10, val2: 50  },
+    { date: 'Apr', val1: -40, val2: -10 },
+    { date: 'May', val1: 10,  val2: -50 },
+    { date: 'Jun', val1: 50,  val2: 20  },
   ],
   deliveryCost: [
     { label: 'Shipping cost',    percent: 34, color: '#6366F1' },
@@ -50,6 +55,22 @@ const FALLBACK = {
     { label: 'Price hesitation', percent: 28, color: '#A855F7' },
     { label: 'Frame fit unsure', percent: 22, color: '#EC4899' },
     { label: 'Other',            percent: 16, color: '#94A3B8' },
+  ],
+  productCategory: [
+    { label: 'Sunglasses', percent: 58, color: '#A855F7' },
+    { label: 'Eyeglasses', percent: 42, color: '#6366F1' },
+  ],
+  topLenses: [
+    { label: 'Polarized', value: 320 },
+    { label: 'Photochromic', value: 280 },
+    { label: 'Blue Light', value: 260 },
+    { label: 'Prescription', value: 200 },
+  ],
+  frameMaterials: [
+    { material: 'Acetate', units: 567, revenue: 28350 },
+    { material: 'Metal', units: 423, revenue: 21150 },
+    { material: 'Titanium', units: 289, revenue: 17340 },
+    { material: 'Plastic', units: 234, revenue: 11700 },
   ],
 };
 
@@ -89,7 +110,39 @@ const AnalyticsPage = () => {
   /* initial load + period change */
   useEffect(() => { fetchData(true); }, [fetchData]);
 
-  /* real-time polling every 30 s */
+  /* Real-time Server-Sent Events (SSE) */
+  useEffect(() => {
+    const token = getAuthToken();
+    if (!token) return;
+
+    const sseUrl = `/api/sales/analytics/live-stream/?token=${encodeURIComponent(token)}`;
+    const eventSource = new EventSource(sseUrl);
+
+    const handleEvent = () => {
+      // Trigger a silent refresh when any analytics event occurs
+      fetchData(false);
+    };
+
+    eventSource.addEventListener('order_created', handleEvent);
+    eventSource.addEventListener('order_updated', handleEvent);
+    eventSource.addEventListener('cart_created', handleEvent);
+    eventSource.addEventListener('cart_updated', handleEvent);
+    eventSource.addEventListener('cart_deleted', handleEvent);
+    eventSource.addEventListener('return_created', handleEvent);
+    eventSource.addEventListener('return_updated', handleEvent);
+    eventSource.addEventListener('live_activity', handleEvent);
+
+    eventSource.onerror = (err) => {
+      console.error('Analytics SSE connection error:', err);
+      eventSource.close();
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, [fetchData]);
+
+  /* real-time polling every 30 s (backup if SSE fails) */
   useEffect(() => {
     intervalRef.current = setInterval(() => fetchData(false), 30_000);
     return () => clearInterval(intervalRef.current);
@@ -100,6 +153,19 @@ const AnalyticsPage = () => {
 
   return (
     <div className="ao-page">
+      {/* ─── Tabs ─── */}
+      <div className="ao-tabs">
+        {TABS.map((tab, i) => (
+          <button
+            key={tab}
+            className={`ao-tab ${i === activeTab ? 'active' : ''}`}
+            onClick={() => setActiveTab(i)}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
+
       {/* ─── Top row: title + period selector ─── */}
       <div className="ao-top-bar">
         <div className="ao-top-left">
@@ -132,19 +198,6 @@ const AnalyticsPage = () => {
             </span>
           )}
         </div>
-      </div>
-
-      {/* ─── Tabs ─── */}
-      <div className="ao-tabs">
-        {TABS.map((tab, i) => (
-          <button
-            key={tab}
-            className={`ao-tab ${i === activeTab ? 'active' : ''}`}
-            onClick={() => setActiveTab(i)}
-          >
-            {tab}
-          </button>
-        ))}
       </div>
 
       {/* ─── Tab 0: Orders Overview ─── */}
@@ -218,6 +271,73 @@ const AnalyticsPage = () => {
               segments={data.productProfit || FALLBACK.productProfit}
             />
           </div>
+
+          {/* Bottom row 2: Extra Details (3 columns) */}
+          <div className="ao-bottom-widgets">
+            <div className="ao-widget-card">
+              <h3 className="ao-widget-title">Product Category Breakdown</h3>
+              <div style={{ flex: 1, minHeight: 180 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={data.productCategory || FALLBACK.productCategory}
+                      cx="50%" cy="50%"
+                      outerRadius={65}
+                      dataKey="percent"
+                      nameKey="label"
+                      strokeWidth={2}
+                      stroke="#fff"
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                      labelLine={false}
+                    >
+                      {(data.productCategory || FALLBACK.productCategory).map((entry, i) => (
+                        <Cell key={`cell-${i}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip contentStyle={{ borderRadius: 8, fontSize: 12, border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="ao-widget-card">
+              <h3 className="ao-widget-title">Top Selling Lenses</h3>
+              <div style={{ flex: 1, minHeight: 180 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={data.topLenses || FALLBACK.topLenses} layout="vertical" margin={{ top: 0, right: 20, left: 10, bottom: 0 }}>
+                    <XAxis type="number" hide />
+                    <YAxis dataKey="label" type="category" axisLine={false} tickLine={false} width={80} tick={{ fontSize: 11, fill: '#697177' }} />
+                    <RechartsTooltip cursor={{ fill: '#F1F5F9' }} contentStyle={{ borderRadius: 8, fontSize: 12, border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
+                    <Bar dataKey="value" fill="#A855F7" radius={[0, 4, 4, 0]} barSize={20} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="ao-widget-card" style={{ padding: '16px 20px' }}>
+              <h3 className="ao-widget-title">Frame Materials</h3>
+              <div className="ao-table-wrap">
+                <table className="ao-widget-table">
+                  <thead>
+                    <tr>
+                      <th style={{ textAlign: 'left' }}>Material</th>
+                      <th style={{ textAlign: 'right' }}>Units Sold</th>
+                      <th style={{ textAlign: 'right' }}>Revenue</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(data.frameMaterials || FALLBACK.frameMaterials).map((row, i) => (
+                      <tr key={i}>
+                        <td style={{ textAlign: 'left', fontWeight: 500 }}>{row.material}</td>
+                        <td style={{ textAlign: 'right', color: '#697177' }}>{row.units}</td>
+                        <td style={{ textAlign: 'right', fontWeight: 600 }}>${row.revenue.toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -290,152 +410,86 @@ const KpiCard = ({ icon, iconBg, label, value, trend, trendLabel, subLine, subPr
 };
 
 /* ══════════════════════════════════════════════════════════════
-   ORDERS LINE CHART (pure SVG)
+   ORDERS LINE CHART (Recharts)
 ═══════════════════════════════════════════════════════════════ */
 const OrdersLineChart = ({ data }) => {
   if (!data || data.length < 2) {
     return <div className="ao-chart-empty">No chart data available for this period</div>;
   }
 
-  const W = 900, H = 220;
-  const PAD = { top: 20, right: 20, bottom: 36, left: 52 };
-  const innerW = W - PAD.left - PAD.right;
-  const innerH = H - PAD.top - PAD.bottom;
-
-  const orders  = data.map(d => d.orders  ?? 0);
-  const revenues = data.map(d => d.revenue ?? 0);
-
-  const minO = Math.min(...orders),  maxO = Math.max(...orders,  1);
-  const minR = Math.min(...revenues), maxR = Math.max(...revenues, 1);
-
-  const xOf = (i) => PAD.left + (i / (data.length - 1)) * innerW;
-  const yOf = (val, min, max) => PAD.top + innerH - ((val - min) / (max - min || 1)) * innerH;
-
-  const smooth = (pts) => {
-    if (pts.length < 2) return `M${pts[0].x},${pts[0].y}`;
-    let d = `M${pts[0].x},${pts[0].y}`;
-    for (let i = 0; i < pts.length - 1; i++) {
-      const cx = (pts[i].x + pts[i + 1].x) / 2;
-      d += ` C${cx},${pts[i].y} ${cx},${pts[i + 1].y} ${pts[i + 1].x},${pts[i + 1].y}`;
-    }
-    return d;
-  };
-
-  const oPts = data.map((d, i) => ({ x: xOf(i), y: yOf(d.orders ?? 0,  minO, maxO) }));
-  const rPts = data.map((d, i) => ({ x: xOf(i), y: yOf(d.revenue ?? 0, minR, maxR) }));
-
-  /* area fill paths */
-  const areaClose = (pts) =>
-    `${smooth(pts)} L${pts[pts.length-1].x},${PAD.top+innerH} L${pts[0].x},${PAD.top+innerH} Z`;
-
-  /* y-axis labels (left axis = orders) */
-  const yTicks = 4;
-  const yLabels = Array.from({ length: yTicks + 1 }, (_, i) => {
-    const v = minO + ((maxO - minO) / yTicks) * i;
-    return { v: Math.round(v), y: yOf(v, minO, maxO) };
-  });
-
   return (
-    <div className="ao-line-chart">
-      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" className="ao-svg">
-        <defs>
-          <linearGradient id="gradO" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%"   stopColor="#7987FF" stopOpacity="0.25" />
-            <stop offset="100%" stopColor="#7987FF" stopOpacity="0"    />
-          </linearGradient>
-          <linearGradient id="gradR" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%"   stopColor="#E697FF" stopOpacity="0.25" />
-            <stop offset="100%" stopColor="#E697FF" stopOpacity="0"    />
-          </linearGradient>
-          <linearGradient id="gradP" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%"   stopColor="#FFA5CB" stopOpacity="0.25" />
-            <stop offset="100%" stopColor="#FFA5CB" stopOpacity="0"    />
-          </linearGradient>
-        </defs>
-
-        {/* grid */}
-        {yLabels.map((l) => (
-          <line key={l.v} x1={PAD.left} y1={l.y} x2={W - PAD.right} y2={l.y}
-            stroke="#F1F1F1" strokeWidth="1" />
-        ))}
-        {/* y axis labels */}
-        {yLabels.map((l) => (
-          <text key={`yl-${l.v}`} x={PAD.left - 8} y={l.y + 4}
-            textAnchor="end" fill="#697177" fontSize="11">{l.v}</text>
-        ))}
-
-        {/* area fills */}
-        <path d={areaClose(oPts)} fill="url(#gradO)" />
-        <path d={areaClose(rPts)} fill="url(#gradR)" />
-
-        {/* lines */}
-        <path d={smooth(oPts)} fill="none" stroke="#7987FF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-        <path d={smooth(rPts)} fill="none" stroke="#E697FF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-
-        {/* dots */}
-        {oPts.map((p, i) => <circle key={`o${i}`} cx={p.x} cy={p.y} r="4" fill="#fff" stroke="#7987FF" strokeWidth="2" />)}
-        {rPts.map((p, i) => <circle key={`r${i}`} cx={p.x} cy={p.y} r="4" fill="#fff" stroke="#E697FF" strokeWidth="2" />)}
-
-        {/* x-axis labels */}
-        {data.map((d, i) => (
-          <text key={`x${i}`} x={xOf(i)} y={H - 8} textAnchor="middle" fill="#697177" fontSize="11">{d.date}</text>
-        ))}
-      </svg>
-
-      {/* legend */}
-      <div className="ao-chart-legend">
-        <div className="ao-legend-item">
-          <span className="ao-legend-dot" style={{ background: '#7987FF' }} />
-          <span>Orders</span>
-        </div>
-        <div className="ao-legend-item">
-          <span className="ao-legend-dot" style={{ background: '#E697FF' }} />
-          <span>Revenue</span>
-        </div>
-      </div>
+    <div style={{ width: '100%', height: 160 }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+          <defs>
+            <linearGradient id="gradO" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#7987FF" stopOpacity={0.25} />
+              <stop offset="100%" stopColor="#7987FF" stopOpacity={0.02} />
+            </linearGradient>
+            <linearGradient id="gradR" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#E697FF" stopOpacity={0.25} />
+              <stop offset="100%" stopColor="#E697FF" stopOpacity={0.02} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="4 4" stroke="#f0f0f0" vertical={false} />
+          <XAxis 
+            dataKey="date" 
+            tick={{ fontSize: 11, fill: '#697177', fontWeight: 500 }} 
+            axisLine={false} tickLine={false} dy={8} 
+          />
+          <YAxis 
+            ticks={[-60, -20, 20, 60]}
+            domain={[-60, 60]}
+            tick={{ fontSize: 16, fill: '#000000', fontWeight: 400 }}
+            axisLine={false} tickLine={false} dx={-10}
+          />
+          <RechartsTooltip 
+            contentStyle={{ borderRadius: 8, border: '1px solid #eaeaea', fontSize: 12 }}
+          />
+          <Area 
+            type="monotone" dataKey="val1" 
+            stroke="#7987FF" strokeWidth={3} fill="url(#gradO)" 
+            activeDot={{ r: 5 }} name="Metric 1"
+          />
+          <Area 
+            type="monotone" dataKey="val2" 
+            stroke="#E697FF" strokeWidth={3} fill="url(#gradR)" 
+            activeDot={{ r: 5 }} name="Metric 2"
+          />
+        </AreaChart>
+      </ResponsiveContainer>
     </div>
   );
 };
 
 /* ══════════════════════════════════════════════════════════════
-   DONUT CHART CARD
+   DONUT CHART CARD (Recharts)
 ═══════════════════════════════════════════════════════════════ */
 const DonutCard = ({ title, segments }) => {
-  const total = segments.reduce((s, x) => s + x.percent, 0) || 1;
-  let cursor = 0;
-
-  /* SVG donut via stroke-dasharray trick */
-  const R = 80, CX = 100, CY = 100, CIRC = 2 * Math.PI * R;
-  const GAP = 2; // gap between segments in %
-
-  const arcs = segments.map((seg) => {
-    const pct   = seg.percent / total;
-    const dash  = pct * CIRC - GAP;
-    const offset = CIRC - cursor * CIRC;
-    cursor += pct;
-    return { ...seg, dash, gap: CIRC - dash, offset };
-  });
-
   return (
     <div className="ao-donut-card">
       <h3 className="ao-donut-title">{title}</h3>
       <div className="ao-donut-body">
-        <svg viewBox="0 0 200 200" className="ao-donut-svg">
-          <circle cx={CX} cy={CY} r={R} fill="none" stroke="#F1F5F9" strokeWidth="28" />
-          {arcs.map((arc, i) => (
-            <circle
-              key={i}
-              cx={CX} cy={CY} r={R}
-              fill="none"
-              stroke={arc.color}
-              strokeWidth="28"
-              strokeDasharray={`${arc.dash} ${arc.gap}`}
-              strokeDashoffset={arc.offset}
-              strokeLinecap="round"
-              style={{ transform: 'rotate(-90deg)', transformOrigin: '100px 100px' }}
-            />
-          ))}
-        </svg>
+        <div className="ao-donut-svg-wrap">
+          <ResponsiveContainer width="100%" height={110}>
+            <PieChart>
+              <Pie
+                data={segments}
+                cx="50%" cy="50%"
+                innerRadius={35} outerRadius={50}
+                dataKey="percent" startAngle={90} endAngle={-270} strokeWidth={0}
+              >
+                {segments.map((entry, i) => (
+                  <Cell key={i} fill={entry.color} />
+                ))}
+              </Pie>
+              <RechartsTooltip 
+                formatter={(value) => `${value}%`}
+                contentStyle={{ borderRadius: 8, border: '1px solid #eaeaea', fontSize: 11 }}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
 
         <div className="ao-donut-legend">
           {segments.map((seg) => (

@@ -1765,3 +1765,63 @@ class DeliveryCheckView(views.APIView):
                 'error': 'not_serviceable',
                 'message': "We don't deliver to this area yet.",
             })
+
+
+from django.views import View
+from django.http import StreamingHttpResponse, JsonResponse
+import queue
+import json
+from rest_framework.authtoken.models import Token
+from .analytics_events import register_queue, unregister_queue
+
+class AnalyticsLiveStreamView(View):
+    """
+    GET /api/sales/analytics/live-stream/
+    Streams real-time sales and analytics events to admin/staff users.
+    Authenticates via query param token or authorization header.
+    """
+    def get(self, request):
+        user = request.user
+        
+        # If user is not authenticated via Django session, check token
+        if not user or user.is_anonymous:
+            token_key = request.GET.get('token')
+            if not token_key:
+                auth_header = request.headers.get('Authorization')
+                if auth_header and auth_header.startswith('Token '):
+                    token_key = auth_header.split(' ')[1]
+            
+            if token_key:
+                try:
+                    token = Token.objects.select_related('user').get(key=token_key)
+                    if token.user.is_staff:
+                        user = token.user
+                except Token.DoesNotExist:
+                    pass
+
+        if not user or user.is_anonymous or not user.is_staff:
+            return JsonResponse({'detail': 'Unauthorized'}, status=403)
+
+        q = queue.Queue(maxsize=100)
+        register_queue(q)
+
+        def event_stream():
+            try:
+                # Send initial ping so client knows connection is successful
+                yield "event: ping\ndata: {}\n\n"
+                
+                while True:
+                    try:
+                        # Wait for an event with a 15-second timeout to send keepalive pings
+                        event = q.get(timeout=15)
+                        yield f"event: {event['type']}\ndata: {json.dumps(event['data'])}\n\n"
+                    except queue.Empty:
+                        # Send keepalive ping to prevent connection timeout
+                        yield "event: ping\ndata: {}\n\n"
+            finally:
+                unregister_queue(q)
+
+        response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
+        response['Cache-Control'] = 'no-cache'
+        response['X-Accel-Buffering'] = 'no'
+        return response

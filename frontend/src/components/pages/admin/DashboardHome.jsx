@@ -14,10 +14,44 @@ const DashboardHome = ({ onOrderClick, onNavigate }) => {
    const [statsData, setStatsData] = useState(null);
    const [localDonut, setLocalDonut] = useState(null);
 
-   useEffect(() => {
+   const fetchStats = () => {
       apiClient.get('/sales/admin/stats/')
          .then(res => setStatsData(res.data))
          .catch(() => { });
+   };
+
+   useEffect(() => {
+      fetchStats();
+   }, []);
+
+   useEffect(() => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const sseUrl = `/api/sales/analytics/live-stream/?token=${encodeURIComponent(token)}`;
+      const eventSource = new EventSource(sseUrl);
+
+      const handleEvent = () => {
+         fetchStats();
+      };
+
+      eventSource.addEventListener('order_created', handleEvent);
+      eventSource.addEventListener('order_updated', handleEvent);
+      eventSource.addEventListener('live_activity', handleEvent);
+      eventSource.addEventListener('cart_created', handleEvent);
+      eventSource.addEventListener('cart_updated', handleEvent);
+      eventSource.addEventListener('cart_deleted', handleEvent);
+      eventSource.addEventListener('return_created', handleEvent);
+      eventSource.addEventListener('return_updated', handleEvent);
+
+      eventSource.onerror = (err) => {
+         console.error('Dashboard SSE connection error:', err);
+         eventSource.close();
+      };
+
+      return () => {
+         eventSource.close();
+      };
    }, []);
 
    useEffect(() => {
