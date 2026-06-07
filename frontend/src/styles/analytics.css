@@ -30,7 +30,7 @@
 }
 
 .ao-title {
-  font-size: 24px;
+  font-size: 14px;
   font-weight: 700;
   letter-spacing: -0.12px;
   color: #040205;
@@ -48,7 +48,7 @@
   border-radius: 6px;
   background: #fff;
   cursor: pointer;
-  font-size: 15px;
+  font-size: 11px;
   font-weight: 400;
   color: #020617;
   user-select: none;
@@ -76,7 +76,7 @@
 
 .ao-dropdown-item {
   padding: 10px 16px;
-  font-size: 14px;
+  font-size: 10px;
   font-weight: 400;
   color: #040205;
   cursor: pointer;
@@ -125,7 +125,7 @@
 
 .ao-tab {
   padding: 16px 20px;
-  font-size: 19px;
+  font-size: 11px;
   font-weight: 500;
   color: #697177;
   background: none;
@@ -195,7 +195,7 @@
 }
 
 .ao-kpi-label {
-  font-size: 15px;
+  font-size: 10px;
   font-weight: 500;
   color: #697177;
   letter-spacing: 0.08px;
@@ -212,8 +212,8 @@
 .ao-kpi-menu:hover { background: #F4EDFF; color: #68408D; }
 
 .ao-kpi-value {
-  font-size: 28px;
-  font-weight: 500;
+  font-size: 22px;
+  font-weight: 700;
   line-height: 1;
   letter-spacing: -0.14px;
   color: #040205;
@@ -224,7 +224,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 13px;
+  font-size: 10px;
   font-weight: 400;
 }
 
@@ -255,7 +255,7 @@
 }
 
 .ao-kpi-sub-text {
-  font-size: 13px;
+  font-size: 10px;
   font-weight: 500;
   color: #697177;
 }
@@ -279,13 +279,13 @@
 }
 
 .ao-kpi-cat-name {
-  font-size: 13px;
+  font-size: 10px;
   font-weight: 500;
   color: #697177;
 }
 
 .ao-kpi-cat-pct {
-  font-size: 13px;
+  font-size: 10px;
   font-weight: 500;
   color: #040205;
 }
@@ -306,8 +306,8 @@
 }
 
 .ao-chart-title {
-  font-size: 18px;
-  font-weight: 700;
+  font-size: 11px;
+  font-weight: 600;
   color: #040205;
   letter-spacing: -0.02px;
 }
@@ -362,7 +362,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: 10px;
   color: #697177;
 }
 
@@ -392,8 +392,8 @@
 }
 
 .ao-donut-title {
-  font-size: 19px;
-  font-weight: 700;
+  font-size: 11px;
+  font-weight: 600;
   color: #040205;
   letter-spacing: -0.02px;
   margin: 0;
@@ -443,13 +443,13 @@
 }
 
 .ao-donut-label {
-  font-size: 13px;
+  font-size: 10px;
   font-weight: 500;
   color: #62748E;
 }
 
 .ao-donut-pct {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   color: #0F172B;
   min-width: 30px;
