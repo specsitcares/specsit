@@ -60,6 +60,12 @@ const LensFormRoute = () => {
   );
 };
 
+const LensManagementRoute = () => {
+  const { id } = useParams();
+  // id here may be a lens id for editing; pass it down to LensManagement
+  return <LensManagement editLensId={id ? parseInt(id) : null} />;
+};
+
 const FrameFormRoute = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -155,9 +161,9 @@ const AdminDashboard = () => {
 
               {/* Products */}
               <Route path="products"                  element={<ProductsRoute />} />
-              <Route path="products/new/lens"         element={<LensFormRoute />} />
+              <Route path="products/new/lens"         element={<LensManagement />} />
               <Route path="products/new/frame"        element={<FrameFormRoute />} />
-              <Route path="products/edit/lens/:id"    element={<LensFormRoute />} />
+              <Route path="products/edit/lens/:id"    element={<LensManagementRoute />} />
               <Route path="products/edit/frame/:id"   element={<FrameFormRoute />} />
               <Route path="products/categories"       element={<CategoryTable />} />
               <Route path="products/brands"           element={<BrandTable />} />

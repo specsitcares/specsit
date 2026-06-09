@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import apiClient from '../../../services/api';
 import FormModal from './FormModal';
 import {
   Plus, Search, Check, Info, AlertCircle,
   ExternalLink, MessageSquare, Copy,
-  ChevronDown, Layers, Settings, Trash2, Trash
+  ChevronDown, Layers, Settings, Trash2, Trash, Edit2, X
 } from 'lucide-react';
 import '../../../styles/lens_management.css';
 
@@ -13,7 +14,7 @@ const LENS_TYPE_FIELDS = [{ name: 'label', label: 'Type Name', required: true }]
 /**
  * LensManagement — High-Fidelity implementation based on Figma (node 273:15080)
  */
-const LensManagement = () => {
+const LensManagement = ({ editLensId = null }) => {
   const [lensTypes, setLensTypes] = useState([]);
   const [selectedType, setSelectedType] = useState(null);
   const [lenses, setLenses] = useState([]);
@@ -26,6 +27,7 @@ const LensManagement = () => {
 
   const [showAddType, setShowAddType] = useState(false);
   const [isCreatingNewPackage, setIsCreatingNewPackage] = useState(false);
+  const [isEditingPackage, setIsEditingPackage] = useState(false);
   const [selectedPackages, setSelectedPackages] = useState(new Set());
   const [selectAllChecked, setSelectAllChecked] = useState(false);
   const [selectedTypes, setSelectedTypes] = useState(new Set());
@@ -35,13 +37,14 @@ const LensManagement = () => {
   const [lensFeatures, setLensFeatures] = useState([]);
   const [showAddConstraint, setShowAddConstraint] = useState(false);
   const [newConstraintForm, setNewConstraintForm] = useState({ name: '', description: '' });
+  const [newConstraintText, setNewConstraintText] = useState('');
   const [showAddIndex, setShowAddIndex] = useState(false);
   const [newIndexForm, setNewIndexForm] = useState({ value: '' });
   const [showAddFeature, setShowAddFeature] = useState(false);
   const [newFeatureForm, setNewFeatureForm] = useState({ name: '' });
+  const [expandedBrands, setExpandedBrands] = useState(new Set()); // Added for accordions
 
-  // Form states for the Right Column
-  const [editFormData, setEditFormData] = useState({
+  const EMPTY_PACKAGE_FORM = {
     name: '',
     description: '',
     index: '1.5',
@@ -54,7 +57,12 @@ const LensManagement = () => {
     cost_price: 0,
     selling_price: '',
     warranty_months: 0,
-  });
+    min_power: '-6.0',
+    max_power: '+4.0',
+  };
+
+  const [editFormData, setEditFormData] = useState({ ...EMPTY_PACKAGE_FORM });
+  const [newFeatureText, setNewFeatureText] = useState('');
 
   const fetchData = async () => {
     try {
@@ -116,6 +124,29 @@ const LensManagement = () => {
     fetchData();
   }, []);
 
+  const navigate = useNavigate();
+
+  const handleSelectLens = (lens) => {
+    setSelectedLens(lens);
+    setIsCreatingNewPackage(false);
+    setIsEditingPackage(false);
+    try { navigate(`/admin/products/edit/lens/${lens.id}`); } catch (e) { /* ignore */ }
+  };
+
+  // If opened via edit route with an ID, auto-select that lens after data loads
+  useEffect(() => {
+    if (loading) return;
+    if (!editLensId) return;
+    if (selectedLens) return; // already selected
+    const byId = lenses.find(l => String(l.id) === String(editLensId));
+    if (byId) {
+      setSelectedLens(byId);
+      // also set the type selection
+      const typeObj = lensTypes.find(t => String(t.id) === String(byId.type));
+      if (typeObj) setSelectedType(typeObj);
+    }
+  }, [loading, editLensId, lenses, lensTypes, selectedLens]);
+
   const handleSave = async () => {
     if (!editFormData.name.trim() || !editFormData.selling_price) {
       alert('Package Name and Selling Price are required');
@@ -143,6 +174,8 @@ const LensManagement = () => {
           package_selling_price: editFormData.selling_price,
           package_warranty_months: editFormData.warranty_months,
           constraint_ids: editFormData.constraints.map(c => c.id || c),  // Extract IDs from constraint objects
+          min_power: editFormData.min_power,
+          max_power: editFormData.max_power,
         });
         setIsCreatingNewPackage(false);
         setEditFormData({
@@ -158,6 +191,8 @@ const LensManagement = () => {
           cost_price: 0,
           selling_price: '',
           warranty_months: 0,
+          min_power: '-6.0',
+          max_power: '+4.0',
         });
         alert('Package created successfully');
       } else {
@@ -176,6 +211,8 @@ const LensManagement = () => {
           package_selling_price: editFormData.selling_price,
           package_warranty_months: editFormData.warranty_months,
           constraint_ids: editFormData.constraints.map(c => c.id || c),  // Extract IDs from constraint objects
+          min_power: editFormData.min_power,
+          max_power: editFormData.max_power,
         });
         alert('Package updated successfully');
       }
@@ -184,6 +221,77 @@ const LensManagement = () => {
       console.error('Save failed', err);
       setError('Failed to save changes.');
     }
+  };
+
+
+  const handleClosePackageForm = () => {
+    setIsCreatingNewPackage(false);
+    setEditFormData({ ...EMPTY_PACKAGE_FORM });
+    setNewFeatureText('');
+    setNewConstraintText('');
+    setNewConstraintForm({ name: '', description: '' });
+  };
+
+  const handlePackageFieldChange = (name, value) => {
+    setEditFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const toggleConstraintSelection = (constraintId) => {
+    setEditFormData(prev => {
+      const current = Array.isArray(prev.constraints)
+        ? prev.constraints.map(c => (typeof c === 'object' ? c.id : c))
+        : [];
+      const next = current.includes(constraintId)
+        ? current.filter(id => id !== constraintId)
+        : [...current, constraintId];
+      return { ...prev, constraints: next };
+    });
+  };
+
+  const addFeatureToForm = () => {
+    const trimmed = newFeatureText.trim();
+    if (!trimmed) return;
+    setEditFormData(prev => ({ ...prev, features: [...prev.features, trimmed] }));
+    setNewFeatureText('');
+  };
+
+  const addConstraintToForm = async () => {
+    const trimmed = newConstraintText.trim();
+    if (!trimmed) return;
+
+    const existing = lensConstraints.find(c => c.name.toLowerCase() === trimmed.toLowerCase());
+    if (existing) {
+      setEditFormData(prev => {
+        const current = Array.isArray(prev.constraints)
+          ? prev.constraints.map(c => (typeof c === 'object' ? c.id : c))
+          : [];
+        if (current.includes(existing.id)) return prev;
+        return { ...prev, constraints: [...prev.constraints, existing.id] };
+      });
+      setNewConstraintText('');
+      return;
+    }
+
+    try {
+      const response = await apiClient.post('/catalog/lens-constraints/', {
+        name: trimmed,
+        description: '',
+      });
+      const newConstraint = response.data;
+      setLensConstraints(prev => [...prev, newConstraint]);
+      setEditFormData(prev => ({ ...prev, constraints: [...prev.constraints, newConstraint.id] }));
+      setNewConstraintText('');
+    } catch (err) {
+      console.error('Add constraint failed', err);
+      alert('Failed to add constraint. Please try again.');
+    }
+  };
+
+  const removeFeatureFromForm = (index) => {
+    setEditFormData(prev => ({
+      ...prev,
+      features: prev.features.filter((_, i) => i !== index),
+    }));
   };
 
   const handleStatusToggle = async (e, target, id, currentStatus) => {
@@ -459,6 +567,8 @@ const LensManagement = () => {
         cost_price: selectedLens.package_cost_price || 0,
         selling_price: selectedLens.package_selling_price || selectedLens.price || '',
         warranty_months: selectedLens.package_warranty_months || 0,
+        min_power: selectedLens.min_power !== undefined && selectedLens.min_power !== null ? selectedLens.min_power : '-6.0',
+        max_power: selectedLens.max_power !== undefined && selectedLens.max_power !== null ? selectedLens.max_power : '+4.0',
       });
     }
   }, [selectedLens]);
@@ -470,6 +580,39 @@ const LensManagement = () => {
   const currentTypeLenses = lenses.filter(l =>
     selectedType && String(l.type) === String(selectedType.id)
   );
+
+  const lensesByBrand = React.useMemo(() => {
+    const groups = {};
+    currentTypeLenses.forEach(lens => {
+      const brandId = lens.brand || 'unbranded';
+      if (!groups[brandId]) {
+        let brandObj = lensBrands.find(b => String(b.id) === String(brandId));
+        if (!brandObj) {
+            brandObj = { id: 'unbranded', name: 'Other Lenses', logo: null };
+            if (lens.brand_name) {
+                brandObj.name = lens.brand_name;
+                brandObj.logo = lens.brand_logo;
+            }
+        }
+        groups[brandId] = { brand: brandObj, lenses: [] };
+      }
+      groups[brandId].lenses.push(lens);
+    });
+    return Object.values(groups).sort((a, b) => {
+        if (a.brand.id === 'unbranded') return 1;
+        if (b.brand.id === 'unbranded') return -1;
+        return a.brand.name.localeCompare(b.brand.name);
+    });
+  }, [currentTypeLenses, lensBrands]);
+
+  const toggleBrandExpand = (brandId) => {
+    setExpandedBrands(prev => {
+      const next = new Set(prev);
+      if (next.has(brandId)) next.delete(brandId);
+      else next.add(brandId);
+      return next;
+    });
+  };
 
   if (loading && !lensTypes.length) {
     return (
@@ -487,7 +630,7 @@ const LensManagement = () => {
           <h1>Admin Dashboard</h1>
           <p>Add a new eyewear product to your catalog with precise specifications.</p>
         </div>
-        <div className="lm-header-right">
+          <div className="lm-header-right">
           <button className="lm-btn-solid" onClick={() => setShowAddType(true)}>+ Lens Type <span style={{ fontSize: 10, opacity: 0.7, fontWeight: 400 }}>(e.g. Single Vision)</span></button>
           <button className="lm-btn-solid" onClick={() => setShowAddIndex(true)}>+ Lens Index <span style={{ fontSize: 10, opacity: 0.7, fontWeight: 400 }}>({lensIndices.length})</span></button>
           <button className="lm-btn-solid" onClick={() => {
@@ -496,21 +639,9 @@ const LensManagement = () => {
               return;
             }
             setIsCreatingNewPackage(true);
-            setEditFormData({
-              name: '',
-              description: '',
-              index: '1.5',
-              is_active: true,
-              features: [],
-              constraints: [],
-              pricing_mode: 'package',
-              brand: '',
-              categories: [],
-              cost_price: 0,
-              selling_price: '',
-              warranty_months: 0,
-            });
-          }}>+ Package <span style={{ fontSize: 10, opacity: 0.7, fontWeight: 400 }}>(on right panel)</span></button>
+            setEditFormData({ ...EMPTY_PACKAGE_FORM });
+            try { navigate('/admin/products/new/lens'); } catch (e) { }
+          }}>+ Package</button>
         </div>
       </div>
 
@@ -614,10 +745,13 @@ const LensManagement = () => {
 
         {/* ──── Middle Column: Packages (273:15231) ──── */}
         <div className="lm-col-mid">
-          <div className="lm-mid-header">
-            <div className="lm-mid-title">
-              <h2>Packages for "{selectedType?.label || 'Select Type'}"</h2>
-              <ChevronDown size={18} />
+          <div className="lm-mid-header-row">
+            <div className="lm-mid-header-left">
+              <span className="lm-mid-header-label">Packages for</span>
+              <button className="lm-type-dropdown-btn">
+                {selectedType?.label || 'Select Type'}
+                <ChevronDown size={18} color="#64748B" />
+              </button>
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
               {selectedPackages.size > 0 && (
@@ -629,25 +763,9 @@ const LensManagement = () => {
                   {selectedPackages.size} selected
                 </div>
               )}
-              <button className="lm-add-link" onClick={() => {
+              <button className="lm-add-pkg-btn" onClick={() => {
                 setIsCreatingNewPackage(true);
-                setEditFormData({
-                  name: '',
-                  price: '',
-                  description: '',
-                  index: '1.5',
-                  is_active: true,
-                  features: [],
-                  constraints: [],
-                  pricing_mode: 'package',
-                  brand: '',
-                  categories: [],
-                  cost_price: 0,
-                  selling_price: '',
-                  warranty_months: 0,
-                  is_for_eyeglasses: true,
-                  is_for_sunglasses: false,
-                });
+                setEditFormData({ ...EMPTY_PACKAGE_FORM });
               }} disabled={!selectedType}>
                 <Plus size={16} /> Add Package
               </button>
@@ -656,8 +774,7 @@ const LensManagement = () => {
           
           {selectedPackages.size > 0 && (
             <div style={{
-              display: 'flex', gap: 8, padding: '12px 16px', background: '#FAFBFC',
-              borderBottom: '1px solid #EAECF0', flexWrap: 'wrap'
+              display: 'flex', gap: 8, padding: '0 20px 16px', flexWrap: 'wrap'
             }}>
               <button
                 onClick={handleBulkDelete}
@@ -684,9 +801,8 @@ const LensManagement = () => {
           <div className="lm-package-list">
             {currentTypeLenses.length > 0 && (
               <div style={{
-                display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px',
-                background: '#FAFBFC', borderBottom: '1px solid #EAECF0',
-                fontSize: 12, fontWeight: 600
+                display: 'flex', alignItems: 'center', gap: 10,
+                fontSize: 12, fontWeight: 600, paddingBottom: 8
               }}>
                 <input
                   type="checkbox"
@@ -704,509 +820,67 @@ const LensManagement = () => {
                 <button className="lm-btn-outline-full">Create First Package</button>
               </div>
             ) : (
-              currentTypeLenses.map(lens => (
-                <div
-                  key={lens.id}
-                  className={`lm-pkg-row-card ${selectedLens?.id === lens.id ? 'active' : ''}`}
-                  style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedPackages.has(lens.id)}
-                    onChange={(e) => { e.stopPropagation(); togglePackageSelection(lens.id); }}
-                    style={{ cursor: 'pointer', marginTop: 8, flexShrink: 0 }}
-                  />
-                  <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => setSelectedLens(lens)}>
-                    <div className="pkg-row-header">
-                      <span className="pkg-row-name">{lens.package_name || lens.name}</span>
-                      <div className="pkg-row-actions">
-                        <div className="pkg-action-icons">
-                          <ExternalLink size={14} />
-                          <MessageSquare size={14} />
-                          <Copy size={14} />
-                          <Info size={14} />
-                        </div>
-                        <div
-                          className={`lm-toggle-mini ${lens.is_active ? 'active' : ''}`}
-                          onClick={(e) => handleStatusToggle(e, 'package', lens.id, lens.is_active)}
-                        >
-                          <div className="toggle-circle" />
+              lensesByBrand.map(group => {
+                const isExpanded = expandedBrands.has(group.brand.id);
+                return (
+                  <div key={group.brand.id} className="lm-brand-section">
+                    <div className="lm-brand-header" onClick={() => toggleBrandExpand(group.brand.id)}>
+                      <div className="lm-brand-info">
+                        <div className="lm-brand-badge">{group.lenses.length}</div>
+                        <div className="lm-brand-logo-wrap">
+                          {group.brand.logo ? (
+                            <img src={group.brand.logo} alt={group.brand.name} className="lm-brand-logo" />
+                          ) : (
+                            <div className="lm-brand-initials">{group.brand.name.substring(0, 2).toUpperCase()}</div>
+                          )}
+                          <span className="lm-brand-name">{group.brand.name}</span>
                         </div>
                       </div>
+                      <ChevronDown size={20} className={`lm-brand-caret ${isExpanded ? '' : 'collapsed'}`} />
                     </div>
-                    <div className="pkg-row-footer">
-                      <span style={{ display: 'block' }}>
-                        Cost: ₹{lens.package_cost_price ? Number(lens.package_cost_price).toLocaleString('en-IN') : '0'}
-                        &nbsp;•&nbsp;Sell: ₹{(lens.package_selling_price || lens.price) ? Number(lens.package_selling_price || lens.price).toLocaleString('en-IN') : '0'}
-                      </span>
-                      <span style={{ display: 'block', marginTop: 6 }}>
-                        Categories: {
-                          lens.categories && lens.categories.length > 0
-                            ? lens.categories.map(cat => {
-                              if (typeof cat === 'object' && cat.id) {
-                                return cat.name;
-                              } else {
-                                const found = lensCategories.find(c => c.id === cat);
-                                return found ? found.name : cat;
-                              }
-                            }).join(', ')
-                            : 'No categories'
-                        }
-                      </span>
-                      <span style={{ display: 'block', marginTop: 6 }}>
-                        Features: {
-                          lens.features && lens.features.length > 0
-                            ? lens.features.join(', ')
-                            : 'No features'
-                        }
-                      </span>
-                      <span style={{ display: 'block', marginTop: 6 }}>
-                        Index: {lens.index || '1.5'}
-                      </span>
-                    </div>
+                    {isExpanded && (
+                      <div className="lm-brand-packages">
+                        {group.lenses.map((lens, i) => (
+                          <React.Fragment key={lens.id}>
+                            <div
+                              className={`lm-pkg-card ${selectedLens?.id === lens.id ? 'active' : ''}`}
+                              onClick={() => handleSelectLens(lens)}
+                            >
+                              <div className="lm-pkg-card-header">
+                                <span className="lm-pkg-card-name">{lens.package_name || lens.name}</span>
+                              </div>
+                              <div className="lm-pkg-card-features">
+                                {(lens.features || []).slice(0, 3).map((feat, idx) => (
+                                  <span key={idx} className="lm-pkg-feature-tag">{feat}</span>
+                                ))}
+                                {(lens.features || []).length > 3 && (
+                                  <span className="lm-pkg-feature-tag">+{lens.features.length - 3}</span>
+                                )}
+                              </div>
+                              <div className="lm-pkg-card-footer">
+                                <span className="lm-pkg-power-text">
+                                  {Number(lens.min_power || -6.0).toFixed(2)} to +{Number(lens.max_power || 4.0).toFixed(2)} • Index: {lens.index || '1.5'}
+                                </span>
+                                <div className="lm-pkg-brand-mark">
+                                  {group.brand.logo && (
+                                    <img src={group.brand.logo} alt="brand" className="lm-pkg-brand-mark-logo" />
+                                  )}
+                                  <span className="lm-pkg-brand-mark-name">{group.brand.name}</span>
+                                </div>
+                              </div>
+                            </div>
+                            {i < group.lenses.length - 1 && <hr className="lm-brand-separator" />}
+                          </React.Fragment>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
 
-        {/* ──── Right Column: Edit/Create Form (273:15347) ──── */}
-        <div className="lm-col-right">
-          <div className="lm-col-header border-b">
-            <h3>{isCreatingNewPackage ? 'Create New Package' : selectedLens ? `Edit Package: ${editFormData.name}` : 'Select a Package'}</h3>
-          </div>
-
-          {isCreatingNewPackage || selectedLens ? (
-            <div className="lm-form-content">
-              {/* Basic Info */}
-              <div className="lm-form-section">
-                <h4 className="lm-section-label">Basic Info</h4>
-                <div className="lm-form-row">
-                  <label>Package Name</label>
-                  <input
-                    className="lm-input-field"
-                    value={editFormData.name || ''}
-                    onChange={e => {
-                      const val = e.target.value;
-                      setEditFormData(prev => ({ ...prev, name: val }));
-                    }}
-                  />
-                </div>
-                <div className="lm-form-row">
-                  <label>Cost Price (₹)</label>
-                  <input
-                    className="lm-input-field"
-                    type="number"
-                    value={editFormData.cost_price || 0}
-                    onChange={e => {
-                      const val = e.target.value;
-                      setEditFormData(prev => ({ ...prev, cost_price: val }));
-                    }}
-                    placeholder="e.g. 800"
-                  />
-                </div>
-                <div className="lm-form-row">
-                  <label>Selling Price (₹)</label>
-                  <input
-                    className="lm-input-field"
-                    type="number"
-                    value={editFormData.selling_price || ''}
-                    onChange={e => {
-                      const val = e.target.value;
-                      setEditFormData(prev => ({ ...prev, selling_price: val }));
-                    }}
-                    placeholder="e.g. 1299"
-                  />
-                </div>
-                <div className="lm-form-row">
-                  <label>Warranty (months)</label>
-                  <input
-                    className="lm-input-field"
-                    type="number"
-                    value={editFormData.warranty_months || 0}
-                    onChange={e => {
-                      const val = e.target.value;
-                      setEditFormData(prev => ({ ...prev, warranty_months: val }));
-                    }}
-                  />
-                </div>
-                <div className="lm-form-row align-top">
-                  <label>Description</label>
-                  <textarea
-                    className="lm-textarea-field"
-                    value={editFormData.description || ''}
-                    onChange={e => {
-                      const val = e.target.value;
-                      setEditFormData(prev => ({ ...prev, description: val }));
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Applicable Categories — above optical specs so it's prominent */}
-              <div className="lm-form-section">
-                <h4 className="lm-section-label">Applicable Frame Categories <span style={{ fontSize: 10, color: '#98A2B3', fontWeight: 400 }}>click to toggle</span></h4>
-                {lensCategories.length === 0 ? (
-                  <p style={{ fontSize: 11, color: '#98A2B3', margin: 0 }}>No categories available. Add them in Category Management → Frames tab.</p>
-                ) : (
-                  <div className="lm-chip-group">
-                    {lensCategories.map(c => {
-                      const selected = editFormData.categories.includes(c.id);
-                      return (
-                        <span
-                          key={c.id}
-                          onClick={() => {
-                            const next = selected
-                              ? editFormData.categories.filter(id => id !== c.id)
-                              : [...editFormData.categories, c.id];
-                            setEditFormData(prev => ({ ...prev, categories: next }));
-                          }}
-                          style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 5,
-                            padding: '6px 14px', borderRadius: 20, fontSize: 11, cursor: 'pointer', fontWeight: 600,
-                            background: selected ? '#7F56D9' : '#fff',
-                            color: selected ? '#fff' : '#667085',
-                            border: `1.5px solid ${selected ? '#7F56D9' : '#D0D5DD'}`,
-                            transition: 'all 0.15s',
-                            userSelect: 'none',
-                          }}
-                        >
-                          {selected && <Check size={12} strokeWidth={3} />}
-                          {c.name}
-                        </span>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* Brand */}
-              <div className="lm-form-section">
-                <h4 className="lm-section-label">Brand</h4>
-                {lensBrands.length === 0 ? (
-                  <p style={{ fontSize: 11, color: '#98A2B3', margin: 0 }}>
-                    No lens brands yet. Go to <strong>Brand Management → Lenses for Frames</strong> tab to add one.
-                  </p>
-                ) : (
-                  <div className="lm-select-box">
-                    <select
-                      value={String(editFormData.brand || '')}
-                      onChange={e => setEditFormData(prev => ({ ...prev, brand: e.target.value }))}
-                      style={{ width: '100%' }}
-                    >
-                      <option value="">— None —</option>
-                      {lensBrands.map(b => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
-                    </select>
-                    <ChevronDown size={14} className="select-arrow" />
-                  </div>
-                )}
-              </div>
-
-              {/* Optical Specs */}
-              <div className="lm-form-section">
-                <h4 className="lm-section-label">Optical Specs</h4>
-                <div className="lm-form-row">
-                  <label>Lens Index</label>
-                  <div className="lm-select-box">
-                    <select
-                      value={editFormData.index || '1.5'}
-                      onChange={e => setEditFormData(prev => ({ ...prev, index: e.target.value }))}
-                    >
-                      <option value="1.5">1.5</option>
-                      <option value="1.56">1.56</option>
-                      <option value="1.59">1.59</option>
-                      <option value="1.6">1.6</option>
-                      <option value="1.67">1.67</option>
-                      <option value="1.74">1.74</option>
-                      <option value="1.8">1.8</option>
-                      <option value="1.9">1.9</option>
-                    </select>
-                    <ChevronDown size={14} className="select-arrow" />
-                  </div>
-                </div>
-                <div className="lm-form-row">
-                  <label>Min Power</label>
-                  <div className="lm-input-group-row">
-                    <input type="text" className="lm-power-input" value="-6.00" readOnly />
-                    <input type="text" className="lm-power-input" value="+4.00" readOnly />
-                  </div>
-                </div>
-                <div className="lm-form-row">
-                  <label>Max Power</label>
-                  <div className="lm-input-group-row">
-                    <input type="text" className="lm-power-input" value="+4.00" readOnly />
-                    <input type="text" className="lm-power-input" value="+6.00" readOnly />
-                  </div>
-                </div>
-              </div>
-
-              {/* Features */}
-              <div className="lm-form-section">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                  <h4 className="lm-section-label" style={{ margin: 0 }}>Features</h4>
-                  <button
-                    className="lm-btn-text"
-                    onClick={() => setShowAddFeature(!showAddFeature)}
-                    style={{ fontSize: 12 }}
-                  >
-                    <Plus size={14} /> New
-                  </button>
-                </div>
-                <div className="lm-chip-group">
-                  {lensFeatures.length > 0 ? (
-                    lensFeatures.map(f => (
-                      <span
-                        key={f}
-                        className={`lm-form-chip ${editFormData.features.includes(f) ? 'active' : ''}`}
-                        onClick={() => {
-                          const newFeatures = editFormData.features.includes(f)
-                            ? editFormData.features.filter(feat => feat !== f)
-                            : [...editFormData.features, f];
-                          setEditFormData(prev => ({ ...prev, features: newFeatures }));
-                        }}
-                      >
-                        {f}
-                      </span>
-                    ))
-                  ) : (
-                    <p style={{ fontSize: 11, color: '#98A2B3', margin: 0 }}>No features available. Create one using the "+ New" button.</p>
-                  )}
-                </div>
-
-                {showAddFeature && (
-                  <div style={{ background: '#FFFBEB', padding: 12, borderRadius: 6, marginTop: 12 }}>
-                    <div className="lm-form-row">
-                      <label>Feature Name</label>
-                      <input
-                        className="lm-input-field"
-                        placeholder="e.g. Blue Cut, Anti-Glare, UV Protection"
-                        value={newFeatureForm.name}
-                        onChange={e => setNewFeatureForm(prev => ({ ...prev, name: e.target.value }))}
-                      />
-                    </div>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <button className="lm-btn-solid" onClick={handleCreateFeature} style={{ fontSize: 12 }}>
-                        Create Feature
-                      </button>
-                      <button className="lm-btn-text" onClick={() => setShowAddFeature(false)} style={{ fontSize: 12 }}>
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Lens Constraint (Multiple Selection) */}
-              <div className="lm-form-section">
-                <div className="lm-form-row">
-                  <label>Lens Constraints (Select one or more)</label>
-                  <button
-                    className="lm-btn-text"
-                    onClick={() => setShowAddConstraint(!showAddConstraint)}
-                    style={{ whiteSpace: 'nowrap', fontSize: 12, marginLeft: 'auto' }}
-                  >
-                    <Plus size={14} /> New Constraint
-                  </button>
-                </div>
-
-                {/* Multi-select Checkboxes */}
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 8,
-                  padding: '10px 12px',
-                  background: '#F9FAFB',
-                  borderRadius: 6,
-                  border: '1px solid #E5E7EB'
-                }}>
-                  {lensConstraints.length === 0 ? (
-                    <div style={{ fontSize: 12, color: '#9CA3AF' }}>No constraints available. Create one below.</div>
-                  ) : (
-                    lensConstraints.map(constraint => (
-                      <label key={constraint.id} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14 }}>
-                        <input
-                          type="checkbox"
-                          checked={(editFormData.constraints || []).some(c => c.id === constraint.id)}
-                          onChange={e => {
-                            if (e.target.checked) {
-                              // Add constraint
-                              setEditFormData(prev => ({
-                                ...prev,
-                                constraints: [...(prev.constraints || []), constraint]
-                              }));
-                            } else {
-                              // Remove constraint
-                              setEditFormData(prev => ({
-                                ...prev,
-                                constraints: (prev.constraints || []).filter(c => c.id !== constraint.id)
-                              }));
-                            }
-                          }}
-                          style={{ cursor: 'pointer' }}
-                        />
-                        <span>{constraint.name}</span>
-                        {constraint.description && (
-                          <span style={{ fontSize: 12, color: '#6B7280', marginLeft: 'auto' }}>
-                            {constraint.description}
-                          </span>
-                        )}
-                      </label>
-                    ))
-                  )}
-                </div>
-
-                {/* Selected Constraints Summary */}
-                {(editFormData.constraints || []).length > 0 && (
-                  <div style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: 6,
-                    marginTop: 8
-                  }}>
-                    {(editFormData.constraints || []).map(c => (
-                      <div
-                        key={c.id}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 6,
-                          padding: '4px 8px',
-                          background: '#EDE9FE',
-                          border: '1px solid #DDD6FE',
-                          borderRadius: 4,
-                          fontSize: 12
-                        }}
-                      >
-                        <span>{c.name}</span>
-                        <button
-                          onClick={() => {
-                            setEditFormData(prev => ({
-                              ...prev,
-                              constraints: (prev.constraints || []).filter(x => x.id !== c.id)
-                            }));
-                          }}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer',
-                            padding: 0,
-                            display: 'flex',
-                            color: '#7C3AED'
-                          }}
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Create New Constraint Form (Inline) */}
-              {showAddConstraint && (
-                <div className="lm-form-section" style={{ background: '#FFFBEB', padding: 12, borderRadius: 6 }}>
-                  <h4 className="lm-section-label">Create New Constraint</h4>
-                  <div className="lm-form-row">
-                    <label>Constraint Name</label>
-                    <input
-                      className="lm-input-field"
-                      placeholder="e.g. Rimless, Full Rim, Half Rim"
-                      value={newConstraintForm.name}
-                      onChange={e => setNewConstraintForm(prev => ({ ...prev, name: e.target.value }))}
-                    />
-                  </div>
-                  <div className="lm-form-row">
-                    <label>Description (Optional)</label>
-                    <textarea
-                      className="lm-textarea-field"
-                      placeholder="e.g. For rimless frames"
-                      value={newConstraintForm.description}
-                      onChange={e => setNewConstraintForm(prev => ({ ...prev, description: e.target.value }))}
-                      style={{ minHeight: 60 }}
-                    />
-                  </div>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button className="lm-btn-solid" onClick={handleCreateConstraint} style={{ fontSize: 12 }}>
-                      Create Constraint
-                    </button>
-                    <button className="lm-btn-text" onClick={() => setShowAddConstraint(false)} style={{ fontSize: 12 }}>
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Pricing Mode */}
-              <div className="lm-pricing-mode">
-                <div
-                  className={`lm-radio-group ${editFormData.pricing_mode !== 'base' ? 'active' : ''}`}
-                  onClick={() => setEditFormData(prev => ({ ...prev, pricing_mode: 'package' }))}
-                >
-                  <div className="lm-radio-circle">
-                    {editFormData.pricing_mode !== 'base' && <div className="lm-radio-dot" />}
-                  </div>
-                  <span>Pricing Mode</span>
-                </div>
-                <div
-                  className={`lm-radio-group ${editFormData.pricing_mode === 'base' ? 'active' : ''}`}
-                  onClick={() => setEditFormData(prev => ({ ...prev, pricing_mode: 'base' }))}
-                >
-                  <div className="lm-radio-circle">
-                    {editFormData.pricing_mode === 'base' && <div className="lm-radio-dot" />}
-                  </div>
-                  <span>Base + Add-ons</span>
-                </div>
-              </div>
-
-              <div className="lm-status-footer">
-                <div className="status-row">
-                  <span>Status</span>
-                  <div
-                    className={`lm-toggle-mini ${editFormData.is_active ? 'active' : ''}`}
-                    onClick={() => setEditFormData(prev => ({ ...prev, is_active: !prev.is_active }))}
-                  >
-                    <div className="toggle-circle" />
-                  </div>
-                </div>
-                <div className="lm-form-footer-btns">
-                  <button className="lm-btn-text" onClick={() => {
-                    if (isCreatingNewPackage) {
-                      setIsCreatingNewPackage(false);
-                      setEditFormData({
-                        name: '',
-                        price: '',
-                        description: '',
-                        index: '1.5',
-                        is_active: true,
-                        features: [],
-                        constraints: [],
-                        pricing_mode: 'package',
-                        brand: '',
-                        categories: [],
-                        cost_price: 0,
-                        selling_price: '',
-                        warranty_months: 0,
-                        is_for_eyeglasses: true,
-                        is_for_sunglasses: false,
-                      });
-                    } else {
-                      setSelectedLens(null);
-                    }
-                  }}>Cancel</button>
-                  <button className="lm-btn-solid" onClick={handleSave}>
-                    {isCreatingNewPackage ? 'Create Package' : 'Save Changes'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="lm-empty-right">
-              <Settings size={64} className="empty-gear" />
-              <p>Select a package from the middle column to edit its specifications.</p>
-            </div>
-          )}
-        </div>
       </div>
 
       <FormModal
@@ -1216,6 +890,213 @@ const LensManagement = () => {
         title="Lens Type"
         fields={LENS_TYPE_FIELDS}
       />
+
+      {isCreatingNewPackage && (
+        <div className="lm-offcanvas-backdrop" onClick={handleClosePackageForm}>
+          <div className="lm-offcanvas-panel" onClick={e => e.stopPropagation()}>
+            <div className="lm-offcanvas-header">
+              <div>
+                <h2 className="lm-offcanvas-title">Create Package</h2>
+                <p className="lm-offcanvas-subtitle">Use the existing package fields to add a new lens package.</p>
+              </div>
+              <button className="lm-offcanvas-close" onClick={handleClosePackageForm}><X size={20} /></button>
+            </div>
+
+            <div className="lm-offcanvas-body">
+              <section className="lm-offcanvas-section">
+                <div className="lm-offcanvas-section-title">Package details</div>
+                <div className="lm-form-group">
+                  <label className="lm-form-label">Package Name</label>
+                  <input
+                    className="lm-form-input"
+                    value={editFormData.name}
+                    onChange={e => handlePackageFieldChange('name', e.target.value)}
+                    placeholder="Enter package name"
+                  />
+                </div>
+                <div className="lm-form-group">
+                  <label className="lm-form-label">Description</label>
+                  <textarea
+                    className="lm-form-input"
+                    rows={4}
+                    value={editFormData.description}
+                    onChange={e => handlePackageFieldChange('description', e.target.value)}
+                    placeholder="Add a short description"
+                  />
+                </div>
+              </section>
+
+              <section className="lm-offcanvas-section">
+                <div className="lm-offcanvas-section-title">Pricing & power</div>
+                <div className="lm-form-row">
+                  <div className="lm-form-group">
+                    <label className="lm-form-label">Selling Price</label>
+                    <input
+                      type="number"
+                      className="lm-form-input"
+                      value={editFormData.selling_price}
+                      onChange={e => handlePackageFieldChange('selling_price', e.target.value)}
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div className="lm-form-group">
+                    <label className="lm-form-label">Cost Price</label>
+                    <input
+                      type="number"
+                      className="lm-form-input"
+                      value={editFormData.cost_price}
+                      onChange={e => handlePackageFieldChange('cost_price', e.target.value)}
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+                <div className="lm-form-row">
+                  <div className="lm-form-group">
+                    <label className="lm-form-label">Lens Index</label>
+                    <select
+                      className="lm-form-input"
+                      value={editFormData.index}
+                      onChange={e => handlePackageFieldChange('index', e.target.value)}
+                    >
+                      {lensIndices.map(value => (
+                        <option key={value} value={value}>{value}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="lm-form-group">
+                    <label className="lm-form-label">Warranty (months)</label>
+                    <input
+                      type="number"
+                      className="lm-form-input"
+                      value={editFormData.warranty_months}
+                      onChange={e => handlePackageFieldChange('warranty_months', e.target.value)}
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+                <div className="lm-form-row">
+                  <div className="lm-form-group">
+                    <label className="lm-form-label">Min Power</label>
+                    <input
+                      className="lm-form-input"
+                      value={editFormData.min_power}
+                      onChange={e => handlePackageFieldChange('min_power', e.target.value)}
+                      placeholder="-6.00"
+                    />
+                  </div>
+                  <div className="lm-form-group">
+                    <label className="lm-form-label">Max Power</label>
+                    <input
+                      className="lm-form-input"
+                      value={editFormData.max_power}
+                      onChange={e => handlePackageFieldChange('max_power', e.target.value)}
+                      placeholder="+4.00"
+                    />
+                  </div>
+                </div>
+              </section>
+
+              <section className="lm-offcanvas-section">
+                <div className="lm-offcanvas-section-title">Brand & categories</div>
+                <div className="lm-form-group">
+                  <label className="lm-form-label">Brand</label>
+                  <select
+                    className="lm-form-input"
+                    value={editFormData.brand}
+                    onChange={e => handlePackageFieldChange('brand', e.target.value)}
+                  >
+                    <option value="">Select brand</option>
+                    {lensBrands.map(brand => (
+                      <option key={brand.id} value={brand.id}>{brand.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="lm-form-group">
+                  <label className="lm-form-label">Categories</label>
+                  <div className="lm-chip-list">
+                    {lensCategories.map(category => {
+                      const selected = editFormData.categories.includes(category.id);
+                      return (
+                        <button
+                          type="button"
+                          key={category.id}
+                          className={`lm-chip ${selected ? 'selected' : ''}`}
+                          onClick={() => {
+                            const next = editFormData.categories.includes(category.id)
+                              ? editFormData.categories.filter(id => id !== category.id)
+                              : [...editFormData.categories, category.id];
+                            handlePackageFieldChange('categories', next);
+                          }}
+                        >
+                          {category.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </section>
+
+              <section className="lm-offcanvas-section">
+                <div className="lm-offcanvas-section-title">Features</div>
+                <div className="lm-chip-list">
+                  {editFormData.features.map((feature, index) => (
+                    <span key={index} className="lm-chip">
+                      {feature}
+                      <button type="button" onClick={() => removeFeatureFromForm(index)}>×</button>
+                    </span>
+                  ))}
+                </div>
+                <div className="lm-form-row">
+                  <input
+                    className="lm-form-input"
+                    value={newFeatureText}
+                    onChange={e => setNewFeatureText(e.target.value)}
+                    placeholder="Enter a feature"
+                  />
+                  <button type="button" className="lm-add-more-btn" onClick={addFeatureToForm}>
+                    + Add feature
+                  </button>
+                </div>
+              </section>
+
+              <section className="lm-offcanvas-section">
+                <div className="lm-offcanvas-section-title">Constraints</div>
+                <div className="lm-chip-list">
+                  {lensConstraints.map(constraint => {
+                    const selected = editFormData.constraints.map(c => (typeof c === 'object' ? c.id : c)).includes(constraint.id);
+                    return (
+                      <button
+                        type="button"
+                        key={constraint.id}
+                        className={`lm-chip ${selected ? 'selected' : ''}`}
+                        onClick={() => toggleConstraintSelection(constraint.id)}
+                      >
+                        {constraint.name}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="lm-form-row">
+                  <input
+                    className="lm-form-input"
+                    value={newConstraintText}
+                    onChange={e => setNewConstraintText(e.target.value)}
+                    placeholder="Add new constraint"
+                  />
+                  <button type="button" className="lm-add-more-btn" onClick={addConstraintToForm}>
+                    + Add constraint
+                  </button>
+                </div>
+              </section>
+            </div>
+
+            <div className="lm-offcanvas-footer">
+              <button type="button" className="lm-offcanvas-cancel" onClick={handleClosePackageForm}>Cancel</button>
+              <button type="button" className="lm-offcanvas-submit" onClick={handleSave}>Create package</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {error && (
         <div className="lm-toast-error">
@@ -1229,3 +1110,4 @@ const LensManagement = () => {
 };
 
 export default LensManagement;
+

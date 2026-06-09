@@ -131,11 +131,11 @@ class Variant(models.Model):
     cost_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True)
 
     # sizes 
-    small = models.IntegerField(default = 0)
+    quantity = models.IntegerField(default = 0)
     bride_lentgh = models.IntegerField(default=0)
     temple_length = models.IntegerField(default=0)
     lens_width = models.IntegerField(default=0)
-    
+
     # Marketing and Tax
     stock = models.IntegerField(default=0)
     stock_by_size = models.JSONField(default=dict, blank=True)
@@ -235,6 +235,9 @@ class Lens(models.Model):
     brand = models.ForeignKey(Brand, on_delete=models.SET_NULL, null=True, blank=True, related_name='lenses')
     price = models.DecimalField(max_digits=10, decimal_places=2)
     index = models.CharField(max_length=10, null=True, blank=True)  # e.g., "1.5", "1.61", "1.67", "1.74"
+    # Power range for the lens package (stored as decimal diopters)
+    min_power = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal('-6.00'))
+    max_power = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal('4.00'))
     is_active = models.BooleanField(default=True)
     is_for_sunglasses = models.BooleanField(default=False)
     is_for_eyeglasses = models.BooleanField(default=True)
