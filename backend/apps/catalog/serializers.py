@@ -200,7 +200,8 @@ class LensSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'package', 'package_name', 'description', 'features',
             'type', 'price', 'index', 'index_value', 'is_active', 'is_for_sunglasses', 'is_for_eyeglasses',
-            'brand', 'category_ids', 'package_cost_price', 'package_selling_price', 'package_warranty_months', 'constraints', 'constraint_ids'
+            'brand', 'category_ids', 'package_cost_price', 'package_selling_price', 'package_warranty_months',
+            'constraints', 'constraint_ids', 'min_power', 'max_power',
         ]
         extra_kwargs = {
             'package': {'read_only': True}
@@ -218,8 +219,17 @@ class LensSerializer(serializers.ModelSerializer):
             data['package_warranty_months'] = instance.package.warranty_months
         if instance.brand:
             data['brand_name'] = instance.brand.name
+            request = self.context.get('request')
+            if instance.brand.logo and request:
+                data['brand_logo'] = request.build_absolute_uri(instance.brand.logo.url)
+            elif instance.brand.logo:
+                data['brand_logo'] = instance.brand.logo.url
+            else:
+                data['brand_logo'] = None
         if instance.type:
             data['type_label'] = instance.type.label
+        data['min_power'] = float(instance.min_power) if instance.min_power is not None else -6.0
+        data['max_power'] = float(instance.max_power) if instance.max_power is not None else 4.0
         return data
 
     def create(self, validated_data):

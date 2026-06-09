@@ -81,6 +81,7 @@ const FormModal = ({
   fields = [],
   initialData = {},
   children,
+  offcanvas = false,
 }) => {
   const [formData, setFormData] = useState({});
   const [errors, setErrors] = useState({});
@@ -175,9 +176,22 @@ const FormModal = ({
     borderColor: hasError ? '#F04438' : '#D0D5DD',
   });
 
+  // Adjust styles for offcanvas (right-side) variant
+  const overlayStyle = { ...S.overlay, justifyContent: offcanvas ? 'flex-end' : 'center', alignItems: offcanvas ? 'stretch' : 'center' };
+  const boxStyle = offcanvas ? {
+    ...S.box,
+    width: '420px',
+    maxWidth: '420px',
+    height: '100vh',
+    maxHeight: '100vh',
+    borderRadius: '12px 0 0 12px',
+    boxShadow: ' -20px 0 48px rgba(16,24,40,0.12)',
+    borderLeft: '1px solid #EAECF0',
+  } : S.box;
+
   const modalContent = (
-    <div style={S.overlay} onClick={onClose}>
-      <div style={S.box} onClick={e => e.stopPropagation()}>
+    <div style={overlayStyle} onClick={onClose}>
+      <div style={boxStyle} onClick={e => e.stopPropagation()}>
 
         {/* ── Header ── */}
         <div style={S.header}>
