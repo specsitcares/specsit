@@ -37,12 +37,13 @@ const FALLBACK = {
     },
   },
   chart: [
-    { date: 'Jan', val1: 20,  val2: -20 },
-    { date: 'Feb', val1: 40,  val2: 10  },
-    { date: 'Mar', val1: -10, val2: 50  },
-    { date: 'Apr', val1: -40, val2: -10 },
-    { date: 'May', val1: 10,  val2: -50 },
-    { date: 'Jun', val1: 50,  val2: 20  },
+    { date: 'Mon', orders: 8,  revenue: 4200  },
+    { date: 'Tue', orders: 14, revenue: 7800  },
+    { date: 'Wed', orders: 11, revenue: 5900  },
+    { date: 'Thu', orders: 19, revenue: 11200 },
+    { date: 'Fri', orders: 23, revenue: 14500 },
+    { date: 'Sat', orders: 17, revenue: 9600  },
+    { date: 'Sun', orders: 9,  revenue: 5100  },
   ],
   deliveryCost: [
     { label: 'Shipping cost',    percent: 34, color: '#6366F1' },
@@ -51,26 +52,38 @@ const FALLBACK = {
     { label: 'Other',            percent: 16, color: '#94A3B8' },
   ],
   productProfit: [
-    { label: 'Shipping cost',    percent: 34, color: '#6366F1' },
-    { label: 'Price hesitation', percent: 28, color: '#A855F7' },
-    { label: 'Frame fit unsure', percent: 22, color: '#EC4899' },
-    { label: 'Other',            percent: 16, color: '#94A3B8' },
+    { label: 'Sunglasses',  percent: 42, color: '#6366F1' },
+    { label: 'Eyeglasses',  percent: 31, color: '#A855F7' },
+    { label: 'Contact Lens', percent: 16, color: '#EC4899' },
+    { label: 'Accessories', percent: 11, color: '#94A3B8' },
   ],
   productCategory: [
     { label: 'Sunglasses', percent: 58, color: '#A855F7' },
     { label: 'Eyeglasses', percent: 42, color: '#6366F1' },
   ],
-  topLenses: [
+  topFrameLenses: [
     { label: 'Polarized', value: 320 },
     { label: 'Photochromic', value: 280 },
     { label: 'Blue Light', value: 260 },
     { label: 'Prescription', value: 200 },
   ],
+  topContactLenses: [
+    { label: 'Daily Comfort', value: 180 },
+    { label: 'Monthly Pro', value: 150 },
+    { label: 'Toric Plus', value: 90 },
+    { label: 'Multifocal', value: 60 },
+  ],
   frameMaterials: [
-    { material: 'Acetate', units: 567, revenue: 28350 },
-    { material: 'Metal', units: 423, revenue: 21150 },
-    { material: 'Titanium', units: 289, revenue: 17340 },
-    { material: 'Plastic', units: 234, revenue: 11700 },
+    { material: 'Acetate', units: 567 },
+    { material: 'Metal', units: 423 },
+    { material: 'Titanium', units: 289 },
+    { material: 'Plastic', units: 234 },
+  ],
+  accessories: [
+    { name: 'Lens Cleaning Kit', units: 210 },
+    { name: 'Hard Case', units: 185 },
+    { name: 'Neck Cord', units: 140 },
+    { name: 'Anti-fog Spray', units: 98 },
   ],
 };
 
@@ -84,6 +97,8 @@ const AnalyticsPage = () => {
   const [loading,    setLoading]    = useState(true);
   const [lastUpdate, setLastUpdate] = useState(null);
   const [periodOpen, setPeriodOpen] = useState(false);
+  const [lensTab,    setLensTab]    = useState(0);
+  const [materialTab, setMaterialTab] = useState(0);
   const intervalRef  = useRef(null);
   const periodLabel  = PERIOD_OPTIONS.find(o => o.value === period)?.label ?? 'Last 30 Days';
 
@@ -206,7 +221,7 @@ const AnalyticsPage = () => {
           {/* KPI Cards row */}
           <div className="ao-kpi-grid">
             <KpiCard
-              icon={<ShoppingBag size={20} />}
+              icon={<ShoppingBag size={16} />}
               iconBg="#EFDFFF"
               label="Total Orders"
               value={kpis.totalOrders?.value?.toLocaleString() ?? '—'}
@@ -214,7 +229,7 @@ const AnalyticsPage = () => {
               trendLabel={kpis.totalOrders?.label}
             />
             <KpiCard
-              icon={<ShoppingCart size={20} />}
+              icon={<ShoppingCart size={16} />}
               iconBg="#EFDFFF"
               label="Carts Created"
               value={kpis.cartsCreated?.value?.toLocaleString() ?? '—'}
@@ -223,7 +238,7 @@ const AnalyticsPage = () => {
               subProgress={kpis.cartsCreated?.conversionRate ?? 0}
             />
             <KpiCard
-              icon={<DollarSign size={20} />}
+              icon={<DollarSign size={16} />}
               iconBg="#EFDFFF"
               label="Revenue"
               value={`₹${(kpis.revenue?.value ?? 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
@@ -232,7 +247,7 @@ const AnalyticsPage = () => {
               subLine={`Avg Order: ₹${(kpis.revenue?.avgOrder ?? 0).toLocaleString('en-IN')}`}
             />
             <KpiCard
-              icon={<Package size={20} />}
+              icon={<Package size={16} />}
               iconBg="#EFDFFF"
               label="Products Sold"
               value={(kpis.productsSold?.value ?? 0).toLocaleString()}
@@ -262,14 +277,8 @@ const AnalyticsPage = () => {
 
           {/* Bottom row: Delivery Cost + Product Profit */}
           <div className="ao-bottom-grid">
-            <DonutCard
-              title="Delivery Cost"
-              segments={data.deliveryCost || FALLBACK.deliveryCost}
-            />
-            <DonutCard
-              title="Product Profit Calculations"
-              segments={data.productProfit || FALLBACK.productProfit}
-            />
+            <DonutCard title="Delivery Cost" segments={data.deliveryCost || FALLBACK.deliveryCost} />
+            <DonutCard title="Product Profit Calculations" segments={data.productProfit || FALLBACK.productProfit} />
           </div>
 
           {/* Bottom row 2: Extra Details (3 columns) */}
@@ -301,40 +310,113 @@ const AnalyticsPage = () => {
             </div>
 
             <div className="ao-widget-card">
-              <h3 className="ao-widget-title">Top Selling Lenses</h3>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <h3 className="ao-widget-title" style={{ margin: 0 }}>Top Selling Lenses</h3>
+                <div style={{ display: 'flex', gap: 0, border: '1px solid #e5e7eb', borderRadius: 8, overflow: 'hidden' }}>
+                  {['Frame Lenses', 'Contact Lenses'].map((label, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setLensTab(i)}
+                      style={{
+                        padding: '4px 12px',
+                        fontSize: 12,
+                        fontFamily: 'Inter, sans-serif',
+                        fontWeight: lensTab === i ? 600 : 400,
+                        background: lensTab === i ? '#6b46c1' : '#fff',
+                        color: lensTab === i ? '#fff' : '#6b7280',
+                        border: 'none',
+                        cursor: 'pointer',
+                        transition: 'background 0.15s, color 0.15s',
+                        borderRight: i === 0 ? '1px solid #e5e7eb' : 'none',
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div style={{ flex: 1, minHeight: 180 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={data.topLenses || FALLBACK.topLenses} layout="vertical" margin={{ top: 0, right: 20, left: 10, bottom: 0 }}>
+                  <BarChart
+                    data={lensTab === 0
+                      ? (data.topFrameLenses || FALLBACK.topFrameLenses)
+                      : (data.topContactLenses || FALLBACK.topContactLenses)}
+                    layout="vertical"
+                    margin={{ top: 0, right: 20, left: 10, bottom: 0 }}
+                  >
                     <XAxis type="number" hide />
                     <YAxis dataKey="label" type="category" axisLine={false} tickLine={false} width={80} tick={{ fontSize: 11, fill: '#697177' }} />
                     <RechartsTooltip cursor={{ fill: '#F1F5F9' }} contentStyle={{ borderRadius: 8, fontSize: 12, border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
-                    <Bar dataKey="value" fill="#A855F7" radius={[0, 4, 4, 0]} barSize={20} />
+                    <Bar dataKey="value" fill={lensTab === 0 ? '#A855F7' : '#6366F1'} radius={[0, 4, 4, 0]} barSize={20} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
             <div className="ao-widget-card" style={{ padding: '16px 20px' }}>
-              <h3 className="ao-widget-title">Frame Materials</h3>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <h3 className="ao-widget-title" style={{ margin: 0 }}>
+                  {materialTab === 0 ? 'Frame Materials' : 'Accessories'}
+                </h3>
+                <div style={{ display: 'flex', gap: 0, border: '1px solid #e5e7eb', borderRadius: 8, overflow: 'hidden' }}>
+                  {['Frame Materials', 'Accessories'].map((label, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setMaterialTab(i)}
+                      style={{
+                        padding: '4px 12px',
+                        fontSize: 12,
+                        fontFamily: 'Inter, sans-serif',
+                        fontWeight: materialTab === i ? 600 : 400,
+                        background: materialTab === i ? '#6b46c1' : '#fff',
+                        color: materialTab === i ? '#fff' : '#6b7280',
+                        border: 'none',
+                        cursor: 'pointer',
+                        transition: 'background 0.15s, color 0.15s',
+                        borderRight: i === 0 ? '1px solid #e5e7eb' : 'none',
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div className="ao-table-wrap">
-                <table className="ao-widget-table">
-                  <thead>
-                    <tr>
-                      <th style={{ textAlign: 'left' }}>Material</th>
-                      <th style={{ textAlign: 'right' }}>Units Sold</th>
-                      <th style={{ textAlign: 'right' }}>Revenue</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(data.frameMaterials || FALLBACK.frameMaterials).map((row, i) => (
-                      <tr key={i}>
-                        <td style={{ textAlign: 'left', fontWeight: 500 }}>{row.material}</td>
-                        <td style={{ textAlign: 'right', color: '#697177' }}>{row.units}</td>
-                        <td style={{ textAlign: 'right', fontWeight: 600 }}>${row.revenue.toLocaleString()}</td>
+                {materialTab === 0 ? (
+                  <table className="ao-widget-table">
+                    <thead>
+                      <tr>
+                        <th style={{ textAlign: 'left' }}>Material</th>
+                        <th style={{ textAlign: 'right' }}>Units Sold</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {(data.frameMaterials || FALLBACK.frameMaterials).map((row, i) => (
+                        <tr key={i}>
+                          <td style={{ textAlign: 'left', fontWeight: 500 }}>{row.material}</td>
+                          <td style={{ textAlign: 'right', color: '#697177' }}>{row.units}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <table className="ao-widget-table">
+                    <thead>
+                      <tr>
+                        <th style={{ textAlign: 'left' }}>Product</th>
+                        <th style={{ textAlign: 'right' }}>Units Sold</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(data.accessories || FALLBACK.accessories).map((row, i) => (
+                        <tr key={i}>
+                          <td style={{ textAlign: 'left', fontWeight: 500 }}>{row.name}</td>
+                          <td style={{ textAlign: 'right', color: '#697177' }}>{row.units}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
               </div>
             </div>
           </div>
@@ -417,91 +499,137 @@ const OrdersLineChart = ({ data }) => {
     return <div className="ao-chart-empty">No chart data available for this period</div>;
   }
 
+  const maxOrders  = Math.max(...data.map(d => d.orders  || 0)) || 1;
+  const maxRevenue = Math.max(...data.map(d => d.revenue || 0)) || 1;
+
+  const normalized = data.map(d => ({
+    date:       d.date,
+    orders:     Math.round(((d.orders  || 0) / maxOrders)  * 100),
+    revenue:    Math.round(((d.revenue || 0) / maxRevenue) * 100),
+    _orders:    d.orders  || 0,
+    _revenue:   d.revenue || 0,
+  }));
+
+  const fmt = (v) => {
+    if (v >= 100000) return `₹${(v / 100000).toFixed(1)}L`;
+    if (v >= 1000)   return `₹${(v / 1000).toFixed(0)}k`;
+    return `₹${v}`;
+  };
+
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (!active || !payload?.length) return null;
+    const d = payload[0]?.payload;
+    return (
+      <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 8, padding: '8px 12px', fontSize: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}>
+        <p style={{ fontWeight: 600, color: '#374151', marginBottom: 4 }}>{label}</p>
+        <p style={{ color: '#7987FF', margin: 0 }}>Orders: <strong>{d._orders}</strong></p>
+        <p style={{ color: '#C084FC', margin: 0 }}>Revenue: <strong>{fmt(d._revenue)}</strong></p>
+      </div>
+    );
+  };
+
   return (
-    <div style={{ width: '100%', height: 160 }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+    <div style={{ width: '100%' }}>
+      <ResponsiveContainer width="100%" height={200}>
+        <AreaChart data={normalized} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id="gradO" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#7987FF" stopOpacity={0.25} />
-              <stop offset="100%" stopColor="#7987FF" stopOpacity={0.02} />
+              <stop offset="0%" stopColor="#7987FF" stopOpacity={0.15} />
+              <stop offset="100%" stopColor="#7987FF" stopOpacity={0} />
             </linearGradient>
             <linearGradient id="gradR" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#E697FF" stopOpacity={0.25} />
-              <stop offset="100%" stopColor="#E697FF" stopOpacity={0.02} />
+              <stop offset="0%" stopColor="#C084FC" stopOpacity={0.15} />
+              <stop offset="100%" stopColor="#C084FC" stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="4 4" stroke="#f0f0f0" vertical={false} />
-          <XAxis 
-            dataKey="date" 
-            tick={{ fontSize: 11, fill: '#697177', fontWeight: 500 }} 
-            axisLine={false} tickLine={false} dy={8} 
+          <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
+          <XAxis
+            dataKey="date"
+            tick={{ fontSize: 11, fill: '#9CA3AF', fontFamily: 'Roboto, sans-serif' }}
+            axisLine={false} tickLine={false} dy={6}
           />
-          <YAxis 
-            ticks={[-60, -20, 20, 60]}
-            domain={[-60, 60]}
-            tick={{ fontSize: 16, fill: '#000000', fontWeight: 400 }}
-            axisLine={false} tickLine={false} dx={-10}
+          <YAxis
+            domain={[0, 100]}
+            ticks={[0, 25, 50, 75, 100]}
+            tickFormatter={(v) => `${v}%`}
+            tick={{ fontSize: 11, fill: '#9CA3AF', fontFamily: 'Roboto, sans-serif' }}
+            axisLine={false} tickLine={false} width={36} dx={-4}
           />
-          <RechartsTooltip 
-            contentStyle={{ borderRadius: 8, border: '1px solid #eaeaea', fontSize: 12 }}
+          <RechartsTooltip content={<CustomTooltip />} />
+          <Area
+            type="monotone" dataKey="orders" name="Orders"
+            stroke="#7987FF" strokeWidth={2} fill="url(#gradO)"
+            dot={{ r: 4, fill: '#7987FF', strokeWidth: 2, stroke: '#fff' }}
+            activeDot={{ r: 5 }}
           />
-          <Area 
-            type="monotone" dataKey="val1" 
-            stroke="#7987FF" strokeWidth={3} fill="url(#gradO)" 
-            activeDot={{ r: 5 }} name="Metric 1"
-          />
-          <Area 
-            type="monotone" dataKey="val2" 
-            stroke="#E697FF" strokeWidth={3} fill="url(#gradR)" 
-            activeDot={{ r: 5 }} name="Metric 2"
+          <Area
+            type="monotone" dataKey="revenue" name="Revenue"
+            stroke="#C084FC" strokeWidth={2} fill="url(#gradR)"
+            dot={{ r: 4, fill: '#C084FC', strokeWidth: 2, stroke: '#fff' }}
+            activeDot={{ r: 5 }}
           />
         </AreaChart>
       </ResponsiveContainer>
+
+      <div className="ao-chart-legend">
+        <div className="ao-legend-item">
+          <span className="ao-legend-dot" style={{ background: '#7987FF' }} />
+          <span>Orders</span>
+        </div>
+        <div className="ao-legend-item">
+          <span className="ao-legend-dot" style={{ background: '#C084FC' }} />
+          <span>Revenue</span>
+        </div>
+      </div>
     </div>
   );
 };
 
 /* ══════════════════════════════════════════════════════════════
-   DONUT CHART CARD (Recharts)
+   DONUT CHART CARD — Figma 1326-3044 / 1326-3074
+   Vertical: large centered donut + 2-col legend below
 ═══════════════════════════════════════════════════════════════ */
 const DonutCard = ({ title, segments }) => {
+  const total = segments.reduce((s, seg) => s + (seg.percent || 0), 0) || 1;
+  const normalized = segments.map(seg => ({
+    ...seg,
+    pct: Math.round((seg.percent / total) * 100),
+  }));
+
   return (
     <div className="ao-donut-card">
-      <h3 className="ao-donut-title">{title}</h3>
-      <div className="ao-donut-body">
-        <div className="ao-donut-svg-wrap">
-          <ResponsiveContainer width="100%" height={110}>
-            <PieChart>
-              <Pie
-                data={segments}
-                cx="50%" cy="50%"
-                innerRadius={35} outerRadius={50}
-                dataKey="percent" startAngle={90} endAngle={-270} strokeWidth={0}
-              >
-                {segments.map((entry, i) => (
-                  <Cell key={i} fill={entry.color} />
-                ))}
-              </Pie>
-              <RechartsTooltip 
-                formatter={(value) => `${value}%`}
-                contentStyle={{ borderRadius: 8, border: '1px solid #eaeaea', fontSize: 11 }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
+      {title && <h3 className="ao-donut-title">{title}</h3>}
+      <ResponsiveContainer width="100%" height={180}>
+        <PieChart>
+          <Pie
+            data={normalized}
+            cx="50%" cy="50%"
+            innerRadius={44} outerRadius={65}
+            dataKey="pct"
+            startAngle={90} endAngle={-270}
+            strokeWidth={3} stroke="#fff"
+          >
+            {normalized.map((entry, i) => (
+              <Cell key={i} fill={entry.color} />
+            ))}
+          </Pie>
+          <RechartsTooltip
+            formatter={(value) => `${value}%`}
+            contentStyle={{ borderRadius: 8, border: '1px solid #eaeaea', fontSize: 12 }}
+          />
+        </PieChart>
+      </ResponsiveContainer>
 
-        <div className="ao-donut-legend">
-          {segments.map((seg) => (
-            <div key={seg.label} className="ao-donut-legend-row">
-              <div className="ao-donut-legend-left">
-                <span className="ao-donut-dot" style={{ background: seg.color }} />
-                <span className="ao-donut-label">{seg.label}</span>
-              </div>
-              <span className="ao-donut-pct">{seg.percent}%</span>
+      <div className="ao-donut-legend">
+        {normalized.map((seg) => (
+          <div key={seg.label} className="ao-donut-legend-row">
+            <div className="ao-donut-legend-left">
+              <span className="ao-donut-dot" style={{ background: seg.color }} />
+              <span className="ao-donut-label">{seg.label}</span>
             </div>
-          ))}
-        </div>
+            <span className="ao-donut-pct">{seg.pct}%</span>
+          </div>
+        ))}
       </div>
     </div>
   );

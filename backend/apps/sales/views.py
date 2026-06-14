@@ -1595,22 +1595,45 @@ class OrdersOverviewView(views.APIView):
         ).aggregate(total=Sum('quantity')).get('total') or 0
         products_trend = safe_trend(products_curr, products_prev)
 
-        # Top product category
-        from apps.catalog.models import Variant
-        top_cat_qs = OrderItem.objects.filter(
-            order__created_at__date__gte=start_date
-        ).values('variant__product__category__name').annotate(
-            total=Sum('quantity')
-        ).order_by('-total')[:2]
+        # Product category breakdown — ALL categories
+        from apps.catalog.models import Category as CatalogCategory
+        CAT_COLORS = ['#A855F7', '#6366F1', '#EC4899', '#F59E0B', '#10B981', '#3B82F6', '#EF4444', '#14B8A6']
 
+        # Sales per category for the period
+        sales_qs = OrderItem.objects.filter(
+            order__created_at__date__gte=start_date
+        ).values('variant__product__category__id', 'variant__product__category__name').annotate(
+            total=Sum('quantity')
+        )
+        sales_map = {
+            row['variant__product__category__id']: {
+                'name': row['variant__product__category__name'] or 'Other',
+                'total': row['total'] or 0,
+            }
+            for row in sales_qs
+        }
+
+        # Only frame categories (Sunglasses + Eyeglasses)
+        all_cats = list(CatalogCategory.objects.filter(is_active=True, group='frame').order_by('name'))
+        cat_totals = [
+            {'name': cat.name, 'total': sales_map.get(cat.id, {}).get('total', 0)}
+            for cat in all_cats
+        ]
+
+        # Sort by sales descending; keep only those with sales if any exist
+        cat_totals.sort(key=lambda x: -x['total'])
+        has_sales = any(c['total'] > 0 for c in cat_totals)
+        if has_sales:
+            cat_totals = [c for c in cat_totals if c['total'] > 0]
+
+        grand_total = sum(c['total'] for c in cat_totals) or len(cat_totals) or 1
         category_breakdown = []
-        total_cat = sum(c['total'] or 0 for c in top_cat_qs) or 1
-        for cat in top_cat_qs:
-            name = cat['variant__product__category__name'] or 'Other'
-            category_breakdown.append({
-                'category': name,
-                'percent': round(((cat['total'] or 0) / total_cat) * 100)
-            })
+        product_category_data = []
+        for i, c in enumerate(cat_totals):
+            pct = round((c['total'] / grand_total) * 100) if has_sales else round(100 / len(cat_totals))
+            color = CAT_COLORS[i % len(CAT_COLORS)]
+            category_breakdown.append({'category': c['name'], 'percent': pct})
+            product_category_data.append({'label': c['name'], 'percent': pct, 'color': color})
 
         # 5. Orders Over Time chart
         chart_qs = base_qs.filter(created_at__date__gte=start_date).annotate(
@@ -1655,7 +1678,49 @@ class OrdersOverviewView(views.APIView):
                 for i, r in enumerate(return_reasons)
             ]
 
-        # 7. Product profit: category % of revenue
+        # 7. Top selling frame lenses and contact lenses
+        frame_lens_qs = OrderItem.objects.filter(
+            order__created_at__date__gte=start_date,
+            lens__isnull=False,
+            lens__replacement__isnull=True,
+        ).values('lens__package__name').annotate(count=Count('id')).order_by('-count')[:6]
+        top_frame_lenses = [
+            {'label': r['lens__package__name'] or 'Unknown', 'value': r['count']}
+            for r in frame_lens_qs
+        ]
+
+        contact_lens_qs = OrderItem.objects.filter(
+            order__created_at__date__gte=start_date,
+            lens__isnull=False,
+            lens__replacement__isnull=False,
+        ).values('lens__package__name').annotate(count=Count('id')).order_by('-count')[:6]
+        top_contact_lenses = [
+            {'label': r['lens__package__name'] or 'Unknown', 'value': r['count']}
+            for r in contact_lens_qs
+        ]
+
+        # 8. Frame materials and accessories
+        mat_qs = OrderItem.objects.filter(
+            order__created_at__date__gte=start_date,
+            variant__isnull=False,
+        ).exclude(variant__frame_material='').exclude(variant__frame_material__isnull=True).values(
+            'variant__frame_material'
+        ).annotate(units=Sum('quantity')).order_by('-units')[:6]
+        frame_materials_data = [
+            {'material': r['variant__frame_material'], 'units': r['units']}
+            for r in mat_qs
+        ]
+
+        acc_qs = OrderItem.objects.filter(
+            order__created_at__date__gte=start_date,
+            variant__product__category__group='accessory',
+        ).values('variant__product__title').annotate(units=Sum('quantity')).order_by('-units')[:6]
+        accessories_data = [
+            {'name': r['variant__product__title'] or 'Unknown', 'units': r['units']}
+            for r in acc_qs
+        ]
+
+        # 9. Product profit: category % of revenue
         profit_qs = OrderItem.objects.filter(
             order__created_at__date__gte=start_date
         ).values('variant__product__category__name').annotate(
@@ -1682,12 +1747,17 @@ class OrdersOverviewView(views.APIView):
                     'value': products_curr,
                     'trend': products_trend,
                     'label': 'last period',
-                    'categoryBreakdown': category_breakdown
+                    'categoryBreakdown': category_breakdown,
                 },
             },
             'chart': chart_data,
             'deliveryCost': delivery_cost_data,
             'productProfit': profit_data,
+            'productCategory': product_category_data,
+            'topFrameLenses': top_frame_lenses,
+            'topContactLenses': top_contact_lenses,
+            'frameMaterials': frame_materials_data,
+            'accessories': accessories_data,
         })
 
 

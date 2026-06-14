@@ -1,0 +1,450 @@
+/* Contact Lens Package Form — Figma node 1446-14949 */
+
+/* ── Wrapper fills the flex parent (.lm-offcanvas) ── */
+.clpf-wrap {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;        /* critical: lets children scroll inside flex */
+  overflow: hidden;
+  background: #fff;
+}
+
+/* ── Header ── */
+.clpf-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: #f3f3f3;
+  flex-shrink: 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+.clpf-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 17px;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1;
+  margin-right: 8px;
+}
+.clpf-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 6px;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.clpf-close:hover { background: #e5e7eb; color: #111827; }
+
+/* ── Scrollable body ── */
+.clpf-body {
+  flex: 1;
+  min-height: 0;         /* critical: enables scroll inside flex */
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  box-sizing: border-box;
+}
+.clpf-body::-webkit-scrollbar { width: 4px; }
+.clpf-body::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+
+/* ── Section block ── */
+.clpf-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 0;
+  width: 100%;
+}
+.clpf-section-title {
+  font-family: 'Roboto', sans-serif;
+  font-weight: 500;
+  font-size: 13px;
+  color: #6b46c1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+/* ── Divider ── */
+.clpf-divider {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 4px 0;
+  flex-shrink: 0;
+  width: 100%;
+}
+
+/* ── Label + Input row ── */
+.clpf-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+}
+.clpf-row--top { align-items: flex-start; }
+
+.clpf-label {
+  font-family: 'Roboto', sans-serif;
+  font-weight: 400;
+  font-size: 13px;
+  color: #020617;
+  width: 108px;
+  flex-shrink: 0;
+  line-height: 20px;
+  padding-top: 1px;
+}
+.clpf-req {
+  color: #c02828;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+/* ── Base input style ── */
+.clpf-input,
+.clpf-textarea {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #d2d2d2;
+  border-radius: 6px;
+  padding: 9px 12px;
+  font-family: 'Roboto', sans-serif;
+  font-size: 13px;
+  color: #020617;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.clpf-input:focus,
+.clpf-textarea:focus { border-color: #6b46c1; box-shadow: 0 0 0 2px rgba(107,70,193,0.08); }
+.clpf-textarea {
+  resize: vertical;
+  min-height: 72px;
+  line-height: 1.5;
+}
+
+/* ── Select with custom chevron ── */
+.clpf-select-wrap {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.clpf-select {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #d2d2d2;
+  border-radius: 6px;
+  padding: 9px 34px 9px 12px;
+  font-family: 'Roboto', sans-serif;
+  font-size: 13px;
+  color: #020617;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+.clpf-select:focus { border-color: #6b46c1; box-shadow: 0 0 0 2px rgba(107,70,193,0.08); }
+.clpf-select-icon {
+  position: absolute;
+  right: 10px;
+  color: #6b7280;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+/* ── Spinner (value + ▲▼ buttons) ── */
+.clpf-spinner {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid #d2d2d2;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #fff;
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.clpf-spinner-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  padding: 9px 10px;
+  font-family: 'Roboto', sans-serif;
+  font-size: 13px;
+  color: #020617;
+  background: transparent;
+  outline: none;
+  -moz-appearance: textfield;
+}
+.clpf-spinner-input::-webkit-inner-spin-button,
+.clpf-spinner-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.clpf-spinner-btns {
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+.clpf-spinner-btn {
+  flex: 1;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 7px;
+  color: #9ca3af;
+  line-height: 1;
+  transition: background 0.1s, color 0.1s;
+}
+.clpf-spinner-btn:hover { background: #f3f4f6; color: #374151; }
+.clpf-spinner-btn + .clpf-spinner-btn { border-top: 1px solid #e5e7eb; }
+
+/* Two spinners side-by-side (min/max sphere power) */
+.clpf-spinner-pair {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+.clpf-spinner-pair .clpf-spinner { flex: 1; min-width: 0; }
+
+/* ── Base Curve chips ── */
+.clpf-bc-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+.clpf-bc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: #f1f5f9;
+  color: #0f172a;
+  font-family: 'Roboto', sans-serif;
+  font-weight: 500;
+  font-size: 13px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.clpf-bc-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  padding: 0;
+  margin-left: 2px;
+}
+.clpf-bc-remove:hover { color: #dc2626; }
+.clpf-bc-plus {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: #f1f5f9;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #6b7280;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.clpf-bc-plus:hover { background: #e2e8f0; }
+.clpf-bc-add-input {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.clpf-bc-input {
+  width: 64px;
+  border: 1px solid #d2d2d2;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 13px;
+  outline: none;
+  box-sizing: border-box;
+}
+.clpf-bc-input:focus { border-color: #6b46c1; }
+.clpf-bc-confirm {
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: none;
+  background: #6b46c1;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: 'Roboto', sans-serif;
+  white-space: nowrap;
+}
+.clpf-bc-confirm:hover { background: #5a389c; }
+
+/* ── Replacement schedule pills ── */
+.clpf-pill-group {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+.clpf-pill {
+  padding: 5px 12px;
+  border-radius: 4px;
+  border: none;
+  background: #f1f5f9;
+  color: #0f172a;
+  font-family: 'Roboto', sans-serif;
+  font-weight: 500;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.clpf-pill.selected { background: #784aa4; color: #f8fafc; }
+.clpf-pill:hover:not(.selected) { background: #e2e8f0; }
+
+/* ── Color swatches ── */
+.clpf-colors-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.clpf-color-swatch {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  cursor: pointer;
+  flex-shrink: 0;
+  border: 2px solid rgba(0,0,0,0.1);
+}
+.clpf-color-remove {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #ef4444;
+  border: 1.5px solid #fff;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  padding: 0;
+}
+.clpf-color-swatch:hover .clpf-color-remove { display: flex; }
+.clpf-color-add-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1.5px dashed #bababa;
+  background: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #9ca3af;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.clpf-color-add-btn:hover { background: #e5e7eb; color: #374151; }
+.clpf-color-picker-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.clpf-color-picker-input {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 2px solid #d2d2d2;
+  padding: 2px;
+  cursor: pointer;
+  background: none;
+  box-sizing: border-box;
+}
+.clpf-bc-remove-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid #d2d2d2;
+  border-radius: 6px;
+  padding: 4px;
+  cursor: pointer;
+  color: #6b7280;
+  transition: color 0.15s, border-color 0.15s;
+}
+.clpf-bc-remove-btn:hover { color: #dc2626; border-color: #fca5a5; }
+
+/* ── Footer ── */
+.clpf-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid #e0e0e0;
+  flex-shrink: 0;
+  background: #fff;
+}
+.clpf-cancel {
+  padding: 7px 18px;
+  border-radius: 6px;
+  border: 1px solid #d0d5dd;
+  background: #fff;
+  color: #344054;
+  font-family: 'Roboto', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.clpf-cancel:hover { background: #f9fafb; }
+.clpf-submit {
+  padding: 8px 22px;
+  border-radius: 6px;
+  border: none;
+  background: #68408d;
+  color: #fefcff;
+  font-family: 'Roboto', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  min-width: 80px;
+  transition: background 0.15s;
+}
+.clpf-submit:hover { background: #5a3678; }

@@ -1,0 +1,44 @@
+/* Contact Lens Management — overrides / additions on top of lens_management.css */
+
+/* Flat type list — no category accordion wrapper */
+.cl-type-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+}
+
+/* Wider left panel matching Figma ~378px */
+.cl-screen .lm-left-panel {
+  width: 360px;
+  min-width: 320px;
+  max-width: 380px;
+}
+
+
+/* Wider offcanvas for the contact lens package form */
+.cl-screen .lm-offcanvas {
+  width: min(540px, 100vw);
+}
+
+/* "Add Contact Lens type" header button — purple outlined style */
+.cl-add-type-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #6b46c1;
+  background: transparent;
+  border: 1.5px solid #6b46c1;
+  border-radius: 8px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.cl-add-type-btn:hover {
+  background: #f3f0ff;
+}
+
