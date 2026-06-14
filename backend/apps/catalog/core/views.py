@@ -122,11 +122,13 @@ class MetadataGroupViewSet(viewsets.ModelViewSet):
         return queryset
 
 class MetadataItemViewSet(viewsets.ModelViewSet):
-    queryset = MetadataItem.objects.filter(is_active=True).order_by('id')
+    queryset = MetadataItem.objects.all().order_by('id')
     serializer_class = MetadataItemSerializer
     permission_classes = [AllowAny]
 
     def get_queryset(self):
+        if self.action in ('retrieve', 'update', 'partial_update', 'destroy'):
+            return MetadataItem.objects.all().order_by('id')
         queryset = MetadataItem.objects.filter(is_active=True).order_by('id')
         group = self.request.query_params.get('group')
         if group:

@@ -302,7 +302,16 @@ const ProductsPage = ({ onAddNew, onEdit }) => {
       {activeGroup === 'lens' ? (
         <LensesTab onAdd={() => onAddNew('lens')} onEdit={onEdit} />
       ) : (
-        <CategoryTab title={activeCategory || 'Category'} categoryName={activeCategory} onAdd={() => onAddNew('frame')} onEdit={onEdit} />
+        <CategoryTab
+          title={activeCategory || 'Category'}
+          categoryName={activeCategory}
+          onAdd={() => {
+            const cat = (activeCategory || '').toLowerCase();
+            const type = cat.includes('sunglass') ? 'sunglasses' : cat.includes('eyeglass') ? 'eyeglasses' : 'frame';
+            onAddNew(type);
+          }}
+          onEdit={onEdit}
+        />
       )}
     </div>
   );

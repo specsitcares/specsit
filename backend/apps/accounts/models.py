@@ -31,6 +31,7 @@ class NotificationPreference(models.Model):
         return f"Notification prefs for {self.user.username}"
 
 
+
 class Address(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='addresses')
     title = models.CharField(max_length=50, default='Home') # Home, Office
@@ -77,3 +78,6 @@ class EmployeeActionLog(models.Model):
     target_object_id = models.PositiveIntegerField()
     target_object_type = models.CharField(max_length=100)
     timestamp = models.DateTimeField(auto_now_add=True)
+
+
+    

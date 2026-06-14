@@ -107,3 +107,9 @@ class HomeSectionTitle(models.Model):
 
     def __str__(self):
         return self.get_key_display()
+
+
+class sizesettings(models.Model):
+    sizes_choices = [
+        ()
+    ]

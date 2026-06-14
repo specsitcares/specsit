@@ -77,6 +77,30 @@ const FrameFormRoute = () => {
   );
 };
 
+const EyeglassesFormRoute = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  return (
+    <ProductDetailsForm
+      onBack={() => navigate('/admin/products')}
+      editProduct={id ? { id: parseInt(id) } : null}
+      productType="eyeglasses"
+    />
+  );
+};
+
+const SunglassesFormRoute = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  return (
+    <ProductDetailsForm
+      onBack={() => navigate('/admin/products')}
+      editProduct={id ? { id: parseInt(id) } : null}
+      productType="sunglasses"
+    />
+  );
+};
+
 /* ── Main dashboard shell ─────────────────────────────────── */
 
 const AdminDashboard = () => {
@@ -161,10 +185,14 @@ const AdminDashboard = () => {
 
               {/* Products */}
               <Route path="products"                  element={<ProductsRoute />} />
-              <Route path="products/new/lens"         element={<LensManagement />} />
-              <Route path="products/new/frame"        element={<FrameFormRoute />} />
-              <Route path="products/edit/lens/:id"    element={<LensManagementRoute />} />
-              <Route path="products/edit/frame/:id"   element={<FrameFormRoute />} />
+              <Route path="products/new/lens"              element={<LensManagement />} />
+              <Route path="products/new/frame"             element={<FrameFormRoute />} />
+              <Route path="products/new/eyeglasses"        element={<EyeglassesFormRoute />} />
+              <Route path="products/new/sunglasses"        element={<SunglassesFormRoute />} />
+              <Route path="products/edit/lens/:id"         element={<LensManagementRoute />} />
+              <Route path="products/edit/frame/:id"        element={<FrameFormRoute />} />
+              <Route path="products/edit/eyeglasses/:id"   element={<EyeglassesFormRoute />} />
+              <Route path="products/edit/sunglasses/:id"   element={<SunglassesFormRoute />} />
               <Route path="products/categories"       element={<CategoryTable />} />
               <Route path="products/brands"           element={<BrandTable />} />
               <Route path="products/collections"      element={<CollectionTable />} />

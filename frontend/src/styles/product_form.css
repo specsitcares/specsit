@@ -176,6 +176,12 @@
   gap: 19px;
 }
 
+.form-field-row-4 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 19px;
+}
+
 .form-field-label {
   font-family: 'Roboto', sans-serif;
   font-size: 13px;
