@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from decimal import Decimal
-from .models import Category, Brand, Manufacturer, Product, Variant, VariantImage, Collection, LensPackage, Lens, Prescription, UserFace, Review, LensConstraint
+from .models import Category, Brand, Manufacturer, Product, Variant, VariantImage, Collection, LensPackage, Lens, Prescription, UserFace, Review, LensConstraint, MetadataItem
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -53,12 +53,12 @@ class VariantSerializer(serializers.ModelSerializer):
             if not isinstance(size_data, dict):
                 raise serializers.ValidationError(f"Size'{size_name}' data must be a dictionary")
             
-            required_fields = ['bridge_length, temple_length, lense_width, Quantity']
+            required_fields = ['quantity']
             missing_fields = [f for f in required_fields if f not in size_data]
 
             if missing_fields:
                 raise serializers.ValidationError(
-                    f"Size '{size_name}' is missing fields: {', '.joint(missing_fields)}"
+                    f"Size '{size_name}' is missing fields: {', '.join(missing_fields)}"
                 )
             if not isinstance(size_data['quantity'], (int, float)) or size_data['quantity'] < 0:
                 raise serializers.ValidationError(
@@ -161,6 +161,10 @@ class LensConstraintSerializer(serializers.ModelSerializer):
 
 
 class LensSerializer(serializers.ModelSerializer):
+    # Allow any MetadataItem (Lens Type OR Contact Lens Type groups)
+    type = serializers.PrimaryKeyRelatedField(
+        queryset=MetadataItem.objects.all(), required=False
+    )
     package_name = serializers.CharField(required=False)
     description = serializers.CharField(required=False, allow_blank=True)
     features = serializers.JSONField(required=False)
@@ -177,7 +181,9 @@ class LensSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'package', 'package_name', 'description', 'features',
             'type', 'price', 'index', 'index_value', 'is_active', 'is_for_sunglasses', 'is_for_eyeglasses',
-            'brand', 'category_ids', 'package_cost_price', 'package_selling_price', 'package_warranty_months', 'constraints', 'constraint_ids'
+            'brand', 'category_ids', 'package_cost_price', 'package_selling_price', 'package_warranty_months',
+            'constraints', 'constraint_ids',
+            'power_type', 'base_curve', 'replacement', 'material', 'water_content', 'dkt', 'colors', 'lenses_per_box',
         ]
         extra_kwargs = {
             'package': {'read_only': True}

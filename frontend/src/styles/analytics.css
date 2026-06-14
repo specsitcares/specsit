@@ -129,8 +129,8 @@
 }
 
 .ao-tab {
-  padding: 16px 20px;
-  font-size: 11px;
+  padding: 12px 16px;
+  font-size: 13px;
   font-weight: 500;
   color: #697177;
   background: none;
@@ -140,6 +140,7 @@
   cursor: pointer;
   transition: color .2s, border-color .2s;
   white-space: nowrap;
+  font-family: 'Roboto', sans-serif;
 }
 
 .ao-tab.active {
@@ -170,7 +171,7 @@
   background: #fff;
   border: 1px solid #E0E0E0;
   border-radius: 12px;
-  padding: 16px 18px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -185,13 +186,13 @@
 .ao-kpi-left {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .ao-kpi-icon {
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -200,7 +201,7 @@
 }
 
 .ao-kpi-label {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 500;
   color: #697177;
   letter-spacing: 0.08px;
@@ -217,7 +218,7 @@
 .ao-kpi-menu:hover { background: #F4EDFF; color: #68408D; }
 
 .ao-kpi-value {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 700;
   line-height: 1;
   letter-spacing: -0.14px;
@@ -229,7 +230,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 400;
 }
 
@@ -241,12 +242,11 @@
 .ao-kpi-sub {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-top: 4px;
+  gap: 5px;
 }
 
 .ao-kpi-progress-bar {
-  height: 8px;
+  height: 6px;
   background: #F1F5F9;
   border-radius: 9999px;
   overflow: hidden;
@@ -260,21 +260,24 @@
 }
 
 .ao-kpi-sub-text {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
   color: #697177;
 }
 
 .ao-kpi-sub-text.plain {
-  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #697177;
+  margin-top: 2px;
 }
 
 /* category rows (Products Sold) */
 .ao-kpi-cats {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-top: 4px;
+  gap: 3px;
+  margin-top: 2px;
 }
 
 .ao-kpi-cat-row {
@@ -284,13 +287,13 @@
 }
 
 .ao-kpi-cat-name {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
   color: #697177;
 }
 
 .ao-kpi-cat-pct {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
   color: #040205;
 }
@@ -298,7 +301,7 @@
 /* ── orders over time chart card ── */
 .ao-chart-card {
   background: #fff;
-  border: 1px solid rgba(0,0,0,0.05);
+  border: 1px solid #D5D5D5;
   border-radius: 12px;
   padding: 24px;
 }
@@ -311,7 +314,7 @@
 }
 
 .ao-chart-title {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
   color: #040205;
   letter-spacing: -0.02px;
@@ -378,41 +381,97 @@
   flex-shrink: 0;
 }
 
-/* ── bottom grid: 2 donut cards ── */
+/* ── bottom grid: 2 donut sections ── */
 .ao-bottom-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
 
-/* ── donut card ── */
-.ao-donut-card {
-  background: #fff;
-  border: 1px solid #E0E0E0;
-  border-radius: 12px;
-  padding: 24px;
+/* section wrapper (title above card) */
+.ao-donut-section {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 10px;
 }
 
-.ao-donut-title {
-  font-size: 11px;
+.ao-section-title {
+  font-size: 13px;
   font-weight: 600;
   color: #040205;
   letter-spacing: -0.02px;
   margin: 0;
+  font-family: 'Roboto', sans-serif;
 }
 
-.ao-donut-body {
+.ao-donut-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #040205;
+  letter-spacing: -0.02px;
+  margin: 0;
+  align-self: flex-start;
+}
+
+/* ── unified donut card ── */
+.ao-donut-card {
+  background: #fff;
+  border: 1px solid #E0E0E0;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  flex: 1;
+}
+
+/* legend grid — 2 columns */
+.ao-donut-legend {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 5px 20px;
+  width: 100%;
+}
+
+.ao-donut-legend-row {
   display: flex;
   align-items: center;
-  gap: 32px;
+  gap: 8px;
 }
 
-.ao-donut-svg-wrap {
-  overflow-y: auto;
-  min-width: 140px;
+.ao-donut-legend-left {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.ao-donut-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.ao-donut-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #62748e;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ao-donut-pct {
+  font-size: 10px;
+  font-weight: 700;
+  color: #0f172b;
+  flex-shrink: 0;
+  min-width: 22px;
+  text-align: right;
 }
 
 /* ── bottom widgets (3 cols) ── */
@@ -433,10 +492,10 @@
 }
 
 .ao-widget-title {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   color: #040205;
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 }
 
 /* table inside widget */
@@ -448,7 +507,7 @@
 .ao-widget-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 11px;
 }
 
 .ao-widget-table th {
@@ -468,50 +527,6 @@
 }
 
 
-/* legend */
-.ao-donut-legend {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.ao-donut-legend-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 0;
-  border-bottom: 1px solid #F1F5F9;
-}
-
-.ao-donut-legend-row:last-child { border-bottom: none; }
-
-.ao-donut-legend-left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.ao-donut-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 5px;
-  flex-shrink: 0;
-}
-
-.ao-donut-label {
-  font-size: 10px;
-  font-weight: 500;
-  color: #62748E;
-}
-
-.ao-donut-pct {
-  font-size: 10px;
-  font-weight: 700;
-  color: #0F172B;
-  min-width: 30px;
-  text-align: right;
-}
 
 /* ── coming soon placeholder ── */
 .ao-coming-soon {
@@ -531,10 +546,8 @@
 @media (max-width: 800px) {
   .ao-kpi-grid    { grid-template-columns: 1fr; }
   .ao-bottom-grid { grid-template-columns: 1fr; }
-  .ao-donut-body  { flex-direction: column; }
-  .ao-donut-svg   { width: 160px; height: 160px; }
   .ao-tabs        { overflow-x: auto; }
-  .ao-tab         { font-size: 14px; padding: 12px 14px; }
+  .ao-tab         { font-size: 11px; padding: 10px 12px; }
 }
 
 /* ═══ keep old classes for backward-compat (DashboardHome etc.) ═══ */

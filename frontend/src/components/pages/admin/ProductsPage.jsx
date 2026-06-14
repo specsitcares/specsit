@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Edit2, Trash2 } from 'lucide-react';
 import apiClient from '../../../services/api';
 import BaseAdminTable from './BaseAdminTable';
+import ContactLensManagement from './ContactLensManagement';
 
 const formatPrice = (v) => v != null ? `₹${parseFloat(v).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—';
 
@@ -300,7 +301,7 @@ const ProductsPage = ({ onAddNew, onEdit }) => {
 
       {/* Content for the selected category/group */}
       {activeGroup === 'lens' ? (
-        <LensesTab onAdd={() => onAddNew('lens')} onEdit={onEdit} />
+        <ContactLensManagement />
       ) : (
         <CategoryTab
           title={activeCategory || 'Category'}

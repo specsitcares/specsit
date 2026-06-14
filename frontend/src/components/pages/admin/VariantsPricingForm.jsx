@@ -10,12 +10,6 @@ import {
 } from 'lucide-react';
 import '../../../styles/variants_pricing.css';
 
-const FRAME_TYPE_OPTIONS = [
-  { value: '', label: 'Select frame type' },
-  { value: 'Full Rim', label: 'Full Rim' },
-  { value: 'Half Rim', label: 'Half Rim' },
-  { value: 'Rimless', label: 'Rimless' },
-];
 
 const FRAME_SHAPE_OPTIONS = [
   { value: '', label: 'Select frame shape' },
@@ -202,6 +196,7 @@ const VariantsPricingForm = forwardRef(({ formData, onFormDataChange, saving, er
   const [frameShapeOptions, setFrameShapeOptions] = useState(
     FRAME_SHAPE_OPTIONS.filter(o => o.value).map(o => o.value)
   );
+  const [frameTypeOptions, setFrameTypeOptions] = useState(['Rimless', 'Half Rim', 'Full Rim']);
 
   const fileInputRefs = useRef({});
 
@@ -603,13 +598,13 @@ const VariantsPricingForm = forwardRef(({ formData, onFormDataChange, saving, er
                             />
                           </div>
                           <div className="form-field">
-                            <label className="form-field-label">Frame dimensions</label>
-                            <input
-                              type="text"
-                              className="form-field-input"
-                              placeholder="e.g. 50-20-145"
-                              value={v.frame_dimensions || ''}
-                              onChange={(e) => updateVariant(v.id, 'frame_dimensions', e.target.value)}
+                            <label className="form-field-label">Frame type</label>
+                            <SelectWithAdd
+                              value={v.frame_type || ''}
+                              onChange={(val) => updateVariant(v.id, 'frame_type', val)}
+                              options={frameTypeOptions}
+                              onAddOption={(opt) => setFrameTypeOptions(prev => [...prev, opt])}
+                              placeholder="Select frame type"
                             />
                           </div>
                           <div className="form-field">
@@ -775,15 +770,6 @@ const VariantsPricingForm = forwardRef(({ formData, onFormDataChange, saving, er
                               onAddOption={(opt) => setFrameMaterialOptions(prev => [...prev, opt])}
                               placeholder="Select frame material"
                             />
-                          </div>
-                          <div className="form-field">
-                            <label className="form-field-label">Frame type</label>
-                            <div className="form-field-select-wrapper">
-                              <select value={v.frame_type || ''} onChange={(e) => updateVariant(v.id, 'frame_type', e.target.value)}>
-                                {FRAME_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                              </select>
-                              <span className="select-chevron"><ChevronDown size={14} /></span>
-                            </div>
                           </div>
                           <div className="form-field">
                             <label className="form-field-label">Frame Shape</label>

@@ -242,7 +242,17 @@ class Lens(models.Model):
     is_for_sunglasses = models.BooleanField(default=False)
     is_for_eyeglasses = models.BooleanField(default=True)
     constraints = models.ManyToManyField(LensConstraint, blank=True, related_name='lenses')
-    
+    # Contact-lens-specific fields
+    power_type = models.CharField(max_length=50, blank=True, null=True)
+    base_curve = models.JSONField(default=list, blank=True)
+    replacement = models.CharField(max_length=20, blank=True, null=True,
+        choices=[('daily', 'Daily'), ('weekly', 'Weekly'), ('monthly', 'Monthly'), ('yearly', 'Yearly')])
+    material = models.CharField(max_length=100, blank=True, null=True)
+    water_content = models.CharField(max_length=20, blank=True, null=True)
+    dkt = models.CharField(max_length=20, blank=True, null=True)
+    colors = models.JSONField(default=list, blank=True)
+    lenses_per_box = models.IntegerField(null=True, blank=True)
+
     def __str__(self): return f"{self.package.name}: {self.type.label if self.type else 'Generic'}"
 
 class Prescription(models.Model):
