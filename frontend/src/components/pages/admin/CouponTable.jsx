@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Tag, Trash2, Edit2 } from 'lucide-react';
 import apiClient from '../../../services/api';
 import FormModal from './FormModal';
@@ -15,28 +15,21 @@ const CouponTable = () => {
   const [perPage, setPerPage]         = useState(10);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
-  const [listModal, setListModal]     = useState({ isOpen: false, title: '', items: [] });
-
-  // Dropdown data
-  const [brands, setBrands]                     = useState([]);
-  const [categories, setCategories]             = useState([]);
-
-  // Current selections
-  const [selectedBrandId, setSelectedBrandId]       = useState('');
-  const [selectedCategoryId, setSelectedCategoryId] = useState('');
+  const [categories, setCategories]   = useState([]);
+  const [brands, setBrands]           = useState([]);
 
   useEffect(() => {
     fetchCoupons();
+    fetchCategories();
     fetchBrands();
   }, []);
 
-  /* ── Data fetchers ───────────────────────────────────────── */
-
-  const fetchCoupons = async () => {
+  const fetchCategories = async () => {
     try {
-      const res = await apiClient.get('/sales/coupons/');
-      setCoupons(Array.isArray(res.data) ? res.data : (res.data.results || []));
-    } catch { /* silent */ } finally { setLoading(false); }
+      const res = await apiClient.get('/catalog/categories/');
+      const list = Array.isArray(res.data) ? res.data : (res.data.results || []);
+      setCategories(list.filter(c => c.is_active !== false));
+    } catch { /* silent */ }
   };
 
   const fetchBrands = async () => {
@@ -47,51 +40,35 @@ const CouponTable = () => {
     } catch { /* silent */ }
   };
 
-  const fetchCategories = async () => {
+  const fetchCoupons = async () => {
     try {
-      const res = await apiClient.get('/catalog/categories/');
-      const list = Array.isArray(res.data) ? res.data : (res.data.results || []);
-      setCategories(list.filter(c => c.is_active !== false));
-    } catch { /* silent */ }
+      const res = await apiClient.get('/sales/coupons/');
+      setCoupons(Array.isArray(res.data) ? res.data : (res.data.results || []));
+    } catch { /* silent */ } finally { setLoading(false); }
   };
 
-  useEffect(() => {
-    fetchCoupons();
-    fetchBrands();
-    fetchCategories();
-  }, []);
-
-  useEffect(() => {
-    fetchCoupons();
-    fetchBrands();
-    fetchCategories();
-  }, []);
-
-  /* ── Form fields (rebuilt on every render so options stay in sync) ── */
-
+  // Build form fields dynamically so category options are populated after fetch
   const couponFormFields = [
     { name: 'code',                label: 'Coupon Code',        type: 'text',   required: true, placeholder: 'e.g. SAVE20' },
     { name: 'discount_percentage', label: 'Discount %',         type: 'number', required: true, min: 0, max: 100, step: 0.5 },
     { name: 'min_cart_value',      label: 'Min Cart Value (₹)', type: 'number', required: true, min: 0, step: 100 },
     {
-      name: 'brand_select',
-      label: 'Brands',
+      name: 'brand',
+      label: 'Applicable Brands',
       type: 'checkbox-group',
-      required: false,
-      options: brands.map(b => ({ value: String(b.id), label: b.name })),
-      helpText: 'Select brands. Leave empty to apply to all brands.',
+      required: true,
+      options: brands.map(b => ({value: String(b.id), label: b.name}))
     },
     {
-      name: 'category_select',
-      label: 'Categories',
+      name: 'categories',
+      label: 'Applicable Categories',
       type: 'checkbox-group',
-      required: false,
+      required: true,
       options: categories.map(c => ({ value: String(c.id), label: c.name })),
-      helpText: 'Select categories (e.g. Eyeglasses, Sunglasses). Leave empty for all.',
     },
-    { name: 'is_active',  label: 'Active',     type: 'checkbox' },
-    { name: 'valid_from', label: 'Valid From',  type: 'date' },
-    { name: 'valid_until',label: 'Valid Until', type: 'date' },
+    { name: 'is_active',  label: 'Active',          type: 'checkbox' },
+    { name: 'valid_from', label: 'Valid From',       type: 'date' },
+    { name: 'valid_until',label: 'Valid Until',      type: 'date' },
   ];
 
   /* ── Bulk actions ─────────────────────────────────────────── */
@@ -118,25 +95,32 @@ const CouponTable = () => {
   const handleCreateClick = () => {
     setFormMode('create');
     setSelectedCoupon(null);
-    setSelectedBrandId('');
-    setSelectedCategoryId('');
     setShowForm(true);
   };
 
-  const handleEditClick = async (c) => {
-    setFormMode('edit');
-
+  const handleEditClick = (c) => {
+    // Ensure categories is an array of numbers for the checkbox-group pre-population
     const normalized = {
       ...c,
-      brand_select: c.brand_details ? c.brand_details.map(b => Number(b.id)) : [],
-      category_select: c.category_details ? c.category_details.map(cat => Number(cat.id)) : [],
+      categories: Array.isArray(c.categories)
+        ? c.categories.map(Number)
+        : [],
     };
-
+    setFormMode('edit');
     setSelectedCoupon(normalized);
     setShowForm(true);
   };
 
   const handleFormSubmit = async (formData) => {
+    // categories must be sent as an array of integer IDs
+    const categoriesArr = Array.isArray(formData.categories)
+      ? formData.categories.map(Number).filter(n => !isNaN(n))
+      : [];
+
+    if (categoriesArr.length === 0) {
+      throw { response: { data: { categories: ['At least one category must be selected.'] } } };
+    }
+
     const payload = {
       code: formData.code,
       discount_percentage: formData.discount_percentage,
@@ -144,8 +128,7 @@ const CouponTable = () => {
       is_active: !!formData.is_active,
       valid_from: formData.valid_from || null,
       valid_until: formData.valid_until || null,
-      brands: Array.isArray(formData.brand_select) ? formData.brand_select : [],
-      categories: Array.isArray(formData.category_select) ? formData.category_select : [],
+      categories: categoriesArr,
     };
 
     try {
@@ -179,8 +162,7 @@ const CouponTable = () => {
     { label: 'Code',     key: 'code',      sortable: true  },
     { label: 'Discount', key: 'discount',  sortable: true  },
     { label: 'Min Value',key: 'min_value', sortable: true  },
-    { label: 'Brand',    key: 'brand',     sortable: false },
-    { label: 'Category', key: 'category',  sortable: false },
+    { label: 'Categories', key: 'categories', sortable: false },
     { label: 'Status',   key: 'status',    sortable: true  },
     { label: 'Expires',  key: 'expires',   sortable: true  },
     { label: 'Action',   key: 'action',    align: 'right'  },
@@ -214,66 +196,20 @@ const CouponTable = () => {
         <div style={{ fontSize: '11px', color: '#667085' }}>₹{Number(c.min_cart_value || 0).toLocaleString('en-IN')}</div>
       </td>
 
-      {/* Brand */}
+      {/* Categories */}
       <td style={{ padding: '16px 24px' }}>
-        {c.brand_names && c.brand_names.length > 0 ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{
-              backgroundColor: '#FEF3C7', color: '#92400E',
-              padding: '3px 8px', borderRadius: '12px',
-              fontSize: '10px', fontWeight: 600,
-              border: '1px solid #FCD34D', whiteSpace: 'nowrap',
-            }}>
-              {c.brand_names[0]}
-            </span>
-            {c.brand_names.length > 1 && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setListModal({ isOpen: true, title: 'Selected Brands', items: c.brand_names });
-                }}
-                style={{
-                  background: 'none', border: '1px solid #E5E7EB', borderRadius: '12px',
-                  padding: '2px 8px', fontSize: '10px', fontWeight: 600, color: '#6B7280',
-                  cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap'
-                }}
-              >
-                +{c.brand_names.length - 1} more
-              </button>
-            )}
-          </div>
-        ) : (
-          <span style={{ fontSize: '10px', color: '#9CA3AF', fontStyle: 'italic' }}>All Brands</span>
-        )}
-      </td>
-
-      {/* Category */}
-      <td style={{ padding: '16px 24px' }}>
-        {c.category_details && c.category_details.length > 0 ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{
-              backgroundColor: '#EFF6FF', color: '#1D4ED8',
-              padding: '3px 8px', borderRadius: '12px',
-              fontSize: '10px', fontWeight: 600,
-              border: '1px solid #BFDBFE', whiteSpace: 'nowrap',
-            }}>
-              {c.category_details[0].name}
-            </span>
-            {c.category_details.length > 1 && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setListModal({ isOpen: true, title: 'Selected Categories', items: c.category_details.map(cat => cat.name) });
-                }}
-                style={{
-                  background: 'none', border: '1px solid #E5E7EB', borderRadius: '12px',
-                  padding: '2px 8px', fontSize: '10px', fontWeight: 600, color: '#6B7280',
-                  cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap'
-                }}
-              >
-                +{c.category_details.length - 1} more
-              </button>
-            )}
+        {c.category_names && c.category_names.length > 0 ? (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            {c.category_names.map((name, i) => (
+              <span key={i} style={{
+                backgroundColor: '#F0FDF4', color: '#15803D',
+                padding: '3px 8px', borderRadius: '12px',
+                fontSize: '10px', fontWeight: 600,
+                border: '1px solid #BBF7D0', whiteSpace: 'nowrap',
+              }}>
+                {name}
+              </span>
+            ))}
           </div>
         ) : (
           <span style={{ fontSize: '10px', color: '#9CA3AF', fontStyle: 'italic' }}>All Categories</span>
@@ -368,36 +304,6 @@ const CouponTable = () => {
         fields={couponFormFields}
         initialData={selectedCoupon || {}}
       />
-
-      {/* ── List Modal ── */}
-      {listModal.isOpen && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 1300, background: 'rgba(16, 24, 40, 0.4)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16
-        }} onClick={() => setListModal({ isOpen: false, title: '', items: [] })}>
-          <div style={{
-            background: '#fff', borderRadius: '12px', width: '100%', maxWidth: '320px',
-            boxShadow: '0 20px 48px rgba(16,24,40,0.18)', overflow: 'hidden'
-          }} onClick={e => e.stopPropagation()}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid #EAECF0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#101828' }}>{listModal.title}</h3>
-              <button onClick={() => setListModal({ isOpen: false, title: '', items: [] })} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#667085', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-              </button>
-            </div>
-            <div style={{ padding: '12px 20px', maxHeight: '300px', overflowY: 'auto' }}>
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                {listModal.items.map((item, idx) => (
-                  <li key={idx} style={{ padding: '8px 0', borderBottom: idx < listModal.items.length - 1 ? '1px solid #F2F4F7' : 'none', fontSize: '13px', color: '#344054', display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#68408D' }} />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 };

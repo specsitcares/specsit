@@ -6,9 +6,8 @@ import ReviewSubmit from './ReviewSubmit';
 import '../../../styles/product_form.css';
 
 const STEPS = [
-  { id: 1, label: 'Product Details' },
-  { id: 2, label: 'Variants & Pricing' },
-  { id: 3, label: 'Review & Submit' },
+  { id: 1, label: 'Product Details / Variant & Pricing' },
+  { id: 2, label: 'Review & Submit' },
 ];
 
 const FRAME_WIDTH_OPTIONS = [
@@ -73,7 +72,7 @@ const DEFAULT_VARIANT = () => ({
   is_warranty_eligible: true,
 });
 
-const ProductDetailsForm = ({ onBack, editProduct = null }) => {
+const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglasses' }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
@@ -122,7 +121,20 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
 
         if (catResult.status === 'fulfilled') {
           const d = catResult.value.data;
-          setCategories(Array.isArray(d) ? d : (d.results || []));
+          const cats = Array.isArray(d) ? d : (d.results || []);
+          setCategories(cats);
+          // Auto-lock category for eyeglasses/sunglasses forms
+          if (!editProduct?.id) {
+            const term = productType === 'sunglasses' ? 'sunglass' : 'eyeglass';
+            const matched = cats.find(c => c.name.toLowerCase().includes(term));
+            if (matched) {
+              setFormData(prev => ({
+                ...prev,
+                category: String(matched.id),
+                taxPercent: productType === 'sunglasses' ? '18' : '5',
+              }));
+            }
+          }
         }
         if (brandResult.status === 'fulfilled') {
           const d = brandResult.value.data;
@@ -247,12 +259,28 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
 
   const handleNext = () => {
     if (currentStep === 1 && !validateStep1()) return;
-    if (currentStep < 3) setCurrentStep(prev => prev + 1);
+    if (currentStep < 2) setCurrentStep(prev => prev + 1);
   };
 
   const handleBack = () => {
     if (currentStep > 1) setCurrentStep(prev => prev - 1);
     else if (onBack) onBack();
+  };
+
+  const handleReset = () => {
+    setFormData({
+      title: '',
+      description: '',
+      category: '',
+      brand: '',
+      short_description: '',
+      variants: [DEFAULT_VARIANT()],
+      taxPercent: '0',
+      isBogo: false,
+      discountStartDate: '',
+      discountEndDate: '',
+    });
+    setErrors({});
   };
 
   // Callbacks passed to VariantsPricingForm so it can report DB-side removals (BUG 2 FIX)
@@ -545,8 +573,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
             <h2>{currentStep}. {STEPS[currentStep - 1].label}</h2>
             <p>
               {currentStep === 1 && "Enter the primary information for your eyewear product."}
-              {currentStep === 2 && "Configure color variants, stock, and pricing adjustments."}
-              {currentStep === 3 && "Review all specifications before submitting to catalog."}
+              {currentStep === 2 && "Enter the primary information for your eyewear product."}
             </p>
           </div>
         </div>
@@ -554,117 +581,95 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
         <div className="product-form-body">
           <div className="product-form-content">
             {currentStep === 1 && (
-              <div className="form-sub-section">
-                <div className="form-sub-section-title">
-                  <h3>General Information</h3>
-                  <hr className="title-divider" />
-                </div>
-
-                <div className="form-field">
-                  <label className="form-field-label">
-                    Product Title <span className="required-star">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    className={`form-field-input ${errors.title ? 'has-error' : ''}`}
-                    placeholder="e.g. Ray-Ban Aviator Classic"
-                    value={formData.title}
-                    onChange={(e) => handleInputChange('title', e.target.value)}
-                  />
-                  {errors.title && <span className="form-field-error"><AlertCircle size={12} /> {errors.title}</span>}
-                </div>
-
-                <div className="form-field-row">
-                  <div className="form-field">
-                    <label className="form-field-label">Category <span className="required-star">*</span></label>
-                    <div className="form-field-select-wrapper">
-                      <select
-                        value={formData.category}
-                        onChange={(e) => handleInputChange('category', e.target.value)}
-                        className={errors.category ? 'has-error' : ''}
-                      >
-                        <option value="">Select Category</option>
-                        {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                      </select>
-                      <span className="select-chevron"><ChevronDown size={16} /></span>
-                    </div>
-                    {errors.category && <span className="form-field-error"><AlertCircle size={12} /> {errors.category}</span>}
+              <>
+                {/* General Information */}
+                <div className="form-sub-section">
+                  <div className="form-sub-section-title">
+                    <h3>General Information</h3>
+                    <hr className="title-divider" />
                   </div>
-                  <div className="form-field">
-                    <label className="form-field-label">Manufacturer / Brand</label>
-                    <div className="form-field-select-wrapper">
-                      <select
-                        value={formData.brand}
-                        onChange={(e) => handleInputChange('brand', e.target.value)}
-                      >
-                        <option value="">Select Brand</option>
-                        {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                      </select>
-                      <span className="select-chevron"><ChevronDown size={16} /></span>
-                    </div>
-                  </div>
-                </div>
 
-                <div className="form-field">
-                  <label className="form-field-label">Short Description</label>
-                  <input
-                    type="text"
-                    className="form-field-input"
-                    placeholder="Iconic teardrop shape with crystal green lenses."
-                    value={formData.short_description}
-                    onChange={(e) => handleInputChange('short_description', e.target.value)}
-                  />
-                </div>
-
-                <div className="form-field">
-                  <label className="form-field-label">Tax %</label>
-                  <input
-                    type="number"
-                    className="form-field-input"
-                    placeholder="0"
-                    value={formData.taxPercent || '0'}
-                    onChange={(e) => handleInputChange('taxPercent', e.target.value)}
-                  />
-                </div>
-
-                <div className="form-field" style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '2px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '8px 0' }}>
-                    <div>
-                      <div style={{ fontSize: '12px', fontWeight: 500, color: '#344054' }}>Warranty Eligible</div>
-                      <div style={{ fontSize: '11px', color: '#9ca3af' }}>Enable warranty claim for this product</div>
-                    </div>
-                    <label className="toggle-switch">
-                      <input 
-                        type="checkbox" 
-                        checked={formData.variants?.[0]?.is_warranty_eligible !== false} 
-                        onChange={(e) => {
-                          const updated = [...formData.variants];
-                          if (updated[0]) {
-                            updated[0] = { ...updated[0], is_warranty_eligible: e.target.checked };
-                            setFormData({ ...formData, variants: updated });
-                          }
-                        }}
+                  <div className="form-field-row-4">
+                    <div className="form-field">
+                      <label className="form-field-label">
+                        Product Title <span className="required-star">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        className={`form-field-input ${errors.title ? 'has-error' : ''}`}
+                        placeholder="e.g. Ray-Ban Aviator Classic"
+                        value={formData.title}
+                        onChange={(e) => handleInputChange('title', e.target.value)}
                       />
-                      <span className="toggle-slider" />
-                    </label>
+                      {errors.title && <span className="form-field-error"><AlertCircle size={12} /> {errors.title}</span>}
+                    </div>
+
+                    <div className="form-field">
+                      <label className="form-field-label">Category <span className="required-star">*</span></label>
+                      <div className="form-field-select-wrapper">
+                        <select
+                          value={formData.category}
+                          onChange={(e) => handleInputChange('category', e.target.value)}
+                          className={errors.category ? 'has-error' : ''}
+                          disabled={!!productType}
+                          style={productType ? { background: '#F9FAFB', color: '#344054', cursor: 'not-allowed' } : {}}
+                        >
+                          <option value="">Select Category</option>
+                          {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
+                        <span className="select-chevron"><ChevronDown size={16} /></span>
+                      </div>
+                      {errors.category && <span className="form-field-error"><AlertCircle size={12} /> {errors.category}</span>}
+                    </div>
+
+                    <div className="form-field">
+                      <label className="form-field-label">Manufacturer / Brand</label>
+                      <div className="form-field-select-wrapper">
+                        <select
+                          value={formData.brand}
+                          onChange={(e) => handleInputChange('brand', e.target.value)}
+                        >
+                          <option value="">Select Brand</option>
+                          {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                        </select>
+                        <span className="select-chevron"><ChevronDown size={16} /></span>
+                      </div>
+                    </div>
+
+                    <div className="form-field">
+                      <label className="form-field-label">Tax <span className="required-star">*</span></label>
+                      <input
+                        type="number"
+                        className="form-field-input"
+                        placeholder="0%"
+                        value={formData.taxPercent || '0'}
+                        onChange={(e) => handleInputChange('taxPercent', e.target.value)}
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
+
+                {/* Variant and Pricing */}
+                <div className="form-sub-section" style={{ marginTop: '24px' }}>
+                  <div className="form-sub-section-title">
+                    <h3>variant and Pricing</h3>
+                    <hr className="title-divider" />
+                  </div>
+                  <VariantsPricingForm
+                    ref={variantFormRef}
+                    formData={formData}
+                    onFormDataChange={setFormData}
+                    saving={saving}
+                    onVariantRemoved={handleVariantRemoved}
+                    onImageRemoved={handleImageRemoved}
+                    globalTemplates={globalTemplates}
+                    productType={productType}
+                  />
+                </div>
+              </>
             )}
 
             {currentStep === 2 && (
-              <VariantsPricingForm
-                ref={variantFormRef}
-                formData={formData}
-                onFormDataChange={setFormData}
-                saving={saving}
-                onVariantRemoved={handleVariantRemoved}
-                onImageRemoved={handleImageRemoved}
-                globalTemplates={globalTemplates}
-              />
-            )}
-
-            {currentStep === 3 && (
               <ReviewSubmit
                 formData={formData}
                 categories={categories}
@@ -672,25 +677,32 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
                 confirmed={confirmed}
                 setConfirmed={setConfirmed}
                 errors={errors}
+                productType={productType}
               />
             )}
           </div>
         </div>
 
         <div className="product-form-footer">
-          <button className="pf-btn pf-btn-ghost" onClick={handleBack} disabled={saving}>
-            {currentStep === 1 ? 'Cancel' : 'Back'}
-          </button>
+          {currentStep === 1 ? (
+            <button className="pf-btn pf-btn-ghost" onClick={handleReset} disabled={saving}>
+              Reset
+            </button>
+          ) : (
+            <button className="pf-btn pf-btn-ghost" onClick={handleBack} disabled={saving}>
+              Cancels changes
+            </button>
+          )}
 
           <div className="product-form-footer-right">
-            {currentStep === 2 && (
+            {currentStep === 1 && (
               <button
                 className="pf-btn pf-btn-secondary"
                 onClick={() => variantFormRef.current?.addVariant()}
                 disabled={saving}
               >
                 <Plus size={18} />
-                Add Variant
+                Add Color Variant
               </button>
             )}
             <button className="pf-btn pf-btn-outline" onClick={handleSaveDraft} disabled={saving}>
@@ -698,13 +710,11 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
             </button>
             <button
               className="pf-btn pf-btn-primary"
-              onClick={currentStep === 3 ? handleFinalSubmit : handleNext}
-              disabled={saving || (currentStep === 3 && !confirmed)}
+              onClick={currentStep === 2 ? handleFinalSubmit : handleNext}
+              disabled={saving || (currentStep === 2 && !confirmed)}
             >
               {saving ? 'Processing...' : (
-                currentStep === 1 ? 'Next: Variants & Pricing' :
-                currentStep === 2 ? 'Next: Review & Submit' :
-                'Submit'
+                currentStep === 1 ? 'Next: Variants & Pricing' : 'Submit'
               )}
             </button>
           </div>

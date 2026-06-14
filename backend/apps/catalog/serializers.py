@@ -3,11 +3,6 @@ from decimal import Decimal
 from .models import Category, Brand, Manufacturer, Product, Variant, VariantImage, Collection, LensPackage, Lens, Prescription, UserFace, Review, LensConstraint
 
 class CategorySerializer(serializers.ModelSerializer):
-    parent_name = serializers.SerializerMethodField()
-    
-    def get_parent_name(self, obj):
-        return obj.parent.name if obj.parent else None
-    
     class Meta:
         model = Category
         fields = '__all__'
@@ -51,44 +46,26 @@ class VariantSerializer(serializers.ModelSerializer):
             return obj.product.stock_quantity or 0
         except Exception:
             return 0
-
     def validate_stock_by_size(self, value):
-        """
-        Validate stock_by_size structure.
-        Each size must have: bridge_length, temple_length, lens_width, quantity
-        """
         if not isinstance(value, dict):
             raise serializers.ValidationError("stock_by_size must be a dictionary")
-        
         for size_name, size_data in value.items():
             if not isinstance(size_data, dict):
-                raise serializers.ValidationError(f"Size '{size_name}' data must be a dictionary")
+                raise serializers.ValidationError(f"Size'{size_name}' data must be a dictionary")
             
-            required_fields = ['bridge_length', 'temple_length', 'lens_width', 'quantity']
+            required_fields = ['bridge_length, temple_length, lense_width, Quantity']
             missing_fields = [f for f in required_fields if f not in size_data]
-            
+
             if missing_fields:
                 raise serializers.ValidationError(
-                    f"Size '{size_name}' is missing fields: {', '.join(missing_fields)}"
+                    f"Size '{size_name}' is missing fields: {', '.joint(missing_fields)}"
                 )
-            
-            # Coerce string quantities (JS inputs always produce strings) to numeric
-            raw_qty = size_data['quantity']
-            try:
-                qty = float(raw_qty)
-            except (TypeError, ValueError):
+            if not isinstance(size_data['quantity'], (int, float)) or size_data['quantity'] < 0:
                 raise serializers.ValidationError(
                     f"Size '{size_name}' quantity must be a non-negative number"
                 )
-            if qty < 0:
-                raise serializers.ValidationError(
-                    f"Size '{size_name}' quantity must be a non-negative number"
-                )
-            # Normalise back to int for clean storage
-            size_data['quantity'] = int(qty)
-        
         return value
-
+    
     def to_representation(self, instance):
         data = super().to_representation(instance)
         # On read, return effective stock (variant stock or product fallback)
@@ -200,8 +177,7 @@ class LensSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'package', 'package_name', 'description', 'features',
             'type', 'price', 'index', 'index_value', 'is_active', 'is_for_sunglasses', 'is_for_eyeglasses',
-            'brand', 'category_ids', 'package_cost_price', 'package_selling_price', 'package_warranty_months',
-            'constraints', 'constraint_ids', 'min_power', 'max_power',
+            'brand', 'category_ids', 'package_cost_price', 'package_selling_price', 'package_warranty_months', 'constraints', 'constraint_ids'
         ]
         extra_kwargs = {
             'package': {'read_only': True}
@@ -219,17 +195,8 @@ class LensSerializer(serializers.ModelSerializer):
             data['package_warranty_months'] = instance.package.warranty_months
         if instance.brand:
             data['brand_name'] = instance.brand.name
-            request = self.context.get('request')
-            if instance.brand.logo and request:
-                data['brand_logo'] = request.build_absolute_uri(instance.brand.logo.url)
-            elif instance.brand.logo:
-                data['brand_logo'] = instance.brand.logo.url
-            else:
-                data['brand_logo'] = None
         if instance.type:
             data['type_label'] = instance.type.label
-        data['min_power'] = float(instance.min_power) if instance.min_power is not None else -6.0
-        data['max_power'] = float(instance.max_power) if instance.max_power is not None else 4.0
         return data
 
     def create(self, validated_data):

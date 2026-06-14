@@ -862,7 +862,7 @@ const OrderTable = ({ category = null, onViewDetails, hideKPIs = false }) => {
           </table>
         </div>
 
-        {/* Premium Pagination Strip */}
+        {/* Pagination Strip */}
         <div style={{ padding: '16px 24px', borderTop: '1px solid #EAECF0', backgroundColor: '#fff', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: '13px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '11px', fontWeight: 600, color: '#344054' }}>
             <span>Rows per Page</span>
