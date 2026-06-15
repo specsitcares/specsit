@@ -675,7 +675,11 @@ const OrderDetail = ({ orderId, onBack }) => {
                   )}
                   <div className="summary-row">
                     <span className="summary-label">Shipping</span>
-                    <span className="summary-value free">Free</span>
+                    {order.shipping_cost && parseFloat(order.shipping_cost) > 0 ? (
+                      <span className="summary-value">Rs. {fmt(order.shipping_cost)}</span>
+                    ) : (
+                      <span className="summary-value free">Free</span>
+                    )}
                   </div>
 
                   <div className="summary-total-wrapper">

@@ -62,6 +62,10 @@ const CheckoutPage = () => {
     const [pendingOrderId, setPendingOrderId] = useState(null);
     const idempotencyKeyRef = useRef(null); // stable per checkout session
 
+    // Shipping rate state
+    const [shippingRate, setShippingRate] = useState(null);
+    const [shippingLoading, setShippingLoading] = useState(false);
+
     const PAYMENT_ERROR_MESSAGES = {
         '#LO-VAL-400': 'There was a problem with your order details. Please review and try again.',
         '#LO-NOT-404': 'Order could not be found. Please refresh and try again.',
@@ -80,14 +84,16 @@ const CheckoutPage = () => {
     const [partialPaymentEnabled, setPartialPaymentEnabled] = useState(true);
 
     // Breakdown based on method (using integer paise to avoid rounding errors)
-    const totalPaise = Math.round(cartTotal * 100);
+    const shippingCost = shippingRate || 0;
+    const orderTotal = cartTotal + shippingCost;
+    const totalPaise = Math.round(orderTotal * 100);
     const phase1Paise = Math.round(totalPaise * partialPct / 100);
     const phase1Amount = phase1Paise / 100;
     const phase2Paise = totalPaise - phase1Paise;
     const phase2Amount = phase2Paise / 100;
     const amountDueNow = paymentMethod === 'complete_cod' ? 0
         : paymentMethod === 'partial_payment' ? phase1Amount
-        : cartTotal;
+        : orderTotal;
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -119,6 +125,19 @@ const CheckoutPage = () => {
         document.body.appendChild(script);
     }, []);
 
+    const lookupShippingRate = async (pincode) => {
+        if (!pincode || !/^\d{6}$/.test(pincode)) { setShippingRate(null); return; }
+        setShippingLoading(true);
+        try {
+            const res = await apiClient.get('/sales/pincode-rate/?pincode=' + pincode);
+            setShippingRate(res.data.cost != null ? parseFloat(res.data.cost) : 0);
+        } catch (err) {
+            setShippingRate(0);
+        } finally {
+            setShippingLoading(false);
+        }
+    };
+
     const fetchAddresses = async () => {
         setAddressLoading(true);
         try {
@@ -128,6 +147,7 @@ const CheckoutPage = () => {
             if (list.length > 0) {
                 setSelectedAddressId(list[0].id);
                 setSubStep('LIST');
+                lookupShippingRate(list[0].pin_code || list[0].pin);
             } else {
                 setSubStep('FORM');
             }
@@ -239,9 +259,10 @@ const CheckoutPage = () => {
     };
 
     const buildOrderPayload = (prescriptionIds = {}) => ({
-        total_amount: cartTotal,
+        total_amount: orderTotal,
+        shipping_cost: shippingCost,
         paid_amount: paymentMethod === 'complete_cod' ? 0 : amountDueNow,
-        balance_amount: paymentMethod === 'complete_cod' ? cartTotal
+        balance_amount: paymentMethod === 'complete_cod' ? orderTotal
             : paymentMethod === 'partial_payment' ? phase2Amount : 0,
         payment_method: paymentMethod,
         shipping_address: subStep === 'LIST' ? { id: selectedAddressId } : {
@@ -449,6 +470,13 @@ const CheckoutPage = () => {
         const sanitized = sanitizeInput(e.target.value);
         setFormData(prev => ({ ...prev, [field]: sanitized }));
         setAddressErrors(prev => ({ ...prev, [field]: undefined }));
+        if (field === 'pincode') {
+            if (/^\d{6}$/.test(sanitized)) {
+                lookupShippingRate(sanitized);
+            } else {
+                setShippingRate(null);
+            }
+        }
     };
 
     // ── Order Summary Sidebar (shared across all steps) ──────────────
@@ -492,12 +520,18 @@ const CheckoutPage = () => {
                 </div>
                 <div className="summary-calc-row" style={{ marginTop: '6px' }}>
                     <span className="summary-calc-value" style={{ fontWeight: '400', fontSize: '11px', color: 'var(--specsit-black)' }}>Shipping</span>
-                    <span className="summary-calc-value free">Free</span>
+                    {shippingLoading ? (
+                        <span className="summary-calc-value" style={{ color: '#9CA3AF', fontSize: '11px' }}>Calculating…</span>
+                    ) : shippingRate != null && shippingRate > 0 ? (
+                        <span className="summary-calc-value">₹{shippingRate.toLocaleString()}</span>
+                    ) : (
+                        <span className="summary-calc-value free">Free</span>
+                    )}
                 </div>
 
                 <div className="summary-total-row">
                     <span className="summary-total-label" style={{ textTransform: 'uppercase', letterSpacing: '1.2px', fontSize: '10px' }}>Total</span>
-                    <span className="summary-total-value">₹{cartTotal.toLocaleString()}</span>
+                    <span className="summary-total-value">₹{orderTotal.toLocaleString()}</span>
                 </div>
 
                 {/* Payment Breakdown */}
@@ -509,7 +543,7 @@ const CheckoutPage = () => {
                                     <span className="breakdown-main-label" style={{ textTransform: 'uppercase', fontSize: '10px', letterSpacing: '0.6px' }}>Cash on Delivery</span>
                                     <span className="breakdown-sub-label">Pay on delivery</span>
                                 </div>
-                                <div className="breakdown-value-large" style={{ fontSize: '19px' }}>₹{cartTotal.toLocaleString()}</div>
+                                <div className="breakdown-value-large" style={{ fontSize: '19px' }}>₹{orderTotal.toLocaleString()}</div>
                             </div>
                         )}
                         {paymentMethod === 'complete_online' && (
@@ -518,7 +552,7 @@ const CheckoutPage = () => {
                                     <span className="breakdown-main-label" style={{ textTransform: 'uppercase', fontSize: '10px', letterSpacing: '0.6px' }}>Pay Online</span>
                                     <span className="breakdown-sub-label">Full amount via Razorpay</span>
                                 </div>
-                                <div className="breakdown-value-large" style={{ fontSize: '19px' }}>₹{cartTotal.toLocaleString()}</div>
+                                <div className="breakdown-value-large" style={{ fontSize: '19px' }}>₹{orderTotal.toLocaleString()}</div>
                             </div>
                         )}
                         {paymentMethod === 'partial_payment' && (<>
@@ -559,7 +593,7 @@ const CheckoutPage = () => {
                                 : cart.length === 0 ? 'Add items to continue'
                                 : paymentMethod === 'complete_cod' ? 'Place Order (COD)'
                                 : paymentMethod === 'partial_payment' ? `Pay ₹${phase1Amount.toLocaleString()} Now`
-                                : `Pay ₹${cartTotal.toLocaleString()}`}
+                                : `Pay ₹${orderTotal.toLocaleString()}`}
                             <ArrowRight />
                         </button>
 
@@ -568,7 +602,7 @@ const CheckoutPage = () => {
                                 <div style={{ background: '#fff', borderRadius: '10px', padding: '26px', maxWidth: '320px', boxShadow: '0 10px 40px rgba(0,0,0,0.15)' }}>
                                     <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '10px', color: '#0f172a' }}>Confirm Order</h3>
                                     <p style={{ fontSize: '11px', color: '#6b7280', marginBottom: '19px', lineHeight: '1.5' }}>
-                                        You're about to place an order for ₹{cartTotal.toLocaleString()}. This action cannot be undone immediately.
+                                        You're about to place an order for ₹{orderTotal.toLocaleString()}. This action cannot be undone immediately.
                                     </p>
                                     <div style={{ display: 'flex', gap: '10px' }}>
                                         <button
@@ -640,7 +674,7 @@ const CheckoutPage = () => {
                                             return (
                                                 <div key={addr.id}
                                                     className={`addr-card${isSelected ? ' addr-card--selected' : ' addr-card--idle'}`}
-                                                    onClick={() => setSelectedAddressId(addr.id)}>
+                                                    onClick={() => { setSelectedAddressId(addr.id); lookupShippingRate(addr.pin_code || addr.pin); }}>
                                                     {/* Left: address info */}
                                                     <div className="addr-card__info">
                                                         <div className="addr-card__name-row">
@@ -687,7 +721,7 @@ const CheckoutPage = () => {
                                                             </div>
                                                         ) : (
                                                             <button className="addr-select-btn"
-                                                                onClick={(e) => { e.stopPropagation(); setSelectedAddressId(addr.id); }}>
+                                                                onClick={(e) => { e.stopPropagation(); setSelectedAddressId(addr.id); lookupShippingRate(addr.pin_code || addr.pin); }}>
                                                                 Select
                                                             </button>
                                                         )}

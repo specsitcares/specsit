@@ -349,7 +349,8 @@ class OrderSerializer(serializers.ModelSerializer):
                 discount_amount = (applicable_subtotal * Decimal(str(order.coupon.discount_percentage)) / Decimal('100')).quantize(Decimal('0.01'))
             else:
                 discount_amount = (subtotal * Decimal(str(order.coupon.discount_percentage)) / Decimal('100')).quantize(Decimal('0.01'))
-        total_amount = subtotal - discount_amount
+        shipping = order.shipping_cost or Decimal('0')
+        total_amount = subtotal - discount_amount + shipping
         Order.objects.filter(pk=order.pk).update(
             subtotal=subtotal,
             discount_amount=discount_amount,

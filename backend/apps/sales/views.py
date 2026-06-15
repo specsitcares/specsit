@@ -1787,7 +1787,7 @@ class OrdersOverviewView(views.APIView):
 
 class PincodeRateLookupView(views.APIView):
     """GET /api/sales/pincode-rate/?pincode=500085 — returns the delivery rate for a pincode."""
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         from .models import PincodeDeliveryRate
