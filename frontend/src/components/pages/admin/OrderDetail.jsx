@@ -33,9 +33,10 @@ const OrderDetail = ({ orderId, onBack }) => {
 
   const [dispatchModalOpen, setDispatchModalOpen] = useState(false);
   const [dispatchForm, setDispatchForm] = useState({
-    booking_id: '', rider_name: '', rider_phone: '', vehicle_type: 'Bike', carrier_company: '', eta: '', tracking_link: '', sms_message: '',
+    booking_id: '', rider_name: '', rider_phone: '', vehicle_type: 'Bike', carrier_company: '', eta: '', tracking_link: '', sms_message: '', delivery_cost: '',
   });
   const [dispatchSaving, setDispatchSaving] = useState(false);
+  const [pincodeRateInfo, setPincodeRateInfo] = useState(null);
   const [deliveryModalOpen, setDeliveryModalOpen] = useState(false);
   const [deliveryChecks, setDeliveryChecks] = useState({ confirmed: false, noDamage: false });
   const [confirmingDelivery, setConfirmingDelivery] = useState(false);
@@ -171,6 +172,16 @@ const OrderDetail = ({ orderId, onBack }) => {
     return m ? parseInt(m[1], 10) : null;
   };
 
+  const fetchPincodeRate = async (pincode) => {
+    if (!pincode) return;
+    try {
+      const res = await apiClient.get(`/sales/pincode-rate/?pincode=${pincode}`);
+      setPincodeRateInfo(res.data);
+    } catch (err) {
+      setPincodeRateInfo(null);
+    }
+  };
+
   const handleDispatchConfirm = async () => {
     if (!activeItemForAction) return;
     setDispatchSaving(true);
@@ -183,6 +194,8 @@ const OrderDetail = ({ orderId, onBack }) => {
         courier_company: dispatchForm.carrier_company || dispatchForm.vehicle_type,
         tracking_link: dispatchForm.tracking_link || null,
         sms_message: dispatchForm.sms_message || '',
+        delivery_cost: dispatchForm.delivery_cost ? parseFloat(dispatchForm.delivery_cost) : null,
+        delivery_rate_charged: pincodeRateInfo?.cost ?? null,
       };
       const isNewDispatch = !order.tracking?.shipped_date;
       if (isNewDispatch) trackingPayload.shipped_date = now;
@@ -197,7 +210,8 @@ const OrderDetail = ({ orderId, onBack }) => {
         await handleItemStatusUpdate(activeItemForAction.id, 'in_transit');
       }
       setDispatchModalOpen(false);
-      setDispatchForm({ booking_id: '', rider_name: '', rider_phone: '', vehicle_type: 'Bike', carrier_company: '', eta: '', tracking_link: '', sms_message: '' });
+      setDispatchForm({ booking_id: '', rider_name: '', rider_phone: '', vehicle_type: 'Bike', carrier_company: '', eta: '', tracking_link: '', sms_message: '', delivery_cost: '' });
+      setPincodeRateInfo(null);
       setActiveItemForAction(null);
     } catch (err) {
       alert('Failed to dispatch order. Please try again.');
@@ -456,10 +470,12 @@ const OrderDetail = ({ orderId, onBack }) => {
                             rider_phone: t.delivery_agent_phone || '',
                             vehicle_type: isVehicle ? t.courier_company : 'Bike',
                             carrier_company: isVehicle ? '' : (t.courier_company || ''),
-                            eta: '', 
+                            eta: '',
                             tracking_link: t.tracking_link || '',
-                            sms_message: t.sms_message || ''
+                            sms_message: t.sms_message || '',
+                            delivery_cost: t.delivery_cost != null ? String(t.delivery_cost) : '',
                           });
+                          fetchPincodeRate(order.shipping_address_detail?.pin_code);
                           setDispatchModalOpen(true);
                         }}
                       >
@@ -503,7 +519,10 @@ const OrderDetail = ({ orderId, onBack }) => {
                       onClick={() => {
                         setActiveItemForAction(item);
                         if (step.isQC) return setQcModalOpen(true);
-                        if (step.isDispatch) return setDispatchModalOpen(true);
+                        if (step.isDispatch) {
+                          fetchPincodeRate(order.shipping_address_detail?.pin_code);
+                          return setDispatchModalOpen(true);
+                        }
                         if (step.isDelivery) return handleMarkDelivered();
                         handleItemStatusUpdate(item.id, step.nextStatus);
                       }}
@@ -851,7 +870,7 @@ const OrderDetail = ({ orderId, onBack }) => {
 
       {/* ── Dispatch Modal ── */}
       {dispatchModalOpen && (
-        <div className="dispatch-modal-overlay" onClick={(e) => e.target === e.currentTarget && setDispatchModalOpen(false)}>
+        <div className="dispatch-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) { setDispatchModalOpen(false); setPincodeRateInfo(null); } }}>
           <div className="dispatch-modal-card" style={{ height: '90vh', maxHeight: '90vh' }}>
 
             {/* Header */}
@@ -862,7 +881,7 @@ const OrderDetail = ({ orderId, onBack }) => {
                   Order #LO-{String(order.id).padStart(7, '0')} · {order.customer_name || 'Customer'} · {addr.city || addr.street || '—'}
                 </p>
               </div>
-              <button className="dm-close-btn" onClick={() => setDispatchModalOpen(false)}>
+              <button className="dm-close-btn" onClick={() => { setDispatchModalOpen(false); setPincodeRateInfo(null); }}>
                 <X size={15} />
               </button>
             </div>
@@ -951,6 +970,35 @@ const OrderDetail = ({ orderId, onBack }) => {
                   />
                 </div>
 
+                {/* Delivery Cost */}
+                <div className="dm-field">
+                  <label className="dm-label">Actual Carrier Cost (Rs.)</label>
+                  {pincodeRateInfo != null && pincodeRateInfo.cost != null && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f5f3ff', border: '1px solid #ede9fe', borderRadius: 8, padding: '7px 12px', marginBottom: 8 }}>
+                      <span style={{ fontSize: 12, color: '#6b46c1', fontWeight: 500 }}>
+                        {pincodeRateInfo.location + ' (' + pincodeRateInfo.distance_km + ' km)'}
+                      </span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#6b46c1' }}>{'Rs.' + pincodeRateInfo.cost}</span>
+                    </div>
+                  )}
+                  <input
+                    className="dm-input"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="e.g. 150"
+                    value={dispatchForm.delivery_cost}
+                    onChange={e => setDispatchForm(f => ({ ...f, delivery_cost: e.target.value }))}
+                  />
+                  {pincodeRateInfo?.cost != null && dispatchForm.delivery_cost && parseFloat(dispatchForm.delivery_cost) !== pincodeRateInfo.cost && (
+                    <div style={{ marginTop: 6, fontSize: 12, fontWeight: 600, color: parseFloat(dispatchForm.delivery_cost) > pincodeRateInfo.cost ? '#b45309' : '#047857' }}>
+                      {parseFloat(dispatchForm.delivery_cost) > pincodeRateInfo.cost
+                        ? `Rs.${(parseFloat(dispatchForm.delivery_cost) - pincodeRateInfo.cost).toFixed(2)} extra out of pocket`
+                        : `Rs.${(pincodeRateInfo.cost - parseFloat(dispatchForm.delivery_cost)).toFixed(2)} saved vs pincode rate`}
+                    </div>
+                  )}
+                </div>
+
                 {/* Tracking Link */}
                 <div className="dm-field">
                   <label className="dm-label">Tracking Link <span style={{ fontSize: 11, fontWeight: 400, color: '#9ca3af' }}>(optional)</span></label>
@@ -978,7 +1026,7 @@ const OrderDetail = ({ orderId, onBack }) => {
 
               {/* Footer */}
               <div className="dm-footer">
-                <button className="dm-btn-cancel" onClick={() => setDispatchModalOpen(false)}>
+                <button className="dm-btn-cancel" onClick={() => { setDispatchModalOpen(false); setPincodeRateInfo(null); }}>
                   Cancel
                 </button>
                 <button className="dm-btn-primary" onClick={handleDispatchConfirm} disabled={dispatchSaving}>

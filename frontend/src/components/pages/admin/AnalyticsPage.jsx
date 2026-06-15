@@ -45,12 +45,14 @@ const FALLBACK = {
     { date: 'Sat', orders: 17, revenue: 9600  },
     { date: 'Sun', orders: 9,  revenue: 5100  },
   ],
-  deliveryCost: [
-    { label: 'Shipping cost',    percent: 34, color: '#6366F1' },
-    { label: 'Price hesitation', percent: 28, color: '#A855F7' },
-    { label: 'Frame fit unsure', percent: 22, color: '#EC4899' },
-    { label: 'Other',            percent: 16, color: '#94A3B8' },
-  ],
+  deliveryCost: {
+    totalRateCharged: 0,
+    totalCarrierCost: 0,
+    pocketMoney: 0,
+    ordersWithData: 0,
+    segments: [{ label: 'No data yet', percent: 100, color: '#E5E7EB' }],
+    bandBreakdown: [],
+  },
   productProfit: [
     { label: 'Sunglasses',  percent: 42, color: '#6366F1' },
     { label: 'Eyeglasses',  percent: 31, color: '#A855F7' },
@@ -277,7 +279,7 @@ const AnalyticsPage = () => {
 
           {/* Bottom row: Delivery Cost + Product Profit */}
           <div className="ao-bottom-grid">
-            <DonutCard title="Delivery Cost" segments={data.deliveryCost || FALLBACK.deliveryCost} />
+            <DeliveryCostCard data={data.deliveryCost || FALLBACK.deliveryCost} />
             <DonutCard title="Product Profit Calculations" segments={data.productProfit || FALLBACK.productProfit} />
           </div>
 
@@ -581,6 +583,80 @@ const OrdersLineChart = ({ data }) => {
           <span>Revenue</span>
         </div>
       </div>
+    </div>
+  );
+};
+
+const DeliveryCostCard = ({ data }) => {
+  const fmtAmt = (v) => 'Rs.' + Number(v || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+  const pocketMoney = Number(data.pocketMoney || 0);
+  const hasData = Number(data.ordersWithData || 0) > 0;
+
+  const rawSegments = (data.segments && data.segments.length > 0)
+    ? data.segments
+    : [{ label: 'No data yet', percent: 100, color: '#E5E7EB' }];
+  const segTotal = rawSegments.reduce((s, seg) => s + (seg.percent || 0), 0) || 1;
+  const normalized = rawSegments.map((seg) => ({
+    ...seg,
+    pct: Math.round((seg.percent / segTotal) * 100),
+  }));
+
+  const summaryLine = hasData
+    ? (fmtAmt(data.totalCarrierCost) + ' paid  ·  ' + fmtAmt(data.totalRateCharged) + ' collected  ·  ' + (pocketMoney > 0 ? fmtAmt(pocketMoney) + ' extra spend' : fmtAmt(Math.abs(pocketMoney)) + ' saved'))
+    : '';
+
+  return (
+    <div className="ao-donut-card">
+      <h3 className="ao-donut-title">Delivery Cost</h3>
+
+      {hasData && (
+        <p style={{ margin: '0 0 6px', fontSize: 11, color: '#62748e', textAlign: 'center', lineHeight: 1.4 }}>
+          {summaryLine}
+        </p>
+      )}
+
+      <ResponsiveContainer width="100%" height={180}>
+        <PieChart>
+          <Pie
+            data={normalized}
+            cx="50%"
+            cy="50%"
+            innerRadius={44}
+            outerRadius={65}
+            dataKey="pct"
+            startAngle={90}
+            endAngle={-270}
+            strokeWidth={3}
+            stroke="#fff"
+          >
+            {normalized.map((entry, i) => (
+              <Cell key={i} fill={entry.color} />
+            ))}
+          </Pie>
+          <RechartsTooltip
+            formatter={(value) => (value + '%')}
+            contentStyle={{ borderRadius: 8, border: '1px solid #eaeaea', fontSize: 12 }}
+          />
+        </PieChart>
+      </ResponsiveContainer>
+
+      <div className="ao-donut-legend">
+        {normalized.map((seg) => (
+          <div key={seg.label} className="ao-donut-legend-row">
+            <div className="ao-donut-legend-left">
+              <span className="ao-donut-dot" style={{ background: seg.color }} />
+              <span className="ao-donut-label">{seg.label}</span>
+            </div>
+            <span className="ao-donut-pct">{seg.pct + '%'}</span>
+          </div>
+        ))}
+      </div>
+
+      {!hasData && (
+        <p style={{ textAlign: 'center', fontSize: 11, color: '#d1d5db', marginTop: 6 }}>
+          Appears after first dispatch with carrier cost entered
+        </p>
+      )}
     </div>
   );
 };

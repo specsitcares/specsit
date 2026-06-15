@@ -1652,31 +1652,55 @@ class OrdersOverviewView(views.APIView):
             for entry in chart_qs
         ]
 
-        # 6. Delivery cost breakdown (from return reasons / shipping costs on orders)
-        # We use order_status to approximate: cancelled = shipping hesitation, etc.
-        # Real breakdown from ReturnRequest reasons
-        from .models import ReturnRequest
-        return_reasons = ReturnRequest.objects.filter(
-            created_at__date__gte=start_date
-        ).values('reason').annotate(count=Count('id')).order_by('-count')[:4]
+        # 6. Delivery cost analytics — actual vs pincode rate
+        from .models import OrderTracking as OT
+        BAND_COLORS = ['#6366F1', '#A855F7', '#EC4899', '#F59E0B', '#10B981', '#3B82F6', '#94A3B8']
 
-        delivery_cost_data = [
-            {'label': 'Shipping cost', 'percent': 34, 'color': '#6366F1'},
-            {'label': 'Price hesitation', 'percent': 28, 'color': '#A855F7'},
-            {'label': 'Frame fit unsure', 'percent': 22, 'color': '#EC4899'},
-            {'label': 'Other', 'percent': 16, 'color': '#94A3B8'},
-        ]
-        if return_reasons:
-            total_returns = sum(r['count'] for r in return_reasons) or 1
-            colors = ['#6366F1', '#A855F7', '#EC4899', '#94A3B8']
-            delivery_cost_data = [
-                {
-                    'label': r['reason'] or 'Other',
-                    'percent': round((r['count'] / total_returns) * 100),
-                    'color': colors[i % len(colors)]
-                }
-                for i, r in enumerate(return_reasons)
-            ]
+        dispatched = OT.objects.filter(
+            order__in=base_qs.filter(created_at__date__gte=start_date),
+            delivery_cost__isnull=False,
+        )
+        total_carrier_cost = float(dispatched.aggregate(t=Sum('delivery_cost'))['t'] or 0)
+
+        with_rate = dispatched.filter(delivery_rate_charged__isnull=False)
+        total_rate_charged = float(with_rate.aggregate(t=Sum('delivery_rate_charged'))['t'] or 0)
+        pocket_money = round(total_carrier_cost - total_rate_charged, 2)
+
+        band_qs = with_rate.values('delivery_rate_charged').annotate(
+            cnt=Count('id'),
+            total_paid=Sum('delivery_cost'),
+        ).order_by('delivery_rate_charged')
+
+        band_breakdown = []
+        for i, b in enumerate(band_qs):
+            rate_val = float(b['delivery_rate_charged'])
+            paid_val = float(b['total_paid'] or 0)
+            band_breakdown.append({
+                'label': f"₹{int(rate_val)} zone",
+                'count': b['cnt'],
+                'totalCharged': round(rate_val * b['cnt'], 2),
+                'totalPaid': round(paid_val, 2),
+                'color': BAND_COLORS[i % len(BAND_COLORS)],
+            })
+
+        total_paid_all = sum(b['totalPaid'] for b in band_breakdown) or 1
+        segments = [
+            {
+                'label': b['label'],
+                'percent': round((b['totalPaid'] / total_paid_all) * 100),
+                'color': b['color'],
+            }
+            for b in band_breakdown
+        ] or [{'label': 'No data yet', 'percent': 100, 'color': '#E5E7EB'}]
+
+        delivery_cost_data = {
+            'totalRateCharged': total_rate_charged,
+            'totalCarrierCost': total_carrier_cost,
+            'pocketMoney': pocket_money,
+            'ordersWithData': dispatched.count(),
+            'segments': segments,
+            'bandBreakdown': band_breakdown,
+        }
 
         # 7. Top selling frame lenses and contact lenses
         frame_lens_qs = OrderItem.objects.filter(
@@ -1759,6 +1783,29 @@ class OrdersOverviewView(views.APIView):
             'frameMaterials': frame_materials_data,
             'accessories': accessories_data,
         })
+
+
+class PincodeRateLookupView(views.APIView):
+    """GET /api/sales/pincode-rate/?pincode=500085 — returns the delivery rate for a pincode."""
+    permission_classes = [permissions.IsAdminUser]
+
+    def get(self, request):
+        from .models import PincodeDeliveryRate
+        pincode = request.query_params.get('pincode', '').strip()
+        if not pincode:
+            return Response({'error': 'pincode required'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            rate = PincodeDeliveryRate.objects.get(pincode=pincode)
+            return Response({
+                'pincode': rate.pincode,
+                'location': rate.location,
+                'district': rate.district,
+                'distance_km': rate.distance_km,
+                'bolt_delivery': rate.bolt_delivery,
+                'cost': float(rate.cost),
+            })
+        except PincodeDeliveryRate.DoesNotExist:
+            return Response({'pincode': pincode, 'cost': None, 'location': None})
 
 
 class DeliveryCheckView(views.APIView):

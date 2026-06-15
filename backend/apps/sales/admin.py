@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Order, OrderItem, Cart, Wishlist, Coupon, Shipment, PaymentGatewayConfig, OrderTracking, Payment
+from .models import Order, OrderItem, Cart, Wishlist, Coupon, Shipment, PaymentGatewayConfig, OrderTracking, Payment, PincodeDeliveryRate
 from .forms import CouponAdminForm
 from apps.catalog.models import Category, Brand
 
@@ -84,3 +84,11 @@ class PaymentAdmin(admin.ModelAdmin):
     list_display = ('id', 'order', 'payment_method', 'amount_paid', 'payment_status', 'payment_date')
     list_filter = ('payment_status', 'payment_method')
     search_fields = ('transaction_id', 'order__id')
+
+@admin.register(PincodeDeliveryRate)
+class PincodeDeliveryRateAdmin(admin.ModelAdmin):
+    list_display = ('pincode', 'location', 'district', 'distance_km', 'bolt_delivery', 'cost')
+    list_filter = ('district', 'bolt_delivery')
+    search_fields = ('pincode', 'location')
+    list_editable = ('cost', 'bolt_delivery')
+    ordering = ('distance_km', 'pincode')
