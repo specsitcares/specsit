@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import apiClient from '../services/api';
+import { getAuthToken } from '../utils/auth';
 
 const CartContext = createContext();
 
@@ -28,10 +30,11 @@ export const CartProvider = ({ children }) => {
     // picking variants[0]. Falls back to variants[0] for callers that don't pass it.
     const addToCart = (product, lens = null, prescription = null, prescriptionPdfUrl = null, rxMode = null, selectedVariant = null, prescriptionFile = null) => {
         const variant = selectedVariant || product.variants?.[0] || null;
+        const newItemId = `${product.id}-${variant?.id || 'no-var'}-${lens?.id || 'no-lens'}-${
+            prescription ? 'rx' : prescriptionPdfUrl ? 'pdf' : rxMode ? rxMode : 'no-rx'
+        }`;
         const newItem = {
-            id: `${product.id}-${variant?.id || 'no-var'}-${lens?.id || 'no-lens'}-${
-                prescription ? 'rx' : prescriptionPdfUrl ? 'pdf' : rxMode ? rxMode : 'no-rx'
-            }`,
+            id: newItemId,
             product,
             variant,
             lens,
@@ -42,15 +45,24 @@ export const CartProvider = ({ children }) => {
             quantity: 1,
         };
 
+        // Check before state update so we can detect a genuine new item.
+        const isNewItem = !cart.find(item => item.id === newItemId);
+
         setCart(prev => {
-            const existing = prev.find(item => item.id === newItem.id);
+            const existing = prev.find(item => item.id === newItemId);
             if (existing) {
                 return prev.map(item =>
-                    item.id === newItem.id ? { ...item, quantity: item.quantity + 1 } : item
+                    item.id === newItemId ? { ...item, quantity: item.quantity + 1 } : item
                 );
             }
             return [...prev, newItem];
         });
+
+        // Sync new cart additions to backend so the analytics KPI stays accurate.
+        // Fire-and-forget: local cart is the source of truth; API failure is silent.
+        if (isNewItem && variant?.id && getAuthToken()) {
+            apiClient.post('/sales/cart/', { variant: variant.id, quantity: 1 }).catch(() => {});
+        }
     };
 
     const removeFromCart = (id) => setCart(prev => prev.filter(item => item.id !== id));

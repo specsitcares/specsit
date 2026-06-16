@@ -189,6 +189,8 @@ class OrderTracking(models.Model):
     delivery_agent_name = models.CharField(max_length=100, blank=True)
     delivery_agent_phone = models.CharField(max_length=20, blank=True)
     qc_image = models.ImageField(upload_to='qc/', null=True, blank=True)
+    delivery_cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    delivery_rate_charged = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
     last_updated = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -236,6 +238,24 @@ class LiveSession(models.Model):
     current_page = models.CharField(max_length=255, default='Home Page')
     last_activity = models.DateTimeField(auto_now=True)
     def __str__(self): return f"Session {self.session_id} on {self.current_page}"
+
+class SiteVisit(models.Model):
+    """One row per page view — powers Traffic & Clicks analytics tab."""
+    DEVICE_CHOICES = [('mobile', 'Mobile'), ('tablet', 'Tablet'), ('desktop', 'Desktop')]
+    session_id   = models.CharField(max_length=64, db_index=True)
+    user         = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='site_visits')
+    page         = models.CharField(max_length=500)
+    device_type  = models.CharField(max_length=10, choices=DEVICE_CHOICES, default='desktop')
+    visited_at   = models.DateTimeField(auto_now_add=True, db_index=True)
+    duration_sec = models.PositiveIntegerField(null=True, blank=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['session_id', 'visited_at']),
+            models.Index(fields=['visited_at', 'device_type']),
+        ]
+
+    def __str__(self): return f"{self.session_id} → {self.page}"
 
 class ReturnRequest(models.Model):
     REASON_CHOICES = [
@@ -289,3 +309,18 @@ class WarrantyClaim(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     def __str__(self): return f"Warranty #{self.id} for Order #{self.order_id}"
+
+
+class PincodeDeliveryRate(models.Model):
+    pincode = models.CharField(max_length=10, unique=True, db_index=True)
+    location = models.CharField(max_length=150)
+    state = models.CharField(max_length=100, blank=True)
+    district = models.CharField(max_length=100, blank=True)
+    distance_km = models.PositiveIntegerField(null=True, blank=True)
+    bolt_delivery = models.BooleanField(null=True, blank=True)
+    cost = models.DecimalField(max_digits=8, decimal_places=2)
+
+    class Meta:
+        ordering = ['distance_km', 'pincode']
+
+    def __str__(self): return f"{self.pincode} – {self.location} (₹{self.cost})"

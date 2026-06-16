@@ -6,7 +6,7 @@ from .views import (
     OrderTrackingViewSet, PaymentViewSet,
     PrescriptionUploadView, PrescriptionManualView, PrescriptionByOrderView,
     ReturnRequestViewSet, WarrantyClaimViewSet,
-    OrdersOverviewView, AnalyticsLiveStreamView,
+    OrdersOverviewView, AnalyticsLiveStreamView, PincodeRateLookupView,
 )
 from .payment_views import PaymentInitiateView, PaymentVerifyView, PaymentCancelView, PaymentSettingsView
 
@@ -28,6 +28,7 @@ urlpatterns = [
     path('analytics/live-stream/', AnalyticsLiveStreamView.as_view(), name='analytics-live-stream'),
     path('live/report-activity/', RecordLiveActivityView.as_view(), name='report-activity'),
     path('delivery/check/', DeliveryCheckView.as_view(), name='delivery-check'),
+    path('pincode-rate/', PincodeRateLookupView.as_view(), name='pincode-rate-lookup'),
     path('prescriptions/upload/', PrescriptionUploadView.as_view(), name='prescription-upload'),
     path('prescriptions/manual/', PrescriptionManualView.as_view(), name='prescription-manual'),
     path('prescriptions/by-order/<int:order_id>/', PrescriptionByOrderView.as_view(), name='prescription-by-order'),

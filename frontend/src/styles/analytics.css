@@ -528,6 +528,351 @@
 
 
 
+/* ═══════════════════════════════════════════════════════════
+   TAB 1 — ABANDONED CARTS
+═══════════════════════════════════════════════════════════ */
+
+.ac-filters {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.ac-section-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #040205;
+  letter-spacing: -0.02px;
+  margin: 0 0 8px;
+  font-family: 'Roboto', sans-serif;
+}
+
+/* KPI card — compact single card */
+.ac-kpi-row { display: flex; }
+.ac-kpi-card { width: 260px; }
+
+/* two-panel side-by-side row */
+.ac-panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.ac-panel { display: flex; flex-direction: column; }
+
+/* ── Shared card used by BOTH panels ── */
+.ac-products-card {
+  background: #fff;
+  border: 1px solid #E0E0E0;
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.ac-products-scroll {
+  max-height: 420px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 2px;
+}
+
+.ac-product-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+}
+
+.ac-product-item[data-tooltip]:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 7px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1e293b;
+  color: #fff;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  z-index: 200;
+  pointer-events: none;
+}
+
+.ac-product-item[data-tooltip]:hover::before {
+  content: '';
+  position: absolute;
+  bottom: calc(100% + 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: #1e293b;
+  z-index: 200;
+  pointer-events: none;
+}
+
+.ac-product-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ac-product-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ac-rank-badge {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #F1F5F9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: #45556C;
+  flex-shrink: 0;
+}
+
+.ac-product-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: #314158;
+  letter-spacing: -0.096px;
+}
+
+.ac-product-rate {
+  font-size: 11px;
+  font-weight: 500;
+  color: #90A1B9;
+  white-space: nowrap;
+}
+
+.ac-product-bar {
+  height: 8px;
+  background: #F1F5F9;
+  border-radius: 25px;
+  overflow: hidden;
+}
+
+.ac-product-fill {
+  height: 100%;
+  background: #615fff;
+  border-radius: 15px;
+  transition: width 0.5s ease;
+}
+
+@media (max-width: 900px) {
+  .ac-panels { grid-template-columns: 1fr; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TAB 2 — TRAFFIC & CLICKS
+═══════════════════════════════════════════════════════════ */
+
+.tc-section-heading {
+  font-size: 13px;
+  font-weight: 700;
+  color: #040205;
+  letter-spacing: -0.02px;
+  margin: 0;
+  font-family: 'Roboto', sans-serif;
+}
+
+/* 4-column KPI grid */
+.tc-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.tc-kpi-card {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tc-kpi-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.tc-kpi-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: #f4edff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #68408d;
+}
+
+.tc-kpi-menu {
+  color: #697177;
+  cursor: pointer;
+}
+
+.tc-kpi-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #697177;
+  letter-spacing: 0.08px;
+}
+
+.tc-kpi-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tc-kpi-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: #040205;
+  letter-spacing: -0.14px;
+  line-height: 1;
+}
+
+.tc-kpi-trend {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Chart section */
+.tc-chart-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.tc-chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.tc-chart-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #040205;
+  letter-spacing: -0.02px;
+  margin: 0 0 4px;
+}
+
+.tc-chart-sub {
+  font-size: 11px;
+  color: #697177;
+  margin: 0;
+}
+
+.tc-legend {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding-right: 4px;
+}
+
+.tc-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #62748e;
+  font-weight: 500;
+}
+
+.tc-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.tc-chart-card {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 24px 24px 16px;
+}
+
+/* Device Breakdown card (shared with status breakdown) */
+.tc-donut-card {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.tc-donut-body {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.tc-device-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 240px;
+}
+
+.tc-device-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tc-device-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tc-device-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.tc-device-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: #62748e;
+}
+
+.tc-device-pct {
+  font-size: 12px;
+  font-weight: 700;
+  color: #0f172b;
+}
+
+@media (max-width: 1200px) {
+  .tc-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
 /* ── coming soon placeholder ── */
 .ao-coming-soon {
   display: flex;
@@ -554,4 +899,147 @@
 .analytics-loading {
   display: flex; align-items: center; justify-content: center;
   min-height: 60vh; font-size: 18px; color: #697177;
+}
+
+/* ═══ RETURNS & EXCHANGES TAB (Tab 3) ═══ */
+
+/* 3-column bottom grid — mirrors ac-panels but 3 cols */
+.rx-bottom-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+  align-items: stretch;
+}
+
+.rx-bottom-grid .ac-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.rx-bottom-grid .ac-panel .ac-products-card {
+  flex: 1;
+}
+
+/* Most Returned Products table */
+.rx-products-table {
+  display: flex;
+  flex-direction: column;
+}
+
+.rx-table-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 4px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #314158;
+  border-bottom: 1px solid #d8d8d8;
+  margin-bottom: 8px;
+}
+
+.rx-table-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 4px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.rx-table-row:last-child { border-bottom: none; }
+
+.rx-table-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Thin vertical colour bar (4px × 20px) matching Figma */
+.rx-rank-bar {
+  width: 4px;
+  height: 20px;
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
+.rx-product-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #314158;
+  letter-spacing: -0.096px;
+}
+
+.rx-product-count {
+  font-size: 13px;
+  font-weight: 500;
+  color: #717171;
+}
+
+/* "View All" link */
+.rx-view-all {
+  font-size: 13px;
+  font-weight: 500;
+  color: #68408d;
+  text-decoration: underline;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* Status card: column layout (donut on top, grid below) */
+.rx-status-card {
+  display: flex !important;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px !important;
+}
+
+/* 2×2 status grid */
+.rx-status-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  width: 100%;
+}
+
+/* Each status cell: dot+name on left, value on right */
+.rx-status-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f3f3f3;
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+
+.rx-status-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rx-status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.rx-status-name {
+  font-size: 13px;
+  color: #62748e;
+  font-weight: 500;
+}
+
+.rx-status-val {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172b;
+}
+
+@media (max-width: 1200px) {
+  .rx-bottom-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 800px) {
+  .rx-bottom-grid { grid-template-columns: 1fr; }
 }
