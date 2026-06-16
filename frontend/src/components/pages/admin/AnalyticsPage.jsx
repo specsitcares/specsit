@@ -5,7 +5,8 @@ import {
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
-  ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar
+  ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar,
+  ComposedChart, Line,
 } from 'recharts';
 import apiClient from '../../../services/api';
 import { getAuthToken } from '../../../utils/auth';
@@ -87,6 +88,61 @@ const FALLBACK = {
     { name: 'Neck Cord', units: 140 },
     { name: 'Anti-fog Spray', units: 98 },
   ],
+  abandonedCarts: {
+    abandonmentRate: { value: 68.4, trend: -3 },
+    funnel: [
+      { label: 'Cart Created',     count: 1079, pct: 100 },
+      { label: 'Checkout Started', count: 524,  pct: 49  },
+      { label: 'Order Placed',     count: 341,  pct: 32  },
+    ],
+    topAbandoned: [
+      { name: 'Aviator Classic', rate: 78, cartCount: 84 },
+      { name: 'Round Tortoise',  rate: 72, cartCount: 65 },
+      { name: 'Blue-Light Pro',  rate: 65, cartCount: 52 },
+      { name: 'Polarized Sport', rate: 58, cartCount: 41 },
+    ],
+  },
+  trafficClicks: {
+    kpis: {
+      totalVisits:  { value: 84210, trend: 3  },
+      uniqueUsers:  { value: 52604, trend: -5 },
+      avgSession:   { value: '3m 42s', trend: 2 },
+      bounceRate:   { value: 38.6, trend: 4  },
+    },
+    trafficTrend: [
+      { month: 'Jan', visitors: 62000, ctr: 2.1 },
+      { month: 'Feb', visitors: 68000, ctr: 2.3 },
+      { month: 'Mar', visitors: 71000, ctr: 2.5 },
+      { month: 'Apr', visitors: 74000, ctr: 2.9 },
+      { month: 'May', visitors: 79000, ctr: 3.3 },
+      { month: 'Jun', visitors: 84000, ctr: 3.8 },
+    ],
+    topPages: [
+      { path: '/sunglasses',  clicks: 12400 },
+      { path: '/men/aviator', clicks: 8900  },
+      { path: '/blue-light',  clicks: 6300  },
+      { path: '/try-on',      clicks: 5100  },
+      { path: '/lookbook',    clicks: 3800  },
+    ],
+    deviceBreakdown: [
+      { name: 'Mobile',  value: 34, color: '#6366f1' },
+      { name: 'Tablet',  value: 28, color: '#a855f7' },
+      { name: 'Desktop', value: 22, color: '#ec4899' },
+      { name: 'Other',   value: 16, color: '#cbd5e1' },
+    ],
+  },
+  returnsExchanges: {
+    kpis: {
+      returnRate:     { value: 0,   trend: 0 },
+      totalRefunds:   { value: 0,   trend: 0 },
+      exchangeRate:   { value: 0,   trend: 0 },
+      avgProcessTime: { value: '—', trend: 0 },
+    },
+    trend:           [],
+    topReasons:      [],
+    topProducts:     [],
+    statusBreakdown: [],
+  },
 };
 
 /* ══════════════════════════════════════════════════════════════
@@ -113,7 +169,10 @@ const AnalyticsPage = () => {
         setData(prev => ({
           ...FALLBACK,
           ...res.data,
-          kpis: { ...FALLBACK.kpis, ...res.data.kpis },
+          kpis:             { ...FALLBACK.kpis,             ...(res.data.kpis             || {}) },
+          abandonedCarts:   { ...FALLBACK.abandonedCarts,   ...(res.data.abandonedCarts   || {}) },
+          trafficClicks:    { ...FALLBACK.trafficClicks,    ...(res.data.trafficClicks    || {}) },
+          returnsExchanges: { ...FALLBACK.returnsExchanges, ...(res.data.returnsExchanges || {}) },
         }));
         setLastUpdate(new Date());
       }
@@ -148,6 +207,7 @@ const AnalyticsPage = () => {
     eventSource.addEventListener('return_created', handleEvent);
     eventSource.addEventListener('return_updated', handleEvent);
     eventSource.addEventListener('live_activity', handleEvent);
+    eventSource.addEventListener('visit_tracked', handleEvent);
 
     eventSource.onerror = (err) => {
       console.error('Analytics SSE connection error:', err);
@@ -167,6 +227,9 @@ const AnalyticsPage = () => {
 
   const kpis = data.kpis || FALLBACK.kpis;
   const chartData = (data.chart && data.chart.length > 0) ? data.chart : FALLBACK.chart;
+  const ac = data.abandonedCarts   || FALLBACK.abandonedCarts;
+  const tc = data.trafficClicks    || FALLBACK.trafficClicks;
+  const re = data.returnsExchanges || FALLBACK.returnsExchanges;
 
   return (
     <div className="ao-page">
@@ -425,8 +488,467 @@ const AnalyticsPage = () => {
         </div>
       )}
 
+      {/* ─── Tab 1: Abandoned Carts ─── */}
+      {activeTab === 1 && (
+        <div className="ao-content">
+          {/* Filters row */}
+          <div className="ac-filters">
+            <div className="ao-period-wrap" onClick={() => setPeriodOpen(o => !o)}>
+              <span>{periodLabel}</span>
+              <ChevronDown size={16} />
+              {periodOpen && (
+                <div className="ao-dropdown">
+                  {PERIOD_OPTIONS.map(opt => (
+                    <div
+                      key={opt.value}
+                      className={`ao-dropdown-item ${opt.value === period ? 'active' : ''}`}
+                      onClick={(e) => { e.stopPropagation(); setPeriod(opt.value); setPeriodOpen(false); }}
+                    >
+                      {opt.label}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="ao-period-wrap">
+              <span>All Products</span>
+              <ChevronDown size={16} />
+            </div>
+          </div>
+
+          {/* KPI — Abandonment Rate */}
+          <div className="ac-kpi-row">
+            <div className="ao-kpi-card ac-kpi-card">
+              <div className="ao-kpi-top">
+                <div className="ao-kpi-left">
+                  <div className="ao-kpi-icon" style={{ background: '#EFDFFF' }}>
+                    <ShoppingCart size={16} />
+                  </div>
+                  <span className="ao-kpi-label">Abandonment Rate</span>
+                </div>
+                <button className="ao-kpi-menu"><MoreVertical size={18} /></button>
+              </div>
+              <div className="ao-kpi-value">{ac.abandonmentRate?.value ?? 68.4}%</div>
+              {(() => {
+                const t = ac.abandonmentRate?.trend ?? -3;
+                const improving = t <= 0;
+                return (
+                  <div className="ao-kpi-trend" style={{ color: improving ? '#147F27' : '#E11D48' }}>
+                    {improving ? <TrendingDown size={14} /> : <TrendingUp size={14} />}
+                    <span>{t > 0 ? '+' : ''}{t}%</span>
+                    <span className="ao-kpi-trend-label">&nbsp;vs last period</span>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+
+          {/* Side-by-side: Funnel + Top Abandoned Products — same card style */}
+          <div className="ac-panels">
+            <div className="ac-panel">
+              <h2 className="ac-section-title">Cart Drop-off Funnel</h2>
+              <div className="ac-products-card">
+                <div className="ac-products-scroll">
+                  {(ac.funnel ?? FALLBACK.abandonedCarts.funnel).map((step, i) => (
+                    <div key={step.label} className="ac-product-item" data-tooltip={`${step.count.toLocaleString()} users`}>
+                      <div className="ac-product-header">
+                        <div className="ac-product-name-row">
+                          <span className="ac-rank-badge">{i + 1}</span>
+                          <span className="ac-product-name">{step.label}</span>
+                        </div>
+                        <span className="ac-product-rate">{step.pct}%</span>
+                      </div>
+                      <div className="ac-product-bar">
+                        <div className="ac-product-fill" style={{ width: `${step.pct}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="ac-panel">
+              <h2 className="ac-section-title">Products — Abandonment Rate</h2>
+              <div className="ac-products-card">
+                <div className="ac-products-scroll">
+                  {(ac.topAbandoned ?? FALLBACK.abandonedCarts.topAbandoned).map((product, i) => (
+                    <div key={product.name} className="ac-product-item" data-tooltip={`${product.cartCount} cart${product.cartCount !== 1 ? 's' : ''} added`}>
+                      <div className="ac-product-header">
+                        <div className="ac-product-name-row">
+                          <span className="ac-rank-badge">{i + 1}</span>
+                          <span className="ac-product-name">{product.name}</span>
+                        </div>
+                        <span className="ac-product-rate">{product.rate}%</span>
+                      </div>
+                      <div className="ac-product-bar">
+                        <div className="ac-product-fill" style={{ width: `${product.rate}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Tab 2: Traffic & Clicks ─── */}
+      {activeTab === 2 && (() => {
+        const tckpis   = tc.kpis           || FALLBACK.trafficClicks.kpis;
+        const trend    = tc.trafficTrend   || FALLBACK.trafficClicks.trafficTrend;
+        const pages    = tc.topPages       || FALLBACK.trafficClicks.topPages;
+        const devices  = tc.deviceBreakdown|| FALLBACK.trafficClicks.deviceBreakdown;
+        const maxClicks = Math.max(...pages.map(p => p.clicks), 1);
+        return (
+          <div className="ao-content">
+            {/* Filters */}
+            <div className="ac-filters">
+              <div className="ao-period-wrap" onClick={() => setPeriodOpen(o => !o)}>
+                <span>{periodLabel}</span>
+                <ChevronDown size={16} />
+                {periodOpen && (
+                  <div className="ao-dropdown">
+                    {PERIOD_OPTIONS.map(opt => (
+                      <div
+                        key={opt.value}
+                        className={`ao-dropdown-item ${period === opt.value ? 'active' : ''}`}
+                        onClick={e => { e.stopPropagation(); setPeriod(opt.value); setPeriodOpen(false); }}
+                      >
+                        {opt.label}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="ao-period-wrap"><span>All Products</span><ChevronDown size={16} /></div>
+            </div>
+
+            {/* Section heading */}
+            <h2 className="tc-section-heading">Traffic &amp; Clicks</h2>
+
+            {/* 4 KPI cards */}
+            <div className="tc-kpi-grid">
+              {[
+                { label: 'Total Visits',  raw: tckpis.totalVisits,  fmt: v => Number(v).toLocaleString() },
+                { label: 'Unique Users',  raw: tckpis.uniqueUsers,  fmt: v => Number(v).toLocaleString() },
+                { label: 'Avg. Session',  raw: tckpis.avgSession,   fmt: v => v },
+                { label: 'Bounce Rate',   raw: tckpis.bounceRate,   fmt: v => `${v}%` },
+              ].map(({ label, raw, fmt }) => {
+                const t = raw?.trend ?? 0;
+                const up = t >= 0;
+                return (
+                  <div key={label} className="tc-kpi-card">
+                    <div className="tc-kpi-top">
+                      <div className="tc-kpi-icon"><ShoppingBag size={22} /></div>
+                      <MoreVertical size={18} className="tc-kpi-menu" />
+                    </div>
+                    <span className="tc-kpi-label">{label}</span>
+                    <div className="tc-kpi-bottom">
+                      <span className="tc-kpi-value">{fmt(raw?.value ?? raw)}</span>
+                      <div className="tc-kpi-trend" style={{ color: up ? '#147F27' : '#E11D48' }}>
+                        {up ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                        <span>{t > 0 ? '+' : ''}{t}%</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Traffic Trend chart */}
+            <div className="tc-chart-section">
+              <div className="tc-chart-header">
+                <div>
+                  <h3 className="tc-chart-title">Traffic Trend – Visitors vs Click-Through Rate</h3>
+                  <p className="tc-chart-sub">Performance analysis for the last 6 months</p>
+                </div>
+                <div className="tc-legend">
+                  <div className="tc-legend-item"><span className="tc-legend-dot" style={{ background: '#6366f1' }} />Visitors</div>
+                  <div className="tc-legend-item"><span className="tc-legend-dot" style={{ background: '#f59e0b' }} />CTR %</div>
+                </div>
+              </div>
+              <div className="tc-chart-card">
+                <ResponsiveContainer width="100%" height={280}>
+                  <ComposedChart data={trend} margin={{ top: 10, right: 48, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="tcVisitorsGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%"  stopColor="#6366f1" stopOpacity={0.18} />
+                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0.02} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                    <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#697177' }} axisLine={false} tickLine={false} />
+                    <YAxis yAxisId="left"  tickFormatter={v => String(v)} tick={{ fontSize: 11, fill: '#697177' }} axisLine={false} tickLine={false} width={40} />
+                    <YAxis yAxisId="right" orientation="right" tickFormatter={v => `${v}%`} tick={{ fontSize: 11, fill: '#697177' }} axisLine={false} tickLine={false} />
+                    <RechartsTooltip
+                      formatter={(value, name) =>
+                        name === 'visitors'
+                          ? [value.toLocaleString(), 'Visitors']
+                          : [`${value}%`, 'CTR']
+                      }
+                      contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e0e0e0' }}
+                    />
+                    <Area  yAxisId="left"  type="monotone" dataKey="visitors" stroke="#6366f1" strokeWidth={2} fill="url(#tcVisitorsGrad)" dot={false} />
+                    <Line  yAxisId="right" type="monotone" dataKey="ctr"      stroke="#f59e0b" strokeWidth={2} dot={{ fill: '#f59e0b', r: 3 }} />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Bottom: Top Pages + Device Breakdown */}
+            <div className="ac-panels">
+              <div className="ac-panel">
+                <h2 className="ac-section-title">Top Pages by Clicks</h2>
+                <div className="ac-products-card">
+                  <div className="ac-products-scroll">
+                    {pages.map((page, i) => (
+                      <div key={page.path} className="ac-product-item" data-tooltip={`${page.clicks.toLocaleString()} clicks`}>
+                        <div className="ac-product-header">
+                          <div className="ac-product-name-row">
+                            <span className="ac-rank-badge">{i + 1}</span>
+                            <span className="ac-product-name">{page.path}</span>
+                          </div>
+                          <span className="ac-product-rate">{page.clicks.toLocaleString()}</span>
+                        </div>
+                        <div className="ac-product-bar">
+                          <div className="ac-product-fill" style={{ width: `${Math.round(page.clicks / maxClicks * 100)}%` }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="ac-panel">
+                <h2 className="ac-section-title">Device Breakdown</h2>
+                <div className="tc-donut-card">
+                  <div className="tc-donut-body">
+                  <ResponsiveContainer width={200} height={200}>
+                    <PieChart>
+                      <Pie data={devices} cx="50%" cy="50%" innerRadius={60} outerRadius={90} dataKey="value" strokeWidth={0}>
+                        {devices.map((d, i) => <Cell key={i} fill={d.color} />)}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="tc-device-legend">
+                    {devices.filter(d => d.name !== 'Other').map(d => (
+                      <div key={d.name} className="tc-device-row">
+                        <div className="tc-device-left">
+                          <span className="tc-device-dot" style={{ background: d.color }} />
+                          <span className="tc-device-name">{d.name}</span>
+                        </div>
+                        <span className="tc-device-pct">{d.value}%</span>
+                      </div>
+                    ))}
+                  </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ─── Tab 3: Returns & Exchanges ─── */}
+      {activeTab === 3 && (() => {
+        const rekpis   = re.kpis            || FALLBACK.returnsExchanges.kpis;
+        const reTrend  = re.trend           || [];
+        const reasons  = re.topReasons      || [];
+        const products = re.topProducts     || [];
+        const statuses = re.statusBreakdown || [];
+        const maxReason = Math.max(...reasons.map(r => r.count), 1);
+
+        return (
+          <div className="ao-content">
+            {/* Filters — same pattern as Tab 2 */}
+            <div className="ac-filters">
+              <div className="ao-period-wrap" onClick={() => setPeriodOpen(o => !o)}>
+                <span>{periodLabel}</span>
+                <ChevronDown size={16} />
+                {periodOpen && (
+                  <div className="ao-dropdown">
+                    {PERIOD_OPTIONS.map(opt => (
+                      <div
+                        key={opt.value}
+                        className={`ao-dropdown-item ${period === opt.value ? 'active' : ''}`}
+                        onClick={e => { e.stopPropagation(); setPeriod(opt.value); setPeriodOpen(false); }}
+                      >
+                        {opt.label}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="ao-period-wrap"><span>All Products</span><ChevronDown size={16} /></div>
+            </div>
+
+            {/* Section heading */}
+            <h2 className="tc-section-heading">Exchanges/Returns</h2>
+
+            {/* 4 KPI cards */}
+            <div className="tc-kpi-grid">
+              {[
+                { label: 'Return Rate',       raw: rekpis.returnRate,     fmt: v => `${v ?? 0}%`  },
+                { label: 'Total Refunds',     raw: rekpis.totalRefunds,   fmt: v => `₹${Number(v ?? 0).toLocaleString('en-IN')}` },
+                { label: 'Exchange Rate',     raw: rekpis.exchangeRate,   fmt: v => `${v ?? 0}%`  },
+                { label: 'Avg. Process Time', raw: rekpis.avgProcessTime, fmt: v => v ?? '—'      },
+              ].map(({ label, raw, fmt }) => {
+                const t  = raw?.trend ?? 0;
+                const up = t >= 0;
+                return (
+                  <div key={label} className="tc-kpi-card">
+                    <div className="tc-kpi-top">
+                      <div className="tc-kpi-icon"><ShoppingBag size={22} /></div>
+                      <MoreVertical size={18} className="tc-kpi-menu" />
+                    </div>
+                    <span className="tc-kpi-label">{label}</span>
+                    <div className="tc-kpi-bottom">
+                      <span className="tc-kpi-value">{fmt(raw?.value ?? raw)}</span>
+                      <div className="tc-kpi-trend" style={{ color: up ? '#147F27' : '#E11D48' }}>
+                        {up ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                        <span>{t > 0 ? '+' : ''}{t}%</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Returns vs Exchanges Over Time chart */}
+            <div className="tc-chart-section">
+              <div className="tc-chart-header">
+                <div>
+                  <h3 className="tc-chart-title">Returns vs Exchanges Over Time</h3>
+                  <p className="tc-chart-sub">Comparing volume between return requests and item exchanges.</p>
+                </div>
+                <div className="tc-legend">
+                  <div className="tc-legend-item"><span className="tc-legend-dot" style={{ background: '#6366f1' }} />Returns</div>
+                  <div className="tc-legend-item"><span className="tc-legend-dot" style={{ background: '#f59e0b' }} />Exchanges</div>
+                </div>
+              </div>
+              <div className="tc-chart-card">
+                <ResponsiveContainer width="100%" height={280}>
+                  <ComposedChart data={reTrend} margin={{ top: 10, right: 24, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="reReturnsGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%"  stopColor="#6366f1" stopOpacity={0.18} />
+                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0.02} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                    <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#697177' }} axisLine={false} tickLine={false} />
+                    <YAxis tickFormatter={v => String(v)} tick={{ fontSize: 11, fill: '#697177' }} axisLine={false} tickLine={false} width={40} />
+                    <RechartsTooltip
+                      formatter={(value, name) => [value, name === 'returns' ? 'Returns' : 'Exchanges']}
+                      contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e0e0e0' }}
+                    />
+                    <Area type="monotone" dataKey="returns"   name="returns"   stroke="#6366f1" strokeWidth={2} fill="url(#reReturnsGrad)" dot={false} />
+                    <Line type="monotone" dataKey="exchanges" name="exchanges" stroke="#f59e0b" strokeWidth={2} dot={{ fill: '#f59e0b', r: 3 }} />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Bottom 3-column: Reasons | Products | Status */}
+            <div className="rx-bottom-grid">
+
+              {/* Top Return Reasons */}
+              <div className="ac-panel">
+                <h2 className="ac-section-title">Top Return Reasons</h2>
+                <div className="ac-products-card">
+                  <div className="ac-products-scroll">
+                    {reasons.length === 0
+                      ? <span style={{ color: '#9ca3af', fontSize: 12 }}>No return reasons recorded yet</span>
+                      : reasons.map(r => (
+                        <div key={r.reason} className="ac-product-item" data-tooltip={`${r.count} returns`}>
+                          <div className="ac-product-header">
+                            <div className="ac-product-name-row">
+                              <span className="ac-product-name">{r.reason}</span>
+                            </div>
+                            <span className="ac-product-rate">{r.pct}%</span>
+                          </div>
+                          <div className="ac-product-bar">
+                            <div className="ac-product-fill" style={{ width: `${Math.round(r.count / maxReason * 100)}%` }} />
+                          </div>
+                        </div>
+                      ))
+                    }
+                  </div>
+                </div>
+              </div>
+
+              {/* Most Returned Products */}
+              <div className="ac-panel">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <h2 className="ac-section-title" style={{ margin: 0 }}>Most Returned Products</h2>
+                  <span className="rx-view-all">View All</span>
+                </div>
+                <div className="ac-products-card" style={{ flex: 1 }}>
+                  <div className="rx-products-table">
+                    <div className="rx-table-header">
+                      <span>Product</span>
+                      <span>Returns</span>
+                    </div>
+                    {products.map(p => (
+                      <div key={p.name} className="rx-table-row">
+                        <div className="rx-table-name-cell">
+                          <span className="rx-rank-bar" style={{ background: p.color }} />
+                          <span className="rx-product-name">{p.name}</span>
+                        </div>
+                        <span className="rx-product-count">{p.returns}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Return Status Breakdown */}
+              <div className="ac-panel">
+                <h2 className="ac-section-title">Return Status Breakdown</h2>
+                <div className="ac-products-card rx-status-card">
+                  <ResponsiveContainer width="100%" height={200}>
+                    <PieChart>
+                      <Pie
+                        data={statuses}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={90}
+                        paddingAngle={3}
+                        dataKey="value"
+                        startAngle={90}
+                        endAngle={-270}
+                        strokeWidth={0}
+                      >
+                        {statuses.map((s, i) => <Cell key={i} fill={s.color} />)}
+                      </Pie>
+                      <RechartsTooltip
+                        formatter={(val, name) => [`${val}%`, name]}
+                        contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e0e0e0' }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="rx-status-grid">
+                    {statuses.map(s => (
+                      <div key={s.name} className="rx-status-item">
+                        <div className="rx-status-left">
+                          <span className="rx-status-dot" style={{ background: s.color }} />
+                          <span className="rx-status-name">{s.name}</span>
+                        </div>
+                        <span className="rx-status-val">{s.value}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Other tabs placeholder */}
-      {activeTab !== 0 && (
+      {activeTab > 3 && (
         <div className="ao-coming-soon">
           <p>📊 {TABS[activeTab]} — coming soon</p>
         </div>

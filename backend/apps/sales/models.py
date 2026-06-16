@@ -239,6 +239,24 @@ class LiveSession(models.Model):
     last_activity = models.DateTimeField(auto_now=True)
     def __str__(self): return f"Session {self.session_id} on {self.current_page}"
 
+class SiteVisit(models.Model):
+    """One row per page view — powers Traffic & Clicks analytics tab."""
+    DEVICE_CHOICES = [('mobile', 'Mobile'), ('tablet', 'Tablet'), ('desktop', 'Desktop')]
+    session_id   = models.CharField(max_length=64, db_index=True)
+    user         = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='site_visits')
+    page         = models.CharField(max_length=500)
+    device_type  = models.CharField(max_length=10, choices=DEVICE_CHOICES, default='desktop')
+    visited_at   = models.DateTimeField(auto_now_add=True, db_index=True)
+    duration_sec = models.PositiveIntegerField(null=True, blank=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['session_id', 'visited_at']),
+            models.Index(fields=['visited_at', 'device_type']),
+        ]
+
+    def __str__(self): return f"{self.session_id} → {self.page}"
+
 class ReturnRequest(models.Model):
     REASON_CHOICES = [
         ('defective', 'Defective'),

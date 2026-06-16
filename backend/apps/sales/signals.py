@@ -1,6 +1,6 @@
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
-from .models import Order, Cart, ReturnRequest, LiveSession
+from .models import Order, Cart, ReturnRequest, LiveSession, SiteVisit
 from .analytics_events import announce_change
 
 @receiver(post_save, sender=Order)
@@ -43,3 +43,12 @@ def live_session_saved_handler(sender, instance, created, **kwargs):
         'session_id': instance.session_id,
         'current_page': instance.current_page,
     })
+
+@receiver(post_save, sender=SiteVisit)
+def site_visit_saved_handler(sender, instance, created, **kwargs):
+    if created:
+        announce_change('visit_tracked', {
+            'session_id': instance.session_id,
+            'page': instance.page,
+            'device_type': instance.device_type,
+        })

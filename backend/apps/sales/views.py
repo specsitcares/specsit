@@ -2,12 +2,12 @@ import uuid
 from rest_framework import viewsets, permissions, status, views, filters, parsers
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
-from django.db.models import Sum, Count, Q
+from django.db.models import Sum, Count, Q, F
 from django.utils import timezone
 from django.db import transaction
 import time
 from datetime import timedelta, datetime
-from .models import Order, OrderItem, Cart, Wishlist, Coupon, Shipment, LiveSession, OrderTracking, Payment, ReturnRequest, WarrantyClaim
+from .models import Order, OrderItem, Cart, Wishlist, Coupon, Shipment, LiveSession, SiteVisit, OrderTracking, Payment, ReturnRequest, WarrantyClaim
 from apps.catalog.models import Prescription, Variant
 from apps.core_utils.idempotency import idempotent_endpoint
 from .serializers import (
@@ -1311,16 +1311,27 @@ class RecentOrdersView(views.APIView):
         serializer = OrderSerializer(recent_orders, many=True)
         return Response(serializer.data)
 
+def _detect_device(ua_string):
+    import re as _re
+    ua = (ua_string or '').lower()
+    if _re.search(r'ipad|android(?!.*mobile)|tablet|kindle|silk|playbook', ua):
+        return 'tablet'
+    if _re.search(r'mobile|iphone|ipod|android|blackberry|windows phone|opera mini|iemobile', ua):
+        return 'mobile'
+    return 'desktop'
+
+
 class RecordLiveActivityView(views.APIView):
     permission_classes = [permissions.AllowAny]
-    
+
     def post(self, request):
-        sid = request.data.get('session_id')
+        sid  = request.data.get('session_id')
         page = request.data.get('page', 'Unknown')
-        
+
         if not sid:
             return Response({'error': 'Missing session_id'}, status=400)
-            
+
+        # 1. Update LiveSession (live-dashboard counter)
         from django.db.utils import OperationalError
         for attempt in range(3):
             try:
@@ -1330,11 +1341,32 @@ class RecordLiveActivityView(views.APIView):
                 )
                 break
             except OperationalError:
-                # SQLite DB lock — wait briefly and retry (non-critical tracking)
                 if attempt < 2:
-                    time.sleep(0.05 * (2 ** attempt))  # 50ms, 100ms
+                    time.sleep(0.05 * (2 ** attempt))
             except Exception:
-                break  # Non-lock errors: fail silently, don't spam logs
+                break
+
+        # 2. Record SiteVisit for Traffic & Clicks analytics
+        try:
+            ua_str  = request.META.get('HTTP_USER_AGENT', '')
+            device  = _detect_device(ua_str)
+            visitor = request.user if request.user.is_authenticated else None
+            now     = timezone.now()
+
+            # Back-fill duration on the previous unfinished page in this session
+            prev = SiteVisit.objects.filter(session_id=sid, duration_sec__isnull=True).order_by('-visited_at').first()
+            if prev:
+                delta = max(0, int((now - prev.visited_at).total_seconds()))
+                SiteVisit.objects.filter(pk=prev.pk).update(duration_sec=delta)
+
+            SiteVisit.objects.create(
+                session_id=sid,
+                user=visitor,
+                page=page,
+                device_type=device,
+            )
+        except Exception:
+            pass  # analytics failure must never block the response
 
         return Response({'status': 'ok'})
 
@@ -1744,7 +1776,264 @@ class OrdersOverviewView(views.APIView):
             for r in acc_qs
         ]
 
-        # 9. Product profit: category % of revenue
+        # 9. Abandoned Cart Analytics
+        cart_users_curr = Cart.objects.filter(
+            added_at__date__gte=start_date
+        ).values('user').distinct().count()
+        order_users_curr = curr_qs.values('user').distinct().count()
+
+        abandonment_rate = round(
+            max(0, cart_users_curr - order_users_curr) / max(cart_users_curr, 1) * 100, 1
+        )
+
+        cart_users_prev = Cart.objects.filter(
+            added_at__date__gte=prev_start,
+            added_at__date__lt=start_date
+        ).values('user').distinct().count()
+        order_users_prev = prev_qs.values('user').distinct().count()
+        prev_abandonment_rate = round(
+            max(0, cart_users_prev - order_users_prev) / max(cart_users_prev, 1) * 100, 1
+        )
+        # negative = rate went down = improvement
+        abandonment_trend = round(abandonment_rate - prev_abandonment_rate, 1)
+
+        funnel_placed = curr_qs.exclude(order_status='cancelled').count()
+        funnel_max = max(carts_curr, 1)
+        funnel_data = [
+            {'label': 'Cart Created',     'count': carts_curr,       'pct': 100},
+            {'label': 'Checkout Started', 'count': total_orders,     'pct': min(100, round(total_orders   / funnel_max * 100))},
+            {'label': 'Order Placed',     'count': funnel_placed,    'pct': min(100, round(funnel_placed  / funnel_max * 100))},
+        ]
+
+        from apps.catalog.models import Product as CatalogProduct
+
+        all_products_list = list(
+            CatalogProduct.objects.filter(is_active=True)
+            .values('title')
+            .annotate(
+                cart_count=Count(
+                    'variants__cart',
+                    filter=Q(variants__cart__added_at__date__gte=start_date),
+                )
+            )
+        )
+
+        sold_by_title = {}
+        for row in OrderItem.objects.filter(
+            order__created_at__date__gte=start_date,
+        ).values('variant__product__title').annotate(total=Sum('quantity')):
+            sold_by_title[row['variant__product__title']] = int(row['total'] or 0)
+
+        top_abandoned_data = []
+        for item in all_products_list:
+            name = item['title']
+            c = item['cart_count']
+            sold = sold_by_title.get(name, 0)
+            total_interactions = c + sold
+            rate = round(c / max(total_interactions, 1) * 100) if total_interactions > 0 else 0
+            top_abandoned_data.append({'name': name, 'rate': rate, 'cartCount': c})
+        top_abandoned_data.sort(key=lambda x: (-x['cartCount'], x['name']))
+
+        # 10. Traffic & Clicks — derived from SiteVisit rows
+        from django.db.models import Avg as AvgAgg
+
+        visits_curr = SiteVisit.objects.filter(visited_at__date__gte=start_date)
+        visits_prev = SiteVisit.objects.filter(
+            visited_at__date__gte=prev_start, visited_at__date__lt=start_date
+        )
+
+        # Total Visitors = unique session_ids (logged-in or not, no repeats)
+        tv_curr = visits_curr.values('session_id').distinct().count()
+        tv_prev = visits_prev.values('session_id').distinct().count()
+
+        # Unique Users = distinct logged-in users actively using the site
+        uu_curr = visits_curr.filter(user__isnull=False).values('user').distinct().count()
+        uu_prev = visits_prev.filter(user__isnull=False).values('user').distinct().count()
+
+        # Avg Session = mean of recorded duration_sec values
+        avg_sec_curr = visits_curr.filter(duration_sec__isnull=False).aggregate(a=AvgAgg('duration_sec'))['a'] or 0
+        avg_sec_prev = visits_prev.filter(duration_sec__isnull=False).aggregate(a=AvgAgg('duration_sec'))['a'] or 0
+        avg_session_str = f"{int(avg_sec_curr // 60)}m {int(avg_sec_curr % 60)}s"
+
+        # Bounce Rate = sessions with exactly 1 page view / total sessions
+        sess_views = visits_curr.values('session_id').annotate(pv=Count('id'))
+        total_sess = sess_views.count() or 1
+        bounce_curr = round(sess_views.filter(pv=1).count() / total_sess * 100, 1)
+
+        prev_sess_views  = visits_prev.values('session_id').annotate(pv=Count('id'))
+        prev_total_sess  = prev_sess_views.count() or 1
+        bounce_prev      = round(prev_sess_views.filter(pv=1).count() / prev_total_sess * 100, 1)
+
+        # Device Breakdown — classified from User-Agent at record time
+        device_raw   = list(visits_curr.values('device_type').annotate(cnt=Count('id')))
+        device_total = sum(d['cnt'] for d in device_raw) or 1
+        _device_colors = {'mobile': '#6366f1', 'tablet': '#a855f7', 'desktop': '#ec4899'}
+        device_breakdown = sorted([
+            {
+                'name':  d['device_type'].title(),
+                'value': round(d['cnt'] / device_total * 100),
+                'color': _device_colors.get(d['device_type'], '#cbd5e1'),
+            }
+            for d in device_raw
+        ], key=lambda x: -x['value'])
+
+        # Top Pages by Clicks (page = human-readable label set in App.jsx LiveTracker)
+        top_pages_data = [
+            {'path': p['page'], 'clicks': p['clicks']}
+            for p in visits_curr.values('page').annotate(clicks=Count('id')).order_by('-clicks')[:8]
+        ]
+
+        # Traffic Trend — visitors + CTR per time bucket (reuses trunc_fn & label_fmt)
+        PRODUCT_PAGES = ['Viewing Product', 'Browsing Shop']
+        trend_raw = (
+            visits_curr
+            .annotate(bucket=trunc_fn('visited_at'))
+            .values('bucket')
+            .annotate(
+                visitors=Count('session_id', distinct=True),
+                product_clicks=Count('id', filter=Q(page__in=PRODUCT_PAGES)),
+                total_clicks=Count('id'),
+            )
+            .order_by('bucket')
+        )
+        traffic_trend = [
+            {
+                'month':    t['bucket'].strftime(label_fmt),
+                'visitors': t['visitors'],
+                'ctr':      round(t['product_clicks'] / max(t['total_clicks'], 1) * 100, 2),
+            }
+            for t in trend_raw
+        ]
+
+        traffic_clicks_data = {
+            'kpis': {
+                'totalVisits': {'value': tv_curr,         'trend': safe_trend(tv_curr, tv_prev)},
+                'uniqueUsers': {'value': uu_curr,         'trend': safe_trend(uu_curr, uu_prev)},
+                'avgSession':  {'value': avg_session_str, 'trend': safe_trend(int(avg_sec_curr), int(avg_sec_prev))},
+                'bounceRate':  {'value': bounce_curr,     'trend': round(bounce_curr - bounce_prev, 1)},
+            },
+            'trafficTrend':    traffic_trend,
+            'topPages':        top_pages_data,
+            'deviceBreakdown': device_breakdown,
+        }
+
+        # 11. Returns & Exchanges analytics
+        rr_curr = ReturnRequest.objects.filter(created_at__date__gte=start_date)
+        rr_prev = ReturnRequest.objects.filter(created_at__date__gte=prev_start, created_at__date__lt=start_date)
+
+        refund_curr     = rr_curr.filter(request_type='refund').count()
+        replace_curr    = rr_curr.filter(request_type='replacement').count()
+        refund_prev     = rr_prev.filter(request_type='refund').count()
+        replace_prev    = rr_prev.filter(request_type='replacement').count()
+
+        return_rate_curr = round(refund_curr  / max(total_orders, 1) * 100, 1)
+        return_rate_prev = round(refund_prev  / max(prev_total_orders, 1) * 100, 1)
+        exch_rate_curr   = round(replace_curr / max(total_orders, 1) * 100, 1)
+        exch_rate_prev   = round(replace_prev / max(prev_total_orders, 1) * 100, 1)
+
+        total_refunds_curr = float(
+            rr_curr.filter(status='refunded').aggregate(t=Sum('refund_amount'))['t'] or 0
+        )
+        total_refunds_prev = float(
+            rr_prev.filter(status='refunded').aggregate(t=Sum('refund_amount'))['t'] or 0
+        )
+
+        # Avg process time = avg days from created_at to updated_at for resolved requests
+        resolved_qs = rr_curr.filter(status__in=['refunded', 'replaced', 'rejected'])
+        avg_proc_days = 0.0
+        if resolved_qs.exists():
+            from django.db.models import ExpressionWrapper, DurationField
+            deltas = []
+            for rr in resolved_qs.only('created_at', 'updated_at'):
+                deltas.append((rr.updated_at - rr.created_at).total_seconds() / 86400)
+            avg_proc_days = round(sum(deltas) / len(deltas), 1) if deltas else 0.0
+
+        # Top return reasons
+        _reason_labels = {
+            'defective':       'Defective',
+            'wrong_item':      'Wrong Item',
+            'size_issue':      'Wrong Fit',
+            'not_as_described':'Not as Described',
+            'other':           'Other',
+        }
+        reason_counts = list(rr_curr.values('reason').annotate(cnt=Count('id')).order_by('-cnt'))
+        total_reason  = sum(r['cnt'] for r in reason_counts) or 1
+        top_reasons_data = [
+            {
+                'reason': _reason_labels.get(r['reason'], r['reason']),
+                'count':  r['cnt'],
+                'pct':    round(r['cnt'] / total_reason * 100),
+            }
+            for r in reason_counts
+        ]
+
+        # Most returned products
+        top_returned_qs = (
+            rr_curr
+            .values(pname=F('order__items__variant__product__title'))
+            .annotate(ret=Count('id', distinct=True))
+            .filter(pname__isnull=False)
+            .order_by('-ret')[:5]
+        )
+        _prod_colors = ['#6366f1', '#f59e0b', '#cbd5e1', '#cbd5e1', '#cbd5e1']
+        top_products_data = [
+            {'name': p['pname'], 'returns': p['ret'], 'color': _prod_colors[i]}
+            for i, p in enumerate(top_returned_qs)
+        ]
+
+        # Return status breakdown (donut)
+        _status_colors = {
+            'pending':   '#a855f7', 'approved': '#6366f1',
+            'rejected':  '#ec4899', 'refunded': '#f97316',
+            'picked_up': '#f59e0b', 'received': '#94a3b8',
+            'replaced':  '#22c55e',
+        }
+        _status_labels = {
+            'pending': 'Pending', 'approved': 'Approved', 'rejected': 'Rejected',
+            'refunded': 'Refunded', 'picked_up': 'Picked Up',
+            'received': 'Received', 'replaced': 'Replaced',
+        }
+        status_counts = list(rr_curr.values('status').annotate(cnt=Count('id')))
+        total_status  = sum(s['cnt'] for s in status_counts) or 1
+        status_breakdown = sorted([
+            {
+                'name':  _status_labels.get(s['status'], s['status']),
+                'value': round(s['cnt'] / total_status * 100),
+                'color': _status_colors.get(s['status'], '#94a3b8'),
+            }
+            for s in status_counts
+        ], key=lambda x: -x['value'])[:4]
+
+        # Returns vs Exchanges trend
+        re_trend_raw = (
+            rr_curr
+            .annotate(bucket=trunc_fn('created_at'))
+            .values('bucket')
+            .annotate(
+                returns=Count('id', filter=Q(request_type='refund')),
+                exchanges=Count('id', filter=Q(request_type='replacement')),
+            )
+            .order_by('bucket')
+        )
+        re_trend = [
+            {'month': t['bucket'].strftime(label_fmt), 'returns': t['returns'], 'exchanges': t['exchanges']}
+            for t in re_trend_raw
+        ]
+
+        returns_exchanges_data = {
+            'kpis': {
+                'returnRate':     {'value': return_rate_curr, 'trend': round(return_rate_curr - return_rate_prev, 1)},
+                'totalRefunds':   {'value': total_refunds_curr, 'trend': safe_trend(total_refunds_curr, total_refunds_prev)},
+                'exchangeRate':   {'value': exch_rate_curr,  'trend': round(exch_rate_curr - exch_rate_prev, 1)},
+                'avgProcessTime': {'value': f'{avg_proc_days} days', 'trend': 0},
+            },
+            'trend':           re_trend,
+            'topReasons':      top_reasons_data,
+            'topProducts':     top_products_data,
+            'statusBreakdown': status_breakdown,
+        }
+
+        # 12. Product profit: category % of revenue
         profit_qs = OrderItem.objects.filter(
             order__created_at__date__gte=start_date
         ).values('variant__product__category__name').annotate(
@@ -1775,6 +2064,13 @@ class OrdersOverviewView(views.APIView):
                 },
             },
             'chart': chart_data,
+            'abandonedCarts': {
+                'abandonmentRate': {'value': abandonment_rate, 'trend': abandonment_trend},
+                'funnel': funnel_data,
+                'topAbandoned': top_abandoned_data,
+            },
+            'trafficClicks': traffic_clicks_data,
+            'returnsExchanges': returns_exchanges_data,
             'deliveryCost': delivery_cost_data,
             'productProfit': profit_data,
             'productCategory': product_category_data,
