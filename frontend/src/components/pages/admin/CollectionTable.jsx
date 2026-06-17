@@ -188,7 +188,7 @@ const CollectionTable = () => {
       <FormModal isOpen={showForm} onClose={() => setShowForm(false)} onSubmit={handleFormSubmit}
         onDelete={handleFormDelete} mode={formMode} title="Collection" 
         fields={[
-          { name: 'name', label: 'Collection Name', type: 'text', required: true },
+          { name: 'name', label: 'Collection Name', type: 'text' },
           { name: 'description', label: 'Description', type: 'textarea' },
           { name: 'image', label: 'Collection Thumbnail', type: 'file' },
           { name: 'is_active', label: 'Active', type: 'checkbox', defaultValue: true }

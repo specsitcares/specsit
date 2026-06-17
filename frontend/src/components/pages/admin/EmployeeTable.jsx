@@ -19,18 +19,18 @@ const EmployeeTable = () => {
   const [selectedIds, setSelectedIds] = useState(new Set());
 
   const employeeFormFields = [
-    { name: 'name', label: 'Full Name', type: 'text', required: true },
-    { name: 'email', label: 'Email', type: 'email', required: true },
-    { name: 'phone_number', label: 'Phone Number', type: 'tel', required: false },
+    { name: 'name', label: 'Full Name', type: 'text' },
+    { name: 'email', label: 'Email', type: 'email' },
+    { name: 'phone_number', label: 'Phone Number', type: 'tel' },
     {
       name: 'role', label: 'Role', type: 'select', options: [
         { label: 'Manager', value: 'Manager' },
         { label: 'Agent', value: 'Agent' },
         { label: 'Supervisor', value: 'Supervisor' },
         { label: 'Admin', value: 'Admin' }
-      ], required: true
+      ]
     },
-    { name: 'password', label: 'Login Password', type: 'password', required: false, placeholder: 'Leave blank for auto-generated password' },
+    { name: 'password', label: 'Login Password', type: 'password', placeholder: 'Leave blank for auto-generated password' },
   ];
 
   useEffect(() => {

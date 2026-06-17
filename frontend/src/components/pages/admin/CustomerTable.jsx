@@ -21,8 +21,8 @@ const CustomerTable = () => {
   const [selectedIds, setSelectedIds] = useState(new Set());
 
   const customerFormFields = [
-    { name: 'username', label: 'Username', type: 'text', required: true, placeholder: 'username' },
-    { name: 'email', label: 'Email', type: 'email', required: true, placeholder: 'user@example.com' },
+    { name: 'username', label: 'Username', type: 'text', placeholder: 'username' },
+    { name: 'email', label: 'Email', type: 'email', placeholder: 'user@example.com' },
     { name: 'first_name', label: 'First Name', type: 'text', placeholder: 'First name' },
     { name: 'last_name', label: 'Last Name', type: 'text', placeholder: 'Last name' },
     { name: 'phone', label: 'Phone Number', type: 'tel', placeholder: 'Phone number' },

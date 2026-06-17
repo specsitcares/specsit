@@ -252,14 +252,14 @@ const OrderTable = ({ category = null, onViewDetails, hideKPIs = false }) => {
 
   const orderFormFields = [
     { name: 'customer_name', label: 'Customer Name', type: 'text', readOnly: true },
-    { name: 'total_amount', label: 'Total Amount (₹)', type: 'number', required: true, step: 0.01, min: 0 },
+    { name: 'total_amount', label: 'Total Amount (₹)', type: 'number', step: 0.01, min: 0 },
     {
       name: 'status', label: 'Order Status', type: 'select',
       options: statusOptions.length ? statusOptions : [
         { label: 'Pending', value: 1 }, { label: 'Approved', value: 2 }, { label: 'Cancelled', value: 3 }
-      ], required: true
+      ]
     },
-    { name: 'payment_method', label: 'Payment Method', type: 'text', required: true },
+    { name: 'payment_method', label: 'Payment Method', type: 'text' },
   ];
 
   const totalPages = Math.ceil(totalOrders / perPage) || 1;

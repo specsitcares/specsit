@@ -150,7 +150,6 @@ const ReuploadDrawer = ({ rx, onClose, onSend }) => {
   };
 
   const handleSend = async () => {
-    if (!message.trim()) { setError('Message to customer is required.'); return; }
     setSending(true);
     setError('');
     try {
@@ -299,7 +298,6 @@ const RejectModal = ({ onClose, onConfirm, saving }) => {
   const [error, setError]   = useState('');
 
   const handleConfirm = () => {
-    if (!reason.trim()) { setError('Rejection reason is required.'); return; }
     onConfirm(reason);
   };
 

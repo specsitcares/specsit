@@ -397,7 +397,7 @@ const VariantsPricingForm = forwardRef(({ formData, onFormDataChange, saving, er
                   {/* ── Top Row: 5 fields ── */}
                   <div className="vp-top-row">
                     <div className="form-field">
-                      <label className="form-field-label">Variant name <span className="required-star">*</span></label>
+                      <label className="form-field-label">Variant name</label>
                       <input
                         type="text"
                         className="form-field-input"
@@ -471,7 +471,7 @@ const VariantsPricingForm = forwardRef(({ formData, onFormDataChange, saving, er
                       </div>
                     </div>
                     <div className="form-field">
-                      <label className="form-field-label">Total stock <span className="required-star">*</span></label>
+                      <label className="form-field-label">Total stock</label>
                       <input
                         type="number"
                         className="form-field-input"
@@ -717,7 +717,7 @@ const VariantsPricingForm = forwardRef(({ formData, onFormDataChange, saving, er
                         {/* Row 3: Gender | UV protection | Polarized | Country of origin */}
                         <div className="vp-row-4" style={{ marginTop: '12px' }}>
                           <div className="form-field">
-                            <label className="form-field-label">Gender target <span className="required-star">*</span></label>
+                            <label className="form-field-label">Gender target</label>
                             <div className="form-field-select-wrapper">
                               <select value={v.gender || 'Unisex'} onChange={(e) => updateVariant(v.id, 'gender', e.target.value)}>
                                 {GENDER_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -762,7 +762,7 @@ const VariantsPricingForm = forwardRef(({ formData, onFormDataChange, saving, er
                         {/* Eyeglasses tech specs */}
                         <div className="vp-row-4">
                           <div className="form-field">
-                            <label className="form-field-label">Frame Material <span className="required-star">*</span></label>
+                            <label className="form-field-label">Frame Material</label>
                             <SelectWithAdd
                               value={v.frame_material || ''}
                               onChange={(val) => updateVariant(v.id, 'frame_material', val)}
@@ -782,7 +782,7 @@ const VariantsPricingForm = forwardRef(({ formData, onFormDataChange, saving, er
                             />
                           </div>
                           <div className="form-field">
-                            <label className="form-field-label">Gender target <span className="required-star">*</span></label>
+                            <label className="form-field-label">Gender target</label>
                             <div className="form-field-select-wrapper">
                               <select value={v.gender || 'Unisex'} onChange={(e) => updateVariant(v.id, 'gender', e.target.value)}>
                                 {GENDER_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -794,7 +794,7 @@ const VariantsPricingForm = forwardRef(({ formData, onFormDataChange, saving, er
                         <div className="vp-row" style={{ marginTop: '12px' }}>
                           <div className="form-field vp-toggle-field">
                             <div className="vp-toggle-content">
-                              <span className="vp-toggle-label">Frame only mode <span className="required-star">*</span></span>
+                              <span className="vp-toggle-label">Frame only mode</span>
                               <label className="toggle-switch">
                                 <input
                                   type="checkbox"
@@ -807,7 +807,7 @@ const VariantsPricingForm = forwardRef(({ formData, onFormDataChange, saving, er
                           </div>
                           <div className="form-field vp-toggle-field">
                             <div className="vp-toggle-content">
-                              <span className="vp-toggle-label">warranty <span className="required-star">*</span></span>
+                              <span className="vp-toggle-label">warranty</span>
                               <label className="toggle-switch">
                                 <input
                                   type="checkbox"
@@ -831,7 +831,7 @@ const VariantsPricingForm = forwardRef(({ formData, onFormDataChange, saving, er
                     </div>
                     <div className="vp-row-4">
                       <div className="form-field">
-                        <label className="form-field-label">Basic Price <span className="required-star">*</span></label>
+                        <label className="form-field-label">Basic Price</label>
                         <input
                           type="number"
                           className="form-field-input"
@@ -864,7 +864,7 @@ const VariantsPricingForm = forwardRef(({ formData, onFormDataChange, saving, er
                         />
                       </div>
                       <div className="form-field">
-                        <label className="form-field-label">Discount <span className="required-star">*</span></label>
+                        <label className="form-field-label">Discount</label>
                         <input
                           type="number"
                           className="form-field-input"
@@ -934,7 +934,7 @@ const VariantsPricingForm = forwardRef(({ formData, onFormDataChange, saving, er
                     </div>
                     <div className="vp-row">
                       <div className="form-field">
-                        <label className="form-field-label">Meta title <span className="required-star">*</span></label>
+                        <label className="form-field-label">Meta title</label>
                         {v.meta_auto !== false ? (
                           <input
                             readOnly
@@ -953,7 +953,7 @@ const VariantsPricingForm = forwardRef(({ formData, onFormDataChange, saving, er
                         )}
                       </div>
                       <div className="form-field">
-                        <label className="form-field-label">Meta description <span className="required-star">*</span></label>
+                        <label className="form-field-label">Meta description</label>
                         {v.meta_auto !== false ? (
                           <input
                             readOnly

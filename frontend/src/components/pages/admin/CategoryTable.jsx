@@ -256,8 +256,8 @@ const CategoryTable = () => {
       <FormModal isOpen={showForm} onClose={() => setShowForm(false)} onSubmit={handleFormSubmit}
         onDelete={handleFormDelete} mode={formMode} title="Category"
         fields={[
-          { name: 'name', label: 'Category Name', type: 'text', required: true },
-          { name: 'group', label: 'Group', type: 'select', required: true, options: CAT_TYPE_OPTIONS },
+          { name: 'name', label: 'Category Name', type: 'text' },
+          { name: 'group', label: 'Group', type: 'select', options: CAT_TYPE_OPTIONS },
           { name: 'image', label: 'Category Image', type: 'file' },
           { name: 'is_active', label: 'Active', type: 'checkbox', defaultValue: true },
         ]}

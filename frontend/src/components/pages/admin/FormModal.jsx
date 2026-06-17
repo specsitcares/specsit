@@ -235,7 +235,6 @@ const FormModal = ({
                     <div key={field.name}>
                       <label style={S.label} htmlFor={field.name}>
                         {field.label || field.name}
-                        {field.required && <span style={{ color: '#F04438', marginLeft: 3 }}>*</span>}
                       </label>
 
                       {field.type === 'textarea' ? (
