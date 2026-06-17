@@ -163,7 +163,7 @@ const UserFaceTable = () => {
         isOpen={showForm} onClose={() => setShowForm(false)} onSubmit={handleFormSubmit}
         onDelete={handleFormDelete} mode={formMode} title="Face Capture"
         fields={[
-          { name: 'pd_distance', label: 'PD Distance (mm)', type: 'number', required: true, step: 0.1 },
+          { name: 'pd_distance', label: 'PD Distance (mm)', type: 'number', step: 0.1 },
           { name: 'image', label: 'Face Image', type: 'file', accept: 'image/*' }
         ]}
         initialData={selectedFace || {}} />

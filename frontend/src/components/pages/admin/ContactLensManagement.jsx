@@ -8,7 +8,7 @@ import {
 import '../../../styles/lens_management.css';
 import '../../../styles/contact_lens_management.css';
 
-const CL_TYPE_FIELDS = [{ name: 'label', label: 'Type Name', required: true }];
+const CL_TYPE_FIELDS = [{ name: 'label', label: 'Type Name' }];
 
 const Toggle = ({ checked, onChange }) => (
   <div
@@ -57,7 +57,7 @@ const ContactLensManagement = () => {
     try {
       const [groupsRes, pkgsRes, brandsRes] = await Promise.all([
         apiClient.get('/core/metadata-groups/?name=Contact Lens Type'),
-        apiClient.get('/catalog/lenses/?page_size=100'),
+        apiClient.get('/catalog/lenses/?page_size=100&admin=true&type_group=Contact Lens Type'),
         apiClient.get('/catalog/brands/?brand_type=Lens'),
       ]);
 
@@ -139,10 +139,6 @@ const ContactLensManagement = () => {
   };
 
   const handleSave = async () => {
-    if (!editFormData.package_name?.trim() || !editFormData.selling_price) {
-      alert('Package Name and Selling Price are required');
-      return;
-    }
     const payload = {
       type:                  selectedType?.id,
       price:                 editFormData.selling_price,
@@ -181,20 +177,23 @@ const ContactLensManagement = () => {
     e.stopPropagation();
     try {
       await apiClient.post('/catalog/lenses/', {
-        type:                    pkg.type,
-        price:                   pkg.package_selling_price || pkg.price,
-        index:                   pkg.index || '1.5',
-        is_active:               false,
-        package_name:            `${pkg.package_name || pkg.name} (Copy)`,
-        features:                pkg.features || [],
-        description:             pkg.description || '',
-        brand:                   pkg.brand || null,
-        package_cost_price:      pkg.package_cost_price || 0,
-        package_selling_price:   pkg.package_selling_price || pkg.price || 0,
-        package_warranty_months: pkg.package_warranty_months || 0,
-        constraint_ids:          (pkg.constraints || []).map(c => c.id || c),
-        min_power:               pkg.min_power ?? '-6.0',
-        max_power:               pkg.max_power ?? '+6.0',
+        type:                  pkg.type,
+        price:                 pkg.package_selling_price || pkg.price,
+        is_active:             false,
+        package_name:          `${pkg.package_name || pkg.name} (Copy)`,
+        description:           pkg.description || '',
+        brand:                 pkg.brand || null,
+        package_selling_price: pkg.package_selling_price || pkg.price || 0,
+        min_power:             pkg.min_power ?? '-6.0',
+        max_power:             pkg.max_power ?? '+6.0',
+        power_type:            pkg.power_type || null,
+        base_curve:            pkg.base_curve || [],
+        replacement:           pkg.replacement || null,
+        material:              pkg.material || null,
+        water_content:         pkg.water_content || null,
+        dkt:                   pkg.dkt || null,
+        colors:                pkg.colors || [],
+        lenses_per_box:        pkg.lenses_per_box || null,
       });
       await fetchData();
     } catch (err) {

@@ -217,8 +217,8 @@ const BrandTable = () => {
       <FormModal isOpen={showForm} onClose={() => setShowForm(false)} onSubmit={handleFormSubmit}
         onDelete={handleFormDelete} mode={formMode} title="Brand"
         fields={[
-          { name: 'name',       label: 'Brand Name',  type: 'text',     required: true },
-          { name: 'brand_type', label: 'Brand Type',  type: 'select',   required: true, options: BRAND_TYPE_OPTIONS },
+          { name: 'name',       label: 'Brand Name',  type: 'text' },
+          { name: 'brand_type', label: 'Brand Type',  type: 'select',   options: BRAND_TYPE_OPTIONS },
           { name: 'description',label: 'Description', type: 'textarea' },
           { name: 'logo',       label: 'Brand Logo',  type: 'file' },
           { name: 'is_active',  label: 'Active',      type: 'checkbox', defaultValue: true },

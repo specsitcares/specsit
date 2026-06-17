@@ -56,15 +56,13 @@ const CouponTable = () => {
       name: 'brand',
       label: 'Applicable Brands',
       type: 'checkbox-group',
-      required: true,
-      options: brands.map(b => ({value: String(b.id), label: b.name}))
+           options: brands.map(b => ({value: String(b.id), label: b.name}))
     },
     {
       name: 'categories',
       label: 'Applicable Categories',
       type: 'checkbox-group',
-      required: true,
-      options: categories.map(c => ({ value: String(c.id), label: c.name })),
+           options: categories.map(c => ({ value: String(c.id), label: c.name })),
     },
     { name: 'is_active',  label: 'Active',          type: 'checkbox' },
     { name: 'valid_from', label: 'Valid From',       type: 'date' },

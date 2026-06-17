@@ -76,7 +76,6 @@ const PrescriptionOffcanvas = ({ order, onClose, onApproved }) => {
   };
 
   const handleReject = async () => {
-    if (!rejectReason.trim()) { setRejectError('Reason is required.'); return; }
     setSaving(true);
     setRejectError('');
     try {

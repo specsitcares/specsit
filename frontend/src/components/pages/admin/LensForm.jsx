@@ -8,9 +8,9 @@ const INPUT_STYLE = {
 };
 const LABEL_STYLE = { fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 6 };
 const ERROR_STYLE = { color: '#dc2626', fontSize: 12, marginTop: 4 };
-const FIELD = ({ label, required, error, children }) => (
+const FIELD = ({ label, error, children }) => (
   <div style={{ marginBottom: 20 }}>
-    <label style={LABEL_STYLE}>{label}{required && <span style={{ color: '#dc2626' }}> *</span>}</label>
+    <label style={LABEL_STYLE}>{label}</label>
     {children}
     {error && <p style={ERROR_STYLE}>{error}</p>}
   </div>
@@ -103,18 +103,7 @@ const LensForm = ({ productId, onBack, onSaved }) => {
   }, [isEdit, productId]);
 
   const validate = () => {
-    const e = {};
-    if (!form.title.trim()) e.title = 'Product name is required.';
-    if (!form.sku.trim()) e.sku = 'SKU is required.';
-    if (!form.category) e.category = 'Category is required.';
-    if (!form.lens_type) e.lens_type = 'Lens type is required.';
-    if (!form.base_price || parseFloat(form.base_price) <= 0) e.base_price = 'Base price is required.';
-    if (!form.selling_price || parseFloat(form.selling_price) <= 0) e.selling_price = 'Selling price is required.';
-    if (parseFloat(form.selling_price) <= parseFloat(form.base_price)) e.selling_price = 'Selling price must be greater than base price.';
-    const dp = parseFloat(form.discount_percentage);
-    if (isNaN(dp) || dp < 0 || dp > 100) e.discount_percentage = 'Discount must be between 0 and 100.';
-    if (form.stock_quantity === '' || parseInt(form.stock_quantity) < 0) e.stock_quantity = 'Stock quantity is required and cannot be negative.';
-    return e;
+    return {};
   };
 
   const handleSave = async () => {
@@ -217,19 +206,19 @@ const LensForm = ({ productId, onBack, onSaved }) => {
         {/* Basic Information */}
         <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700, color: '#111827', borderBottom: '1px solid #f3f4f6', paddingBottom: 8 }}>Basic Information</h3>
 
-        <FIELD label="Product Name" required error={errors.title}>
+        <FIELD label="Product Name" error={errors.title}>
           <input style={INPUT_STYLE} value={form.title} onChange={e => set('title', e.target.value)} placeholder="e.g. ClearView Single Vision Lens" />
         </FIELD>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-          <FIELD label="SKU" required error={errors.sku}>
+          <FIELD label="SKU" error={errors.sku}>
             <input style={{ ...INPUT_STYLE, borderColor: errors.sku ? '#dc2626' : '#d1d5db' }}
               value={form.sku} onChange={e => set('sku', e.target.value)}
               onBlur={e => checkSku(e.target.value)}
               placeholder="e.g. LENS-SV-001" />
             {skuChecking && <p style={{ color: '#6b7280', fontSize: 11, marginTop: 3 }}>Checking SKU...</p>}
           </FIELD>
-          <FIELD label="Category" required error={errors.category}>
+          <FIELD label="Category" error={errors.category}>
             <select style={INPUT_STYLE} value={form.category} onChange={e => set('category', e.target.value)}>
               <option value="">Select category...</option>
               {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -251,7 +240,7 @@ const LensForm = ({ productId, onBack, onSaved }) => {
         {/* Lens Specifications */}
         <h3 style={{ margin: '24px 0 16px', fontSize: 15, fontWeight: 700, color: '#111827', borderBottom: '1px solid #f3f4f6', paddingBottom: 8 }}>Lens Specifications</h3>
 
-        <FIELD label="Lens Type" required error={errors.lens_type}>
+        <FIELD label="Lens Type" error={errors.lens_type}>
           <div style={{ display: 'flex', gap: 20 }}>
             {['Single Vision', 'Bifocal', 'Progressive'].map(lt => (
               <label key={lt} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14 }}>
@@ -273,12 +262,12 @@ const LensForm = ({ productId, onBack, onSaved }) => {
         <h3 style={{ margin: '24px 0 16px', fontSize: 15, fontWeight: 700, color: '#111827', borderBottom: '1px solid #f3f4f6', paddingBottom: 8 }}>Pricing</h3>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
-          <FIELD label="Base Price (₹)" required error={errors.base_price}>
+          <FIELD label="Base Price (₹)" error={errors.base_price}>
             <input type="number" min="0.01" step="0.01" style={INPUT_STYLE} value={form.base_price}
               onChange={e => set('base_price', e.target.value)} placeholder="e.g. 800" />
             <p style={{ fontSize: 11, color: '#9ca3af', margin: '4px 0 0' }}>Base cost to business</p>
           </FIELD>
-          <FIELD label="Selling Price (₹)" required error={errors.selling_price}>
+          <FIELD label="Selling Price (₹)" error={errors.selling_price}>
             <input type="number" min="0.01" step="0.01" style={INPUT_STYLE} value={form.selling_price}
               onChange={e => set('selling_price', e.target.value)} placeholder="e.g. 1200" />
             <p style={{ fontSize: 11, color: '#9ca3af', margin: '4px 0 0' }}>Customer list price / MRP</p>
@@ -305,7 +294,7 @@ const LensForm = ({ productId, onBack, onSaved }) => {
         <h3 style={{ margin: '24px 0 16px', fontSize: 15, fontWeight: 700, color: '#111827', borderBottom: '1px solid #f3f4f6', paddingBottom: 8 }}>Inventory</h3>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-          <FIELD label="Stock Quantity" required error={errors.stock_quantity}>
+          <FIELD label="Stock Quantity" error={errors.stock_quantity}>
             <input type="number" min="0" step="1" style={INPUT_STYLE} value={form.stock_quantity}
               onChange={e => set('stock_quantity', e.target.value)} placeholder="e.g. 50" />
           </FIELD>

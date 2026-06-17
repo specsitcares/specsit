@@ -190,11 +190,11 @@ const VariantTable = () => {
       <FormModal isOpen={showForm} onClose={() => setShowForm(false)} onSubmit={handleFormSubmit}
         onDelete={handleFormDelete} mode={formMode} title="Variant"
         fields={[
-          { name: 'product', label: 'Product', type: 'select', options: products.map(p => ({ value: p.id, label: p.title })), required: true },
-          { name: 'sku', label: 'SKU Code', type: 'text', required: true },
-          { name: 'color', label: 'Color', type: 'text', required: true },
+          { name: 'product', label: 'Product', type: 'select', options: products.map(p => ({ value: p.id, label: p.title })) },
+          { name: 'sku', label: 'SKU Code', type: 'text' },
+          { name: 'color', label: 'Color', type: 'text' },
           { name: 'size', label: 'Size (e.g. 52mm)', type: 'text' },
-          { name: 'stock', label: 'Stock Quantity', type: 'number', required: true },
+          { name: 'stock', label: 'Stock Quantity', type: 'number' },
           { name: 'price_adjustment', label: 'Price Adjustment (₹)', type: 'number' },
           { name: 'image', label: 'Variant Side Image', type: 'file' }
         ]}

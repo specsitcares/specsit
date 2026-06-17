@@ -11,7 +11,7 @@ import '../../../styles/lens_management.css';
 const getPackageCatIds = (lens) =>
   (lens.categories || []).map(c => typeof c === 'object' ? c.id : c);
 
-const LENS_TYPE_FIELDS = [{ name: 'label', label: 'Type Name', required: true }];
+const LENS_TYPE_FIELDS = [{ name: 'label', label: 'Type Name' }];
 
 /* Purple toggle — for lens type cards */
 const Toggle = ({ checked, onChange }) => (
@@ -72,7 +72,7 @@ const LensManagement = ({ editLensId = null }) => {
     try {
       const [groupsRes, lensesRes, brandsRes, catsRes, constraintsRes, indicesRes, featuresRes] = await Promise.all([
         apiClient.get('/core/metadata-groups/?name=Lens Type'),
-        apiClient.get('/catalog/lenses/?page_size=100'),
+        apiClient.get('/catalog/lenses/?page_size=100&admin=true&type_group=Lens Type'),
         apiClient.get('/catalog/brands/?brand_type=Lens'),
         apiClient.get('/catalog/categories/?category_type=Frame'),
         apiClient.get('/catalog/lens-constraints/'),
@@ -192,10 +192,6 @@ const LensManagement = ({ editLensId = null }) => {
   };
 
   const handleSave = async () => {
-    if (!editFormData.name.trim() || !editFormData.selling_price) {
-      alert('Package Name and Selling Price are required');
-      return;
-    }
     if (editFormData.constraints.length === 0) {
       alert('Please select at least one Lens Constraint');
       return;

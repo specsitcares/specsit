@@ -555,13 +555,17 @@ class LensViewSet(viewsets.ModelViewSet):
         elif is_eyeglasses == 'false':
             qs = qs.filter(is_for_eyeglasses=False)
 
+        type_group = params.get('type_group')
+        if type_group:
+            qs = qs.filter(type__group__name=type_group)
+
         constraint = params.get('constraint')
         if constraint:
             if constraint.isdigit():
                 qs = qs.filter(constraint_id=constraint)
             else:
                 qs = qs.filter(constraint__name__iexact=constraint)
-            
+
         return qs
 
 class PrescriptionViewSet(viewsets.ModelViewSet):

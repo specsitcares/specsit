@@ -672,7 +672,7 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
         fields={[
           { name: 'product_name', label: 'Product Name', type: 'text', readOnly: true },
           { name: 'sku', label: 'SKU Code', type: 'text', readOnly: true },
-          { name: 'stock', label: 'Stock Quantity', type: 'number', required: true, min: 0 },
+          { name: 'stock', label: 'Stock Quantity', type: 'number', min: 0 },
           ...(selectedVariant?._sizeName ? [
             { name: 'bridge_length', label: 'Bridge Length', type: 'text' },
             { name: 'lens_width', label: 'Lens Width', type: 'text' },

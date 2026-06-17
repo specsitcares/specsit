@@ -239,7 +239,7 @@ const AnalyticsPage = () => {
           <button
             key={tab}
             className={`ao-tab ${i === activeTab ? 'active' : ''}`}
-            onClick={() => setActiveTab(i)}
+            onClick={() => { setActiveTab(i); setPeriodOpen(false); }}
           >
             {tab}
           </button>
@@ -326,12 +326,6 @@ const AnalyticsPage = () => {
           <div className="ao-chart-card">
             <div className="ao-chart-header">
               <span className="ao-chart-title">Orders Overview Time</span>
-              <div className="ao-chart-controls">
-                <div className="ao-period-wrap small" onClick={() => setPeriodOpen(o => !o)}>
-                  <span>{periodLabel}</span>
-                  <ChevronDown size={14} />
-                </div>
-              </div>
             </div>
             {loading ? (
               <div className="ao-chart-skeleton" />
@@ -493,23 +487,6 @@ const AnalyticsPage = () => {
         <div className="ao-content">
           {/* Filters row */}
           <div className="ac-filters">
-            <div className="ao-period-wrap" onClick={() => setPeriodOpen(o => !o)}>
-              <span>{periodLabel}</span>
-              <ChevronDown size={16} />
-              {periodOpen && (
-                <div className="ao-dropdown">
-                  {PERIOD_OPTIONS.map(opt => (
-                    <div
-                      key={opt.value}
-                      className={`ao-dropdown-item ${opt.value === period ? 'active' : ''}`}
-                      onClick={(e) => { e.stopPropagation(); setPeriod(opt.value); setPeriodOpen(false); }}
-                    >
-                      {opt.label}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
             <div className="ao-period-wrap">
               <span>All Products</span>
               <ChevronDown size={16} />
@@ -603,23 +580,6 @@ const AnalyticsPage = () => {
           <div className="ao-content">
             {/* Filters */}
             <div className="ac-filters">
-              <div className="ao-period-wrap" onClick={() => setPeriodOpen(o => !o)}>
-                <span>{periodLabel}</span>
-                <ChevronDown size={16} />
-                {periodOpen && (
-                  <div className="ao-dropdown">
-                    {PERIOD_OPTIONS.map(opt => (
-                      <div
-                        key={opt.value}
-                        className={`ao-dropdown-item ${period === opt.value ? 'active' : ''}`}
-                        onClick={e => { e.stopPropagation(); setPeriod(opt.value); setPeriodOpen(false); }}
-                      >
-                        {opt.label}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
               <div className="ao-period-wrap"><span>All Products</span><ChevronDown size={16} /></div>
             </div>
 
@@ -760,25 +720,8 @@ const AnalyticsPage = () => {
 
         return (
           <div className="ao-content">
-            {/* Filters — same pattern as Tab 2 */}
+            {/* Filters */}
             <div className="ac-filters">
-              <div className="ao-period-wrap" onClick={() => setPeriodOpen(o => !o)}>
-                <span>{periodLabel}</span>
-                <ChevronDown size={16} />
-                {periodOpen && (
-                  <div className="ao-dropdown">
-                    {PERIOD_OPTIONS.map(opt => (
-                      <div
-                        key={opt.value}
-                        className={`ao-dropdown-item ${period === opt.value ? 'active' : ''}`}
-                        onClick={e => { e.stopPropagation(); setPeriod(opt.value); setPeriodOpen(false); }}
-                      >
-                        {opt.label}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
               <div className="ao-period-wrap"><span>All Products</span><ChevronDown size={16} /></div>
             </div>
 
@@ -889,15 +832,18 @@ const AnalyticsPage = () => {
                       <span>Product</span>
                       <span>Returns</span>
                     </div>
-                    {products.map(p => (
-                      <div key={p.name} className="rx-table-row">
-                        <div className="rx-table-name-cell">
-                          <span className="rx-rank-bar" style={{ background: p.color }} />
-                          <span className="rx-product-name">{p.name}</span>
+                    {products.length === 0
+                      ? <span style={{ color: '#9ca3af', fontSize: 12, padding: '8px 4px', display: 'block' }}>No products returned yet</span>
+                      : products.map(p => (
+                        <div key={p.name} className="rx-table-row">
+                          <div className="rx-table-name-cell">
+                            <span className="rx-rank-bar" style={{ background: p.color }} />
+                            <span className="rx-product-name">{p.name}</span>
+                          </div>
+                          <span className="rx-product-count">{p.returns}</span>
                         </div>
-                        <span className="rx-product-count">{p.returns}</span>
-                      </div>
-                    ))}
+                      ))
+                    }
                   </div>
                 </div>
               </div>

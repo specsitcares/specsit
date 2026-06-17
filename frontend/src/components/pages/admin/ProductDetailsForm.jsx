@@ -249,16 +249,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
     }
   };
 
-  const validateStep1 = () => {
-    const newErrors = {};
-    if (!formData.title?.trim()) newErrors.title = 'Product title is required.';
-    if (!formData.category) newErrors.category = 'Please select a category.';
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
   const handleNext = () => {
-    if (currentStep === 1 && !validateStep1()) return;
     if (currentStep < 2) setCurrentStep(prev => prev + 1);
   };
 
@@ -317,10 +308,6 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
     setErrors({});
     let phase = 'Initializing';
     try {
-      if (!formData.variants || formData.variants.length === 0) {
-        throw new Error('At least one color variant is required before submission.');
-      }
-
       phase = 'Saving Product Information';
       const productPayload = buildProductPayload(true);
       let productId = editProduct?.id;
@@ -355,10 +342,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
         const variantPayload = new FormData();
         variantPayload.append('product', productId);
 
-        if (!v.sku?.trim()) {
-          throw new Error(`SKU is required for variant "${v.colorName || `Variant ${variantIndex}`}".`);
-        }
-        variantPayload.append('sku', v.sku.trim());
+        variantPayload.append('sku', v.sku?.trim() || '');
         variantPayload.append('color', v.colorName || 'Default');
         variantPayload.append('lens_color', v.colorName || '');
         variantPayload.append('frame_color', v.colorName || '');
@@ -436,9 +420,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
       console.error(`Submission failed at phase: ${phase}`, err);
       const serverErrors = err.response?.data;
       let errorSummary = `[Failed in ${phase}] `;
-      if (err.message?.includes('variant is required')) {
-        errorSummary += err.message;
-      } else if (serverErrors && typeof serverErrors === 'object') {
+      if (serverErrors && typeof serverErrors === 'object') {
         errorSummary += Object.keys(serverErrors)
           .map(key => `${key}: ${Array.isArray(serverErrors[key]) ? serverErrors[key].join(', ') : serverErrors[key]}`)
           .join(' | ');
@@ -455,16 +437,6 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
 
   // BUG 9 FIX — Save as Draft actually saves the product with is_active: false
   const handleSaveDraft = async () => {
-    if (!formData.title?.trim()) {
-      setErrors({ title: 'Product title is required to save a draft.' });
-      setCurrentStep(1);
-      return;
-    }
-    if (!formData.category) {
-      setErrors({ category: 'Please select a category to save a draft.' });
-      setCurrentStep(1);
-      return;
-    }
     setSaving(true);
     setErrors({});
     try {
@@ -592,8 +564,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
                   <div className="form-field-row-4">
                     <div className="form-field">
                       <label className="form-field-label">
-                        Product Title <span className="required-star">*</span>
-                      </label>
+                        Product Title                      </label>
                       <input
                         type="text"
                         className={`form-field-input ${errors.title ? 'has-error' : ''}`}
@@ -605,7 +576,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
                     </div>
 
                     <div className="form-field">
-                      <label className="form-field-label">Category <span className="required-star">*</span></label>
+                      <label className="form-field-label">Category</label>
                       <div className="form-field-select-wrapper">
                         <select
                           value={formData.category}
@@ -637,7 +608,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
                     </div>
 
                     <div className="form-field">
-                      <label className="form-field-label">Tax <span className="required-star">*</span></label>
+                      <label className="form-field-label">Tax</label>
                       <input
                         type="number"
                         className="form-field-input"
