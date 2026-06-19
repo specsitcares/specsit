@@ -1,34 +1,51 @@
-import React from 'react';
+import React, { useState } from 'react';
+
+const MailIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#71717A" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="4" width="20" height="16" rx="2" />
+    <path d="m22 7-10 5L2 7" />
+  </svg>
+);
 
 const Newsletter = () => {
-    return (
-        <section className="newsletter hp-reveal" id="newsletter">
-            <div className="newsletter__wrapper">
-                <div className="newsletter__content">
-                    <h2 className="newsletter__title">Elevate Your Style</h2>
-                    <p className="newsletter__desc">Join our elite community and stay updated with the latest in premium eyewear. Receive exclusive offers and styling tips directly in your inbox.</p>
-                </div>
-                <form className="newsletter__form" onSubmit={(e) => e.preventDefault()}>
-                    <div className="newsletter__input-group">
-                        <div className="newsletter__input-wrapper">
-                            <span className="newsletter__icon">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                            </span>
-                            <input 
-                                type="email" 
-                                className="newsletter__input" 
-                                placeholder="Your email address"
-                                required 
-                            />
-                        </div>
-                        <button type="submit" className="newsletter__btn">
-                            Subscribe Now
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </section>
-    );
+  const [email, setEmail] = useState('');
+  const [done, setDone] = useState(false);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (email) setDone(true);
+  };
+
+  return (
+    <section className="newsletter-v2" id="newsletter">
+      <div className="newsletter-v2__inner">
+        <div className="newsletter-v2__row">
+          <h2 className="newsletter-v2__heading">Subscribe to our Newsletter and get 20% off</h2>
+          {done ? (
+            <p className="newsletter-v2__success">You're in! Watch your inbox for exclusive offers.</p>
+          ) : (
+            <form className="newsletter-v2__form" onSubmit={handleSubmit}>
+              <div className="newsletter-v2__input-wrap">
+                <MailIcon />
+                <input
+                  type="email"
+                  className="newsletter-v2__input"
+                  placeholder="Enter your email address"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <button type="submit" className="newsletter-v2__btn">Subscribe</button>
+            </form>
+          )}
+        </div>
+        <p className="newsletter-v2__disclaimer">
+          By clicking sign up, I confirm that I am over 18 years old and I agree that my email address can be used by Specsit to send me exclusive offers, content, news, and other marketing communications as a member of Specsit (visit Privacy Policy for more information).
+        </p>
+      </div>
+    </section>
+  );
 };
 
 export default Newsletter;

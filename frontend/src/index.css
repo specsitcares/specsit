@@ -58,6 +58,18 @@ html.light {
   padding: 0;
   box-sizing: border-box;
 }
+html {
+  /* Let the browser handle main scrolling */
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: visible; /* Prevent body from creating its own vertical scrollbar */
+  -webkit-font-smoothing: antialiased;
+}
 
 button { font-family: inherit; }
 

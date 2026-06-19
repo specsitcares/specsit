@@ -10,17 +10,21 @@ const defaultBrands = [
 ];
 
 const BrandsGrid = ({ brands = defaultBrands }) => {
+  // repeat enough times for a seamless loop (animation translates by -50%)
+  const loop = [...brands, ...brands, ...brands, ...brands];
   return (
     <section className="brands-grid hp-reveal" id="brands-grid">
-      <p className="brands-grid__title">Authorized Curator of International Brands</p>
-      <div className="brands-grid__list">
-        {brands.map((brand, idx) => (
-          <div key={idx} className="brands-grid__item">
-            <span className={`brands-grid__brand-name ${brand.style === 'serif' ? 'brands-grid__brand-name--serif' : ''}`}>
+      <div className="brands-grid__marquee">
+        <div className="brands-grid__track">
+          {loop.map((brand, idx) => (
+            <span
+              key={idx}
+              className={`brands-grid__brand-name ${brand.style === 'serif' ? 'brands-grid__brand-name--serif' : ''}`}
+            >
               {brand.name}
             </span>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </section>
   );

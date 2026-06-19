@@ -58,6 +58,8 @@ const LensManagement = ({ editLensId = null }) => {
   const [isEditingPackage,     setIsEditingPackage]     = useState(false);
   const [newFeatureText,       setNewFeatureText]       = useState('');
   const [newConstraintText,    setNewConstraintText]    = useState('');
+  const [addingIndex,          setAddingIndex]          = useState(false);
+  const [newIndexText,         setNewIndexText]         = useState('');
 
   const EMPTY_PACKAGE_FORM = {
     name: '', description: '', index: '1.5', is_active: true,
@@ -346,10 +348,16 @@ const LensManagement = ({ editLensId = null }) => {
     setEditFormData(prev => ({ ...prev, features: prev.features.filter((_, i) => i !== idx) }));
 
   const toggleConstraintSelection = (cId) => {
+    const constraint = lensConstraints.find(c => c.id === cId);
+    const isRimless = constraint?.name?.toLowerCase() === 'rimless';
     setEditFormData(prev => {
       const current = (prev.constraints || []).map(c => typeof c === 'object' ? c.id : c);
-      const next = current.includes(cId) ? current.filter(id => id !== cId) : [...current, cId];
-      return { ...prev, constraints: next };
+      const isAdding = !current.includes(cId);
+      const next = isAdding ? [...current, cId] : current.filter(id => id !== cId);
+      const updates = { constraints: next };
+      // Auto-lock to 1.59 only when Rimless ends up as the sole constraint
+      if (isRimless && isAdding && next.length === 1) updates.index = '1.59';
+      return { ...prev, ...updates };
     });
   };
 
@@ -368,6 +376,38 @@ const LensManagement = ({ editLensId = null }) => {
       setEditFormData(prev => ({ ...prev, constraints: [...prev.constraints, res.data.id] }));
       setNewConstraintText('');
     } catch (err) { alert('Failed to add constraint.'); }
+  };
+
+  const addIndexValue = async () => {
+    const val = newIndexText.trim();
+    if (!val) { setAddingIndex(false); return; }
+    if (lensIndices.includes(val)) {
+      handlePackageFieldChange('index', val);
+      setAddingIndex(false);
+      setNewIndexText('');
+      return;
+    }
+    try {
+      let indicesRes = await apiClient.get('/core/metadata-groups/?name=Lens Index');
+      let items = indicesRes.data.results || indicesRes.data;
+      let indexGroup = Array.isArray(items)
+        ? items.find(g => g.name === 'Lens Index')
+        : (items?.name === 'Lens Index' ? items : null);
+      if (!indexGroup) {
+        const r = await apiClient.post('/core/metadata-groups/', { name: 'Lens Index' });
+        indexGroup = r.data;
+      }
+      await apiClient.post('/core/metadata-items/', {
+        group: indexGroup.id,
+        label: val,
+        value: val,
+        is_active: true,
+      });
+      setLensIndices(prev => [...prev, val]);
+      handlePackageFieldChange('index', val);
+      setAddingIndex(false);
+      setNewIndexText('');
+    } catch (err) { alert('Failed to add index value.'); }
   };
 
   /* ── derived ── */
@@ -760,13 +800,70 @@ const LensManagement = ({ editLensId = null }) => {
                       placeholder="0.00" />
                   </div>
                 </div>
+                {(() => {
+                  const rimlessId = lensConstraints.find(c => c.name?.toLowerCase() === 'rimless')?.id;
+                  const selectedIds = (editFormData.constraints || []).map(c => typeof c === 'object' ? c.id : c);
+                  const hasRimless = rimlessId != null && selectedIds.includes(rimlessId);
+                  // Lock only when Rimless is the sole selected constraint
+                  const isRimlessLocked = hasRimless && selectedIds.length === 1;
+                  // Mixed: Rimless + other constraints — warn but allow free index
+                  const isRimlessMixed = hasRimless && selectedIds.length > 1;
+                  return (
                 <div className="lm-form-row-2">
                   <div className="lm-form-group">
-                    <label className="lm-form-label">Lens Index</label>
-                    <select className="lm-form-input" value={editFormData.index}
-                      onChange={e => handlePackageFieldChange('index', e.target.value)}>
-                      {lensIndices.map(v => <option key={v} value={v}>{v}</option>)}
-                    </select>
+                    <label className="lm-form-label">
+                      Lens Index
+                      {isRimlessLocked && (
+                        <span style={{ marginLeft: 6, fontSize: 11, color: '#7c3aed', fontWeight: 500 }}>
+                          🔒 Locked to 1.59 (Rimless only)
+                        </span>
+                      )}
+                    </label>
+                    {isRimlessLocked ? (
+                      <input
+                        className="lm-form-input"
+                        value="1.59"
+                        readOnly
+                        style={{ background: '#f5f3ff', color: '#7c3aed', cursor: 'not-allowed', fontWeight: 600 }}
+                      />
+                    ) : (
+                      <>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <select className="lm-form-input" value={editFormData.index}
+                            onChange={e => handlePackageFieldChange('index', e.target.value)}
+                            style={{ flex: 1 }}>
+                            {lensIndices.map(v => <option key={v} value={v}>{v}</option>)}
+                          </select>
+                          <button type="button" className="lm-add-more-btn"
+                            onClick={() => setAddingIndex(v => !v)}
+                            title="Add new index value"
+                            style={{ whiteSpace: 'nowrap' }}>
+                            + Add
+                          </button>
+                        </div>
+                        {addingIndex && (
+                          <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                            <input
+                              autoFocus
+                              className="lm-form-input"
+                              value={newIndexText}
+                              onChange={e => setNewIndexText(e.target.value)}
+                              placeholder="e.g. 1.59"
+                              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addIndexValue(); } if (e.key === 'Escape') { setAddingIndex(false); setNewIndexText(''); } }}
+                              style={{ flex: 1 }}
+                            />
+                            <button type="button" className="lm-add-more-btn" onClick={addIndexValue}>
+                              Save
+                            </button>
+                          </div>
+                        )}
+                        {isRimlessMixed && (
+                          <p style={{ margin: '5px 0 0', fontSize: 11, color: '#b45309' }}>
+                            ⚠ This lens also serves Rimless frames — set index to 1.59 for it to appear for rimless customers.
+                          </p>
+                        )}
+                      </>
+                    )}
                   </div>
                   <div className="lm-form-group">
                     <label className="lm-form-label">Warranty (months)</label>
@@ -775,6 +872,8 @@ const LensManagement = ({ editLensId = null }) => {
                       placeholder="0" />
                   </div>
                 </div>
+                  );
+                })()}
                 <div className="lm-form-row-2">
                   <div className="lm-form-group">
                     <label className="lm-form-label">Min Power</label>

@@ -1,6 +1,7 @@
 /* ============================================================
    NAV MEGA-MENU DROPDOWN
-   Matches Figma nodes 401:18592 (Sunglasses) & 401:18693 (Contact Lens)
+   Matches Figma node 55:21128
+   Font: Plus Jakarta Sans
    ============================================================ */
 
 /* Wrapper — absolutely positioned below the header */
@@ -10,6 +11,7 @@
   left: 4px;
   right: 4px;
   z-index: 998;
+  animation: nd-fade-in 0.18s ease;
 }
 
 /* Outer panel */
@@ -20,7 +22,7 @@
   border-bottom-left-radius: 19px;
   border-bottom-right-radius: 19px;
   box-shadow: 0px 32px 64px 0px rgba(4, 2, 5, 0.12);
-  padding: 51px 42px 52px;
+  padding: 48px 42px 52px;
   overflow: hidden;
 }
 
@@ -38,17 +40,17 @@
   min-width: 96px;
   display: flex;
   flex-direction: column;
-  gap: 19px;
-  padding-right: 19px;
+  gap: 20px;
+  padding-right: 20px;
 }
 
 /* Column heading */
 .nd-heading {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 700;
-  font-size: 8px;
-  line-height: 12px;
-  letter-spacing: 1.5px;
+  font-size: 10px;
+  line-height: 14px;
+  letter-spacing: 1.2px;
   text-transform: uppercase;
   color: #68408D;
   margin: 0;
@@ -61,7 +63,7 @@
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 13px;
+  gap: 14px;
 }
 
 .nd-item {
@@ -72,7 +74,7 @@
 .nd-link {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 500;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 16px;
   color: #040205;
   text-decoration: none;
@@ -84,79 +86,61 @@
   color: #68408D;
 }
 
-/* Color swatch row */
-.nd-color-link {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  height: 16px;
-}
-
-.nd-swatch {
-  width: 13px;
-  height: 13px;
-  border-radius: 10px;
-  flex-shrink: 0;
-  display: inline-block;
-}
-
-/* "View More" link */
-.nd-view-more {
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-weight: 500;
-  font-size: 11px;
-  line-height: 16px;
-  color: #68408D;
+/* "All …" link gets an underline per Figma */
+.nd-link--all {
   text-decoration: underline;
-  text-decoration-skip-ink: none;
-  transition: opacity 0.15s ease;
-}
-
-.nd-view-more:hover {
-  opacity: 0.75;
 }
 
 /* ============================================================
-   Editorial / Promo Card
+   Editorial / Promo Card — Figma node 55:21218
+   bg #F6F6F6, border-radius 16px, padding 32px
    ============================================================ */
 .nd-card {
-  flex-shrink: 0;
-  width: 256px;
-  background: #FEFCFF;
+  flex: 1 1 0;
+  min-width: 180px;
+  background: #F6F6F6;
   border: 1px solid rgba(205, 195, 209, 0.1);
-  border-radius: 13px;
-  padding: 26px;
+  border-radius: 16px;
+  padding: 32px;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 3px;
+  min-height: 140px;
+  margin-left: auto;
+}
+
+.nd-card-body {
+  flex: 1 1 0;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
 }
 
-/* Wide variant for Contact Lens */
-.nd-card--wide {
-  width: 384px;
-  justify-content: space-between;
-}
-
+/* Label — Figma: Bold 12/16, 0.1em spacing, uppercase, #68408D */
 .nd-card-label {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 700;
-  font-size: 10px;
-  line-height: 13px;
-  letter-spacing: 1.2px;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: #68408D;
   margin: 0;
 }
 
+/* Title — Figma: SemiBold 16/24, #040205 */
 .nd-card-title {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 600;
   font-size: 13px;
   line-height: 19px;
   color: #040205;
-  margin: 3px 0 0;
+  margin: 4px 0 0;
 }
 
+/* Desc — Figma: Regular 14/20, #040205 */
 .nd-card-desc {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 400;
@@ -166,22 +150,22 @@
   margin: 0;
 }
 
-.nd-card-desc--wide {
-  line-height: 23px;
-}
-
+/* CTA — Figma: Bold 12/16, 0.1em, underline, #68408D */
 .nd-card-cta {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 700;
   font-size: 10px;
   line-height: 13px;
-  letter-spacing: 1.2px;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: #68408D;
   text-decoration: underline;
   text-decoration-skip-ink: none;
-  display: block;
-  padding-top: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 11.5px;
+  white-space: nowrap;
   transition: opacity 0.15s ease;
 }
 
@@ -192,10 +176,6 @@
 /* ============================================================
    Dropdown enter/exit animation
    ============================================================ */
-.nd-wrapper {
-  animation: nd-fade-in 0.15s ease;
-}
-
 @keyframes nd-fade-in {
   from {
     opacity: 0;

@@ -214,12 +214,23 @@ class ProductViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'], permission_classes=[permissions.AllowAny])
     def recommended_lenses(self, request, pk=None):
-        from .models import Lens
+        from .models import Lens, Product
         from .serializers import LensSerializer
 
-        # Return ALL active lenses — no category/constraint filtering
-        # so the customer always sees available lenses in the order flow.
+        try:
+            product = Product.objects.get(pk=pk)
+        except Product.DoesNotExist:
+            return Response([])
+
         lenses = Lens.objects.filter(is_active=True).select_related('package', 'brand', 'type')
+
+        # Rimless frames: only show lenses tagged with the Rimless constraint at index 1.59
+        if product.frame_style and product.frame_style.strip().lower() == 'rimless':
+            lenses = lenses.filter(
+                constraints__name__iexact='Rimless',
+                index='1.59'
+            ).distinct()
+
         serializer = LensSerializer(lenses, many=True)
         return Response(serializer.data)
 
@@ -386,6 +397,46 @@ class ProductViewSet(viewsets.ModelViewSet):
             queryset = queryset.order_by('-created_at')
 
         return queryset
+
+    @action(detail=False, methods=['get'], permission_classes=[permissions.AllowAny], url_path='nav-options')
+    def nav_options(self, request):
+        """
+        Return dynamic navigation options (brands, shapes, genders)
+        derived only from active products that have listed variants in stock.
+        Used by the frontend navbar to show real-time categories.
+        """
+        from django.db.models import Exists, OuterRef
+
+        listed = Variant.objects.filter(product=OuterRef('pk'), is_listed=True, stock__gt=0)
+        active_products = Product.objects.filter(is_active=True).filter(Exists(listed))
+
+        # Distinct brands (only those attached to active, in-stock products)
+        brand_ids = active_products.filter(brand__isnull=False, brand__is_active=True).values_list('brand', flat=True).distinct()
+        brands = list(
+            Brand.objects.filter(id__in=brand_ids).values('id', 'name', 'logo').order_by('name')
+        )
+        # Build full logo URLs
+        for b in brands:
+            if b['logo']:
+                b['logo'] = request.build_absolute_uri(f'/media/{b["logo"]}')
+
+        # Distinct frame shapes
+        shapes = sorted(
+            active_products.exclude(frame_shape__exact='')
+            .values_list('frame_shape', flat=True)
+            .distinct()
+        )
+
+        # Distinct genders
+        genders = sorted(
+            active_products.values_list('gender', flat=True).distinct()
+        )
+
+        return Response({
+            'brands': brands,
+            'shapes': shapes,
+            'genders': genders,
+        })
 
     @action(detail=False, methods=['get'], permission_classes=[permissions.AllowAny])
     def check_sku(self, request):

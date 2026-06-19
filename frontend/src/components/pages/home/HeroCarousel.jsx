@@ -1,84 +1,86 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 
-const defaultSlides = [
+const slides = [
   {
-    title: "Premium\nCollection",
-    subtitle: "Discover our latest arrival of hand-crafted artisan frames.",
-    cta_text: "Shop Now",
-    cta_link: "/products",
-    image: "https://images.unsplash.com/photo-1574258495973-f010dfbb5371?q=80&w=2070&auto=format&fit=crop"
-  }
+    headline: 'Get 20% off when you buy frames and lenses together!',
+    sub: 'Any style. Any frame. Designed specifically for your unique aesthetic.',
+    ctaText: 'Shop Now',
+    ctaLink: '/products',
+    image: '',
+  },
+  {
+    headline: 'Discover eyewear that defines your personality.',
+    sub: 'Handpicked styles across 50+ premium brands, delivered in hours.',
+    ctaText: 'Explore Collection',
+    ctaLink: '/products',
+    image: '',
+  },
 ];
 
-const HeroCarousel = ({ slides = [], autoPlayInterval = 6000 }) => {
+const ChevronLeft = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="15 18 9 12 15 6" />
+  </svg>
+);
+const ChevronRight = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="9 18 15 12 9 6" />
+  </svg>
+);
+
+const HeroCarousel = ({ slidesData = slides }) => {
   const [current, setCurrent] = useState(0);
-  const activeSlides = slides && slides.length > 0 ? slides : defaultSlides;
+  const count = slidesData.length;
 
-  const next = useCallback(() => {
-    setCurrent((prev) => (prev + 1) % activeSlides.length);
-  }, [activeSlides.length]);
-
-  const prev = useCallback(() => {
-    setCurrent((prev) => (prev - 1 + activeSlides.length) % activeSlides.length);
-  }, [activeSlides.length]);
+  const go = useCallback((dir) => {
+    setCurrent(p => (p + dir + count) % count);
+  }, [count]);
 
   useEffect(() => {
-    if (activeSlides.length <= 1) return;
-    const timer = setInterval(next, autoPlayInterval);
-    return () => clearInterval(timer);
-  }, [next, autoPlayInterval, activeSlides.length]);
+    const t = setInterval(() => setCurrent(p => (p + 1) % count), 6000);
+    return () => clearInterval(t);
+  }, [count]);
+
+  const s = slidesData[current];
 
   return (
-    <div className="hero-carousel" id="hero-carousel">
-      {activeSlides.map((slide, idx) => (
+    <section className="hero-v2">
+      {slidesData.map((slide, i) => (
         <div
-          key={idx}
-          className={`hero-carousel__slide ${idx === current ? 'hero-carousel__slide--active' : ''}`}
-        >
-          <div
-            className="hero-carousel__bg"
-            style={slide.image ? { backgroundImage: `url(${slide.image})` } : {}}
-          />
-          <div className="hero-carousel__overlay">
-            <div className="hero-carousel__content">
-              <h1 className="hero-carousel__title">{slide.title}</h1>
-              <p className="hero-carousel__subtitle">{slide.subtitle}</p>
-              <Link to={slide.cta_link || '/products'} className="hero-carousel__cta">
-                {slide.cta_text || 'Shop Now'}
-              </Link>
-            </div>
-          </div>
-        </div>
+          key={i}
+          className={`hero-v2__bg${i === current ? ' is-active' : ''}`}
+          style={slide.image ? { backgroundImage: `url(${slide.image})` } : undefined}
+        />
       ))}
+      <div className="hero-v2__overlay" />
 
-      <div className="hero-carousel__controls">
-        <div className="hero-carousel__dots">
-          {activeSlides.map((_, idx) => (
-            <button
-              key={idx}
-              className={`hero-carousel__dot ${idx === current ? 'hero-carousel__dot--active' : ''}`}
-              onClick={() => setCurrent(idx)}
-              aria-label={`Go to slide ${idx + 1}`}
-            />
-          ))}
+      <div className="hero-v2__inner">
+        <div className="hero-v2__text">
+          <h1 className="hero-v2__heading">{s.headline}</h1>
+          <p className="hero-v2__sub">{s.sub}</p>
+          <Link to={s.ctaLink} className="hero-v2__cta">{s.ctaText}</Link>
         </div>
-        {activeSlides.length > 1 && (
-          <div className="hero-carousel__arrows">
-            <button className="hero-carousel__arrow" onClick={prev} aria-label="Previous slide">
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M11.25 13.5L6.75 9L11.25 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-            <button className="hero-carousel__arrow" onClick={next} aria-label="Next slide">
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M6.75 13.5L11.25 9L6.75 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-          </div>
-        )}
       </div>
-    </div>
+
+      <button className="hero-v2__arrow hero-v2__arrow--prev" onClick={() => go(-1)} aria-label="Previous slide">
+        <ChevronLeft />
+      </button>
+      <button className="hero-v2__arrow hero-v2__arrow--next" onClick={() => go(1)} aria-label="Next slide">
+        <ChevronRight />
+      </button>
+
+      <div className="hero-v2__dots">
+        {slidesData.map((_, i) => (
+          <button
+            key={i}
+            className={`hero-v2__dot${i === current ? ' active' : ''}`}
+            onClick={() => setCurrent(i)}
+            aria-label={`Go to slide ${i + 1}`}
+          />
+        ))}
+      </div>
+    </section>
   );
 };
 

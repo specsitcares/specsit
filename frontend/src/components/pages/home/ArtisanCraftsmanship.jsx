@@ -2,9 +2,9 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 const ArtisanCraftsmanship = ({ data }) => {
-  const label = data?.label || 'Artisan Craftsmanship';
+  const label = data?.label || 'SPECSIT';
   const heading = data?.heading || 'Built with premium intent';
-  const description = data?.description || 'Precision-crafted frames with advanced lens coatings for everyday performance and comfort.';
+  const description = data?.description || 'Every frame is precision-crafted with advanced lens coatings — designed for everyday performance and the kind of comfort that lasts all day.';
   const image = data?.image;
   const features = data?.features || [
     'Anti-reflective lenses for reduced glare',

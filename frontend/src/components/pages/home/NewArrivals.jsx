@@ -47,6 +47,7 @@ const ProductCard = ({ product }) => {
   // Variant-aware image
   const variantImgs = selectedVariant?.images || [];
   const mainImg = variantImgs[0]?.image || variantImgs[0] || product.main_image || '';
+  const imageCount = Math.min(variantImgs.length, 5);
 
   // Variant-aware pricing — cascading: variant.selling_price → variant.discount_percent → product.selling_price → product.discount_percentage
   const mrp            = Math.round(parseFloat(selectedVariant?.base_price || product.base_price || 0));
@@ -98,23 +99,31 @@ const ProductCard = ({ product }) => {
             ? <img src={mainImg} alt={title} onError={(e) => { e.target.style.display = 'none'; }} />
             : <div className="product-card__image-placeholder" />
           }
+
+          {/* Overlay: Best Seller badge (left) + Wishlist button (right) */}
+          <div className="product-card__overlay-row">
+            {product.is_best_seller
+              ? <div className="product-card__badge"><span className="product-card__badge-text">Best Seller</span></div>
+              : <span />
+            }
+            <button
+              className={`product-card__wishlist-btn${wishlisted ? ' product-card__wishlist-btn--active' : ''}`}
+              onClick={handleWishlist}
+              disabled={wishlistPending}
+              aria-label={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+            >
+              <HeartIcon filled={wishlisted} />
+            </button>
+          </div>
         </div>
 
-        {/* Overlay: Best Seller badge (left) + Wishlist button (right) */}
-        <div className="product-card__overlay-row">
-          {product.is_best_seller
-            ? <div className="product-card__badge"><span className="product-card__badge-text">Best Seller</span></div>
-            : <span />
-          }
-          <button
-            className={`product-card__wishlist-btn${wishlisted ? ' product-card__wishlist-btn--active' : ''}`}
-            onClick={handleWishlist}
-            disabled={wishlistPending}
-            aria-label={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
-          >
-            <HeartIcon filled={wishlisted} />
-          </button>
-        </div>
+        {imageCount > 1 && (
+          <div className="product-card__dots">
+            {Array.from({ length: imageCount }).map((_, i) => (
+              <span key={i} className={`product-card__dot${i === 0 ? ' active' : ''}`} />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ── Info area ── */}
@@ -132,12 +141,14 @@ const ProductCard = ({ product }) => {
               </div>
             )}
             <div className="product-card__price-block">
-              <span className="product-card__price-new">₹{salePrice.toLocaleString('en-IN')}</span>
+              <span className="product-card__price-new">
+                <span className="product-card__rupee">₹</span> {salePrice.toLocaleString('en-IN')}
+              </span>
               {hasDiscount && (
                 <div className="product-card__price-row">
                   <span className="product-card__price-old">₹{mrp.toLocaleString('en-IN')}</span>
                   <div className="product-card__discount">
-                    <span className="product-card__discount-text">({discountPct}% OFF)</span>
+                    <span className="product-card__discount-text">{discountPct}% OFF</span>
                   </div>
                 </div>
               )}
@@ -183,15 +194,8 @@ const ProductSection = ({ title, subtitle, viewAllLink, products = [] }) => {
   return (
     <section className="product-section hp-reveal" id={`section-${title?.toLowerCase().replace(/\s+/g, '-')}`}>
       <div className="product-section__header">
-        <div className="product-section__header-left">
-          <h2 className="product-section__title">{title}</h2>
-          {subtitle && <p className="product-section__subtitle">{subtitle}</p>}
-        </div>
-        {viewAllLink && (
-          <Link to={viewAllLink} className="product-section__view-link">
-            View Collection
-          </Link>
-        )}
+        <h2 className="product-section__title">{title}</h2>
+        {subtitle && <p className="product-section__subtitle">{subtitle}</p>}
       </div>
       <div className="product-section__scroll">
         {products.length > 0

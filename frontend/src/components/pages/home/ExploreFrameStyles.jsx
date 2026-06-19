@@ -1,85 +1,58 @@
-import React, { useState } from 'react';
+import React, { useRef } from 'react';
 import { Link } from 'react-router-dom';
 
 const defaultStyles = [
-  { name: 'Square', image: '' },
-  { name: 'Round', image: '' },
-  { name: 'Aviator', image: '' },
-  { name: 'Cat Eye', image: '' },
-  { name: 'Wayfarer', image: '' },
-  { name: 'Rectangle', image: '' },
-  { name: 'Oval', image: '' },
-  { name: 'Geometric', image: '' },
+  { name: 'Rectangle' },
+  { name: 'Square' },
+  { name: 'Round' },
+  { name: 'Oval' },
+  { name: 'Aviator' },
+  { name: 'Cat Eye' },
+  { name: 'Wayfarer' },
+  { name: 'Rimless' },
 ];
 
+const ImagePlaceholder = () => (
+  <div className="frame-styles__shape-placeholder">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <circle cx="8.5" cy="8.5" r="1.5" />
+      <path d="m21 15-5-5L5 21" />
+    </svg>
+  </div>
+);
+
 const ExploreFrameStyles = ({ styles = defaultStyles, data }) => {
-  const [activeIdx, setActiveIdx] = useState(0);
-  const activeStyle = styles[activeIdx] || styles[0];
+  const trackRef = useRef(null);
   const title = data?.title || 'Explore Frame Styles';
-  const subtitle = data?.subtitle || 'Masterfully crafted silhouettes for every face shape.';
-  const description = data?.description || 'Breaking convention with avant-garde geometry for those who define their own aesthetic standards.';
+
+  const scrollBy = (dir) => {
+    if (trackRef.current) trackRef.current.scrollBy({ left: dir * 280, behavior: 'smooth' });
+  };
 
   return (
     <section className="frame-styles hp-reveal" id="explore-frame-styles">
       <div className="frame-styles__header">
         <h2 className="frame-styles__title">{title}</h2>
-        <p className="frame-styles__subtitle">{subtitle}</p>
-      </div>
-
-      <div className="frame-styles__showcase">
-        <div className="frame-styles__showcase-info">
-          <h3 className="frame-styles__showcase-name">The {activeStyle.name}</h3>
-          <p className="frame-styles__showcase-desc">{description}</p>
-          <Link to={`/products?shape=${activeStyle.name.toLowerCase()}`} className="frame-styles__showcase-cta">
-            Shop This Collection →
-          </Link>
-        </div>
-        <div className="frame-styles__showcase-images">
-          {[-1, 0, 1].map((offset) => {
-            const idx = (activeIdx + offset + styles.length) % styles.length;
-            return (
-              <div
-                key={idx}
-                className={`frame-styles__showcase-img ${offset === 0 ? 'frame-styles__showcase-img--active' : ''}`}
-              >
-                {styles[idx]?.showcase_image && <img src={styles[idx].showcase_image} alt={styles[idx].name} />}
-              </div>
-            );
-          })}
-        </div>
       </div>
 
       <div className="frame-styles__carousel">
-        <button
-          className="frame-styles__carousel-btn"
-          onClick={() => setActiveIdx((prev) => (prev - 1 + styles.length) % styles.length)}
-          aria-label="Previous style"
-        >
-          ‹
-        </button>
-        <div className="frame-styles__carousel-track">
+        <button className="frame-styles__carousel-btn" onClick={() => scrollBy(-1)} aria-label="Previous style">‹</button>
+        <div className="frame-styles__carousel-track" ref={trackRef}>
           {styles.map((style, idx) => (
-            <div
+            <Link
               key={idx}
-              className={`frame-styles__shape-card ${idx === activeIdx ? 'frame-styles__shape-card--active' : ''}`}
-              onClick={() => setActiveIdx(idx)}
+              to={`/products?shape=${style.name.toLowerCase().replace(/\s+/g, '-')}`}
+              className="frame-styles__shape-card"
             >
               <div className="frame-styles__shape-img">
-                {style.image && <img src={style.image} alt={style.name} />}
+                {style.image ? <img src={style.image} alt={style.name} /> : <ImagePlaceholder />}
               </div>
-              <div className="frame-styles__shape-label">
-                <span className="frame-styles__shape-name">{style.name}</span>
-              </div>
-            </div>
+              <span className="frame-styles__shape-name">{style.name}</span>
+            </Link>
           ))}
         </div>
-        <button
-          className="frame-styles__carousel-btn"
-          onClick={() => setActiveIdx((prev) => (prev + 1) % styles.length)}
-          aria-label="Next style"
-        >
-          ›
-        </button>
+        <button className="frame-styles__carousel-btn" onClick={() => scrollBy(1)} aria-label="Next style">›</button>
       </div>
     </section>
   );

@@ -4,17 +4,31 @@ import { useCart } from '../../../context/CartContext';
 import specsitFullLogo from '../../../assets/specsit_full_logo.svg';
 import '../../../styles/visitor-header.css';
 import '../../../styles/nav-dropdown.css';
-import searchIcon from '../../../assets/icons/search-icon.svg';
-import cartIcon from '../../../assets/icons/cart-icon.svg';
 import SunglassesDropdown from './SunglassesDropdown';
 import ContactLensDropdown from './ContactLensDropdown';
 
 const navLinks = [
-    { name: 'Sunglasses',  path: '/products?category=sunglasses',   dropdown: 'sunglasses' },
-    { name: 'Eyeglasses',  path: '/products?category=eyeglasses',   dropdown: null },
-    { name: 'Contact Lens',path: '/products?category=contact-lens', dropdown: 'contact-lens' },
-    { name: 'Accessories', path: '/products?category=accessories',  dropdown: null },
+    { name: 'Eyeglasses',    path: '/products?category=eyeglasses',   dropdown: null },
+    { name: 'Sunglasses',    path: '/products?category=sunglasses',   dropdown: 'sunglasses' },
+    { name: 'Contact Lenses',path: '/products?category=contact-lens', dropdown: 'contact-lens' },
+    { name: 'Accessories',   path: '/products?category=accessories',  dropdown: null },
 ];
+
+const SearchIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#71717A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+);
+const HeartIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#040205" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+    </svg>
+);
+const CartIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#040205" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+    </svg>
+);
 
 const VisitorHeader = () => {
     const { cart } = useCart();
@@ -62,32 +76,33 @@ const VisitorHeader = () => {
             className="visitor-header"
             onMouseLeave={scheduleClose}
         >
-            {/* Brand Logo */}
-            <div className="visitor-brand">
-                <Link to="/" className="brand-logo">
-                    <img src={specsitFullLogo} alt="SPECSIT" className="brand-logo-img" />
-                </Link>
-            </div>
-
-            {/* Navigation Links (Center) */}
-            <div className="visitor-nav">
-                {navLinks.map((link) => (
-                    <Link
-                        key={link.name}
-                        to={link.path}
-                        className={`visitor-nav-link ${isActive(link.path) ? 'active' : ''}`}
-                        onMouseEnter={() => link.dropdown ? openDropdown(link.dropdown) : scheduleClose()}
-                    >
-                        {link.name}
+            {/* Brand Logo + Navigation (Left) */}
+            <div className="visitor-header-left">
+                <div className="visitor-brand">
+                    <Link to="/" className="brand-logo">
+                        <img src={specsitFullLogo} alt="SPECSIT" className="brand-logo-img" />
                     </Link>
-                ))}
+                </div>
+
+                <div className="visitor-nav">
+                    {navLinks.map((link) => (
+                        <Link
+                            key={link.name}
+                            to={link.path}
+                            className={`visitor-nav-link ${isActive(link.path) ? 'active' : ''}`}
+                            onMouseEnter={() => link.dropdown ? openDropdown(link.dropdown) : scheduleClose()}
+                        >
+                            {link.name}
+                        </Link>
+                    ))}
+                </div>
             </div>
 
             {/* Trailing Actions (Right) */}
             <div className="visitor-actions" onMouseEnter={scheduleClose}>
                 {/* Search Bar */}
                 <div className="visitor-search">
-                    <img src={searchIcon} alt="search" className="visitor-search-icon" />
+                    <span className="visitor-search-icon"><SearchIcon /></span>
                     <input
                         type="text"
                         placeholder="What are you looking for?"
@@ -98,22 +113,23 @@ const VisitorHeader = () => {
                     />
                 </div>
 
-                {/* Shopping Cart */}
-                <Link to="/cart" className="visitor-cart">
-                    <img src={cartIcon} alt="cart" className="visitor-cart-icon" />
-                    {cartCount > 0 && (
-                        <div className="visitor-cart-badge">
-                            {cartCount}
-                        </div>
-                    )}
-                </Link>
+                <div className="visitor-icon-group">
+                    {/* Wishlist */}
+                    <Link to="/wishlist" className="visitor-icon-btn" title="Wishlist">
+                        <HeartIcon />
+                    </Link>
 
-                {/* Login / User Profile Icon */}
-                <Link to="/login" className="visitor-user-btn" title="Login">
-                    <svg width="16" height="16" viewBox="0 0 18 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M17 19v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 9a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" stroke="#68408D" strokeWidth="1.67" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                </Link>
+                    {/* Shopping Cart */}
+                    <Link to="/cart" className="visitor-icon-btn visitor-cart" title="Cart">
+                        <CartIcon />
+                        {cartCount > 0 && (
+                            <span className="visitor-cart-badge">{cartCount}</span>
+                        )}
+                    </Link>
+
+                    {/* Login Button (logged-out state) */}
+                    <Link to="/login" className="visitor-login-btn">Login</Link>
+                </div>
             </div>
 
             {/* Mega-Menu Dropdown */}
