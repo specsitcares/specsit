@@ -1,8 +1,8 @@
-/* ── Product Card ── Figma node 55:709 (scaled down for real screens) ── */
+/* ── Product Card ── Figma node 55:4870 structure at home-page scale ── */
 .product-card {
   display: flex;
   flex-direction: column;
-  width: 300px;
+  width: 280px;
   border: 1px solid #E0E0E0;
   border-radius: 14px;
   background: #FEFCFF;
@@ -13,6 +13,7 @@
   position: relative;
   overflow: hidden;
   box-sizing: border-box;
+  padding: 1px;
 }
 
 .product-card:hover {
@@ -26,12 +27,14 @@
   display: flex;
   flex-direction: column;
   position: relative;
-  background: #FEFCFF;
+  background: #F1F1F1;
+  border-radius: 13px 13px 0 0;
+  overflow: hidden;
 }
 
 .product-card__image-wrap {
   width: 100%;
-  height: 188px;
+  height: 165px;
   position: relative;
   overflow: hidden;
 }
@@ -46,24 +49,24 @@
 .product-card__image-placeholder {
   width: 100%;
   height: 100%;
-  background: #f3f4f6;
+  background: #F1F1F1;
 }
 
-/* ── Overlay row (badge + wishlist) over the image ── */
+/* ── Overlay row (wishlist) over the image ── */
 .product-card__overlay-row {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: flex-start;
   padding: 6px;
   z-index: 2;
   pointer-events: none;
 }
 
-/* Best Seller badge */
+/* Best Seller badge (kept for reuse, currently unused) */
 .product-card__badge {
   padding: 2px 8px;
   background: #EBE3F2;
@@ -145,6 +148,9 @@
 
 /* ── Info container ── */
 .product-card__container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   padding: 12px;
   align-self: stretch;
 }
@@ -187,37 +193,11 @@
   text-overflow: ellipsis;
 }
 
-.product-card__delivery {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-}
-
-.product-card__bolt {
-  font-size: 11px;
-  line-height: 1.25;
-  color: #68408D;
-  flex-shrink: 0;
-}
-
-.product-card__delivery-text {
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-weight: 500;
-  font-size: 9px;
-  line-height: 13px;
-  letter-spacing: 0.04em;
-  color: #68408D;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 /* Price block — stacked layout */
 .product-card__price-block {
   display: flex;
   flex-direction: column;
   gap: 5px;
-  margin-top: 3px;
 }
 
 .product-card__price-new {
@@ -349,4 +329,39 @@
   color: #040205;
   white-space: nowrap;
   align-self: center;
+}
+
+/* ── Divider ── */
+.product-card__divider {
+  width: 100%;
+  height: 1px;
+  background: #EFEDF0;
+}
+
+/* ── Express delivery banner ── */
+.product-card__delivery {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 5px 8px;
+  border-radius: 16px;
+  background: linear-gradient(90deg, #FFEFC6 0%, rgba(255, 250, 237, 0.12) 100%);
+}
+
+.product-card__bolt {
+  font-size: 11px;
+  line-height: 16px;
+  color: #68408D;
+  flex-shrink: 0;
+}
+
+.product-card__delivery-text {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 600;
+  font-size: 9px;
+  line-height: 14px;
+  color: #68408D;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
