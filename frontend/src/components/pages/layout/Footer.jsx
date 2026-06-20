@@ -1,12 +1,10 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import specsitFullLogo from '../../../assets/specsit_full_logo.svg';
+import { Link } from 'react-router-dom';
+import specsitWordmark from '../../../assets/specsit_full_logo.svg';
 import '../../../styles/layout.css';
 
 const Footer = () => {
-    const { pathname } = useLocation();
     const currentYear = new Date().getFullYear();
-    const isProductsPage = pathname === '/products' || pathname.startsWith('/product/');
 
     return (
         <footer className="footer">
@@ -14,8 +12,8 @@ const Footer = () => {
                 <div className="footer-content">
                     {/* Brand Section (Node 401:8806) */}
                     <div className="footer-section footer-brand">
-                        <Link to="/" style={{ display: 'inline-block', textDecoration: 'none', marginBottom: '10px' }}>
-                            <img src={specsitFullLogo} alt="Specsit Logo" style={{ height: '22px', width: 'auto', display: 'block' }} />
+                        <Link to="/" className="footer-brand-link">
+                            <span className="footer-brand-name">Specsit</span>
                         </Link>
                         <p className="footer-tagline">
                             Elevating your vision with curated international brands and bespoke craftsmanship. Hyderabad's premium eyewear atelier.
@@ -70,12 +68,20 @@ const Footer = () => {
                 {/* Footer Bottom (Node 401:8852) */}
                 <div className="footer-bottom">
                     <p className="footer-copyright">
-                        © 2026 Specsit. Premium Eyewear.
+                        © {currentYear} Specsit Premium Eyewear
                     </p>
                     <div className="footer-policies">
                         <Link to="/support/privacy" className="policy-link">Privacy Policy</Link>
                         <Link to="/support/terms" className="policy-link">Terms of Service</Link>
                     </div>
+                </div>
+
+                {/* Decorative brand watermark (actual Specsit logotype, tinted) */}
+                <div className="footer-watermark-wrap" aria-hidden="true">
+                    <div
+                        className="footer-watermark"
+                        style={{ WebkitMaskImage: `url(${specsitWordmark})`, maskImage: `url(${specsitWordmark})` }}
+                    />
                 </div>
             </div>
         </footer>

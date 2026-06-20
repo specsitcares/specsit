@@ -1,5 +1,5 @@
 /* ============================================================
-   HEADER — MAIN NAVIGATION BAR (Logged-in)
+   HEADER — MAIN NAVIGATION BAR (Logged-in) — Figma node 55:997
    ============================================================ */
 
 .header {
@@ -7,62 +7,58 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 49px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 10px;
-  box-shadow: 0px 16px 32px 0px rgba(104, 64, 141, 0.06);
-  backdrop-filter: blur(10px);
+  gap: 20px;
+  padding: 0 40px;
+  min-height: 58px;
+  border-bottom: 1px solid #E4E4E4;
   position: relative;
   z-index: 999;
-  margin: 10px 80px;
 }
 
-/* Brand Logo */
+/* Logo + nav grouped on the left */
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
 .header-brand {
   flex-shrink: 0;
 }
 
 .brand-logo {
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-weight: 700;
-  font-size: 16px;
-  line-height: 22px;
-  letter-spacing: -1px;
-  color: #040205;
   text-decoration: none;
   display: flex;
-  align-items: flex-start;
-  gap: 5px;
+  align-items: center;
 }
 
 .brand-logo-img {
-  height: 32px;
+  height: 22px;
   width: auto;
   display: block;
 }
 
 .brand-logo:hover {
-  opacity: 0.8;
+  opacity: 0.85;
 }
 
 /* Navigation Links */
 .header-nav-links {
   display: flex;
-  gap: 32px;
+  gap: 22px;
   align-items: center;
-  flex: 1;
-  justify-content: center;
 }
 
 .nav-link {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 16px;
-  letter-spacing: -0.35px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
   color: #71717A;
   text-decoration: none;
-  padding-bottom: 0;
+  padding: 20px 0;
   border-bottom: 2px solid transparent;
   transition: color 0.2s ease;
   white-space: nowrap;
@@ -73,42 +69,42 @@
 }
 
 .nav-link--active {
-  font-weight: 600;
   color: #68408D;
-  border-bottom-color: #EBE3F2;
-  padding-bottom: 5px;
+  border-bottom-color: #68408D;
 }
 
 /* Header Actions */
 .header-actions {
   display: flex;
-  gap: 22px;
+  gap: 16px;
   align-items: center;
   justify-content: flex-end;
+  flex-shrink: 0;
 }
 
 /* Search Bar */
 .header-search {
-  width: 224px;
-  background: #FEFCFF;
-  border-radius: 10px;
-  padding: 6px 19px;
+  width: 240px;
+  max-width: 100%;
+  background: #F3F3F3;
+  border-radius: 6px;
+  padding: 8px 12px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   border: 1px solid transparent;
   transition: all 0.2s ease;
-  flex-shrink: 0;
 }
 
 .header-search:focus-within {
   border-color: #EBE3F2;
+  background: #FEFCFF;
   box-shadow: 0 0 0 2px rgba(104, 64, 141, 0.05);
 }
 
 .header-search-icon {
-  width: 10px;
-  height: 10px;
+  display: flex;
+  align-items: center;
   flex-shrink: 0;
 }
 
@@ -116,8 +112,9 @@
   border: none;
   background: transparent;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 11px;
-  font-weight: 400;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.3px;
   color: #040205;
   width: 100%;
   outline: none;
@@ -125,118 +122,110 @@
 
 .header-search-input::placeholder {
   color: #71717A;
+  opacity: 0.6;
+}
+
+.header-icon-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
 
 .header-icon-btn {
+  position: relative;
   background: none;
   border: none;
   cursor: pointer;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.2s ease;
-  color: #68408D;
+  text-decoration: none;
+  color: #040205;
+  transition: transform 0.2s ease, color 0.2s ease;
 }
 
 .header-icon-btn:hover {
-  transform: scale(1.1);
+  transform: scale(1.08);
+  color: #68408D;
 }
 
 .header-icon-btn svg {
   display: block;
 }
 
-/* Shopping Cart Button */
-.cart-button {
+.header-user-wrap {
   position: relative;
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-  text-decoration: none;
-  transition: transform 0.2s ease;
-  flex-shrink: 0;
 }
 
-.cart-button:hover {
-  transform: scale(1.1);
-}
-
-.cart-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* Cart badge */
+.cart-button {
+  position: relative;
 }
 
 .cart-badge {
   position: absolute;
-  top: -3px;
-  right: -3px;
+  top: -5px;
+  right: -7px;
   background: #68408D;
-  min-width: 13px;
-  height: 13px;
+  min-width: 14px;
+  height: 14px;
   border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 4px 1px 4px;
+  padding: 0 3px;
 }
 
 .badge-text {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 700;
-  font-size: 8px;
-  line-height: 12px;
+  font-size: 9px;
+  line-height: 1;
   color: #FEFCFF;
   text-align: center;
 }
 
+/* Login button (defensive — Header only renders when logged in) */
+.header .visitor-login-btn {
+  background: #784AA4;
+  color: #FEFCFF;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 8px 18px;
+  border-radius: 4px;
+  text-decoration: none;
+}
+
 /* Responsive */
 @media (max-width: 1200px) {
-  .header {
-    margin: 10px 32px;
-    padding: 14px 24px;
-  }
-
-  .header-search {
-    width: 160px;
-  }
+  .header { padding: 0 32px; }
+  .header-left { gap: 28px; }
+  .header-nav-links { gap: 22px; }
+  .header-search { width: 220px; }
 }
 
-@media (max-width: 1024px) {
-  .header {
-    padding: 14px 19px;
-    gap: 13px;
-  }
-
-  .header-nav-links {
-    gap: 19px;
-  }
-}
-
-@media (max-width: 768px) {
+@media (max-width: 992px) {
   .header {
     flex-wrap: wrap;
-    padding: 10px 16px;
-    gap: 10px;
-    margin: 10px 16px;
+    padding: 12px 16px;
+    gap: 12px;
+    min-height: 0;
   }
-
-  .header-nav-links {
-    order: 3;
+  .header-left {
+    order: 1;
     width: 100%;
-    flex-wrap: wrap;
-    gap: 13px;
-    justify-content: center;
+    justify-content: space-between;
+    gap: 16px;
   }
-
+  .header-nav-links { gap: 16px; }
+  .nav-link { padding: 8px 0; }
   .header-actions {
-    order: 4;
-  }
-
-  .header-search {
+    order: 2;
     width: 100%;
   }
+  .header-search { flex: 1; }
 }

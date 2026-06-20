@@ -11,7 +11,16 @@ const COLOR_SWATCHES = [
   { name: 'Gold',     bg: '#d4af37',  shadow: '#e4e4e7' },
 ];
 
-const SunglassesDropdown = ({ onLinkClick }) => {
+const SunglassesDropdown = ({ onLinkClick, brands = [], shapes = [], genders = [] }) => {
+  // Fallback arrays if API hasn't loaded yet
+  const displayGenders = genders.length > 0
+    ? ['All Sunglasses', ...genders]
+    : ['All Sunglasses', 'Women', 'Men', 'Kids'];
+
+  const displayShapes = shapes.length > 0
+    ? shapes
+    : ['Square', 'Rectangle', 'Round', 'Oval', 'Cat-eye', 'Geometric', 'Aviator'];
+
   return (
     <div className="nd-panel">
       <div className="nd-inner">
@@ -20,7 +29,7 @@ const SunglassesDropdown = ({ onLinkClick }) => {
         <div className="nd-col">
           <p className="nd-heading">Gender</p>
           <ul className="nd-list">
-            {['All Sunglasses', 'Women', 'Men', 'Kids'].map((item) => (
+            {displayGenders.map((item) => (
               <li key={item} className="nd-item">
                 <Link
                   to={`/products?category=sunglasses${item !== 'All Sunglasses' ? `&gender=${item.toLowerCase()}` : ''}`}
@@ -34,29 +43,31 @@ const SunglassesDropdown = ({ onLinkClick }) => {
           </ul>
         </div>
 
-        {/* Column 2: Shop by Lens Type */}
-        <div className="nd-col">
-          <p className="nd-heading">Shop by Lens Type</p>
-          <ul className="nd-list">
-            {['Single-vision', 'Progressives', 'Readers', 'Non-prescription', 'Blue-light', 'Anti-fatigue', 'Light-responsive'].map((item) => (
-              <li key={item} className="nd-item">
-                <Link
-                  to={`/products?category=sunglasses&lens=${encodeURIComponent(item.toLowerCase())}`}
-                  className="nd-link"
-                  onClick={onLinkClick}
-                >
-                  {item}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
+        {/* Column 2: Shop by Brand */}
+        {brands.length > 0 && (
+          <div className="nd-col">
+            <p className="nd-heading">Shop by Brand</p>
+            <ul className="nd-list">
+              {brands.map((brand) => (
+                <li key={brand.id} className="nd-item">
+                  <Link
+                    to={`/products?category=sunglasses&brand_name=${encodeURIComponent(brand.name)}`}
+                    className="nd-link"
+                    onClick={onLinkClick}
+                  >
+                    {brand.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* Column 3: Shop by Shape */}
         <div className="nd-col">
           <p className="nd-heading">Shop by Shape</p>
           <ul className="nd-list">
-            {['Square', 'Rectangle', 'Round', 'Oval', 'Cat-eye', 'Geometric', 'Aviator'].map((item) => (
+            {displayShapes.map((item) => (
               <li key={item} className="nd-item">
                 <Link
                   to={`/products?category=sunglasses&shape=${encodeURIComponent(item.toLowerCase())}`}

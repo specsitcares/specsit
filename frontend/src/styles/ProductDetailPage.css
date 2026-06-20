@@ -34,13 +34,16 @@
 
 /* ── Breadcrumbs ────────────────────────────────────────── */
 .pd-breadcrumbs {
-  padding: 19px 26px; 
-  width: calc(100% - 160px);
+  padding: 19px 40px;
+  width: 100%;
   margin: 0 auto;
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 9px; 
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 500;
   color: var(--pd-text);
 }
 
@@ -58,18 +61,17 @@
 
 .pd-breadcrumbs .active {
   color: var(--pd-text);
-  /* Black */
-  font-weight: 600;
+  font-weight: 700;
 }
 
 /* ── Main Layout ────────────────────────────────────────── */
 .pd-container {
   display: grid;
   grid-template-columns: 1.5fr 1fr;
-  gap: 32px;
-  padding: 0 26px; 
-  width: calc(100% - 160px); /* Centers consistently with 80px margins */
-  margin: 0 auto; 
+  gap: 40px;
+  padding: 0 40px;
+  width: 100%;
+  margin: 0 auto;
   align-items: start;
 }
 
@@ -214,9 +216,9 @@
 }
 
 .pd-section-header h2 {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 800;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.5px;
   margin-bottom: 6px;
   color: var(--pd-text);
 }
@@ -302,9 +304,9 @@
 
 /* ── Full-Width Sections ────────────────────────────────── */
 .pd-full-width-sections {
-  width: calc(100% - 160px);
+  width: 100%;
   margin: 0 auto;
-  padding: 0 26px;
+  padding: 0 40px;
 }
 
 /* ── Details Showcase Section ───────────────────────────── */
@@ -455,9 +457,9 @@
 }
 
 .pd-title-area h1 {
-  font-size: 38px;
+  font-size: 30px;
   font-weight: 800;
-  line-height: 1;
+  line-height: 1.1;
   letter-spacing: -0.025em;
   color: var(--pd-text);
   margin-bottom: 5px;
@@ -774,6 +776,17 @@
 
 .pd-delivery-result--unavailable svg {
   color: #DC2626;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.pd-delivery-result--estimate {
+  background: #FFF7ED;
+  color: #9A3412;
+}
+
+.pd-delivery-result--estimate svg {
+  color: #EA580C;
   flex-shrink: 0;
   margin-top: 2px;
 }
@@ -1177,9 +1190,9 @@
 }
 
 .pd-reviews-section .pd-section-header h2 {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 800;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.5px;
   color: var(--pd-text);
   margin: 0;
 }
@@ -1379,6 +1392,11 @@
   gap: 19px;
 }
 
+.pd-brand-grid .product-card,
+.pd-style-grid .product-card {
+  width: 100%;
+}
+
 @media (max-width: 1200px) {
   .pd-brand-grid,
   .pd-style-grid {
@@ -1496,4 +1514,723 @@
   .pd-features-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* ============================================================
+   RIGHT COLUMN — Figma node 61:25027 (compact / site scale)
+   ============================================================ */
+.pd-right-col {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  align-items: stretch;
+}
+
+.pd-info-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pd-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pd-badge {
+  display: inline-flex;
+  align-items: center;
+  background: #EBE3F2;
+  color: #68408D;
+  padding: 3px 9px;
+  border-radius: 10px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  line-height: 13px;
+  width: fit-content;
+}
+
+.pd-rating {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pd-rating strong {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+  color: #040205;
+}
+
+.pd-rating-count {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  color: #040205;
+}
+
+.pd-title {
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 34px;
+  letter-spacing: -1px;
+  color: #040205;
+  margin: 0;
+}
+
+.pd-subtitle {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 19px;
+  color: #040205;
+  margin: 0;
+}
+
+/* ── Price ── */
+.pd-price-section {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 10px;
+  padding: 12px 0 14px;
+  border-top: none;
+  border-bottom: 1px solid #EBE3F2;
+}
+
+.pd-current-price {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 28px;
+  color: #040205;
+}
+
+.pd-old-price {
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 20px;
+  color: #040205;
+  opacity: 0.6;
+  text-decoration: line-through;
+}
+
+.pd-discount-badge {
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+  color: #68408D;
+}
+
+.pd-oos-tag {
+  font-size: 12px;
+  font-weight: 700;
+  color: #dc2626;
+}
+
+/* ── Selector blocks (color / size) ── */
+.pd-selector-block {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pd-block-label {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  line-height: 18px;
+  text-transform: uppercase;
+  color: #040205;
+}
+
+.pd-color-swatches {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pd-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: box-shadow 0.15s ease;
+}
+
+.pd-swatch.active {
+  box-shadow: 0 0 0 3px #FBF9FC, 0 0 0 4.5px #4F2874;
+}
+
+/* ── Frame size ── */
+.pd-size-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.pd-size-btns {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pd-size-btn {
+  box-sizing: border-box;
+  padding: 8px 16px;
+  border: 1px solid #EBE3F2;
+  border-radius: 8px;
+  background: #FEFCFF;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+  color: #040205;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pd-size-btn:hover {
+  border-color: #68408D;
+}
+
+.pd-size-btn.active {
+  background: #EBE3F2;
+  border: 2px solid #68408D;
+  color: #68408D;
+  font-weight: 700;
+}
+
+.pd-size-guide {
+  padding: 8px 14px;
+  background: none;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  color: #040205;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ── Delivery details (pincode) ── */
+.pd-delivery-details {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 12px;
+}
+
+.pd-delivery-details .pd-section-label {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  line-height: 18px;
+  text-transform: uppercase;
+  color: #040205;
+}
+
+.pd-pincode-group {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.pd-pincode-input {
+  flex: 1 0 0;
+  min-width: 0;
+  height: 40px;
+  box-sizing: border-box;
+  padding: 11px 14px;
+  border: 1px solid #EBE3F2;
+  border-radius: 8px;
+  background: #FEFCFF;
+  font-size: 13px;
+  font-weight: 500;
+  color: #040205;
+}
+
+.pd-pincode-input::placeholder {
+  color: #71717A;
+}
+
+.pd-pincode-btn {
+  padding: 10px 26px;
+  background: #68408D;
+  border: 1px solid #68408D;
+  border-radius: 8px;
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 18px;
+  cursor: pointer;
+}
+
+.pd-delivery-helper {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 15px;
+  color: #040205;
+  margin: 0;
+}
+
+/* ── We assure you ── */
+.pd-assure-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #EBE3F2;
+}
+
+.pd-assure-title {
+  text-align: left;
+}
+
+.pd-assure-row {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 20px;
+  padding: 10px 0;
+}
+
+.pd-assure-item {
+  flex: 1 0 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #040205;
+  text-align: center;
+}
+
+.pd-assure-item:not(:last-child) {
+  border-right: 1.5px solid #E3E3E3;
+}
+
+.pd-assure-icon {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+/* ── See details + CTA ── */
+.pd-cta-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pd-see-details {
+  width: 100%;
+  background: none;
+  border: none;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: #68408D;
+  text-align: center;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.pd-main-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 4px;
+  padding: 14px;
+  background: #68408D;
+  border: none;
+  border-radius: 8px;
+  color: #FEFCFF;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  line-height: 22px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.pd-main-cta:hover {
+  background: #56336f;
+}
+
+.pd-cta-icon {
+  width: 18px;
+  height: 18px;
+}
+
+/* ── Frame dimensions card ── */
+.pd-fd-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 12px;
+  background: #F3F3F3;
+  border-radius: 12px;
+  box-sizing: border-box;
+  animation: pdFdReveal 0.3s ease;
+}
+
+@keyframes pdFdReveal {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.pd-fd-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  line-height: 18px;
+  text-transform: uppercase;
+  color: #040205;
+}
+
+.pd-fd-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px 8px;
+  width: 100%;
+}
+
+.pd-fd-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+}
+
+.pd-fd-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #71717A;
+}
+
+.pd-fd-value {
+  font-size: 13px;
+  font-weight: 800;
+  color: #040205;
+}
+
+/* ============================================================
+   SELECT DELIVERY LOCATION MODAL — Figma node 55:14397
+   ============================================================ */
+.pdloc-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: pdlocFade 0.2s ease;
+}
+
+@keyframes pdlocFade { from { opacity: 0; } to { opacity: 1; } }
+
+.pdloc-modal {
+  width: 100%;
+  max-width: 560px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  background: #FEFCFF;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  animation: pdlocRise 0.25s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+@keyframes pdlocRise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+.pdloc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #EDEDED;
+}
+
+.pdloc-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: #68408D;
+}
+
+.pdloc-close {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  border-radius: 10px;
+  color: #71717A;
+  cursor: pointer;
+}
+
+.pdloc-close:hover { background: #F5F5F5; }
+
+.pdloc-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+/* Pincode search */
+.pdloc-search {
+  display: flex;
+  gap: 10px;
+}
+
+.pdloc-input {
+  flex: 1 0 0;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 13px 16px;
+  border: 1px solid #EBE3F2;
+  border-radius: 6px;
+  background: #FEFCFF;
+  font-size: 14px;
+  font-weight: 500;
+  color: #040205;
+}
+
+.pdloc-input::placeholder { color: #71717A; }
+
+.pdloc-check {
+  padding: 13px 28px;
+  background: #68408D;
+  border: 1px solid #68408D;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pdloc-check:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Use current location */
+.pdloc-current {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  padding: 0;
+  color: #0F766E;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.35px;
+  cursor: pointer;
+  width: fit-content;
+}
+
+.pdloc-current:disabled { opacity: 0.6; cursor: progress; }
+
+/* Saved addresses */
+.pdloc-saved {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pdloc-saved-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: #040205;
+}
+
+.pdloc-addr-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pdloc-addr {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  text-align: left;
+  padding: 16px;
+  border: 1px solid #EBE3F2;
+  border-radius: 14px;
+  background: #FEFCFF;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pdloc-addr:hover {
+  border-color: #68408D;
+  box-shadow: 0 0 0 3px rgba(104, 64, 141, 0.12);
+}
+
+.pdloc-addr-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.pdloc-tags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pdloc-tag {
+  padding: 2px 8px;
+  border-radius: 2px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.pdloc-tag--home { background: #EBE3F2; color: #68408D; }
+.pdloc-tag--other { background: #F5F5F5; color: #71717A; }
+
+.pdloc-tag-fast {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 2px;
+  background: #FFE8C7;
+  color: #E98E0E;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.pdloc-addr-street {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 18px;
+  color: #040205;
+  margin-top: 4px;
+}
+
+.pdloc-addr-city {
+  font-size: 12px;
+  font-weight: 500;
+  color: #040205;
+}
+
+.pdloc-addr-foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid #EFEDF0;
+}
+
+.pdloc-addr-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #040205;
+}
+
+.pdloc-sep { color: #EFEDF0; }
+
+/* Footer promo */
+.pdloc-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 20px;
+  background: #EBE3F2;
+  border-top: 1px solid #EBE3F2;
+}
+
+.pdloc-footer-bolt { font-size: 22px; flex-shrink: 0; }
+
+.pdloc-footer-text {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 20px;
+  color: #040205;
+}
+
+.pdloc-footer-text strong { color: #68408D; font-weight: 700; }
+
+/* Selected saved address shown in the PDP delivery panel */
+.pd-selected-address {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid #EBE3F2;
+  border-radius: 8px;
+  background: #FEFCFF;
+}
+
+.pd-selected-address-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.pd-selected-address-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pd-selected-address-pin {
+  font-size: 12px;
+  font-weight: 700;
+  color: #71717A;
+}
+
+.pd-selected-address-street {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 18px;
+  color: #040205;
+}
+
+.pd-selected-address-city {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: #71717A;
 }

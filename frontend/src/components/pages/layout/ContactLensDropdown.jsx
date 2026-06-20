@@ -1,7 +1,17 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-const ContactLensDropdown = ({ onLinkClick }) => {
+const ContactLensDropdown = ({ onLinkClick, brands = [] }) => {
+  // Use dynamic brands if available, otherwise fallback
+  const displayBrands = brands.length > 0
+    ? brands
+    : [
+        { id: 'acuvue', name: 'Acuvue' },
+        { id: 'bausch', name: 'Bausch + Lomb' },
+        { id: 'alcon', name: 'Alcon' },
+        { id: 'cooper', name: 'CooperVision' },
+      ];
+
   return (
     <div className="nd-panel">
       <div className="nd-inner">
@@ -28,14 +38,14 @@ const ContactLensDropdown = ({ onLinkClick }) => {
         <div className="nd-col">
           <p className="nd-heading">Brands</p>
           <ul className="nd-list">
-            {['Acuvue', 'Bausch + Lomb', 'Alcon', 'CooperVision'].map((item) => (
-              <li key={item} className="nd-item">
+            {displayBrands.map((brand) => (
+              <li key={brand.id} className="nd-item">
                 <Link
-                  to={`/products?category=contact-lens&brand=${encodeURIComponent(item.toLowerCase())}`}
+                  to={`/products?category=contact-lens&brand_name=${encodeURIComponent(brand.name)}`}
                   className="nd-link"
                   onClick={onLinkClick}
                 >
-                  {item}
+                  {brand.name}
                 </Link>
               </li>
             ))}

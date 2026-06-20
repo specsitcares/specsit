@@ -1,47 +1,75 @@
 /* ============================================================
-   ANNOUNCEMENT BAR — TOP BANNER
+   ANNOUNCEMENT BAR — TOP BANNER (scrolling marquee)
+   Figma node 55:643
    ============================================================ */
 
 .announcement-bar {
-  background: #68408D;
-  padding: 5px 13px 6px 13px;
+  background: #0f0915;
+  padding: 10px 0;
   display: flex;
   align-items: center;
-  justify-content: center;
-  min-height: auto;
   position: relative;
   z-index: 1001;
   width: 100%;
+  overflow: hidden;
 }
 
-.announcement-container {
+/* Marquee viewport: two identical tracks scroll left seamlessly */
+.announcement-marquee {
+  display: flex;
+  width: max-content;
+  flex-wrap: nowrap;
+  animation: announcement-scroll 40s linear infinite;
+}
+
+.announcement-bar:hover .announcement-marquee {
+  animation-play-state: paused;
+}
+
+.announcement-track {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 100%;
+  gap: 14px;
+  padding-right: 14px;
+  flex-shrink: 0;
 }
 
 .announcement-text {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 700;
-  font-size: 9px;
-  line-height: 1.5;
-  letter-spacing: 1.1px;
+  font-size: 13px;
+  line-height: 22px;
+  letter-spacing: 0.13px;
   text-transform: uppercase;
   color: #FEFCFF;
-  text-align: center;
-  margin: 0;
-  padding: 0;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  margin: 0;
+}
+
+@keyframes announcement-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
 }
 
 @media (max-width: 768px) {
   .announcement-text {
-    font-size: 8px;
-    letter-spacing: 0.8px;
-    white-space: normal;
-    overflow: visible;
+    font-size: 11px;
+    letter-spacing: 0.4px;
+  }
+  .announcement-marquee {
+    animation-duration: 28s;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .announcement-marquee {
+    animation: none;
+    justify-content: center;
+    width: 100%;
+  }
+  .announcement-track:nth-child(2) { display: none; }
+  .announcement-track {
+    justify-content: center;
+    width: 100%;
   }
 }

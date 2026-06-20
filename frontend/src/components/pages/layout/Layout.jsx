@@ -26,8 +26,8 @@ const Layout = () => {
 
     return (
         <div className="layout-wrapper">
-            {/* Announcement Bar: Hidden on Auth, Checkout, and Cart pages */}
-            {(!isAuthPage && !isCheckoutPage && !isCartPage) && <AnnouncementBar />}
+            {/* Announcement Bar: scrolling marquee shown on all screens */}
+            <AnnouncementBar />
 
             {/* Header: Hidden on Auth pages AND Product Detail pages */}
             {!hideHeader && (

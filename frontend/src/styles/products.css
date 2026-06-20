@@ -20,22 +20,32 @@
 .product-listing-page {
   background-color: var(--plp-card-bg);
   min-height: 100vh;
-  margin: 0 80px !important; /* Precision header match */
-  padding: 0 26px 51px; 
+  margin: 0;
+  padding: 0 40px 51px;
   animation: plpFadeIn 0.4s ease;
 }
 
 /* ── Breadcrumbs & Header ───────────────────────────────── */
+/* Figma 55:4713: row, items-end, justify-between, pt-40 pb-24, gap-12 */
 .plp-header {
-  padding: 19px 0;
-  margin-bottom: 19px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 40px 0 24px;
+  margin-bottom: 32px;
+}
+
+.plp-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .breadcrumbs {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 10px;
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 11px;
   text-transform: uppercase;
@@ -57,14 +67,20 @@
   font-weight: 700;
 }
 
+.plp-title-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .plp-title-section h1 {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 800;
-  font-size: 48px;
-  line-height: 48px;
-  letter-spacing: -3px;
+  font-size: 30px;
+  line-height: 34px;
+  letter-spacing: -1px;
   color: var(--plp-text);
-  margin-bottom: 6px;
+  margin: 0;
 }
 
 .plp-subtitle {
@@ -73,13 +89,14 @@
   font-size: 13px;
   line-height: 19px;
   color: var(--plp-text);
+  margin: 0;
 }
 
 /* ── Layout Grid ──────────────────────────────────────── */
 /* Figma layout_NPHJGH: row, gap 51px, alignItems center */
 .plp-layout {
   display: flex;
-  gap: 51px;
+  gap: 32px;
   align-items: flex-start;
 }
 
@@ -90,12 +107,12 @@
    effect_NSDOT4: boxShadow 1px 3px 16px rgba(0,0,0,0.1)
    ══════════════════════════════════════════════════════════ */
 .filters-sidebar {
-  flex: 0 0 25%;
+  flex: 0 0 24%;
   min-width: 0;
   background: var(--plp-card-bg);
-  padding: 19px 22px;
-  border-radius: 10px;
-  box-shadow: 1px 3px 16px 0px rgba(0, 0, 0, 0.1);
+  padding: 24px 28px;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
   overflow: hidden;
   align-self: flex-start;
 }
@@ -106,56 +123,51 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding-bottom: 19px;
+  padding-bottom: 16px;
 }
 
-/* Figma style_ZKR89L: 14px/700 */
 .filters-header h2 {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 15px;
   line-height: 22px;
   color: var(--plp-text);
   margin: 0;
 }
 
-/* Figma style_LVKS4F: 10px/700, UPPER, tracking 1.2px */
 .filters-subtitle {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 700;
-  font-size: 10px;
-  line-height: 13px;
+  font-size: 11px;
+  line-height: 16px;
   letter-spacing: 1.2px;
   text-transform: uppercase;
   color: var(--plp-accent);
 }
 
 /* ── Filter Groups Container ─────────────────────────── */
-/* Figma layout_6JTOV3: padding-top 26px */
 .filter-groups-container {
-  padding-top: 26px;
+  padding-top: 20px;
 }
 
-/* Figma layout_1Y0TC1: gap 19px, padding-bottom 32px */
 .filter-groups-list {
   display: flex;
   flex-direction: column;
-  gap: 19px;
-  padding-bottom: 32px;
-  padding-right: 13px;
+  gap: 16px;
+  padding-bottom: 24px;
+  padding-right: 12px;
 }
 
 /* ── Individual Filter Group ─────────────────────────── */
-/* Figma layout_I1BEL9: padding-bottom 32px, bottom stroke */
 /* Figma fill_7U7TOY: rgba(205, 195, 209, 0.2) */
 .filter-group {
-  padding: 0 0 33px 0;
+  padding: 0 0 16px 0;
   border-bottom: 1px solid var(--plp-filter-border);
 }
 
 .filter-group:last-child {
   border-bottom: none;
-  padding-bottom: 32px;
+  padding-bottom: 0;
 }
 
 /* ── Filter Group Header ─────────────────────────────── */
@@ -169,13 +181,12 @@
   user-select: none;
 }
 
-/* Figma style_OYISEF: 11px/700, h-[16px], lh-[16px] */
 .filter-group-header h3 {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 700;
-  font-size: 11px;
-  line-height: 16px;
-  height: 16px;
+  font-size: 13px;
+  line-height: 18px;
+  height: 18px;
   color: var(--plp-text);
   margin: 0;
 }
@@ -321,7 +332,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 38px;
+  gap: 14px;
   min-width: 0;
 }
 
@@ -384,9 +395,8 @@
 }
 
 /* ── Applied Filters Row ─────────────────────────────── */
-/* Figma layout_EQAUPY: padding-top 19px */
 .applied-filters-row {
-  padding-top: 19px;
+  padding-top: 0;
 }
 
 /* Figma layout_Z39ZY5: row, center, gap 10px */
@@ -472,7 +482,7 @@
 .plp-product-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 51px 26px;
+  gap: 32px 24px;
   width: 100%;
 }
 
@@ -557,8 +567,8 @@
 }
 
 @media (max-width: 1400px) {
-  .product-listing-page { padding: 0 48px 48px; }
-  .plp-layout { gap: 32px; }
+  .product-listing-page { padding: 0 40px 48px; }
+  .plp-layout { gap: 24px; }
 }
 
 @media (max-width: 1200px) {

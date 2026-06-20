@@ -13,6 +13,10 @@ import VTOModal from '../../VTOModal/VTOModal';
 import LensSelectionAside from './LensSelectionAside';
 import { ProductCard } from '../home/NewArrivals';
 import PincodeDeliveryCheck from './PincodeDeliveryCheck';
+import assureFreeShipping from '../../../assets/pdp/assure-free-shipping.svg';
+import assureWarranty from '../../../assets/pdp/assure-warranty.svg';
+import assureReturns from '../../../assets/pdp/assure-returns.svg';
+import ctaWand from '../../../assets/pdp/cta-wand.svg';
 import '../../../styles/ProductDetailPage.css';
 
 const ProductDetailPage = () => {
@@ -30,6 +34,7 @@ const ProductDetailPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [activeImage, setActiveImage] = useState(0);
+    const [showDimensions, setShowDimensions] = useState(false);
 
     // Flow & Variant State
     const [step, setStep] = useState('product'); // 'product', 'lens-type', 'prescription'
@@ -58,6 +63,19 @@ const ProductDetailPage = () => {
         fetchReviews();
     }, [id]);
 
+    // On-scroll reveal for below-the-fold sections
+    useEffect(() => {
+        const els = document.querySelectorAll('.reveal-on-scroll');
+        if (!els.length) return;
+        const obs = new IntersectionObserver((entries, o) => {
+            entries.forEach(e => {
+                if (e.isIntersecting) { e.target.classList.add('is-revealed'); o.unobserve(e.target); }
+            });
+        }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+        els.forEach(el => obs.observe(el));
+        return () => obs.disconnect();
+    }, [loading, product, brandProducts, styleProducts, reviews]);
+
     useEffect(() => {
         setLoading(true);
         setError(null);
@@ -74,7 +92,9 @@ const ProductDetailPage = () => {
                         ? (p.variants.find(v => String(v.id) === variantParam) || p.variants[0])
                         : p.variants[0];
                     setSelectedColor(target.color || target.frame_color || 'Default');
-                    setSelectedSize(target.frame_size || '');
+                    const targetSizeKeys = (target.stock_by_size && typeof target.stock_by_size === 'object')
+                        ? Object.keys(target.stock_by_size) : [];
+                    setSelectedSize(target.frame_size || targetSizeKeys[0] || '');
                 }
 
                 // Recommended lenses
@@ -179,6 +199,22 @@ const ProductDetailPage = () => {
         ? sizeKeys
         : [...new Set((product.variants || []).map(v => v.frame_size).filter(Boolean))];
 
+    // ── Frame dimensions — prefer the selected size's data, then any size with data, then variant fields ──
+    const sizeObjs = Object.values(stockBySize).filter(s => s && typeof s === 'object');
+    const sizeDims = (stockBySize[selectedSize] && typeof stockBySize[selectedSize] === 'object')
+        ? stockBySize[selectedSize]
+        : (sizeObjs[0] || {});
+    const fmtDim = (...vals) => {
+        const v = vals.find(x => x != null && Number(x) > 0);
+        return v ? `${parseInt(v, 10)}mm` : '—';
+    };
+    const frameDimensions = [
+        { label: 'Lens Width', value: fmtDim(sizeDims.lens_width, selectedVariantObj?.lens_width, product.frame_width) },
+        { label: 'Bridge Width', value: fmtDim(sizeDims.bridge_length, selectedVariantObj?.bride_lentgh) },
+        { label: 'Temple Length', value: fmtDim(sizeDims.temple_length, selectedVariantObj?.temple_length) },
+        { label: 'Lens Height', value: fmtDim(sizeDims.lens_height, product.frame_height) },
+    ];
+
     // ── Variant-aware pricing — cascading: variant.selling_price → variant.discount_percent → product.selling_price → product.discount_percentage
     const mrp = Math.round(parseFloat(selectedVariantObj?.base_price || product.base_price || 0));
     const variantSelling = parseFloat(selectedVariantObj?.selling_price || 0);
@@ -273,7 +309,7 @@ const ProductDetailPage = () => {
                         </div>
                     </section>
 
-                    <section className="pd-features-section">
+                    <section className="pd-features-section reveal-on-scroll">
                         <div className="pd-section-header">
                             <h2>What’s Everything included</h2>
                             <div className="pd-section-subhead">
@@ -320,302 +356,157 @@ const ProductDetailPage = () => {
                         </div>
                     </section>
 
-                    <section className="pd-how-to-style">
-                        <div className="pd-section-header">
-                            <h2>How to Style Your Glasses</h2>
-                            <p>A versatile frame for every facet of your life</p>
-                        </div>
-                        <div className="pd-lifestyle-grid">
-                            {[1, 2, 3, 4, 5, 6].map(i => (
-                                <div key={i} className="pd-lifestyle-item">
-                                    <img src={`https://placehold.co/400x600/efedf0/040205?text=Style+${i}`} alt={`Lifestyle ${i}`} />
-                                </div>
-                            ))}
-                        </div>
-                    </section>
                 </div>
 
                 {/* ── Right Column ── */}
                 <div className="pd-right-col">
+                    {/* ── Badge + rating + title + subtitle ── */}
                     <div className="pd-info-header">
                         <div className="pd-meta-row">
-                            {(product.frame_style || product.frame_type || product.brand_name) && (
+                            {(product.frame_material || product.frame_style || product.frame_type || product.brand_name) && (
                                 <span className="pd-badge">
-                                    {product.frame_style || product.frame_type || product.brand_name}
+                                    {product.frame_material
+                                        ? `${product.frame_material} Series`
+                                        : (product.frame_style || product.frame_type || product.brand_name)}
                                 </span>
                             )}
                             {avgRating && (
                                 <div className="pd-rating">
-                                    <Star size={16} fill="var(--pd-warning)" color="var(--pd-warning)" />
+                                    <Star size={15} fill="#FBBF24" color="#FBBF24" />
                                     <strong>{avgRating}</strong>
-                                    <span className="pd-muted">({reviewCount} {reviewCount === 1 ? 'review' : 'reviews'})</span>
+                                    <span className="pd-rating-count">({reviewCount.toLocaleString('en-IN')} {reviewCount === 1 ? 'review' : 'reviews'})</span>
                                 </div>
                             )}
                         </div>
-                        <div className="pd-title-area">
-                            <h1>{product.title}</h1>
-                            {(product.short_description || product.frame_type) && (
-                                <p className="pd-subtitle">
-                                    {product.short_description || [product.brand_name, product.frame_type, product.frame_shape].filter(Boolean).join(' · ')}
-                                </p>
-                            )}
-                        </div>
+                        <h1 className="pd-title">{product.title}</h1>
+                        {[selectedColor, product.frame_type, product.frame_shape].filter(Boolean).length > 0 && (
+                            <p className="pd-subtitle">
+                                {[selectedColor, product.frame_type, product.frame_shape].filter(Boolean).join(' ')}
+                            </p>
+                        )}
                     </div>
 
+                    {/* ── Price ── */}
                     <div className="pd-price-section">
-                        <div className="pd-price-block">
-                            <span className="pd-current-price">
-                                ₹{finalPrice.toLocaleString('en-IN')}
-                            </span>
-                            {hasDiscount && (
-                                <div className="pd-price-row">
-                                    <span className="pd-old-price">
-                                        ₹{mrp.toLocaleString('en-IN')}
-                                    </span>
-                                    <span className="pd-discount-badge">({discountPct}% OFF)</span>
-                                </div>
-                            )}
-                        </div>
-                        <p className="pd-tax-info">Inclusive of all taxes</p>
-                        {variantColors.length > 0 && (
-                            <p className="pd-colors-available">Available in {variantColors.length} color{variantColors.length !== 1 ? 's' : ''}</p>
+                        <span className="pd-current-price">₹{finalPrice.toLocaleString('en-IN')}</span>
+                        {hasDiscount && (
+                            <>
+                                <span className="pd-old-price">₹{mrp.toLocaleString('en-IN')}</span>
+                                <span className="pd-discount-badge">({discountPct}% OFF)</span>
+                            </>
                         )}
-                        {isOutOfStock && (
-                            <p style={{ color: '#dc2626', fontWeight: 600, fontSize: 13, marginTop: 4 }}>Out of Stock</p>
-                        )}
+                        {isOutOfStock && <span className="pd-oos-tag">Out of Stock</span>}
                     </div>
 
-                    <div className="pd-delivery-banner">
-                        <div className="pd-delivery-icon">
-                            <Truck size={24} />
+                    {/* ── Frame Color ── */}
+                    {variantColors.length > 0 && (
+                        <div className="pd-selector-block">
+                            <label className="pd-block-label">Frame Color</label>
+                            <div className="pd-color-swatches">
+                                {variantColors.map(v => (
+                                    <button
+                                        key={v.id}
+                                        type="button"
+                                        className={`pd-swatch ${selectedColor === v.name ? 'active' : ''}`}
+                                        style={{ backgroundColor: v.code }}
+                                        onClick={() => { setSelectedColor(v.name); setActiveImage(0); }}
+                                        title={v.name}
+                                        aria-label={v.name}
+                                    />
+                                ))}
+                            </div>
                         </div>
-                        <div className="pd-delivery-text">
-                            <h5>Priority Local Delivery</h5>
-                            <p>Order now and get delivery in 1–2 hours across Hyderabad</p>
-                        </div>
-                    </div>
+                    )}
 
-                    <div className="pd-coupon-section">
-                        <label className="pd-coupon-label">Apply Coupon</label>
-                        <div className="pd-coupon-input-group">
-                            <input
-                                type="text"
-                                placeholder="Enter coupon code"
-                                className="pd-coupon-input"
-                                value={couponCode}
-                                onChange={(e) => {
-                                    setCouponCode(e.target.value.toUpperCase());
-                                    if (couponStatus) { setCouponStatus(null); setCouponData(null); }
-                                }}
-                                onKeyDown={async (e) => { if (e.key === 'Enter') await handleApplyCoupon(); }}
-                            />
-                            <button
-                                className="pd-coupon-apply"
-                                onClick={handleApplyCoupon}
-                                disabled={couponLoading}
-                            >
-                                {couponLoading ? '…' : 'APPLY'}
-                            </button>
-                        </div>
-                        {couponStatus === 'success' && couponData && (
-                            <div className="pd-coupon-msg success">
-                                <Check size={14} /> {couponData.message}
-                            </div>
-                        )}
-                        {couponStatus === 'error' && couponData && (
-                            <div className="pd-coupon-msg error">
-                                <X size={14} /> {couponData.message}
-                            </div>
-                        )}
-                        <button className="pd-view-offers">VIEW ALL OFFERS</button>
-                    </div>
-
-                    <div className="pd-selectors-section">
-                        {variantColors.length > 0 && (
-                            <div className="pd-selector-item">
-                                <label className="pd-coupon-label">
-                                    Frame Color: <span>{selectedColor}</span>
-                                </label>
-                                <div className="pd-color-swatches">
-                                    {variantColors.map(v => (
-                                        <div
-                                            key={v.id}
-                                            className={`pd-swatch ${selectedColor === v.name ? 'active' : ''}`}
-                                            style={{ backgroundColor: v.code }}
-                                            onClick={() => { setSelectedColor(v.name); setActiveImage(0); }}
-                                            title={v.name}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* ── Variant thumbnail cards ── */}
-                        {(product.variants || []).length > 1 && (
-                            <div className="pd-selector-item">
-                                <label className="pd-coupon-label" style={{ marginBottom: 10 }}>All Color Options</label>
-                                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                                    {(product.variants || []).map(v => {
-                                        const vColor = v.color || v.frame_color || v.lens_color || 'Default';
-                                        const vImg = v.images?.[0]?.image || v.images?.[0] || '';
-                                        const isActive = selectedColor === vColor;
-                                        return (
-                                            <div
-                                                key={v.id}
-                                                onClick={() => { setSelectedColor(vColor); setActiveImage(0); }}
-                                                title={vColor}
-                                                style={{
-                                                    width: 72,
-                                                    cursor: 'pointer',
-                                                    borderRadius: 10,
-                                                    border: `2px solid ${isActive ? '#68408D' : '#e5e7eb'}`,
-                                                    overflow: 'hidden',
-                                                    transition: 'border-color 0.15s, box-shadow 0.15s',
-                                                    boxShadow: isActive ? '0 0 0 3px rgba(104,64,141,0.18)' : 'none',
-                                                    flexShrink: 0,
-                                                }}
-                                            >
-                                                <div style={{ width: '100%', aspectRatio: '1', background: '#f3f4f6', overflow: 'hidden' }}>
-                                                    {vImg
-                                                        ? <img src={vImg} alt={vColor} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.style.display = 'none'; }} />
-                                                        : <div style={{ width: '100%', height: '100%', background: v.color_code || '#e5e7eb' }} />
-                                                    }
-                                                </div>
-                                                <div style={{ padding: '4px 5px', fontSize: 10, fontWeight: isActive ? 700 : 500, color: isActive ? '#68408D' : '#374151', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                                    {vColor}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        )}
-                        {(variantSizes.length > 0 || product.frame_width) && (
-                            <div className="pd-selector-item">
-                                <label className="pd-coupon-label">Frame Size</label>
+                    {/* ── Frame Size ── */}
+                    {(variantSizes.length > 0 || product.frame_width) && (
+                        <div className="pd-selector-block">
+                            <label className="pd-block-label">Frame Size</label>
+                            <div className="pd-size-row">
                                 <div className="pd-size-btns">
                                     {(variantSizes.length > 0 ? variantSizes : [product.frame_width]).map(size => {
                                         const sizeStock = stockBySize[size];
-                                        const isOutOfStock = sizeStock !== undefined && Number(sizeStock) === 0;
+                                        const isOos = sizeStock !== undefined && Number(sizeStock) === 0;
                                         return (
                                             <button
                                                 key={size}
+                                                type="button"
                                                 className={`pd-size-btn ${selectedSize === size ? 'active' : ''}`}
-                                                onClick={() => !isOutOfStock && setSelectedSize(size)}
-                                                style={{ opacity: isOutOfStock ? 0.5 : 1, textDecoration: isOutOfStock ? 'line-through' : 'none', cursor: isOutOfStock ? 'not-allowed' : 'pointer' }}
-                                                disabled={isOutOfStock}
-                                                title={isOutOfStock ? "Out of Stock" : ""}
+                                                onClick={() => !isOos && setSelectedSize(size)}
+                                                style={{ opacity: isOos ? 0.5 : 1, textDecoration: isOos ? 'line-through' : 'none', cursor: isOos ? 'not-allowed' : 'pointer' }}
+                                                disabled={isOos}
+                                                title={isOos ? 'Out of Stock' : ''}
                                             >
                                                 {size}
                                             </button>
                                         );
                                     })}
                                 </div>
-                            </div>
-                        )}
-                    </div>
-
-                    {(product.frame_width || product.frame_type || product.frame_shape || product.gender) && (
-                        <div className="pd-dimensions-section">
-                            <label className="pd-coupon-label">Frame Specifications</label>
-                            <div className="pd-dimensions-grid">
-                                {product.frame_width && (
-                                    <div className="pd-dim-item">
-                                        <div className="pd-dim-icon">W</div>
-                                        <div className="pd-dim-info">
-                                            <span>Frame Width</span>
-                                            <strong>{product.frame_width}</strong>
-                                        </div>
-                                    </div>
-                                )}
-                                {product.frame_type && (
-                                    <div className="pd-dim-item">
-                                        <div className="pd-dim-icon">T</div>
-                                        <div className="pd-dim-info">
-                                            <span>Frame Type</span>
-                                            <strong>{product.frame_type}</strong>
-                                        </div>
-                                    </div>
-                                )}
-                                {product.frame_shape && (
-                                    <div className="pd-dim-item">
-                                        <div className="pd-dim-icon">S</div>
-                                        <div className="pd-dim-info">
-                                            <span>Frame Shape</span>
-                                            <strong>{product.frame_shape}</strong>
-                                        </div>
-                                    </div>
-                                )}
-                                {product.gender && (
-                                    <div className="pd-dim-item">
-                                        <div className="pd-dim-icon">G</div>
-                                        <div className="pd-dim-info">
-                                            <span>Gender</span>
-                                            <strong>{product.gender}</strong>
-                                        </div>
-                                    </div>
-                                )}
+                                <button type="button" className="pd-size-guide">Size Guide</button>
                             </div>
                         </div>
                     )}
 
-                    <div className="pd-cta-container">
-                        <button onClick={() => setIsAsideOpen(true)} className="pd-main-cta">
-                            <ShoppingBag size={20} />
-                            Select Lenses &amp; Add to Cart
-                        </button>
-                    </div>
-
+                    {/* ── Delivery Details (pincode) ── */}
                     <PincodeDeliveryCheck
                         productId={product.id}
                         sellerId={product.seller?.id ?? null}
                     />
 
+                    {/* ── We Assure You ── */}
                     <div className="pd-assure-section">
-                        <label className="pd-section-label">We Assure you</label>
+                        <label className="pd-block-label pd-assure-title">We Assure you</label>
                         <div className="pd-assure-row">
-                            <div className="pd-assure-item"><Truck size={16} color="#0D9488" /> Free Shipping</div>
-                            <div className="pd-assure-item"><CheckCircle size={16} color="#0D9488" /> 1 Year Warranty</div>
-                            <div className="pd-assure-item"><RefreshCw size={16} color="#0D9488" /> 14 Day Returns</div>
+                            <div className="pd-assure-item">
+                                <img src={assureFreeShipping} alt="" className="pd-assure-icon" />
+                                <span>Free Shipping</span>
+                            </div>
+                            <div className="pd-assure-item">
+                                <img src={assureWarranty} alt="" className="pd-assure-icon" />
+                                <span>1 Year Warranty</span>
+                            </div>
+                            <div className="pd-assure-item">
+                                <img src={assureReturns} alt="" className="pd-assure-icon" />
+                                <span>14 Day Returns</span>
+                            </div>
                         </div>
+                    </div>
+
+                    {/* ── See full details + CTA ── */}
+                    <div className="pd-cta-group">
+                        <button
+                            type="button"
+                            className="pd-see-details"
+                            onClick={() => setShowDimensions(v => !v)}
+                            aria-expanded={showDimensions}
+                        >
+                            {showDimensions ? 'Hide frame details' : 'See full frame details'}
+                        </button>
+
+                        {showDimensions && (
+                            <div className="pd-fd-card">
+                                <h4 className="pd-fd-title">Frame Dimensions</h4>
+                                <div className="pd-fd-grid">
+                                    {frameDimensions.map(d => (
+                                        <div key={d.label} className="pd-fd-cell">
+                                            <span className="pd-fd-label">{d.label}</span>
+                                            <strong className="pd-fd-value">{d.value}</strong>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        <button onClick={() => setIsAsideOpen(true)} className="pd-main-cta">
+                            <img src={ctaWand} alt="" className="pd-cta-icon" />
+                            Select Lenses &amp; Add to Cart
+                        </button>
                     </div>
                 </div>
             </main>
 
             <div className="pd-full-width-sections">
-                <section className="pd-details-showcase">
-                    <div className="pd-showcase-row">
-                        <div className="pd-showcase-item">
-                            <div className="pd-showcase-img">
-                                <img src="https://placehold.co/600x600?text=Japanese+Titanium" alt="Titanium" />
-                            </div>
-                            <div className="pd-showcase-info">
-                                <h3>Aerodynamic Titanium</h3>
-                                <p>Engineered from Grade 5 Japanese Titanium, this weighs only 12 grams. The minimal profile ensures comfort for all-day wear without compromising on the bold square aesthetic.</p>
-                            </div>
-                        </div>
-                        <div className="pd-showcase-item">
-                            <div className="pd-showcase-img">
-                                <img src="https://placehold.co/600x600?text=Laser-Cut+Precision" alt="Precision" />
-                            </div>
-                            <div className="pd-showcase-info">
-                                <h3>Laser-Cut Precision</h3>
-                                <p>Engineered from Grade 5 Japanese Titanium, the Lumina Aero weighs only 12 grams. The minimal profile ensures comfort for all-day wear without compromising on the bold square aesthetic.</p>
-                            </div>
-                        </div>
-                        <div className="pd-showcase-item">
-                            <div className="pd-showcase-img">
-                                <img src="https://placehold.co/600x600?text=Bespoke+Fit+System" alt="Bespoke" />
-                            </div>
-                            <div className="pd-showcase-info">
-                                <h3>Bespoke Fit System</h3>
-                                <p>Engineered from Grade 5 Japanese Titanium, the Lumina Aero weighs only 12 grams. The minimal profile ensures comfort for all-day wear without compromising on the bold square aesthetic.</p>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <section className="pd-reviews-section" id="reviews">
+                <section className="pd-reviews-section reveal-on-scroll" id="reviews">
                     <div className="pd-section-header">
                         <h2>Rating & Reviews</h2>
                     </div>
@@ -721,7 +612,7 @@ const ProductDetailPage = () => {
                     )}
                 </section>
 
-                <section className="pd-brand-section">
+                <section className="pd-brand-section reveal-on-scroll">
                     <div className="pd-section-header">
                         <div className="pd-header-left">
                             <h2>Shop from same brand</h2>
@@ -752,7 +643,7 @@ const ProductDetailPage = () => {
                     )}
                 </section>
 
-                <section className="pd-style-section">
+                <section className="pd-style-section reveal-on-scroll">
                     <div className="pd-section-header">
                         <div className="pd-header-left">
                             <h2>Shop from same style</h2>

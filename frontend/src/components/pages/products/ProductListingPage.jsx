@@ -1,119 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate, Link } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import apiClient from '../../../services/api';
-import { useCart } from '../../../context/CartContext';
-import { useAuth } from '../../../context/AuthContext';
-import { useWishlist } from '../../../context/WishlistContext';
+import { ProductCard } from '../home/NewArrivals';
 import '../../../styles/products.css';
+import '../../../styles/ProductCard.css';
 
-const HeartIcon = ({ filled }) => (
-  <svg width="20" height="19" viewBox="0 0 20 19" fill={filled ? '#68408D' : 'none'} stroke={filled ? '#68408D' : '#71717A'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M2.37891 10.3535L10.0039 17.5L17.6289 10.3535C18.4552 9.57885 18.9221 8.52554 18.9221 7.42111C18.9221 6.31668 18.4552 5.26336 17.6289 4.48869C16.8026 3.71403 15.6819 3.2793 14.5133 3.2793C13.3446 3.2793 12.2239 3.71403 11.3976 4.48869L10.0039 5.79512L8.61021 4.48869C7.7839 3.71403 6.66316 3.2793 5.49453 3.2793C4.3259 3.2793 3.20517 3.71403 2.37886 4.48869C1.55254 5.26336 1.08569 6.31668 1.08569 7.42111C1.08569 8.52554 1.55254 9.57885 2.37891 10.3535Z" />
-  </svg>
-);
-
-const VariantCard = ({ product, variant }) => {
-  const { user } = useAuth();
-  const { isWishlisted, toggleWishlist } = useWishlist();
-  const navigate = useNavigate();
-  const [wishlistPending, setWishlistPending] = useState(false);
-
-  const mainImg = variant?.images?.[0]?.image || variant?.images?.[0] || product.product_image || product.main_image || '';
-  const mrp = Math.round(parseFloat(variant?.base_price || product.base_price || 0));
-  // Resolve selling price: prefer explicit variant selling_price, then variant discount %, then product selling_price, then product discount %
-  const variantSelling = parseFloat(variant?.selling_price || 0);
-  const variantDiscPct = parseFloat(variant?.discount_percent || 0);
-  const productSelling = parseFloat(product.selling_price || 0);
-  const productDiscPct = parseFloat(product.discount_percentage || 0);
-  let salePrice;
-  if (variantSelling > 0 && variantSelling < mrp) {
-    salePrice = Math.round(variantSelling);
-  } else if (variantDiscPct > 0) {
-    salePrice = Math.round(mrp * (1 - variantDiscPct / 100));
-  } else if (productSelling > 0 && productSelling < mrp) {
-    salePrice = Math.round(productSelling);
-  } else if (productDiscPct > 0) {
-    salePrice = Math.round(mrp * (1 - productDiscPct / 100));
-  } else {
-    salePrice = mrp;
-  }
-  const discountPct = mrp > 0 && salePrice < mrp ? Math.round(((mrp - salePrice) / mrp) * 100) : 0;
-  const hasDiscount = discountPct > 0;
-  const colorName = variant?.color || variant?.frame_color || variant?.lens_color || '';
-  const brandName = (product.brand_display_name || product.brand_name || product.category_name || '').toUpperCase();
-  const wishlisted = variant?.id != null && isWishlisted(variant.id);
-  const to = `/product/${product.id}${variant?.id ? `?variant=${variant.id}` : ''}`;
-
-  const handleWishlist = async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!user) { navigate('/login'); return; }
-    if (!variant?.id || wishlistPending) return;
-    setWishlistPending(true);
-    await toggleWishlist(variant.id);
-    setWishlistPending(false);
-  };
-
-  return (
-    <Link to={to} className="product-card" id={`variant-card-${variant?.id || product.id}`}>
-      <div className="product-card__background">
-        <div className="product-card__image-wrap">
-          {mainImg
-            ? <img src={mainImg} alt={`${product.title}${colorName ? ` - ${colorName}` : ''}`} onError={(e) => { e.target.style.display = 'none'; }} />
-            : <div className="product-card__image-placeholder" />
-          }
-        </div>
-        <div className="product-card__overlay-row">
-          {variant?.is_bestseller
-            ? <div className="product-card__badge"><span className="product-card__badge-text">Best Seller</span></div>
-            : <span />
-          }
-          <button
-            className={`product-card__wishlist-btn${wishlisted ? ' product-card__wishlist-btn--active' : ''}`}
-            onClick={handleWishlist}
-            disabled={wishlistPending}
-            aria-label={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
-          >
-            <HeartIcon filled={wishlisted} />
-          </button>
-        </div>
-      </div>
-      <div className="product-card__container">
-        <div className="product-card__main-row">
-          <div className="product-card__info-col">
-            {brandName && <span className="product-card__brand">{brandName}</span>}
-            <h3 className="product-card__title">{product.title}</h3>
-            {colorName && (
-              <p style={{ fontSize: 12, color: '#71717A', margin: '3px 0 0', display: 'flex', alignItems: 'center', gap: 5 }}>
-                {variant?.color_code && (
-                  <span style={{ width: 10, height: 10, borderRadius: '50%', background: variant.color_code, display: 'inline-block', border: '1px solid #d1d5db', flexShrink: 0 }} />
-                )}
-                {colorName}
-              </p>
-            )}
-            <div className="product-card__price-block">
-              <span className="product-card__price-new">₹{salePrice.toLocaleString('en-IN')}</span>
-              {hasDiscount && (
-                <div className="product-card__price-row">
-                  <span className="product-card__price-old">₹{mrp.toLocaleString('en-IN')}</span>
-                  <div className="product-card__discount">
-                    <span className="product-card__discount-text">({discountPct}% OFF)</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    </Link>
-  );
+/* ── Filter option definitions (Figma node 153:2160) ── */
+const PRICE_RANGES = {
+    'Under ₹2000': { min: 0, max: 2000 },
+    '₹2000 - ₹5000': { min: 2000, max: 5000 },
+    '₹5000 - ₹10000': { min: 5000, max: 10000 },
+    'Over ₹10000': { min: 10000, max: null },
 };
 
-/* ── Filter option definitions for all Figma filter groups ── */
 const FILTER_OPTIONS = {
     'Frame Shape': ['Square', 'Round', 'Aviator', 'Wayfarer', 'Cat Eye', 'Rectangle'],
     'Frame Type': ['Full Rim', 'Half Rim', 'Rimless'],
-    'Frame Style': ['Classic', 'Modern', 'Sporty', 'Retro', 'Vintage'],
     'Frame Color': [
         { name: 'Black', color: '#000000' },
         { name: 'Brown', color: '#78350F' },
@@ -124,11 +26,11 @@ const FILTER_OPTIONS = {
         { name: 'Grey', color: '#71717A' }
     ],
     'Size / Width': ['Extra Small', 'Small', 'Medium', 'Large', 'Extra Large'],
-    'Material': ['Acetate', 'Metal', 'Titanium', 'TR-90', 'Wood', 'Mixed'],
+    'Material': ['Acetate', 'Titanium', 'Stainless Steel', 'TR90', 'Wood', 'Metal'],
     'Gender': ['Men', 'Women', 'Unisex', 'Kids'],
+    'Price Range': Object.keys(PRICE_RANGES),
     'Discount': ['10% or more', '20% or more', '30% or more', '50% or more'],
-    'Comfort Features': ['Lightweight', 'Flexible', 'Adjustable Nose Pads', 'Spring Hinges', 'Anti-Slip'],
-    'Lens Type': ['Single Vision', 'Progressive', 'Bifocal', 'Blue Light Filter', 'Photochromic', 'Polarized'],
+    'Lens Type': ['Polarized', 'Non-Polarized', 'Gradient', 'Mirrored', 'UV Protection'],
     'Rating': [
         { label: '4★ & above', value: 4 },
         { label: '3★ & above', value: 3 },
@@ -139,7 +41,6 @@ const FILTER_OPTIONS = {
 
 const ProductListingPage = () => {
     const [searchParams, setSearchParams] = useSearchParams();
-    const { addToCart } = useCart();
 
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -147,7 +48,8 @@ const ProductListingPage = () => {
 
     // Core filter states (API-connected)
     const [categories, setCategories] = useState([]);
-    const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '');
+    // Holds the resolved category id; populated from the URL slug by the sync effect below.
+    const [selectedCategory, setSelectedCategory] = useState('');
     const [productType, setProductType] = useState('frame');
     const [selectedBrand, setSelectedBrand] = useState(searchParams.get('brand_name') || '');
     const [maxPrice, setMaxPrice] = useState(searchParams.get('max_price') || 50000);
@@ -160,7 +62,7 @@ const ProductListingPage = () => {
     // Extended filter states
     const [selectedFilters, setSelectedFilters] = useState({});
 
-    // Collapsible filter groups
+    // Collapsible filter groups — collapsed by default
     const [expandedGroups, setExpandedGroups] = useState({});
 
     const toggleGroup = (name) => {
@@ -197,6 +99,29 @@ const ProductListingPage = () => {
         }).catch(err => console.error('Error loading filters:', err));
     }, []);
 
+    // Navbar category slug from the URL, e.g. "eyeglasses", "sunglasses", "contact-lens".
+    const categorySlug = searchParams.get('category') || '';
+
+    // Resolve the URL category slug → an actual category id (tolerant of casing,
+    // hyphens and minor name typos) and derive the product type. Runs on every
+    // navigation so clicking another navbar link re-applies the filter.
+    useEffect(() => {
+        const norm = (s) => (s || '').toLowerCase().replace(/[^a-z]/g, '');
+        const raw = norm(categorySlug);
+        setProductType(raw.startsWith('contact') ? 'lens' : 'frame');
+        if (!raw) { setSelectedCategory(''); return; }
+        const match = categories.find(c => {
+            const n = norm(c.name);
+            return n === raw || n.startsWith(raw) || raw.startsWith(n);
+        });
+        setSelectedCategory(match ? String(match.id) : '');
+    }, [categorySlug, categories]);
+
+    // Human-readable page title from the slug, e.g. "contact-lens" → "Contact Lens".
+    const pageTitle = categorySlug
+        ? categorySlug.replace(/-/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase())
+        : 'All Eyewear';
+
     const filtersKey = JSON.stringify(selectedFilters);
 
     // Reset to page 1 whenever any filter changes (but not when page itself changes)
@@ -216,7 +141,15 @@ const ProductListingPage = () => {
         if (productType) params.append('product_type', productType);
         if (selectedBrand) params.append('brand_name', selectedBrand);
         if (searchQuery) params.append('search', searchQuery);
-        if (maxPrice < 50000) params.append('max_price', maxPrice);
+
+        // Price Range → min_price / max_price (envelope of selected ranges)
+        const priceRanges = (selectedFilters['Price Range'] || []).map(l => PRICE_RANGES[l]).filter(Boolean);
+        if (priceRanges.length > 0) {
+            params.append('min_price', Math.min(...priceRanges.map(r => r.min)));
+            if (priceRanges.every(r => r.max != null)) {
+                params.append('max_price', Math.max(...priceRanges.map(r => r.max)));
+            }
+        }
 
         // Server-side sorting
         const sortMap = {
@@ -291,11 +224,9 @@ const ProductListingPage = () => {
                     data = data.filter(p => new Date(p.created_at) >= cutoff);
                 }
 
-                // Best Sellers: filter products that have bestseller variants
+                // Best Sellers: filter products flagged as bestseller
                 if (sortBy === 'bestsellers') {
-                    data = data.filter(p => 
-                        p.variants && p.variants.some(v => v.is_bestseller)
-                    );
+                    data = data.filter(p => p.is_bestseller);
                 }
 
                 setProducts(data);
@@ -306,7 +237,20 @@ const ProductListingPage = () => {
                 setLoading(false);
             });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedCategory, selectedBrand, searchQuery, maxPrice, currentPage, sortBy, filtersKey]);
+    }, [selectedCategory, productType, selectedBrand, searchQuery, maxPrice, currentPage, sortBy, filtersKey]);
+
+    // On-scroll reveal for product cards
+    useEffect(() => {
+        const els = document.querySelectorAll('.reveal-on-scroll');
+        if (!els.length) return;
+        const obs = new IntersectionObserver((entries, o) => {
+            entries.forEach(e => {
+                if (e.isIntersecting) { e.target.classList.add('is-revealed'); o.unobserve(e.target); }
+            });
+        }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+        els.forEach(el => obs.observe(el));
+        return () => obs.disconnect();
+    }, [loading, products]);
 
     const clearFilters = () => {
         setSelectedCategory('');
@@ -361,45 +305,36 @@ const ProductListingPage = () => {
         <div className="product-listing-page" data-name="Body">
             {/* Breadcrumbs & Header Section */}
             <header className="plp-header">
-                <nav className="breadcrumbs">
-                    <Link to="/" className="breadcrumb-item">Home</Link>
-                    <span className="breadcrumb-separator">/</span>
-                    <Link to="/products" className="breadcrumb-item">Eyewear</Link>
-                    <span className="breadcrumb-separator">/</span>
-                    <span className="breadcrumb-item active">
-                        {categories.find(c => c.id.toString() === selectedCategory)?.name || 'Sunglasses'}
-                    </span>
-                </nav>
-                <div className="plp-title-section">
-                    <h1>{categories.find(c => c.id.toString() === selectedCategory)?.name || 'Sunglasses'}</h1>
-                    <p className="plp-subtitle">Elevate your vision with our curated atelier collection.</p>
+                <div className="plp-header-left">
+                    <nav className="breadcrumbs">
+                        <Link to="/" className="breadcrumb-item">Home</Link>
+                        <span className="breadcrumb-separator">/</span>
+                        <Link to="/products" className="breadcrumb-item">Eyewear</Link>
+                        <span className="breadcrumb-separator">/</span>
+                        <span className="breadcrumb-item active">{pageTitle}</span>
+                    </nav>
+                    <div className="plp-title-section">
+                        <h1>{pageTitle}</h1>
+                        <p className="plp-subtitle">Elevate your vision with our curated atelier collection.</p>
+                    </div>
+                </div>
+                <div className="sort-by-section">
+                    <span className="sort-label">Sort By</span>
+                    <div className="sort-select-wrapper">
+                        <select
+                            className="sort-select"
+                            value={sortBy}
+                            onChange={(e) => setSortBy(e.target.value)}
+                        >
+                            <option value="newest">New Arrivals</option>
+                            <option value="bestsellers">Best Sellers</option>
+                            <option value="price-low">Price: Low to High</option>
+                            <option value="price-high">Price: High to Low</option>
+                            <option value="name">Name: A to Z</option>
+                        </select>
+                    </div>
                 </div>
             </header>
-
-            {/* Category Tabs */}
-            <div style={{ margin: '12px 0 20px' }}>
-                <div style={{ display: 'flex', gap: 8 }}>
-                    {['Eyeglasses', 'Sunglasses', 'Accessories', 'Contact Lenses'].map(tab => (
-                        <button
-                            key={tab}
-                            onClick={() => {
-                                if (tab === 'Contact Lenses') {
-                                    setProductType('lens');
-                                    setSelectedCategory('');
-                                } else {
-                                    setProductType('frame');
-                                    const cat = categories.find(c => c.name === tab);
-                                    setSelectedCategory(cat ? String(cat.id) : '');
-                                }
-                                setCurrentPage(1);
-                            }}
-                            style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #E6E6E6', background: (productType === 'lens' && tab === 'Contact Lenses') || (productType === 'frame' && categories.find(c => c.id.toString() === selectedCategory)?.name === tab) ? '#fff' : 'transparent', cursor: 'pointer' }}
-                        >
-                            {tab}
-                        </button>
-                    ))}
-                </div>
-            </div>
 
             {/* Main Container: Sidebar + Content */}
             <div className="plp-layout">
@@ -414,31 +349,6 @@ const ProductListingPage = () => {
 
                     <div className="filter-groups-container">
                         <div className="filter-groups-list">
-
-                            {/* ── Category (API-connected) ── */}
-                            <div className="filter-group">
-                                <div className="filter-group-header" onClick={() => toggleGroup('Category')}>
-                                    <h3>Category</h3>
-                                    <svg className="toggle-chevron" width="12" height="7.4" viewBox="0 0 12 8" fill="none" style={{ transform: expandedGroups['Category'] ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
-                                        <path d="M1 1.5L6 6.5L11 1.5" stroke="#040205" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                    </svg>
-                                </div>
-                                {expandedGroups['Category'] && (
-                                    <div className="filter-options">
-                                        {categories.map(cat => (
-                                            <label key={cat.id} className="filter-checkbox-item">
-                                                <input
-                                                    type="radio"
-                                                    name="category"
-                                                    checked={selectedCategory === cat.id.toString()}
-                                                    onChange={() => setSelectedCategory(cat.id.toString())}
-                                                />
-                                                <span>{cat.name}</span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
 
                             {/* ── Frame Shape ── */}
                             <div className="filter-group">
@@ -479,30 +389,6 @@ const ProductListingPage = () => {
                                                     type="checkbox"
                                                     checked={(selectedFilters['Frame Type'] || []).includes(opt)}
                                                     onChange={() => toggleFilterOption('Frame Type', opt)}
-                                                />
-                                                <span>{opt}</span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* ── Frame Style ── */}
-                            <div className="filter-group">
-                                <div className="filter-group-header" onClick={() => toggleGroup('Frame Style')}>
-                                    <h3>Frame Style</h3>
-                                    <svg className="toggle-chevron" width="12" height="7.4" viewBox="0 0 12 8" fill="none" style={{ transform: expandedGroups['Frame Style'] ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
-                                        <path d="M1 1.5L6 6.5L11 1.5" stroke="#040205" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                    </svg>
-                                </div>
-                                {expandedGroups['Frame Style'] && (
-                                    <div className="filter-options">
-                                        {FILTER_OPTIONS['Frame Style'].map(opt => (
-                                            <label key={opt} className="filter-checkbox-item">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={(selectedFilters['Frame Style'] || []).includes(opt)}
-                                                    onChange={() => toggleFilterOption('Frame Style', opt)}
                                                 />
                                                 <span>{opt}</span>
                                             </label>
@@ -640,20 +526,17 @@ const ProductListingPage = () => {
                                     </svg>
                                 </div>
                                 {expandedGroups['Price Range'] && (
-                                    <div className="filter-options" style={{ padding: '8px 0' }}>
-                                        <input
-                                            type="range"
-                                            min="0"
-                                            max="50000"
-                                            step="500"
-                                            value={maxPrice}
-                                            onChange={(e) => setMaxPrice(e.target.value)}
-                                            style={{ accentColor: '#68408D', width: '100%' }}
-                                        />
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#71717A' }}>
-                                            <span>₹0</span>
-                                            <span>₹{Number(maxPrice).toLocaleString('en-IN')}</span>
-                                        </div>
+                                    <div className="filter-options">
+                                        {FILTER_OPTIONS['Price Range'].map(opt => (
+                                            <label key={opt} className="filter-checkbox-item">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={(selectedFilters['Price Range'] || []).includes(opt)}
+                                                    onChange={() => toggleFilterOption('Price Range', opt)}
+                                                />
+                                                <span>{opt}</span>
+                                            </label>
+                                        ))}
                                     </div>
                                 )}
                             </div>
@@ -674,30 +557,6 @@ const ProductListingPage = () => {
                                                     type="checkbox"
                                                     checked={(selectedFilters['Discount'] || []).includes(opt)}
                                                     onChange={() => toggleFilterOption('Discount', opt)}
-                                                />
-                                                <span>{opt}</span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* ── Comfort Features ── */}
-                            <div className="filter-group">
-                                <div className="filter-group-header" onClick={() => toggleGroup('Comfort Features')}>
-                                    <h3>Comfort Features</h3>
-                                    <svg className="toggle-chevron" width="12" height="7.4" viewBox="0 0 12 8" fill="none" style={{ transform: expandedGroups['Comfort Features'] ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
-                                        <path d="M1 1.5L6 6.5L11 1.5" stroke="#040205" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                    </svg>
-                                </div>
-                                {expandedGroups['Comfort Features'] && (
-                                    <div className="filter-options">
-                                        {FILTER_OPTIONS['Comfort Features'].map(opt => (
-                                            <label key={opt} className="filter-checkbox-item">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={(selectedFilters['Comfort Features'] || []).includes(opt)}
-                                                    onChange={() => toggleFilterOption('Comfort Features', opt)}
                                                 />
                                                 <span>{opt}</span>
                                             </label>
@@ -801,44 +660,21 @@ const ProductListingPage = () => {
                 {/* ── Right Column: Sort + Grid ── */}
                 <section className="plp-main-content">
 
-                    {/* Sorting & Actions Row */}
-                    <div className="sorting-actions-wrapper">
-                        {/* Sort By — right-aligned */}
-                        <div className="sort-row">
-                            <div className="sort-by-section">
-                                <span className="sort-label">Sort By</span>
-                                <div className="sort-select-wrapper">
-                                    <select
-                                        className="sort-select"
-                                        value={sortBy}
-                                        onChange={(e) => setSortBy(e.target.value)}
-                                    >
-                                        <option value="newest">New Arrivals</option>
-                                        <option value="bestsellers">Best Sellers</option>
-                                        <option value="price-low">Price: Low to High</option>
-                                        <option value="price-high">Price: High to Low</option>
-                                        <option value="name">Name: A to Z</option>
-                                    </select>
-                                </div>
+                    {/* Applied Filters Row */}
+                    {appliedPills.length > 0 && (
+                        <div className="applied-filters-row">
+                            <div className="applied-filters-inner">
+                                <span className="applied-label">Applied:</span>
+                                {appliedPills.map((pill, i) => (
+                                    <div key={i} className="filter-pill">
+                                        {pill.label}
+                                        <button onClick={pill.onRemove} className="remove-btn">×</button>
+                                    </div>
+                                ))}
+                                <button onClick={clearFilters} className="clear-all-link">Clear all</button>
                             </div>
                         </div>
-
-                        {/* Applied Filters */}
-                        {appliedPills.length > 0 && (
-                            <div className="applied-filters-row">
-                                <div className="applied-filters-inner">
-                                    <span className="applied-label">Applied:</span>
-                                    {appliedPills.map((pill, i) => (
-                                        <div key={i} className="filter-pill">
-                                            {pill.label}
-                                            <button onClick={pill.onRemove} className="remove-btn">×</button>
-                                        </div>
-                                    ))}
-                                    <button onClick={clearFilters} className="clear-all-link">Clear all</button>
-                                </div>
-                            </div>
-                        )}
-                    </div>
+                    )}
 
                     {/* Error */}
                     {error && <div className="alert alert-error">{error}</div>}
@@ -859,12 +695,11 @@ const ProductListingPage = () => {
                     ) : (
                         <>
                             <div className="plp-product-grid">
-                                {products.flatMap((p) => {
-                                    const listed = p.variants?.filter(v => v.is_listed && v.stock > 0) || [];
-                                    return listed.length > 0
-                                        ? listed.map(v => <VariantCard key={`v-${v.id}`} product={p} variant={v} />)
-                                        : [<VariantCard key={`p-${p.id}`} product={p} variant={null} />];
-                                })}
+                                {products.map((p) => (
+                                    <div key={p.id} className="reveal-on-scroll">
+                                        <ProductCard product={p} />
+                                    </div>
+                                ))}
                             </div>
 
                             {/* Pagination */}

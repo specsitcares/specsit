@@ -29,6 +29,7 @@ class VariantSerializer(serializers.ModelSerializer):
     brand_name   = serializers.SerializerMethodField()
     stock = serializers.IntegerField(required=False, default=0)
     effective_stock = serializers.SerializerMethodField()
+    is_bestseller = serializers.ReadOnlyField(source='product.is_bestseller')
 
     def get_brand_name(self, obj):
         if obj.product.brand:
@@ -82,6 +83,20 @@ class ProductSerializer(serializers.ModelSerializer):
     brand_display_name = serializers.ReadOnlyField(source='brand.name')
     stock_status = serializers.SerializerMethodField()
     computed_final_price = serializers.SerializerMethodField()
+    average_rating = serializers.SerializerMethodField()
+    review_count = serializers.SerializerMethodField()
+
+    def _approved_reviews(self, obj):
+        return [r for r in obj.reviews.all() if r.is_approved]
+
+    def get_average_rating(self, obj):
+        reviews = self._approved_reviews(obj)
+        if not reviews:
+            return None
+        return round(sum(r.rating for r in reviews) / len(reviews), 1)
+
+    def get_review_count(self, obj):
+        return len(self._approved_reviews(obj))
 
     def get_stock_status(self, obj):
         if obj.stock_quantity <= 0:

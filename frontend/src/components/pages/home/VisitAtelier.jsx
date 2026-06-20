@@ -1,17 +1,13 @@
 import React from 'react';
 
 const VisitAtelier = ({ data }) => {
-  if (!data || Object.keys(data).length === 0) {
-    return null; // Remove hardcoded fallback entirely
-  }
-
-  const title = data.title;
-  const description = data.description;
-  const addressTitle = data.address_title;
-  const addressVal = data.address;
-  const timingsTitle = data.timings_title;
-  const timingsVal = data.timings;
-  const mapLink = data.map_link;
+  const title = data?.title || 'Step Into Better Vision';
+  const description = data?.description || 'Try your perfect pair in person. Get expert guidance and instant fitting at our Hyderabad store.';
+  const addressTitle = data?.address_title || 'Store Address';
+  const addressVal = data?.address || 'Plot No. 42, Road No. 36, Jubilee Hills, Hyderabad, Telangana 500033';
+  const timingsTitle = data?.timings_title || 'Timings';
+  const timingsVal = data?.timings || 'Monday – Sunday: 10:00 AM – 9:00 PM';
+  const mapLink = data?.map_link || 'https://maps.google.com';
 
   return (
     <section className="visit-atelier hp-reveal" id="visit-the-atelier">

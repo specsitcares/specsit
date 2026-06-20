@@ -1,21 +1,40 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useCart } from '../../../context/CartContext';
 import UserAccountMenu from '../common/UserAccountMenu';
 import specsitFullLogo from '../../../assets/specsit_full_logo.svg';
+import apiClient from '../../../services/api';
 import '../../../styles/header.css';
 import '../../../styles/nav-dropdown.css';
-import searchIcon from '../../../assets/icons/search-icon.svg';
-import cartIcon from '../../../assets/icons/cart-icon.svg';
-import SunglassesDropdown from './SunglassesDropdown';
-import ContactLensDropdown from './ContactLensDropdown';
+import NavDropdown from './NavDropdown';
 
 const navLinks = [
-  { name: 'Sunglasses',   path: '/products?category=sunglasses',   dropdown: 'sunglasses' },
-  { name: 'Eyeglasses',   path: '/products?category=eyeglasses',   dropdown: null },
-  { name: 'Contact Lens', path: '/products?category=contact-lens', dropdown: 'contact-lens' },
-  { name: 'Accessories',  path: '/products?category=accessories',  dropdown: null },
+  { name: 'Eyeglasses',     path: '/products?category=eyeglasses',   category: 'eyeglasses' },
+  { name: 'Sunglasses',     path: '/products?category=sunglasses',   category: 'sunglasses' },
+  { name: 'Contact Lenses', path: '/products?category=contact-lens', category: 'contact-lens' },
+  { name: 'Accessories',    path: '/products?category=accessories',  category: 'accessories' },
 ];
+
+const SearchIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#71717A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+  </svg>
+);
+const HeartIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#040205" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+  </svg>
+);
+const CartIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#040205" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+  </svg>
+);
+const PersonIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#68408D" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+  </svg>
+);
 
 const Header = ({ showUserProfile = false, user = null, onLogout = null }) => {
   const { cart } = useCart();
@@ -24,6 +43,15 @@ const Header = ({ showUserProfile = false, user = null, onLogout = null }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeDropdown, setActiveDropdown] = useState(null);
   const closeTimer = useRef(null);
+
+  // Dynamic navigation options from the backend
+  const [navOptions, setNavOptions] = useState({ brands: [], shapes: [], genders: [] });
+
+  useEffect(() => {
+    apiClient.get('/catalog/products/nav-options/')
+      .then(res => setNavOptions(res.data))
+      .catch(err => console.warn('Failed to fetch nav options:', err));
+  }, []);
 
   const cartCount = cart?.reduce((acc, item) => acc + item.quantity, 0) || 0;
 
@@ -46,9 +74,9 @@ const Header = ({ showUserProfile = false, user = null, onLogout = null }) => {
     return location.pathname === path.split('?')[0] && category === linkCategory;
   };
 
-  const openDropdown = (name) => {
+  const openDropdown = (category) => {
     clearTimeout(closeTimer.current);
-    setActiveDropdown(name);
+    setActiveDropdown(category);
   };
 
   const scheduleClose = () => {
@@ -70,32 +98,33 @@ const Header = ({ showUserProfile = false, user = null, onLogout = null }) => {
       data-name="Header"
       onMouseLeave={scheduleClose}
     >
-      {/* Brand Logo */}
-      <div className="header-brand" data-name="Brand Logo">
-        <Link to="/" className="brand-logo">
-          <img src={specsitFullLogo} alt="SPECSIT" className="brand-logo-img" />
-        </Link>
-      </div>
-
-      {/* Navigation Links (Center) */}
-      <div className="header-nav-links" data-name="Navigation Links (Center)">
-        {navLinks.map((link) => (
-          <Link
-            key={link.name}
-            to={link.path}
-            className={`nav-link ${isActive(link.path) ? 'nav-link--active' : ''}`}
-            onMouseEnter={() => link.dropdown ? openDropdown(link.dropdown) : scheduleClose()}
-          >
-            {link.name}
+      {/* Brand Logo + Navigation (Left) */}
+      <div className="header-left">
+        <div className="header-brand" data-name="Brand Logo">
+          <Link to="/" className="brand-logo">
+            <img src={specsitFullLogo} alt="SPECSIT" className="brand-logo-img" />
           </Link>
-        ))}
+        </div>
+
+        <div className="header-nav-links" data-name="Navigation Links">
+          {navLinks.map((link) => (
+            <Link
+              key={link.name}
+              to={link.path}
+              className={`nav-link ${isActive(link.path) ? 'nav-link--active' : ''}`}
+              onMouseEnter={() => openDropdown(link.category)}
+            >
+              {link.name}
+            </Link>
+          ))}
+        </div>
       </div>
 
       {/* Trailing Actions (Right) */}
       <div className="header-actions" data-name="Trailing Actions (Right)" onMouseEnter={scheduleClose}>
         {/* Search Bar */}
         <div className="header-search">
-          <img src={searchIcon} alt="search" className="header-search-icon" />
+          <span className="header-search-icon"><SearchIcon /></span>
           <input
             type="text"
             placeholder="What are you looking for?"
@@ -106,56 +135,58 @@ const Header = ({ showUserProfile = false, user = null, onLogout = null }) => {
           />
         </div>
 
-        {/* Shopping Cart */}
-        <Link to="/cart" className="cart-button" data-name="Button - Shopping Cart">
-          <div className="cart-icon">
-            <img src={cartIcon} alt="cart" style={{ width: '18px', height: '18px' }} />
-          </div>
-          {cartCount > 0 && (
-            <div className="cart-badge" data-name="Background">
-              <span className="badge-text">{cartCount}</span>
-            </div>
-          )}
-        </Link>
-
-        {/* User Profile */}
-        {showUserProfile && user ? (
-          <div style={{ position: 'relative' }}>
-            <button
-              className="header-icon-btn"
-              title="User profile"
-              onClick={() => setShowAccountMenu(!showAccountMenu)}
-            >
-              <svg width="16" height="16" viewBox="0 0 18 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M17 19v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 9a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" stroke="#68408D" strokeWidth="1.67" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-            {showAccountMenu && (
-              <UserAccountMenu
-                user={user}
-                onLogout={handleLogout}
-                onClose={() => setShowAccountMenu(false)}
-              />
-            )}
-          </div>
-        ) : (
-          <Link to="/login" className="header-icon-btn" title="Login">
-            <svg width="16" height="16" viewBox="0 0 18 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M17 19v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 9a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" stroke="#68408D" strokeWidth="1.67" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+        <div className="header-icon-group">
+          {/* Wishlist */}
+          <Link to="/wishlist" className="header-icon-btn" title="Wishlist">
+            <HeartIcon />
           </Link>
-        )}
+
+          {/* Shopping Cart */}
+          <Link to="/cart" className="header-icon-btn cart-button" data-name="Button - Shopping Cart">
+            <CartIcon />
+            {cartCount > 0 && (
+              <span className="cart-badge"><span className="badge-text">{cartCount}</span></span>
+            )}
+          </Link>
+
+          {/* User Profile (person icon — logged-in state) */}
+          {showUserProfile && user ? (
+            <div className="header-user-wrap">
+              <button
+                className="header-icon-btn"
+                title="User profile"
+                onClick={() => setShowAccountMenu(!showAccountMenu)}
+              >
+                <PersonIcon />
+              </button>
+              {showAccountMenu && (
+                <UserAccountMenu
+                  user={user}
+                  onLogout={handleLogout}
+                  onClose={() => setShowAccountMenu(false)}
+                />
+              )}
+            </div>
+          ) : (
+            <Link to="/login" className="visitor-login-btn" title="Login">Login</Link>
+          )}
+        </div>
       </div>
 
-      {/* Mega-Menu Dropdown */}
+      {/* Mega-Menu Dropdown — same for all categories */}
       {activeDropdown && (
         <div
           className="nd-wrapper"
           onMouseEnter={cancelClose}
           onMouseLeave={scheduleClose}
         >
-          {activeDropdown === 'sunglasses'   && <SunglassesDropdown onLinkClick={closeNow} />}
-          {activeDropdown === 'contact-lens' && <ContactLensDropdown onLinkClick={closeNow} />}
+          <NavDropdown
+            category={activeDropdown}
+            onLinkClick={closeNow}
+            brands={navOptions.brands}
+            shapes={navOptions.shapes}
+            genders={navOptions.genders}
+          />
         </div>
       )}
     </div>

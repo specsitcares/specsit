@@ -1,61 +1,55 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 
 const defaultCategories = [
-  { name: 'Eyeglasses', link: '/products?category=eyeglasses', image: 'https://images.unsplash.com/photo-1591076482161-42ce6da69e67?q=80&w=800&auto=format&fit=crop' },
-  { name: 'Sunglasses', link: '/products?category=sunglasses', image: 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?q=80&w=800&auto=format&fit=crop' },
-  { name: 'Contact Lens', link: '/products?category=contact-lens', image: 'https://images.unsplash.com/photo-1613689997886-546fae4d0108?q=80&w=800&auto=format&fit=crop' },
-  { name: 'Accessories', link: '/products?category=accessories', image: 'https://images.unsplash.com/photo-1599643478518-a854e5da4cfa?q=80&w=800&auto=format&fit=crop' },
+  {
+    name: 'Eyeglasses',
+    link: '/products?category=eyeglasses',
+    image: 'https://images.unsplash.com/photo-1591076482161-42ce6da69e67?q=80&w=800&auto=format&fit=crop'
+  },
+  {
+    name: 'Sunglasses',
+    link: '/products?category=sunglasses',
+    image: 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?q=80&w=800&auto=format&fit=crop'
+  },
+  {
+    name: 'Readers',
+    link: '/products?category=readers',
+    image: 'https://images.unsplash.com/photo-1508296695146-257a814070b4?q=80&w=800&auto=format&fit=crop'
+  },
+  {
+    name: 'Clip Ons',
+    link: '/products?category=clip-ons',
+    image: 'https://images.unsplash.com/photo-1599643478518-a854e5da4cfa?q=80&w=800&auto=format&fit=crop'
+  },
 ];
 
-const ShopByStyle = ({ categories = [], onGenderChange }) => {
-  const [activeGender, setActiveGender] = useState('men');
-
-  const handleGenderChange = (gender) => {
-    setActiveGender(gender);
-    if (onGenderChange) onGenderChange(gender);
-  };
-
-  const displayCategories = categories.length > 0 ? categories : [
-    { name: 'Eyeglasses', link: '/products?category=eyeglasses', image: 'https://images.unsplash.com/photo-1591076482161-42ce6da69f67?q=80&w=1200&auto=format&fit=crop' },
-    { name: 'Sunglasses', link: '/products?category=sunglasses', image: 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?q=80&w=1200&auto=format&fit=crop' },
-    { name: 'Contact Lens', link: '/products?category=contact-lens', image: 'https://images.unsplash.com/photo-1613689997886-546fae4d0108?q=80&w=1200&auto=format&fit=crop' },
-    { name: 'Accessories', link: '/products?category=accessories', image: 'https://images.unsplash.com/photo-1599643478518-a854e5da4cfa?q=80&w=1200&auto=format&fit=crop' },
-  ];
+const ShopByStyle = ({ categories = [] }) => {
+  const displayCategories = categories.length > 0 ? categories : defaultCategories;
 
   return (
-    <section className="shop-style hp-reveal" id="shop-by-style">
-      <div className="shop-style__header">
-        <h2 className="shop-style__title">Shop by Style</h2>
-        <div className="shop-style__toggle-container">
-          <div className="shop-style__toggle">
-            <button
-              className={`shop-style__toggle-btn ${activeGender === 'men' ? 'shop-style__toggle-btn--active' : ''}`}
-              onClick={() => handleGenderChange('men')}
-            >
-              Men
-            </button>
-            <button
-              className={`shop-style__toggle-btn ${activeGender === 'women' ? 'shop-style__toggle-btn--active' : ''}`}
-              onClick={() => handleGenderChange('women')}
-            >
-              Women
-            </button>
-          </div>
-        </div>
+    <section className="frame-lounge hp-reveal" id="frame-lounge">
+      <div className="frame-lounge__header">
+        <span className="frame-lounge__label">COLLECTIONS</span>
+        <h2 className="frame-lounge__title">The Frame Lounge</h2>
+        <p className="frame-lounge__subtitle">Browse our curated categories, crafted for every style and occasion.</p>
       </div>
 
-      <div className="shop-style__grid">
+      <div className="frame-lounge__grid">
         {displayCategories.map((cat, idx) => (
-          <Link to={cat.link} key={idx} className={`shop-style__card style-card-${cat.name?.toLowerCase().replace(/\s+/g, '-')}`} id={`style-card-${idx}`}>
+          <Link to={cat.link} key={idx} className="frame-lounge__card" id={`frame-lounge-card-${idx}`}>
             <div
-              className="shop-style__card-image"
-              style={cat.image ? { backgroundImage: `url(${cat.image})` } : { background: '#f5f5f5' }}
+              className="frame-lounge__card-image"
+              style={cat.image ? { backgroundImage: `url(${cat.image})` } : { background: '#1b1b1e' }}
             />
-            <div className="shop-style__card-overlay" />
-            <div className="shop-style__card-label">
-              <span className="shop-style__card-name">{cat.name}</span>
-              <span className="shop-style__card-arrow">→</span>
+            <div className="frame-lounge__card-overlay" />
+            <div className="frame-lounge__card-label">
+              <span className="frame-lounge__card-name">{cat.name}</span>
+              <span className="frame-lounge__card-arrow">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </span>
             </div>
           </Link>
         ))}

@@ -200,11 +200,12 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
 
   const handleBestseller = async (v) => {
     const newVal = !v.is_bestseller;
-    setVariants(prev => prev.map(x => x.id === v.id ? { ...x, is_bestseller: newVal } : x));
+    // is_bestseller lives on the Product, so it applies to every variant of that product.
+    setVariants(prev => prev.map(x => x.product === v.product ? { ...x, is_bestseller: newVal } : x));
     try {
-      await apiClient.patch(`/catalog/variants/${v.id}/`, { is_bestseller: newVal });
+      await apiClient.patch(`/catalog/products/${v.product}/`, { is_bestseller: newVal });
     } catch (err) {
-      setVariants(prev => prev.map(x => x.id === v.id ? { ...x, is_bestseller: v.is_bestseller } : x));
+      setVariants(prev => prev.map(x => x.product === v.product ? { ...x, is_bestseller: v.is_bestseller } : x));
     }
   };
 
@@ -233,7 +234,7 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
     if (stockFilter === 'in') return v.stock > 0;
     if (stockFilter === 'low') return v.stock > 0 && v.stock <= 20;
     if (stockFilter === 'out') return v.stock <= 0;
-    if (stockFilter === 'bestseller') return variants
+    if (stockFilter === 'best') return v.is_bestseller;
     return true;
   });
 

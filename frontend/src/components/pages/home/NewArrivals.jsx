@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useWishlist } from '../../../context/WishlistContext';
 import { useAuth } from '../../../context/AuthContext';
@@ -44,9 +44,39 @@ const ProductCard = ({ product }) => {
   const productVariants = product.variants || [];
   const selectedVariant = productVariants[activeVariantIdx] || productVariants[0] || null;
 
-  // Variant-aware image
+  // Variant-aware image (up to 5, normalised to URLs)
   const variantImgs = selectedVariant?.images || [];
-  const mainImg = variantImgs[0]?.image || variantImgs[0] || product.main_image || '';
+  const images = variantImgs
+    .slice(0, 5)
+    .map((im) => im?.image || im)
+    .filter(Boolean);
+  if (images.length === 0 && product.main_image) images.push(product.main_image);
+  const imageCount = images.length;
+
+  // Hover carousel: cycle through images while the card is hovered
+  const [imgIdx, setImgIdx] = useState(0);
+  const hoverTimer = useRef(null);
+
+  // Reset to the first image whenever the colour/variant changes
+  useEffect(() => { setImgIdx(0); }, [activeVariantIdx]);
+
+  // Clear the interval on unmount
+  useEffect(() => () => clearInterval(hoverTimer.current), []);
+
+  const startCarousel = () => {
+    if (imageCount <= 1) return;
+    clearInterval(hoverTimer.current);
+    hoverTimer.current = setInterval(() => {
+      setImgIdx((prev) => (prev + 1) % imageCount);
+    }, 800);
+  };
+
+  const stopCarousel = () => {
+    clearInterval(hoverTimer.current);
+    setImgIdx(0);
+  };
+
+  const mainImg = images[imgIdx] || images[0] || '';
 
   // Variant-aware pricing — cascading: variant.selling_price → variant.discount_percent → product.selling_price → product.discount_percentage
   const mrp            = Math.round(parseFloat(selectedVariant?.base_price || product.base_price || 0));
@@ -92,52 +122,56 @@ const ProductCard = ({ product }) => {
     <Link to={`/product/${product.id}`} className="product-card" id={`product-card-${product.id}`}>
 
       {/* ── Image area ── */}
-      <div className="product-card__background">
+      <div
+        className="product-card__background"
+        onMouseEnter={startCarousel}
+        onMouseLeave={stopCarousel}
+      >
         <div className="product-card__image-wrap">
           {mainImg
             ? <img src={mainImg} alt={title} onError={(e) => { e.target.style.display = 'none'; }} />
             : <div className="product-card__image-placeholder" />
           }
+
+          {/* Overlay: Wishlist button (right) */}
+          <div className="product-card__overlay-row">
+            <button
+              className={`product-card__wishlist-btn${wishlisted ? ' product-card__wishlist-btn--active' : ''}`}
+              onClick={handleWishlist}
+              disabled={wishlistPending}
+              aria-label={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+            >
+              <HeartIcon filled={wishlisted} />
+            </button>
+          </div>
         </div>
 
-        {/* Overlay: Best Seller badge (left) + Wishlist button (right) */}
-        <div className="product-card__overlay-row">
-          {product.is_best_seller
-            ? <div className="product-card__badge"><span className="product-card__badge-text">Best Seller</span></div>
-            : <span />
-          }
-          <button
-            className={`product-card__wishlist-btn${wishlisted ? ' product-card__wishlist-btn--active' : ''}`}
-            onClick={handleWishlist}
-            disabled={wishlistPending}
-            aria-label={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
-          >
-            <HeartIcon filled={wishlisted} />
-          </button>
-        </div>
+        {imageCount > 1 && (
+          <div className="product-card__dots">
+            {Array.from({ length: imageCount }).map((_, i) => (
+              <span key={i} className={`product-card__dot${i === imgIdx ? ' active' : ''}`} />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ── Info area ── */}
       <div className="product-card__container">
         <div className="product-card__main-row">
 
-          {/* Left: brand, title, delivery, price */}
+          {/* Left: brand, title, price */}
           <div className="product-card__info-col">
             {brandName && <span className="product-card__brand">{brandName}</span>}
             <h3 className="product-card__title">{title}</h3>
-            {product.has_express_delivery && (
-              <div className="product-card__delivery">
-                <span className="product-card__bolt">⚡</span>
-                <span className="product-card__delivery-text">Get delivery in 1–2 hours across Hyderabad</span>
-              </div>
-            )}
             <div className="product-card__price-block">
-              <span className="product-card__price-new">₹{salePrice.toLocaleString('en-IN')}</span>
+              <span className="product-card__price-new">
+                <span className="product-card__rupee">₹</span> {salePrice.toLocaleString('en-IN')}
+              </span>
               {hasDiscount && (
                 <div className="product-card__price-row">
                   <span className="product-card__price-old">₹{mrp.toLocaleString('en-IN')}</span>
                   <div className="product-card__discount">
-                    <span className="product-card__discount-text">({discountPct}% OFF)</span>
+                    <span className="product-card__discount-text">{discountPct}% OFF</span>
                   </div>
                 </div>
               )}
@@ -174,6 +208,15 @@ const ProductCard = ({ product }) => {
           </div>
 
         </div>
+
+        {/* Divider */}
+        <div className="product-card__divider" />
+
+        {/* Express delivery banner */}
+        <div className="product-card__delivery">
+          <span className="product-card__bolt">⚡</span>
+          <span className="product-card__delivery-text">Get delivery in 1-2 hours across Hyderabad</span>
+        </div>
       </div>
     </Link>
   );
@@ -183,15 +226,8 @@ const ProductSection = ({ title, subtitle, viewAllLink, products = [] }) => {
   return (
     <section className="product-section hp-reveal" id={`section-${title?.toLowerCase().replace(/\s+/g, '-')}`}>
       <div className="product-section__header">
-        <div className="product-section__header-left">
-          <h2 className="product-section__title">{title}</h2>
-          {subtitle && <p className="product-section__subtitle">{subtitle}</p>}
-        </div>
-        {viewAllLink && (
-          <Link to={viewAllLink} className="product-section__view-link">
-            View Collection
-          </Link>
-        )}
+        <h2 className="product-section__title">{title}</h2>
+        {subtitle && <p className="product-section__subtitle">{subtitle}</p>}
       </div>
       <div className="product-section__scroll">
         {products.length > 0
