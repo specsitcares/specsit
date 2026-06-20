@@ -230,6 +230,7 @@ class LensPackage(models.Model):
 
 class Lens(models.Model):
     name = models.CharField(max_length=100, blank=True) # Optional override
+    image = models.ImageField(upload_to='lenses/', null=True, blank=True)
     package = models.ForeignKey(LensPackage, on_delete=models.CASCADE, related_name='lenses')
     type = models.ForeignKey(MetadataItem, on_delete=models.SET_NULL, null=True, blank=True, limit_choices_to={'group__name': 'Lens Type'})
     brand = models.ForeignKey(Brand, on_delete=models.SET_NULL, null=True, blank=True, related_name='lenses')

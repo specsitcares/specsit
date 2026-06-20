@@ -4829,3 +4829,180 @@
   font-weight: 700;
   color: #040205;
 }
+
+/* ============================================================
+   CART PAGE — Figma 87:1582
+   ============================================================ */
+.ck-topbar { display:flex; align-items:center; justify-content:space-between; width:100%; padding-bottom:18px; border-bottom:1px solid #EFEDF0; }
+.ck-topbar__logo { height:26px; width:auto; display:block; }
+.ck-topbar__phone { display:inline-flex; align-items:center; gap:8px; font-family:'Plus Jakarta Sans',sans-serif; font-size:18px; font-weight:700; color:#040205; text-decoration:none; }
+
+.ck-item { display:flex; gap:24px; padding:24px; background:#FEFCFF; border:1px solid #EFEDF0; border-radius:16px; }
+.ck-item__thumb { width:150px; min-height:120px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+.ck-item__thumb img { max-width:100%; max-height:130px; object-fit:contain; }
+.ck-item__body { flex:1; min-width:0; display:flex; flex-direction:column; gap:12px; }
+.ck-item__row { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+.ck-item__titles { display:flex; flex-direction:column; gap:3px; min-width:0; }
+.ck-item__brand { font-family:'Plus Jakarta Sans',sans-serif; font-size:11px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; color:#68408D; }
+.ck-item__name { margin:0; font-family:'Plus Jakarta Sans',sans-serif; font-size:18px; font-weight:700; color:#040205; line-height:24px; }
+.ck-item__sub { font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; font-weight:500; color:#71717A; }
+.ck-item__price { font-family:'Plus Jakarta Sans',sans-serif; font-size:16px; font-weight:700; color:#040205; white-space:nowrap; }
+.ck-item__lens { display:flex; align-items:center; justify-content:space-between; font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; font-weight:500; color:#4D4D56; }
+.ck-item__final { display:flex; align-items:center; justify-content:space-between; background:#F5F5F5; border-radius:4px; padding:10px 14px; font-family:'Plus Jakarta Sans',sans-serif; font-size:14px; font-weight:700; color:#040205; }
+.ck-item__specs { display:flex; flex-wrap:wrap; gap:8px 24px; font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; color:#71717A; }
+.ck-item__specs b { color:#040205; font-weight:500; }
+
+.ck-rx { border:1px solid #EFEDF0; border-radius:8px; padding:12px 14px; }
+.ck-rx__title { font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; font-weight:700; color:#68408D; margin-bottom:8px; }
+.ck-rx__table { width:100%; border-collapse:collapse; font-family:'Plus Jakarta Sans',sans-serif; }
+.ck-rx__table th { font-size:10px; font-weight:700; letter-spacing:0.4px; text-transform:uppercase; color:#71717A; text-align:center; padding:0 0 8px; border-bottom:1px solid #EFEDF0; }
+.ck-rx__table th:first-child, .ck-rx__table td:first-child { text-align:left; }
+.ck-rx__table td { font-size:12px; color:#040205; text-align:center; padding:8px 0; }
+.ck-rx__eye { font-weight:700; }
+
+.ck-pdf-btn { display:inline-flex; align-items:center; gap:6px; align-self:flex-start; padding:8px 12px; border:1px solid #EBE3F2; border-radius:8px; background:#FEFCFF; font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; font-weight:700; color:#68408D; cursor:pointer; }
+.ck-pdf-btn:hover { background:#FAF8FC; }
+
+.ck-item__actions { display:flex; align-items:center; justify-content:space-between; margin-top:2px; }
+.ck-qty { display:inline-flex; align-items:center; border:1px solid #EFEDF0; border-radius:8px; overflow:hidden; }
+.ck-qty button { width:34px; height:34px; display:flex; align-items:center; justify-content:center; background:#FEFCFF; border:none; cursor:pointer; }
+.ck-qty button:hover { background:#F5F5F5; }
+.ck-qty span { min-width:32px; text-align:center; font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; font-weight:600; color:#040205; }
+.ck-remove { display:inline-flex; align-items:center; gap:6px; background:none; border:none; cursor:pointer; font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; font-weight:600; color:#C42A46; }
+
+.ck-deliver { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border:1px solid #EFEDF0; border-radius:12px; background:#FEFCFF; cursor:pointer; }
+.ck-deliver:hover { border-color:#EBE3F2; }
+.ck-deliver__left { display:flex; align-items:center; gap:14px; }
+.ck-deliver__icon { width:40px; height:40px; border-radius:8px; background:#F4EEFA; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.ck-deliver__text { display:flex; flex-direction:column; gap:2px; }
+.ck-deliver__label { font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; font-weight:700; color:#040205; }
+.ck-deliver__addr { font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; color:#71717A; }
+
+.ck-summary { display:flex; flex-direction:column; gap:20px; padding:24px; background:#FEFCFF; border:1px solid #EFEDF0; border-radius:16px; }
+.ck-summary__title { margin:0; font-family:'Plus Jakarta Sans',sans-serif; font-size:18px; font-weight:700; color:#040205; }
+.ck-partial { background:#FAF8FC; border:1px solid #EBE3F2; border-radius:10px; padding:14px; }
+.ck-partial__head { display:flex; align-items:center; gap:6px; font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; font-weight:700; color:#68408D; }
+.ck-partial p { margin:6px 0 0; font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; line-height:17px; color:#71717A; }
+
+.ck-promo { display:flex; flex-direction:column; gap:12px; }
+.ck-promo__title { margin:0; font-family:'Plus Jakarta Sans',sans-serif; font-size:14px; font-weight:700; color:#040205; }
+.ck-promo__row { display:flex; align-items:stretch; border:1px solid #EFEDF0; border-radius:8px; overflow:hidden; }
+.ck-promo__input { flex:1; min-width:0; border:none; padding:12px 14px; font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; color:#040205; background:#FEFCFF; }
+.ck-promo__input::placeholder { color:#71717A; }
+.ck-promo__apply { border:none; background:#68408D; color:#fff; padding:0 20px; font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; font-weight:700; letter-spacing:0.5px; cursor:pointer; }
+.ck-promo__apply:disabled { opacity:0.6; cursor:not-allowed; }
+.ck-promo__error { margin:0; font-family:'Plus Jakarta Sans',sans-serif; font-size:11px; color:#C42A46; }
+.ck-coupon-chip { display:inline-flex; align-items:center; gap:6px; align-self:flex-start; border:1px solid #EBE3F2; background:#FAF8FC; border-radius:6px; padding:4px 10px; font-family:'Plus Jakarta Sans',sans-serif; font-size:11px; font-weight:700; letter-spacing:0.3px; color:#68408D; }
+.ck-coupon-chip button { background:none; border:none; display:flex; cursor:pointer; padding:0; }
+.ck-offers { display:inline-flex; align-items:center; gap:6px; align-self:flex-start; background:none; border:none; cursor:pointer; font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; font-weight:700; color:#68408D; }
+
+.ck-order__title { margin:0; font-family:'Plus Jakarta Sans',sans-serif; font-size:18px; font-weight:700; color:#040205; }
+.ck-order { display:flex; flex-direction:column; gap:10px; }
+.ck-order__line { display:flex; align-items:center; justify-content:space-between; font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; }
+.ck-order__total-toggle { background:none; border:none; padding:0; cursor:pointer; }
+.ck-order__label { display:inline-flex; align-items:center; gap:6px; color:#040205; font-weight:500; font-size:14px; }
+.ck-order__val { color:#040205; font-weight:600; }
+.ck-order__chev { transition:transform 0.2s; }
+.ck-order__chev--open { transform:rotate(180deg); }
+.ck-order__sub { padding-left:4px; color:#71717A; font-size:12px; }
+.ck-order__sub span:last-child { color:#71717A; }
+.ck-order__divider { border-top:1px dashed #D9D9D9; margin:2px 0; }
+.ck-order__save { color:#0D9B3A; font-weight:600; }
+.ck-order__free { color:#68408D; font-weight:700; }
+
+.ck-total { display:flex; align-items:center; justify-content:space-between; padding-top:16px; border-top:1px solid #EFEDF0; font-family:'Plus Jakarta Sans',sans-serif; font-size:16px; font-weight:700; color:#040205; }
+.ck-pay { width:100%; padding:16px; border:none; border-radius:8px; background:#68408D; color:#FEFCFF; font-family:'Plus Jakarta Sans',sans-serif; font-size:16px; font-weight:700; cursor:pointer; transition:background 0.2s; }
+.ck-pay:hover { background:#56336F; }
+.ck-trust { display:flex; align-items:center; justify-content:center; gap:24px; }
+.ck-trust__item { display:inline-flex; align-items:center; gap:6px; font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; font-weight:500; color:#71717A; }
+
+/* ── Empty cart (Figma 116:9098) ── */
+.ck-empty { display:flex; flex-direction:column; min-height:70vh; background:#FEFCFF; }
+.ck-empty__hero { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:40px; padding:96px 24px; }
+.ck-empty__icon { width:112px; height:112px; border-radius:12px; background:#FEFCFF; display:flex; align-items:center; justify-content:center; box-shadow:0 20px 30px rgba(79,40,116,0.10); }
+.ck-empty__text { display:flex; flex-direction:column; align-items:center; gap:18px; }
+.ck-empty__title { margin:0; font-family:'Plus Jakarta Sans',sans-serif; font-size:44px; font-weight:800; letter-spacing:-1.2px; color:#040205; text-align:center; line-height:1.05; }
+.ck-empty__sub { margin:0; font-family:'Plus Jakarta Sans',sans-serif; font-size:16px; font-weight:400; color:#71717A; text-align:center; line-height:24px; max-width:512px; }
+.ck-empty__actions { display:flex; gap:16px; align-items:center; flex-wrap:wrap; justify-content:center; }
+.ck-empty__primary { display:inline-flex; align-items:center; justify-content:center; padding:14px 30px; border-radius:6px; background:#68408D; color:#FEFCFF; font-family:'Plus Jakarta Sans',sans-serif; font-size:15px; font-weight:600; letter-spacing:0.3px; text-decoration:none; transition:background 0.2s; }
+.ck-empty__primary:hover { background:#56336F; }
+.ck-empty__secondary { display:inline-flex; align-items:center; justify-content:center; padding:14px 30px; border-radius:6px; background:#FEFCFF; color:#040205; border:2px solid #EBE3F2; font-family:'Plus Jakarta Sans',sans-serif; font-size:15px; font-weight:600; letter-spacing:0.3px; text-decoration:none; transition:border-color 0.2s; }
+.ck-empty__secondary:hover { border-color:#68408D; }
+
+/* ── Payment: delivery card ── */
+.pay-deliver { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; }
+.pay-deliver__info { display:flex; flex-direction:column; gap:4px; min-width:0; }
+.pay-deliver__info strong { font-family:'Plus Jakarta Sans',sans-serif; font-size:14px; font-weight:700; color:#040205; }
+.pay-deliver__info span { font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; color:#71717A; line-height:17px; }
+.pay-deliver__badge { flex-shrink:0; display:inline-flex; align-items:center; gap:4px; background:#FFF7DA; color:#9A6B00; font-family:'Plus Jakarta Sans',sans-serif; font-size:11px; font-weight:700; padding:6px 10px; border-radius:8px; white-space:nowrap; }
+
+/* ── Payment left column (Figma 87:2647) ── */
+.pay2-block { margin-bottom:32px; }
+.pay2-heading { margin:0 0 14px; font-family:'Plus Jakarta Sans',sans-serif; font-size:20px; font-weight:700; color:#040205; }
+.pay2-card { background:#FEFCFF; border:1px solid #EFEDF0; border-radius:12px; overflow:hidden; }
+
+/* Discount card */
+.pay2-discount { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; background:#FEFCFF; border:1px solid #EFEDF0; border-radius:12px; padding:18px 20px; }
+.pay2-discount__left { display:flex; align-items:flex-start; gap:12px; }
+.pay2-discount__icon { flex-shrink:0; margin-top:1px; }
+.pay2-discount__text { display:flex; flex-direction:column; gap:3px; }
+.pay2-discount__text strong { font-family:'Plus Jakarta Sans',sans-serif; font-size:18px; font-weight:700; color:#0D9B3A; }
+.pay2-discount__text span { font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; color:#71717A; }
+.pay2-discount__remove { display:inline-flex; align-items:center; gap:6px; background:none; border:none; cursor:pointer; font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; font-weight:600; color:#C42A46; flex-shrink:0; }
+
+/* Apply Coupon prompt */
+.pay2-applycoupon { display:flex; align-items:center; justify-content:space-between; width:100%; padding:18px 20px; background:none; border:none; cursor:pointer; text-align:left; }
+.pay2-applycoupon__icon { width:34px; height:34px; border-radius:50%; background:#FDE8EC; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.pay2-applycoupon__text { display:flex; flex-direction:column; gap:2px; }
+.pay2-applycoupon__text strong { font-family:'Plus Jakarta Sans',sans-serif; font-size:18px; font-weight:700; color:#040205; }
+.pay2-applycoupon__text span { font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; color:#71717A; }
+.pay2-applycoupon__chev { color:#040205; transition:transform 0.2s; }
+.pay2-applycoupon__chev--open { transform:rotate(90deg); }
+.pay2-coupon-entry { border-top:1px solid #EFEDF0; padding:16px 20px; display:flex; align-items:stretch; }
+.pay2-coupon-input { flex:1; min-width:0; border:1px solid #EFEDF0; border-right:none; border-radius:8px 0 0 8px; padding:11px 14px; font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; color:#040205; }
+.pay2-coupon-input::placeholder { color:#9CA3AF; }
+.pay2-coupon-entry .pay2-verify { border-radius:0 8px 8px 0; }
+.pay2-coupon-error { margin:0; padding:0 20px 14px; font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; color:#C42A46; }
+
+/* Selectable row (UPI QR) */
+.pay2-row { display:flex; align-items:center; justify-content:space-between; width:100%; padding:18px 20px; background:none; border:none; cursor:pointer; text-align:left; }
+.pay2-row__left { display:flex; align-items:center; gap:12px; }
+.pay2-row__icon { width:34px; height:34px; border-radius:8px; background:#F4EEFA; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.pay2-row__icon--blue { background:#EAF2FF; }
+.pay2-row__title { font-family:'Plus Jakarta Sans',sans-serif; font-size:18px; font-weight:700; color:#040205; }
+.pay2-radio { width:22px; height:22px; border-radius:50%; border:2px solid #D9D9D9; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.pay2-radio--on { background:#68408D; border-color:#68408D; }
+
+/* UPI custom id */
+.pay2-upi-custom { border-top:1px solid #EFEDF0; padding:16px 20px; display:flex; flex-direction:column; gap:8px; }
+.pay2-upi-custom__label { font-family:'Plus Jakarta Sans',sans-serif; font-size:10px; font-weight:700; letter-spacing:0.6px; text-transform:uppercase; color:#71717A; }
+.pay2-upi-row { display:flex; align-items:stretch; gap:0; border:1px dashed #D9D9D9; border-radius:8px; overflow:hidden; background:#F7F7F7; }
+.pay2-upi-input { flex:1; min-width:0; border:none; background:transparent; padding:12px 14px; font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; color:#040205; }
+.pay2-upi-input::placeholder { color:#9CA3AF; }
+.pay2-verify { border:none; background:#68408D; color:#fff; padding:0 20px; font-family:'Plus Jakarta Sans',sans-serif; font-size:11px; font-weight:700; letter-spacing:0.5px; cursor:pointer; }
+
+/* Accordion (cards / net banking) */
+.pay2-acc-head { display:flex; align-items:center; justify-content:space-between; width:100%; padding:18px 20px; background:none; border:none; cursor:pointer; text-align:left; }
+.pay2-chev { transition:transform 0.2s; }
+.pay2-chev--open { transform:rotate(180deg); }
+.pay2-acc-body { border-top:1px solid #EFEDF0; padding:18px 20px; display:flex; flex-direction:column; gap:16px; background:#FAFAFA; }
+.pay2-field { display:flex; flex-direction:column; gap:6px; }
+.pay2-field label { font-family:'Plus Jakarta Sans',sans-serif; font-size:10px; font-weight:700; letter-spacing:0.6px; text-transform:uppercase; color:#71717A; }
+.pay2-field input { height:42px; border:1px solid #EFEDF0; border-radius:8px; padding:0 14px; font-family:'Plus Jakarta Sans',sans-serif; font-size:14px; color:#040205; background:#FEFCFF; box-sizing:border-box; }
+.pay2-field-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+
+/* Net banking tiles */
+.pay2-bank-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+.pay2-bank { display:flex; flex-direction:column; align-items:center; gap:8px; padding:16px 8px; background:#FEFCFF; border:1px solid #EFEDF0; border-radius:8px; cursor:pointer; transition:border-color 0.15s; }
+.pay2-bank--active { border-color:#68408D; box-shadow:0 0 0 2px rgba(104,64,141,0.12); }
+.pay2-bank__icon { width:28px; height:28px; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#fff; font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; font-weight:800; }
+.pay2-bank__label { font-family:'Plus Jakarta Sans',sans-serif; font-size:11px; font-weight:700; color:#040205; }
+.pay2-bank-select { position:relative; display:flex; align-items:center; }
+.pay2-bank-select select { width:100%; appearance:none; border:1px solid #EFEDF0; border-radius:8px; padding:12px 36px 12px 14px; font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; color:#040205; background:#FEFCFF; cursor:pointer; }
+.pay2-bank-select svg { position:absolute; right:14px; pointer-events:none; }
+
+/* Digital wallets */
+.pay2-wallets { display:flex; align-items:center; gap:24px; margin-bottom:8px; }
+.pay2-wallets__label { font-family:'Plus Jakarta Sans',sans-serif; font-size:11px; font-weight:700; letter-spacing:0.6px; text-transform:uppercase; color:#040205; }
+.pay2-wallets__card { border:1px solid #EFEDF0; border-radius:10px; padding:14px 28px; background:#FEFCFF; }
+.pay2-razorpay { display:inline-flex; align-items:center; gap:6px; font-family:'Plus Jakarta Sans',sans-serif; font-size:18px; font-weight:800; font-style:italic; color:#072654; }

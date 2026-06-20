@@ -224,6 +224,11 @@ class ProductViewSet(viewsets.ModelViewSet):
 
         lenses = Lens.objects.filter(is_active=True).select_related('package', 'brand', 'type')
 
+        # Filter by lens type (MetadataItem ID) if provided
+        lens_type_id = request.query_params.get('type')
+        if lens_type_id:
+            lenses = lenses.filter(type_id=lens_type_id)
+
         # Rimless frames: only show lenses tagged with the Rimless constraint at index 1.59
         if product.frame_style and product.frame_style.strip().lower() == 'rimless':
             lenses = lenses.filter(

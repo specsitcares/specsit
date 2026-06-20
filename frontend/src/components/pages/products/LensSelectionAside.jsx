@@ -1,10 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import './LensSelectionAside.css';
 import apiClient from '../../../services/api';
-import powerWithImg from '../../../assets/lens/power-with.png';
-import powerZeroImg from '../../../assets/lens/power-zero.png';
-import powerProgressiveImg from '../../../assets/lens/power-progressive.png';
-import powerFrameOnlyImg from '../../../assets/lens/power-frame-only.png';
 import rxManualImg from '../../../assets/lens/rx-manual.png';
 import rxUploadImg from '../../../assets/lens/rx-upload.png';
 import rxLaterImg from '../../../assets/lens/rx-later.png';
@@ -161,7 +157,13 @@ const groupLensesByBrandAndPackage = (lenses) => {
         const brandName = lens.brand_name || 'Other';
 
         if (!brandMap[brandName]) {
-            brandMap[brandName] = { id: brandName, name: brandName, lenses: [] };
+            brandMap[brandName] = {
+                id: brandName,
+                name: brandName,
+                logo: lens.brand_logo || null,
+                tagline: lens.brand_tagline || '',
+                lenses: [],
+            };
         }
 
         brandMap[brandName].lenses.push(lens);
@@ -173,28 +175,31 @@ const groupLensesByBrandAndPackage = (lenses) => {
 /* ════════════════════════════════════════════════════════
    LENS PREVIEW — SVG placeholder (no expiring URLs)
    ════════════════════════════════════════════════════════ */
-const LensPreview = () => (
+const LensPreview = ({ src, warranty }) => (
     <div className="lsa-lens-preview">
-        <img className="lsa-lens-preview__img" src={lensPreviewImg} alt="" />
-        <div className="lsa-lens-preview__warranty">
-            <img src={warrantyBadgeIcon} alt="" />
-            <span>1 Year Warranty</span>
-        </div>
+        <img className="lsa-lens-preview__img" src={src || lensPreviewImg} alt="" />
+        {warranty && (
+            <div className="lsa-lens-preview__warranty">
+                <img src={warrantyBadgeIcon} alt="" />
+                <span>{warranty}</span>
+            </div>
+        )}
     </div>
 );
 
 /* ════════════════════════════════════════════════════════
    LENS PACKAGE CARD (Figma 61:33044)
    ════════════════════════════════════════════════════════ */
-const DEFAULT_LENS_FEATURES = ['Ultimate Scratch Resistance', 'Anti-Glare Coating', '100% UV Protection'];
-
 const LensPackageCard = ({ pkg, selected, onSelect, productBasePrice = 0, topRated }) => {
-    const features = (Array.isArray(pkg.features) && pkg.features.length ? pkg.features : DEFAULT_LENS_FEATURES).slice(0, 3);
-    const lensPrice = parseFloat(pkg.price || 0);
-    const total = Math.round((parseFloat(productBasePrice) || 0) + lensPrice);
-    const mrpRaw = parseFloat(pkg.mrp_price || pkg.original_price || 0);
-    const mrp = mrpRaw > 0 ? Math.round((parseFloat(productBasePrice) || 0) + mrpRaw) : null;
+    const features = (Array.isArray(pkg.features) ? pkg.features : []).slice(0, 3);
+    const lensPrice = Math.round(parseFloat(pkg.price || 0));
+    const mrpRaw = Math.round(parseFloat(pkg.mrp_price || pkg.original_price || 0));
+    const mrp = mrpRaw > lensPrice ? mrpRaw : null;
     const coupon = pkg.coupon_code || pkg.coupon || null;
+    const months = parseInt(pkg.package_warranty_months || 0, 10);
+    const warranty = months >= 12
+        ? `${Math.round(months / 12)} Year Warranty`
+        : months > 0 ? `${months} Month Warranty` : null;
 
     return (
         <button
@@ -202,16 +207,18 @@ const LensPackageCard = ({ pkg, selected, onSelect, productBasePrice = 0, topRat
             onClick={() => onSelect(pkg.id)}
         >
             {topRated && <span className="lsa-pkg__badge">Top Rated</span>}
-            <LensPreview />
+            <LensPreview src={pkg.image} warranty={warranty} />
             <div className="lsa-pkg__main">
                 <div className="lsa-pkg__top">
                     <div className="lsa-pkg__info">
                         <h4 className="lsa-pkg__name">{pkg.package_name || pkg.name}</h4>
-                        <ul className="lsa-pkg__features">
-                            {features.map((f, i) => (
-                                <li key={i}><img src={featureShieldIcon} alt="" />{f}</li>
-                            ))}
-                        </ul>
+                        {features.length > 0 && (
+                            <ul className="lsa-pkg__features">
+                                {features.map((f, i) => (
+                                    <li key={i}><img src={featureShieldIcon} alt="" />{f}</li>
+                                ))}
+                            </ul>
+                        )}
                     </div>
                     <span className="lsa-pkg__arrow" aria-hidden="true">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -222,10 +229,10 @@ const LensPackageCard = ({ pkg, selected, onSelect, productBasePrice = 0, topRat
                 <div className="lsa-pkg__price-row">
                     {coupon ? <span className="lsa-pkg__coupon">Coupon : {coupon}</span> : <span />}
                     <div className="lsa-pkg__price-stack">
-                        <span className="lsa-pkg__price-label">Frame + Lens</span>
+                        <span className="lsa-pkg__price-label">Lens Price</span>
                         <div className="lsa-pkg__prices">
-                            <span className="lsa-pkg__price">₹{total.toLocaleString('en-IN')}</span>
-                            {mrp && mrp > total && <span className="lsa-pkg__mrp">₹{mrp.toLocaleString('en-IN')}</span>}
+                            <span className="lsa-pkg__price">₹{lensPrice.toLocaleString('en-IN')}</span>
+                            {mrp && <span className="lsa-pkg__mrp">₹{mrp.toLocaleString('en-IN')}</span>}
                         </div>
                     </div>
                 </div>
@@ -237,33 +244,20 @@ const LensPackageCard = ({ pkg, selected, onSelect, productBasePrice = 0, topRat
 /* ════════════════════════════════════════════════════════
    BRAND ACCORDION (Figma 61:33031)
    ════════════════════════════════════════════════════════ */
-const BRAND_LOGOS = {
-    zeiss:   { bg: '#005598', color: '#FEFCFF' },
-    kodak:   { bg: '#FFD700', color: '#040205' },
-    essilor: { bg: '#FEFCFF', color: '#040205' },
-    hoya:    { bg: '#FEFCFF', color: '#040205' },
-};
-const BRAND_TAGLINES = {
-    zeiss: 'Precision German Engineering',
-    essilor: 'The Global Standard',
-    hoya: 'Advanced Technology',
-    kodak: 'Trust & Clarity',
-};
-
 const BrandAccordion = ({ brand, selectedLens, onSelectLens, productBasePrice, defaultOpen }) => {
     const [openBrand, setOpenBrand] = React.useState(!!defaultOpen);
     const [showAll, setShowAll] = React.useState(false);
-    const key = (brand.name || '').toLowerCase().split(/\s+/)[0];
-    const logo = BRAND_LOGOS[key] || { bg: '#EBE3F2', color: '#68408D' };
-    const tagline = BRAND_TAGLINES[key] || `${brand.lenses.length} package${brand.lenses.length !== 1 ? 's' : ''}`;
+    const tagline = brand.tagline || `${brand.lenses.length} package${brand.lenses.length !== 1 ? 's' : ''}`;
     const visible = showAll ? brand.lenses : brand.lenses.slice(0, 2);
 
     return (
         <div className={`lsa-brand${openBrand ? ' lsa-brand--open' : ''}`}>
             <button className="lsa-brand__header" onClick={() => setOpenBrand(!openBrand)}>
                 <div className="lsa-brand__header-left">
-                    <div className="lsa-brand__logo" style={{ background: logo.bg, color: logo.color }}>
-                        {(brand.name || '').split(/\s+/)[0].toUpperCase().slice(0, 7)}
+                    <div className="lsa-brand__logo">
+                        {brand.logo
+                            ? <img src={brand.logo} alt={brand.name} />
+                            : <span>{(brand.name || '').split(/\s+/)[0].toUpperCase().slice(0, 7)}</span>}
                     </div>
                     <div className="lsa-brand__meta">
                         <span className="lsa-brand__name">{brand.name}</span>
@@ -299,41 +293,58 @@ const BrandAccordion = ({ brand, selectedLens, onSelectLens, productBasePrice, d
 };
 
 /* ════════════════════════════════════════════════════════
-   STEP 1 — Power Type
+   STEP 1 — Power Type (dynamic, from admin "Lens Type" entries)
    ════════════════════════════════════════════════════════ */
-const POWER_OPTIONS = [
-    { id: 'with_power', img: powerWithImg, title: 'With Power', subtitle: 'Positive, Negative or Cylindrical', badge: 'Popular' },
-    { id: 'zero_power', img: powerZeroImg, title: 'Zero Power', subtitle: 'BLU Screen lenses, blue light block' },
-    { id: 'progressive', img: powerProgressiveImg, title: 'Progressive / Bifocals', subtitle: 'Two powers in one eye' },
-    { id: 'frame_only', img: powerFrameOnlyImg, title: 'Frame Only', subtitle: 'With no lenses' },
-];
+const typeText = (t) => `${t?.value || ''} ${t?.label || ''}`.toLowerCase();
+const isFrameOnlyType = (t) => /frame[\s_-]*only/.test(typeText(t));
+const isZeroPowerType = (t) => /zero/.test(typeText(t));
+const isProgressiveType = (t) => /progress|bifocal/.test(typeText(t));
 
-const StepPower = ({ selected, onSelect }) => (
+const humanizeSlug = (slug) => {
+    if (!slug) return '';
+    return slug
+        .replace(/[_-]/g, ' ')
+        .replace(/\b\w/g, c => c.toUpperCase());
+};
+
+const StepPower = ({ types, selected, onSelect, loading }) => (
     <div className="lsa-body">
         <h2 className="lsa-heading">Select your Power Type</h2>
-        <div className="lsa-options">
-            {POWER_OPTIONS.map(opt => (
-                <button
-                    key={opt.id}
-                    className={`lsa-option${selected === opt.id ? ' lsa-option--selected' : ''}`}
-                    onClick={() => onSelect(opt.id)}
-                >
-                    <div className="lsa-option__left">
-                        <img className="lsa-option__img" src={opt.img} alt={opt.title} />
-                        <div className="lsa-option__text">
-                            <div className="lsa-option__title-row">
-                                <span className="lsa-option__title">{opt.title}</span>
-                                {opt.badge && <span className="lsa-option__badge">{opt.badge}</span>}
+        {loading ? (
+            <div style={{ textAlign: 'center', color: '#71717a', fontSize: 13, padding: '32px 0' }}>Loading power types…</div>
+        ) : types.length === 0 ? (
+            <div style={{ textAlign: 'center', color: '#71717a', fontSize: 13, padding: '32px 0' }}>No power types configured yet.</div>
+        ) : (
+            <div className="lsa-options">
+                {types.map(t => (
+                    <button
+                        key={t.id}
+                        className={`lsa-option${selected === t.id ? ' lsa-option--selected' : ''}`}
+                        onClick={() => onSelect(t.id)}
+                    >
+                        <div className="lsa-option__left">
+                            {t.image
+                                ? <img className="lsa-option__img" src={t.image} alt={t.label} />
+                                : <div className="lsa-option__img lsa-option__img--ph" />}
+                            <div className="lsa-option__text">
+                                <div className="lsa-option__title-row">
+                                    <span className="lsa-option__title">{t.label}</span>
+                                </div>
+                                {t.description && (
+                                    <span className="lsa-option__subtitle">{t.description}</span>
+                                )}
+                                {!t.description && t.value && t.value !== t.label && (
+                                    <span className="lsa-option__subtitle">{humanizeSlug(t.value)}</span>
+                                )}
                             </div>
-                            <span className="lsa-option__subtitle">{opt.subtitle}</span>
                         </div>
-                    </div>
-                    <div className={`lsa-option__chevron${selected === opt.id ? ' lsa-option__chevron--selected' : ''}`}>
-                        <ChevronRight />
-                    </div>
-                </button>
-            ))}
-        </div>
+                        <div className={`lsa-option__chevron${selected === t.id ? ' lsa-option__chevron--selected' : ''}`}>
+                            <ChevronRight />
+                        </div>
+                    </button>
+                ))}
+            </div>
+        )}
     </div>
 );
 
@@ -608,7 +619,7 @@ const PDMeasureModal = ({ onClose, onPdMeasured }) => {
 /* ════════════════════════════════════════════════════════
    MANUAL POWER FORM — Figma 401:16362
    ════════════════════════════════════════════════════════ */
-const ManualPowerForm = ({ rx, onRxChange, rxMeta, onMetaChange, powerType }) => {
+const ManualPowerForm = ({ rx, onRxChange, rxMeta, onMetaChange, isProgressive }) => {
     const { samePower, hasCyl, name, phone, pd } = rxMeta;
     const [showPdModal, setShowPdModal] = useState(false);
 
@@ -771,7 +782,7 @@ const ManualPowerForm = ({ rx, onRxChange, rxMeta, onMetaChange, powerType }) =>
                 )}
 
                 {/* Progressive ADD power row */}
-                {powerType === 'progressive' && (
+                {isProgressive && (
                     <div className="lsa-power-grid__add-row">
                         <span className="lsa-power-grid__add-label">ADD Power</span>
                         <input
@@ -854,13 +865,13 @@ const RX_OPTIONS = [
     },
 ];
 
-const StepRx = ({ powerType, rx, onRxChange, rxMode, setRxMode, onUpload, uploadedFile, rxMeta, onMetaChange }) => {
-    if (powerType === 'zero_power' || powerType === 'frame_only') {
+const StepRx = ({ skipRx, skipReason, isProgressive, rx, onRxChange, rxMode, setRxMode, onUpload, uploadedFile, rxMeta, onMetaChange }) => {
+    if (skipRx) {
         return (
             <div className="lsa-body">
                 <h2 className="lsa-heading">No Prescription Needed</h2>
                 <p className="lsa-subheading">
-                    {powerType === 'zero_power'
+                    {skipReason === 'zero_power'
                         ? 'Zero power lenses have no refractive correction.'
                         : 'Frame only — no lenses will be fitted.'}
                 </p>
@@ -937,7 +948,7 @@ const StepRx = ({ powerType, rx, onRxChange, rxMode, setRxMode, onUpload, upload
                     onRxChange={onRxChange}
                     rxMeta={rxMeta}
                     onMetaChange={onMetaChange}
-                    powerType={powerType}
+                    isProgressive={isProgressive}
                 />
             )}
 
@@ -1016,16 +1027,42 @@ const LensSelectionAside = ({ isOpen, onClose, product, onAddToCart }) => {
         add: '',
     });
 
-    // Live lens data from API
+    // Live lens data from API — fetched per power type selection
     const [allLenses, setAllLenses] = useState([]);
     const [lensesLoading, setLensesLoading] = useState(false);
 
+    // Power / lens types (admin-managed metadata items in group "Lens Type")
+    const [powerTypes, setPowerTypes] = useState([]);
+    const [powerTypesLoading, setPowerTypesLoading] = useState(false);
+
+    // Fetch lens types on open
     useEffect(() => {
-        if (!isOpen || !product?.id) return;
-        // Reset lenses when product changes
+        if (!isOpen) return;
+        setPowerTypesLoading(true);
+        apiClient.get('/core/metadata-groups/?name=Lens Type')
+            .then(res => {
+                const groups = res.data.results || res.data;
+                const grp = Array.isArray(groups)
+                    ? groups.find(g => (g.name || '').toLowerCase() === 'lens type')
+                    : groups;
+                const items = (grp?.items || []).filter(i => i.is_active !== false);
+                setPowerTypes(items);
+            })
+            .catch(() => setPowerTypes([]))
+            .finally(() => setPowerTypesLoading(false));
+    }, [isOpen]);
+
+    // Fetch lenses filtered by selected power type + product
+    useEffect(() => {
+        if (!isOpen || !product?.id || !powerType) {
+            setAllLenses([]);
+            return;
+        }
         setAllLenses([]);
         setLensesLoading(true);
-        apiClient.get(`/catalog/products/${product.id}/recommended_lenses/`)
+        apiClient.get(`/catalog/products/${product.id}/recommended_lenses/`, {
+            params: { type: powerType }
+        })
             .then(res => {
                 const lenses = res.data.results || res.data;
                 setAllLenses(Array.isArray(lenses) ? lenses : []);
@@ -1035,8 +1072,15 @@ const LensSelectionAside = ({ isOpen, onClose, product, onAddToCart }) => {
                 setAllLenses([]);
             })
             .finally(() => setLensesLoading(false));
-    }, [isOpen, product?.id]);
+    }, [isOpen, product?.id, powerType]);
 
+    // Selected lens type + its semantic flags (derived from its name)
+    const selectedType = powerTypes.find(t => String(t.id) === String(powerType)) || null;
+    const isFrameOnly = isFrameOnlyType(selectedType);
+    const isZeroPower = isZeroPowerType(selectedType);
+    const isProgressive = isProgressiveType(selectedType);
+
+    // Lenses are already filtered by type from the API, group by brand
     const lensGroups = groupLensesByBrandAndPackage(allLenses);
 
     const basePrice = parseFloat(product?.base_price ?? 0);
@@ -1066,13 +1110,14 @@ const LensSelectionAside = ({ isOpen, onClose, product, onAddToCart }) => {
     const handleBack = () => {
         if (step === 2 && rxMode !== null) { setRxMode(null); return; }
         if (step === 0) { handleClose(); return; }
-        if (step === 2 && powerType === 'frame_only') { setStep(0); return; }
+        if (step === 2 && isFrameOnly) { setStep(0); return; }
         setStep(s => s - 1);
     };
 
     const handlePowerSelect = (id) => {
         setPowerType(id);
-        if (id === 'frame_only') { setStep(2); return; }
+        const t = powerTypes.find(pt => String(pt.id) === String(id));
+        if (isFrameOnlyType(t)) { setStep(2); return; } // no lenses → straight to summary
         setStep(1);
     };
 
@@ -1086,7 +1131,7 @@ const LensSelectionAside = ({ isOpen, onClose, product, onAddToCart }) => {
 
     const handleAddToCart = () => {
         const lensObj = allLenses.find(l => l.id === selectedLensId) || null;
-        const needsRx = powerType === 'with_power' || powerType === 'progressive';
+        const needsRx = !isFrameOnly && !isZeroPower;
         const prescriptionObj = needsRx && rxMode === 'manual'
             ? { ...rx, pd: rxMeta.pd, name: rxMeta.name, phone: rxMeta.phone }
             : needsRx && (rxMode === 'upload' || rxMode === 'later') && rxMeta.name
@@ -1100,14 +1145,14 @@ const LensSelectionAside = ({ isOpen, onClose, product, onAddToCart }) => {
     };
 
     /* CTA config per step */
-    const rxReady = powerType === 'zero_power' || powerType === 'frame_only' ||
+    const rxReady = isZeroPower || isFrameOnly ||
         (rxMode === 'manual' || rxMode === 'later') ||
         (rxMode === 'upload' && !!uploadedFile);
     const cta = [
         {
             label: 'Continue to Lenses',
             sub: 'NEXT: LENS TYPE SELECTION',
-            disabled: !powerType || powerType === 'frame_only',
+            disabled: !powerType || isFrameOnly,
             action: () => setStep(1),
             style: {},
         },
@@ -1151,7 +1196,7 @@ const LensSelectionAside = ({ isOpen, onClose, product, onAddToCart }) => {
 
                 {/* Scrollable content */}
                 <div className="lsa-content">
-                    {step === 0 && <StepPower selected={powerType} onSelect={handlePowerSelect} />}
+                    {step === 0 && <StepPower types={powerTypes} loading={powerTypesLoading} selected={powerType} onSelect={handlePowerSelect} />}
                     {step === 1 && (
                         <StepLenses
                             selectedLens={selectedLensId}
@@ -1163,7 +1208,9 @@ const LensSelectionAside = ({ isOpen, onClose, product, onAddToCart }) => {
                     )}
                     {step === 2 && (
                         <StepRx
-                            powerType={powerType}
+                            skipRx={isZeroPower || isFrameOnly}
+                            skipReason={isFrameOnly ? 'frame_only' : 'zero_power'}
+                            isProgressive={isProgressive}
                             rx={rx}
                             onRxChange={handleRxChange}
                             rxMode={rxMode}

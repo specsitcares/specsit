@@ -11,7 +11,10 @@ import '../../../styles/lens_management.css';
 const getPackageCatIds = (lens) =>
   (lens.categories || []).map(c => typeof c === 'object' ? c.id : c);
 
-const LENS_TYPE_FIELDS = [{ name: 'label', label: 'Type Name' }];
+const LENS_TYPE_FIELDS = [
+  { name: 'label', label: 'Type Name' },
+  { name: 'image', label: 'Type Image', type: 'file' },
+];
 
 /* Purple toggle — for lens type cards */
 const Toggle = ({ checked, onChange }) => (
@@ -66,6 +69,8 @@ const LensManagement = ({ editLensId = null }) => {
     features: [], constraints: [], pricing_mode: 'package',
     brand: '', categories: selectedCategoryId ? [selectedCategoryId] : [], cost_price: 0, selling_price: '',
     warranty_months: 0, min_power: '-6.0', max_power: '+4.0',
+    image: null,        // newly picked File
+    image_url: '',      // existing image URL (edit mode preview)
   };
   const [editFormData, setEditFormData] = useState({ ...EMPTY_PACKAGE_FORM });
 
@@ -154,6 +159,8 @@ const LensManagement = ({ editLensId = null }) => {
       warranty_months: selectedLens.package_warranty_months || 0,
       min_power:       selectedLens.min_power ?? '-6.0',
       max_power:       selectedLens.max_power ?? '+4.0',
+      image:           null,
+      image_url:       selectedLens.image || '',
     });
   }, [selectedLens]);
 
@@ -190,6 +197,8 @@ const LensManagement = ({ editLensId = null }) => {
       warranty_months: lens.package_warranty_months || 0,
       min_power:       lens.min_power ?? '-6.0',
       max_power:       lens.max_power ?? '+4.0',
+      image:           null,
+      image_url:       lens.image || '',
     });
   };
 
@@ -216,13 +225,29 @@ const LensManagement = ({ editLensId = null }) => {
       max_power:               editFormData.max_power,
     };
     try {
+      let lensId;
       if (isCreatingNewPackage) {
-        await apiClient.post('/catalog/lenses/', payload);
+        const res = await apiClient.post('/catalog/lenses/', payload);
+        lensId = res.data?.id;
+      } else {
+        lensId = selectedLens.id;
+        // Drop the read-only image URL string — it's an ImageField and is uploaded separately below
+        const { image: _img, ...selectedLensRest } = selectedLens;
+        await apiClient.put(`/catalog/lenses/${selectedLens.id}/`, { ...selectedLensRest, ...payload });
+      }
+
+      // Upload the lens image (multipart) only when a new file was picked
+      if (lensId && editFormData.image instanceof File) {
+        const fd = new FormData();
+        fd.append('image', editFormData.image);
+        await apiClient.patch(`/catalog/lenses/${lensId}/`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      }
+
+      if (isCreatingNewPackage) {
         setIsCreatingNewPackage(false);
         setEditFormData({ ...EMPTY_PACKAGE_FORM });
         alert('Package created successfully');
       } else {
-        await apiClient.put(`/catalog/lenses/${selectedLens.id}/`, { ...selectedLens, ...payload });
         alert('Package updated successfully');
       }
       await fetchData();
@@ -328,7 +353,17 @@ const LensManagement = ({ editLensId = null }) => {
       value: formData.label.toLowerCase().replace(/\s+/g, '_'),
       is_active: true,
     });
-    const newType = res.data;
+    let newType = res.data;
+
+    // Upload the lens-type image (multipart) when one was picked
+    if (newType?.id && formData.image instanceof File) {
+      const fd = new FormData();
+      fd.append('image', formData.image);
+      const imgRes = await apiClient.patch(`/core/metadata-items/${newType.id}/`, fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      newType = imgRes.data || newType;
+    }
     if (catId) {
       setTypeHomeCat(prev => ({ ...prev, [newType.id]: catId }));
     }
@@ -780,6 +815,25 @@ const LensManagement = ({ editLensId = null }) => {
                   <textarea className="lm-form-input" rows={3} value={editFormData.description}
                     onChange={e => handlePackageFieldChange('description', e.target.value)}
                     placeholder="Short description" />
+                </div>
+                <div className="lm-form-group">
+                  <label className="lm-form-label">Lens Image</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    {(editFormData.image || editFormData.image_url) && (
+                      <img
+                        src={editFormData.image ? URL.createObjectURL(editFormData.image) : editFormData.image_url}
+                        alt="Lens preview"
+                        style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8, border: '1px solid #e5e7eb', flexShrink: 0 }}
+                      />
+                    )}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={e => handlePackageFieldChange('image', e.target.files[0] || null)}
+                      style={{ fontSize: 13 }}
+                    />
+                  </div>
+                  <p style={{ fontSize: 11, color: '#9ca3af', margin: '4px 0 0' }}>Shown on the lens selection drawer. JPG, PNG or WebP.</p>
                 </div>
               </div>
 

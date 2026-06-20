@@ -17,88 +17,49 @@ const SPH_OPTIONS = buildDiopterOptions(-20, 20);
 const CYL_OPTIONS = buildDiopterOptions(-6, 0);
 
 /* ─── Shared: Order summary right column ─── */
-const OrderSummary = ({ items, totalAmount, depositAmount, balanceAmount, depositPct, showAwaitingBadge }) => (
-    <div className="conf-right">
-        <div className="conf-summary-card">
-            <div className="conf-summary-header">
-                <span className="conf-summary-heading">Your Order</span>
-                <span className="conf-summary-badge">{items.length} Item{items.length !== 1 ? 's' : ''}</span>
-            </div>
-
-            <div className="conf-summary-items">
-                {items.length > 0 ? items.map((item, i) => (
-                    <div key={item.id || i} className="conf-summary-item">
-                        <div className="conf-summary-thumb">
-                            {item.variant_image && (
-                                <img src={item.variant_image} alt={item.variant_name || 'Product'} />
-                            )}
-                        </div>
-                        <div className="conf-summary-item-info">
-                            <span className="conf-summary-item-name">{item.variant_name || 'Product'}</span>
-                            <span className="conf-summary-item-variant">
-                                {item.variant_sku || `Qty: ${item.quantity}`}
-                            </span>
-                            {showAwaitingBadge && (
-                                <span className="conf-awaiting-badge">
-                                    <svg width="11" height="12" viewBox="0 0 11 12" fill="none">
-                                        <circle cx="5.5" cy="6" r="4.5" stroke="#040205" strokeWidth="1.2"/>
-                                        <path d="M5.5 3.5V6L7 7" stroke="#040205" strokeWidth="1.2" strokeLinecap="round"/>
-                                    </svg>
-                                    AWAITING POWER DETAILS
-                                </span>
-                            )}
-                        </div>
-                        <span className="conf-summary-item-price">
-                            ₹{parseFloat(item.price_at_purchase ?? item.price ?? 0).toLocaleString()}
-                        </span>
+const OrderSummary = ({ totalAmount, savings = 0, depositAmount = 0, balanceAmount = 0, depositPct }) => {
+    const itemsTotal = totalAmount + (savings || 0);
+    return (
+        <div className="conf-right">
+            <div className="ck-summary">
+                <h3 className="ck-order__title">Your Order</h3>
+                <div className="ck-order">
+                    <div className="ck-order__line">
+                        <span className="ck-order__label">Item(s) total</span>
+                        <span className="ck-order__val">₹{itemsTotal.toLocaleString('en-IN')}</span>
                     </div>
-                )) : (
-                    <div className="conf-summary-item">
-                        <div className="conf-summary-item-info">
-                            <span className="conf-summary-item-name">Your Order</span>
+                    <div className="ck-order__divider" />
+                    {savings > 0 && (
+                        <div className="ck-order__line">
+                            <span className="ck-order__label">Savings &amp; Discounts</span>
+                            <span className="ck-order__save">-₹{savings.toLocaleString('en-IN')}</span>
                         </div>
-                        <span className="conf-summary-item-price">₹{totalAmount.toLocaleString()}</span>
+                    )}
+                    <div className="ck-order__line">
+                        <span className="ck-order__label">Shipping</span>
+                        <span className="ck-order__free">FREE</span>
                     </div>
-                )}
-            </div>
-
-            <div className="conf-summary-totals">
-                <div className="conf-summary-row">
-                    <span className="conf-summary-row__label">Subtotal</span>
-                    <span className="conf-summary-row__value">₹{totalAmount.toLocaleString()}</span>
+                    {depositAmount > 0 && (
+                        <>
+                            <div className="ck-order__line">
+                                <span className="ck-order__label">Initial Deposit ({depositPct}%)</span>
+                                <span className="ck-order__val">₹{depositAmount.toLocaleString('en-IN')}</span>
+                            </div>
+                            <div className="ck-order__line">
+                                <span className="ck-order__label">Balance (before dispatch)</span>
+                                <span className="ck-order__val">₹{balanceAmount.toLocaleString('en-IN')}</span>
+                            </div>
+                        </>
+                    )}
                 </div>
-                <div className="conf-summary-row">
-                    <span className="conf-summary-row__label">Shipping</span>
-                    <span className="conf-summary-row__value conf-summary-row__value--free">Free</span>
-                </div>
-                <div className="conf-summary-total-row">
-                    <span className="conf-summary-total__label">Total</span>
-                    <span className="conf-summary-total__value">₹{totalAmount.toLocaleString()}</span>
+                <div className="ck-total">
+                    <span>Total Order Value</span>
+                    <span>₹{totalAmount.toLocaleString('en-IN')}</span>
                 </div>
             </div>
-
-            {depositAmount > 0 && (
-                <div className="conf-breakdown">
-                    <div className="conf-breakdown__row">
-                        <div className="conf-breakdown__label-stack">
-                            <span className="conf-breakdown__main">Initial Deposit</span>
-                            <span className="conf-breakdown__sub">Paid Now ({depositPct}%)</span>
-                        </div>
-                        <span className="conf-breakdown__amount-large">₹{depositAmount.toLocaleString('en-IN')}</span>
-                    </div>
-                    <div className="conf-breakdown__divider" />
-                    <div className="conf-breakdown__row conf-breakdown__row--faded">
-                        <div className="conf-breakdown__label-stack">
-                            <span className="conf-breakdown__main conf-breakdown__main--grey">Balance Amount</span>
-                            <span className="conf-breakdown__sub">Due before dispatch</span>
-                        </div>
-                        <span className="conf-breakdown__amount-medium">₹{balanceAmount.toLocaleString('en-IN')}</span>
-                    </div>
-                </div>
-            )}
         </div>
-    </div>
-);
+    );
+};
 
 /* ─── Main component ─── */
 const OrderConfirmationPage = () => {
@@ -237,6 +198,7 @@ const OrderConfirmationPage = () => {
     const isPartialPayment = order.payment_method === 'partial_payment' || order.payment_method === 'PARTIAL';
     const depositAmount = isPartialPayment ? paidFromApi : 0;
     const balanceAmount = isPartialPayment ? (parseFloat(order.balance_amount) || (totalAmount - depositAmount)) : 0;
+    const savings = parseFloat(order.discount_amount ?? order.coupon_discount ?? order.savings ?? order.total_discount ?? 0) || 0;
     const depositPct = totalAmount > 0 ? Math.round(depositAmount / totalAmount * 100) : 0;
     const displayOrderId = `LO-${String(order.id || orderId).padStart(7, '0')}`;
     const items = order.items || order.order_items || [];
@@ -322,6 +284,7 @@ const OrderConfirmationPage = () => {
                         <OrderSummary
                             items={items}
                             totalAmount={totalAmount}
+                            savings={savings}
                             depositAmount={depositAmount}
                             balanceAmount={balanceAmount}
                             depositPct={depositPct}
@@ -404,6 +367,7 @@ const OrderConfirmationPage = () => {
                         <OrderSummary
                             items={items}
                             totalAmount={totalAmount}
+                            savings={savings}
                             depositAmount={depositAmount}
                             balanceAmount={balanceAmount}
                             depositPct={depositPct}
@@ -506,6 +470,7 @@ const OrderConfirmationPage = () => {
                         <OrderSummary
                             items={items}
                             totalAmount={totalAmount}
+                            savings={savings}
                             depositAmount={depositAmount}
                             balanceAmount={balanceAmount}
                             depositPct={depositPct}
@@ -690,6 +655,7 @@ const OrderConfirmationPage = () => {
                         <OrderSummary
                             items={items}
                             totalAmount={totalAmount}
+                            savings={savings}
                             depositAmount={depositAmount}
                             balanceAmount={balanceAmount}
                             showAwaitingBadge={false}
@@ -763,6 +729,7 @@ const OrderConfirmationPage = () => {
                     <OrderSummary
                         items={items}
                         totalAmount={totalAmount}
+                            savings={savings}
                         depositAmount={depositAmount}
                         balanceAmount={balanceAmount}
                         depositPct={depositPct}
