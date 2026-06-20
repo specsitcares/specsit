@@ -15,6 +15,7 @@ class MetadataItem(models.Model):
     group = models.ForeignKey(MetadataGroup, on_delete=models.CASCADE, related_name='items')
     label = models.CharField(max_length=100)
     value = models.CharField(max_length=100) # slug
+    image = models.ImageField(upload_to='lens_types/', null=True, blank=True)
     is_active = models.BooleanField(default=True)
     def __str__(self): return f"{self.group.name}: {self.label}"
 

@@ -1,8 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../../context/CartContext';
+import { Link } from 'react-router-dom';
 import apiClient from '../../../services/api';
+import specsitFullLogo from '../../../assets/specsit_full_logo.svg';
 import '../../../styles/checkout.css';
+
+const STORE_PHONE = '9858658566';
+const PhoneIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+        <path d="M18 14.2v2.4a1.6 1.6 0 0 1-1.75 1.6 15.8 15.8 0 0 1-6.9-2.45 15.5 15.5 0 0 1-4.78-4.78A15.8 15.8 0 0 1 2.12 4.05 1.6 1.6 0 0 1 3.7 2.3h2.4a1.6 1.6 0 0 1 1.6 1.38c.1.77.29 1.52.56 2.24a1.6 1.6 0 0 1-.36 1.69l-1.02 1.02a12.8 12.8 0 0 0 4.78 4.78l1.02-1.02a1.6 1.6 0 0 1 1.69-.36c.72.27 1.47.46 2.24.56A1.6 1.6 0 0 1 18 14.2Z" stroke="#040205" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+);
 
 const ChevronRight = () => (
     <svg width="6" height="10" viewBox="0 0 6 10" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -20,7 +29,7 @@ const STEPS = ['Cart', 'Sign In', 'Shipping', 'Payment'];
 const ADDRESS_TYPES = ['Home', 'Office', 'Friends or family', 'Other'];
 
 const CheckoutPage = () => {
-    const { cart, cartTotal, clearCart, resolveProductPrice } = useCart();
+    const { cart, cartTotal, clearCart, resolveProductPrice, appliedCoupon, applyCoupon, removeCoupon, savings } = useCart();
     const navigate = useNavigate();
 
     // Workflow State
@@ -54,6 +63,30 @@ const CheckoutPage = () => {
     const [selectedPayment, setSelectedPayment] = useState('');
     const [cardData, setCardData] = useState({ name: '', number: '', expiry: '', cvv: '' });
     const [upiId, setUpiId] = useState('');
+    const [cardsOpen, setCardsOpen] = useState(false);
+    const [nbOpen, setNbOpen] = useState(false);
+    const [couponOpen, setCouponOpen] = useState(false);
+    const [promoCode, setPromoCode] = useState('');
+    const [promoError, setPromoError] = useState('');
+    const [promoLoading, setPromoLoading] = useState(false);
+
+    const handleApplyPromo = async () => {
+        const code = String(promoCode || '').replace(/[^A-Z0-9\-]/g, '').slice(0, 50);
+        if (!code) { setPromoError('Please enter a valid promo code'); return; }
+        setPromoLoading(true); setPromoError('');
+        try {
+            const items = cart.map(item => ({
+                variant: item.variant?.id ?? null,
+                quantity: item.quantity,
+                price: resolveProductPrice(item.product, item.variant) + (item.lens ? parseFloat(item.lens.price || 0) : 0),
+            }));
+            const res = await apiClient.post('/sales/coupons/validate/', { code, cartValue: cartTotal, items });
+            if (res.data.valid) { applyCoupon({ code, discount: res.data.savings || 0, message: res.data.message }); setCouponOpen(false); setPromoCode(''); }
+            else setPromoError(res.data.message || 'Invalid promo code');
+        } catch (err) {
+            setPromoError(err.response?.data?.message || 'Invalid promo code');
+        } finally { setPromoLoading(false); }
+    };
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [paymentFailed, setPaymentFailed] = useState(false);
@@ -85,7 +118,7 @@ const CheckoutPage = () => {
 
     // Breakdown based on method (using integer paise to avoid rounding errors)
     const shippingCost = shippingRate || 0;
-    const orderTotal = cartTotal + shippingCost;
+    const orderTotal = Math.max(0, cartTotal - savings) + shippingCost;
     const totalPaise = Math.round(orderTotal * 100);
     const phase1Paise = Math.round(totalPaise * partialPct / 100);
     const phase1Amount = phase1Paise / 100;
@@ -124,6 +157,13 @@ const CheckoutPage = () => {
         script.async = true;
         document.body.appendChild(script);
     }, []);
+
+    // The payment screen design is online-only (UPI/Cards/Net Banking/Wallets via Razorpay)
+    useEffect(() => {
+        if (currentStep === 4 && paymentMethod === 'complete_cod') {
+            setPaymentMethod(onlineEnabled ? 'complete_online' : partialPaymentEnabled ? 'partial_payment' : 'complete_online');
+        }
+    }, [currentStep]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const lookupShippingRate = async (pincode) => {
         if (!pincode || !/^\d{6}$/.test(pincode)) { setShippingRate(null); return; }
@@ -480,121 +520,80 @@ const CheckoutPage = () => {
     };
 
     // ── Order Summary Sidebar (shared across all steps) ──────────────
-    const OrderSummary = () => (
+    const OrderSummary = () => {
+        const addr = savedAddresses.find(a => String(a.id) === String(selectedAddressId)) || null;
+        return (
         <aside className="order-summary-side">
-            <div className="checkout-summary-card">
-                {/* Header */}
-                <div className="summary-header-row">
-                    <span className="summary-heading" style={{ fontSize: '16px', fontWeight: '700', letterSpacing: '-0.025em' }}>Your Order</span>
-                    <span className="summary-items-badge">{cart.length} {cart.length === 1 ? 'Item' : 'Items'}</span>
+            {/* ── Delivery card ── */}
+            {addr && (
+                <div className="ck-summary" style={{ marginBottom: 24 }}>
+                    <h2 className="ck-summary__title">Delivery</h2>
+                    <div className="pay-deliver">
+                        <div className="pay-deliver__info">
+                            <strong>{addr.full_name_contact || addr.full_name || 'Delivery address'}</strong>
+                            <span>{[addr.street_address, addr.locality, addr.pin_code, addr.city, addr.state].filter(Boolean).join(', ')}</span>
+                        </div>
+                        <span className="pay-deliver__badge">⚡ 1-2 hr delivery</span>
+                    </div>
                 </div>
+            )}
 
-                {/* Item List */}
-                <div className="summary-items-list">
-                    {cart.map((item, idx) => {
-                        const price = resolveProductPrice(item.product) + (item.lens ? parseFloat(item.lens.price || 0) : 0);
-                        const variantLabel = item.variant ? `${item.variant.color || ''} / ${item.variant.size || 'One Size'}`.trim().replace(/^\/ |\/\s*$/, '') : 'One Size';
-                        return (
-                            <div key={idx} className="summary-item-row">
-                                <div className="summary-item-thumb">
-                                    {item.product.images?.[0] && (
-                                        <img src={item.product.images[0].image} alt={item.product.title || item.product.name} />
-                                    )}
-                                </div>
-                                <div className="summary-item-details">
-                                    <div className="summary-item-name">{item.product.title || item.product.name}</div>
-                                    <div className="summary-item-variant">{variantLabel}</div>
-                                </div>
-                                <div className="summary-item-price">₹{(price * item.quantity).toLocaleString()}</div>
-                            </div>
-                        );
-                    })}
-                </div>
+            {/* ── Payment Summary ── */}
+            <div className="ck-summary">
+                <h2 className="ck-summary__title">Payment Summary</h2>
 
-                <hr className="summary-divider" />
-
-                {/* Pricing rows */}
-                <div className="summary-calc-row">
-                    <span className="summary-calc-label" style={{ textTransform: 'uppercase', fontSize: '8px', letterSpacing: '1px', fontWeight: '700' }}>Subtotal</span>
-                    <span className="summary-calc-value">₹{cartTotal.toLocaleString()}</span>
-                </div>
-                <div className="summary-calc-row" style={{ marginTop: '6px' }}>
-                    <span className="summary-calc-value" style={{ fontWeight: '400', fontSize: '11px', color: 'var(--specsit-black)' }}>Shipping</span>
-                    {shippingLoading ? (
-                        <span className="summary-calc-value" style={{ color: '#9CA3AF', fontSize: '11px' }}>Calculating…</span>
-                    ) : shippingRate != null && shippingRate > 0 ? (
-                        <span className="summary-calc-value">₹{shippingRate.toLocaleString()}</span>
-                    ) : (
-                        <span className="summary-calc-value free">Free</span>
+                <h3 className="ck-order__title">Your Order</h3>
+                <div className="ck-order">
+                    <div className="ck-order__line">
+                        <span className="ck-order__label">Item(s) total</span>
+                        <span className="ck-order__val">₹{cartTotal.toLocaleString('en-IN')}</span>
+                    </div>
+                    <div className="ck-order__divider" />
+                    {savings > 0 && (
+                        <div className="ck-order__line">
+                            <span className="ck-order__label">Savings &amp; Discounts</span>
+                            <span className="ck-order__save">-₹{savings.toLocaleString('en-IN')}</span>
+                        </div>
+                    )}
+                    <div className="ck-order__line">
+                        <span className="ck-order__label">Shipping</span>
+                        {shippingLoading
+                            ? <span className="ck-order__val">Calculating…</span>
+                            : shippingRate > 0
+                                ? <span className="ck-order__val">₹{shippingRate.toLocaleString('en-IN')}</span>
+                                : <span className="ck-order__free">FREE</span>}
+                    </div>
+                    {currentStep === 4 && paymentMethod === 'partial_payment' && (
+                        <div className="ck-order__line">
+                            <span className="ck-order__label">Due before dispatch</span>
+                            <span className="ck-order__val">₹{phase2Amount.toLocaleString('en-IN')}</span>
+                        </div>
                     )}
                 </div>
 
-                <div className="summary-total-row">
-                    <span className="summary-total-label" style={{ textTransform: 'uppercase', letterSpacing: '1.2px', fontSize: '10px' }}>Total</span>
-                    <span className="summary-total-value">₹{orderTotal.toLocaleString()}</span>
+                <div className="ck-total">
+                    <span>{currentStep === 4 && paymentMethod === 'partial_payment' ? 'Pay Now' : 'Total Order Value'}</span>
+                    <span>₹{(currentStep === 4 ? amountDueNow || orderTotal : orderTotal).toLocaleString('en-IN')}</span>
                 </div>
-
-                {/* Payment Breakdown */}
-                {currentStep === 4 && (
-                    <div className="mandatory-breakdown">
-                        {paymentMethod === 'complete_cod' && (
-                            <div className="breakdown-row">
-                                <div className="breakdown-label-stack">
-                                    <span className="breakdown-main-label" style={{ textTransform: 'uppercase', fontSize: '10px', letterSpacing: '0.6px' }}>Cash on Delivery</span>
-                                    <span className="breakdown-sub-label">Pay on delivery</span>
-                                </div>
-                                <div className="breakdown-value-large" style={{ fontSize: '19px' }}>₹{orderTotal.toLocaleString()}</div>
-                            </div>
-                        )}
-                        {paymentMethod === 'complete_online' && (
-                            <div className="breakdown-row">
-                                <div className="breakdown-label-stack">
-                                    <span className="breakdown-main-label" style={{ textTransform: 'uppercase', fontSize: '10px', letterSpacing: '0.6px' }}>Pay Online</span>
-                                    <span className="breakdown-sub-label">Full amount via Razorpay</span>
-                                </div>
-                                <div className="breakdown-value-large" style={{ fontSize: '19px' }}>₹{orderTotal.toLocaleString()}</div>
-                            </div>
-                        )}
-                        {paymentMethod === 'partial_payment' && (<>
-                            <div className="breakdown-row">
-                                <div className="breakdown-label-stack">
-                                    <span className="breakdown-main-label" style={{ textTransform: 'uppercase', fontSize: '10px', letterSpacing: '0.6px' }}>Pay Now ({partialPct}%)</span>
-                                    <span className="breakdown-sub-label">Via Razorpay today</span>
-                                </div>
-                                <div className="breakdown-value-large" style={{ fontSize: '19px' }}>₹{phase1Amount.toLocaleString()}</div>
-                            </div>
-                            <div className="breakdown-divider" style={{ opacity: 1 }} />
-                            <div className="breakdown-row" style={{ opacity: 0.7 }}>
-                                <div className="breakdown-label-stack">
-                                    <span className="breakdown-main-label" style={{ color: 'var(--specsit-body-grey)', textTransform: 'uppercase', fontSize: '10px', letterSpacing: '0.6px' }}>Remaining Balance</span>
-                                    <span className="breakdown-sub-label">Due before dispatch</span>
-                                </div>
-                                <div className="breakdown-value-medium" style={{ fontSize: '14px' }}>₹{phase2Amount.toLocaleString()}</div>
-                            </div>
-                        </>)}
-                    </div>
-                )}
 
                 {/* CTA */}
                 {currentStep === 3 && (
-                    <button className="summary-cta-btn" style={{ marginTop: '19px', borderRadius: '5px', fontSize: '14px', padding: '20px 24px', letterSpacing: '-0.025em' }}
+                    <button className="ck-pay"
                         onClick={handleShippingContinue}
                         disabled={subStep === 'FORM' && Object.values(addressErrors).some(Boolean)}
                         title={subStep === 'FORM' && Object.keys(addressErrors).length > 0 ? 'Please fix address errors' : ''}>
-                        Save Address and Proceed
-                        <ArrowRight />
+                        Save Address &amp; Proceed
                     </button>
                 )}
                 {currentStep === 4 && !paymentFailed && (
                     <>
-                        <button className="summary-cta-btn" style={{ marginTop: '19px', borderRadius: '5px', fontSize: '14px', padding: '20px 24px', letterSpacing: '-0.025em' }}
+                        <button className="ck-pay"
                             onClick={handlePlaceOrder} disabled={loading || cart.length === 0 || showConfirmation} title={cart.length === 0 ? 'Please add items to your cart' : ''}>
                             {loading ? 'Processing…'
                                 : cart.length === 0 ? 'Add items to continue'
                                 : paymentMethod === 'complete_cod' ? 'Place Order (COD)'
-                                : paymentMethod === 'partial_payment' ? `Pay ₹${phase1Amount.toLocaleString()} Now`
-                                : `Pay ₹${orderTotal.toLocaleString()}`}
-                            <ArrowRight />
+                                : paymentMethod === 'partial_payment' ? `Pay ₹${phase1Amount.toLocaleString('en-IN')} & Proceed`
+                                : 'Pay Initial Deposit & Proceed'}
                         </button>
 
                         {showConfirmation && (
@@ -625,10 +624,19 @@ const CheckoutPage = () => {
 
             </div>
         </aside>
-    );
+        );
+    };
 
     return (
         <div className="checkout-redesign">
+
+            {/* ── Minimal header ── */}
+            <header className="ck-topbar">
+                <Link to="/"><img src={specsitFullLogo} alt="Specsit" className="ck-topbar__logo" /></Link>
+                <a href={`tel:${STORE_PHONE}`} className="ck-topbar__phone">
+                    <PhoneIcon /> {STORE_PHONE}
+                </a>
+            </header>
 
             {/* ── Breadcrumb Stepper ── */}
             <div className="breadcrumb-stepper-figma">
@@ -881,61 +889,55 @@ const CheckoutPage = () => {
                         </div>
                     )}
 
-                    {/* ── Payment Method Selector ── */}
+                    {/* ── Discounts ── */}
                     {!paymentFailed && (
-                        <div style={{ marginBottom: 28 }}>
-                            <h2 style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 14 }}>How would you like to pay?</h2>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                                {[
-                                    ...(codEnabled ? [{
-                                        value: 'complete_cod',
-                                        title: 'Cash on Delivery',
-                                        desc: 'Pay the full amount when your order arrives.',
-                                        icon: '💵',
-                                    }] : []),
-                                    ...(onlineEnabled ? [{
-                                        value: 'complete_online',
-                                        title: 'Pay Online (Full)',
-                                        desc: 'Pay the complete amount now via card, UPI, or net banking.',
-                                        icon: '💳',
-                                    }] : []),
-                                    ...(partialPaymentEnabled ? [{
-                                        value: 'partial_payment',
-                                        title: `Pay ${partialPct}% Now, ${100 - partialPct}% Later`,
-                                        desc: `Pay ₹${phase1Amount.toLocaleString('en-IN')} today. Remaining ₹${phase2Amount.toLocaleString('en-IN')} before dispatch.`,
-                                        icon: '✂️',
-                                    }] : []),
-                                ].map(opt => {
-                                    const active = paymentMethod === opt.value;
-                                    return (
-                                        <button key={opt.value} type="button"
-                                            onClick={() => setPaymentMethod(opt.value)}
-                                            style={{
-                                                display: 'flex', alignItems: 'center', gap: 14,
-                                                background: active ? '#f5f3ff' : '#fafafa',
-                                                border: `2px solid ${active ? '#7c3aed' : '#e5e7eb'}`,
-                                                borderRadius: 10, padding: '14px 16px',
-                                                cursor: 'pointer', textAlign: 'left', width: '100%',
-                                                transition: 'border-color 0.15s',
-                                            }}>
-                                            <span style={{ fontSize: 24, flexShrink: 0 }}>{opt.icon}</span>
-                                            <div style={{ flex: 1 }}>
-                                                <div style={{ fontWeight: 700, fontSize: 14, color: active ? '#6d28d9' : '#111827' }}>{opt.title}</div>
-                                                <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>{opt.desc}</div>
-                                            </div>
-                                            <div style={{
-                                                width: 18, height: 18, borderRadius: 9, flexShrink: 0,
-                                                border: `2px solid ${active ? '#7c3aed' : '#d1d5db'}`,
-                                                background: active ? '#7c3aed' : 'transparent',
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            }}>
-                                                {active && <span style={{ color: '#fff', fontSize: 10, fontWeight: 700 }}>✓</span>}
-                                            </div>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
+                        <section className="pay2-block">
+                            <h2 className="pay2-heading">Discounts</h2>
+                            {appliedCoupon ? (
+                                <div className="pay2-discount">
+                                    <div className="pay2-discount__left">
+                                        <span className="pay2-discount__icon">
+                                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1.5l1.6 1.2 2-.2.6 1.9 1.7 1-.7 1.9.7 1.9-1.7 1-.6 1.9-2-.2L8 14.5l-1.6-1.2-2 .2-.6-1.9-1.7-1 .7-1.9-.7-1.9 1.7-1 .6-1.9 2 .2L8 1.5Z" fill="#0D9B3A"/><path d="M5.5 8l1.7 1.7L10.8 6" stroke="#fff" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                        </span>
+                                        <div className="pay2-discount__text">
+                                            <strong>You Saved ₹{savings.toLocaleString('en-IN')} on your bill</strong>
+                                            <span>'{appliedCoupon.code}' coupon is applied</span>
+                                        </div>
+                                    </div>
+                                    <button className="pay2-discount__remove" onClick={removeCoupon}>
+                                        <svg width="12" height="13" viewBox="0 0 13 14" fill="none"><path d="M0.5 3H12.5M1.5 3V12C1.5 12.55 1.95 13 2.5 13H10.5C11.05 13 11.5 12.55 11.5 12V3M4 3V2C4 1.45 4.45 1 5 1H8C8.55 1 9 1.45 9 2V3" stroke="#C42A46" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                        Remove
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="pay2-card">
+                                    <button type="button" className="pay2-applycoupon" onClick={() => setCouponOpen(o => !o)}>
+                                        <span className="pay2-row__left">
+                                            <span className="pay2-applycoupon__icon">
+                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2.5l2.4 1.8 3-.3.9 2.9 2.6 1.5-1.1 2.8 1.1 2.8-2.6 1.5-.9 2.9-3-.3L12 21.5l-2.4-1.8-3 .3-.9-2.9-2.6-1.5 1.1-2.8L2.1 9.4l2.6-1.5.9-2.9 3 .3L12 2.5Z" fill="#C42A46"/><path d="M9 9.5h.01M15 14.5h.01M15 9l-6 6" stroke="#fff" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                                            </span>
+                                            <span className="pay2-applycoupon__text">
+                                                <strong>Apply Coupon</strong>
+                                                <span>See available offers and cashback</span>
+                                            </span>
+                                        </span>
+                                        <svg className={`pay2-applycoupon__chev${couponOpen ? ' pay2-applycoupon__chev--open' : ''}`} width="8" height="13" viewBox="0 0 7 12" fill="none"><path d="M1 1L6 6L1 11" stroke="#040205" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                    </button>
+                                    {couponOpen && (
+                                        <div className="pay2-coupon-entry">
+                                            <input className="pay2-coupon-input" placeholder="Enter promo code"
+                                                value={promoCode}
+                                                onChange={e => { setPromoCode(e.target.value.toUpperCase()); setPromoError(''); }}
+                                                onKeyDown={e => e.key === 'Enter' && handleApplyPromo()} />
+                                            <button className="pay2-verify" type="button" onClick={handleApplyPromo} disabled={promoLoading}>
+                                                {promoLoading ? '…' : 'APPLY'}
+                                            </button>
+                                        </div>
+                                    )}
+                                    {promoError && <p className="pay2-coupon-error">{promoError}</p>}
+                                </div>
+                            )}
+                        </section>
                     )}
 
                     {/* ── Payment Failed state ── */}
@@ -989,154 +991,132 @@ const CheckoutPage = () => {
                                 </div>
                             ) : (
                             <>
-                            {/* ── Online payment UI (hidden for COD) ── */}
-                            {paymentMethod !== 'complete_cod' && <>
-                            {/* ── Credit / Debit Card ── */}
-                            <div className="pay-section pay-section--card">
-                                <div className="pay-section__header">
-                                    <h2 className="pay-section__title">Credit or Debit Card</h2>
-                                    <div className="pay-card-logos">
-                                        {/* Visa */}
-                                        <svg className="pay-card-logo" viewBox="0 0 38 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <rect width="38" height="24" rx="4" fill="#1A1F71"/>
-                                            <path d="M15.8 16.5H13.4L14.9 7.5H17.3L15.8 16.5Z" fill="white"/>
-                                            <path d="M23.2 7.7C22.7 7.5 21.9 7.3 21 7.3C18.6 7.3 16.9 8.5 16.9 10.2C16.9 11.5 18.1 12.2 19 12.7C19.9 13.2 20.2 13.5 20.2 13.9C20.2 14.5 19.5 14.8 18.8 14.8C17.8 14.8 17.3 14.6 16.5 14.3L16.2 14.1L15.9 16.2C16.5 16.5 17.6 16.7 18.8 16.7C21.4 16.7 23 15.5 23 13.7C23 12.7 22.4 12 21.1 11.4C20.3 11 19.8 10.7 19.8 10.3C19.8 9.9 20.2 9.5 21.1 9.5C21.9 9.5 22.4 9.7 22.8 9.8L23 9.9L23.2 7.7Z" fill="white"/>
-                                            <path d="M26.3 13.3L27.3 10.5C27.3 10.5 27.6 9.7 27.7 9.2L27.9 10.4L28.6 13.3H26.3ZM29.3 7.5H27.4C26.8 7.5 26.4 7.7 26.1 8.3L22.6 16.5H25.2L25.7 15.1H28.9L29.2 16.5H31.5L29.3 7.5Z" fill="white"/>
-                                            <path d="M13.4 7.5L11 13.5L10.7 12.1C10.2 10.6 8.8 9 7.2 8.2L9.5 16.5H12.1L16 7.5H13.4Z" fill="white"/>
-                                            <path d="M8.6 7.5H4.5L4.5 7.7C7.6 8.5 9.7 10.3 10.7 12.1L9.7 8.3C9.5 7.7 9.1 7.5 8.6 7.5Z" fill="#F9A533"/>
-                                        </svg>
-                                        {/* Mastercard */}
-                                        <svg className="pay-card-logo" viewBox="0 0 38 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <rect width="38" height="24" rx="4" fill="#252525"/>
-                                            <circle cx="15" cy="12" r="6" fill="#EB001B"/>
-                                            <circle cx="23" cy="12" r="6" fill="#F79E1B"/>
-                                            <path d="M19 7.8C20.3 8.8 21.2 10.3 21.2 12C21.2 13.7 20.3 15.2 19 16.2C17.7 15.2 16.8 13.7 16.8 12C16.8 10.3 17.7 8.8 19 7.8Z" fill="#FF5F00"/>
-                                        </svg>
-                                        {/* RuPay */}
-                                        <svg className="pay-card-logo" viewBox="0 0 38 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <rect width="38" height="24" rx="4" fill="#1B7F3B"/>
-                                            <text x="5" y="16" fontSize="9" fontWeight="bold" fill="white" fontFamily="sans-serif">RuPay</text>
-                                        </svg>
-                                    </div>
-                                </div>
-                                <div className="pay-card-fields">
-                                    <div className="pay-field">
-                                        <label className="pay-field__label">Cardholder Name</label>
-                                        <input className="pay-field__input" placeholder="ERIK SVENSSON"
-                                            value={cardData.name} onChange={e => setCardData(p => ({ ...p, name: e.target.value }))} />
-                                    </div>
-                                    <div className="pay-field">
-                                        <label className="pay-field__label">Card Number</label>
-                                        <input className="pay-field__input" placeholder="0000 0000 0000 0000" maxLength={19}
-                                            value={cardData.number} onChange={e => setCardData(p => ({ ...p, number: e.target.value }))} />
-                                    </div>
-                                    <div className="pay-card-row">
-                                        <div className="pay-field">
-                                            <label className="pay-field__label">Expiry Date</label>
-                                            <input className="pay-field__input" placeholder="MM/YY" maxLength={5}
-                                                value={cardData.expiry} onChange={e => setCardData(p => ({ ...p, expiry: e.target.value }))} />
-                                        </div>
-                                        <div className="pay-field">
-                                            <label className="pay-field__label">CVV</label>
-                                            <input className="pay-field__input" placeholder="•••" maxLength={4} type="password"
-                                                value={cardData.cvv} onChange={e => setCardData(p => ({ ...p, cvv: e.target.value }))} />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
                             {/* ── UPI ── */}
-                            <div className="pay-section pay-section--upi">
-                                <h2 className="pay-section__title">Unified Payments Interface (UPI)</h2>
-                                <div className="pay-upi-apps">
-                                    <button className={`pay-upi-btn${selectedPayment === 'gpay' ? ' pay-upi-btn--active' : ''}`}
-                                        onClick={() => setSelectedPayment('gpay')}>
-                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M12 11.3h5.3c.1.5.2 1 .2 1.7 0 2.1-.7 3.9-1.9 5.1-1 1-2.5 1.6-4.2 1.6-3.3 0-6-2.7-6-6s2.7-6 6-6c1.6 0 3 .6 4 1.6l-1.7 1.7c-.6-.6-1.4-.9-2.3-.9-2 0-3.5 1.6-3.5 3.5s1.5 3.5 3.5 3.5c1.4 0 2.4-.7 2.9-1.7H12v-4.1z" fill="#4285F4"/>
-                                        </svg>
-                                        <span>Google Pay</span>
+                            <section className="pay2-block">
+                                <h2 className="pay2-heading">Unified Payments Interface (UPI)</h2>
+                                <div className="pay2-card">
+                                    <button type="button"
+                                        className={`pay2-row${selectedPayment === 'upi_qr' ? ' pay2-row--active' : ''}`}
+                                        onClick={() => setSelectedPayment('upi_qr')}>
+                                        <span className="pay2-row__left">
+                                            <span className="pay2-row__icon">
+                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="#68408D" strokeWidth="1.6"/><rect x="14" y="3" width="7" height="7" rx="1.5" stroke="#68408D" strokeWidth="1.6"/><rect x="3" y="14" width="7" height="7" rx="1.5" stroke="#68408D" strokeWidth="1.6"/><path d="M14 14h3v3M21 14v7M17 21h4" stroke="#68408D" strokeWidth="1.6" strokeLinecap="round"/></svg>
+                                            </span>
+                                            <span className="pay2-row__title">UPI QR Code</span>
+                                        </span>
+                                        <span className={`pay2-radio${selectedPayment === 'upi_qr' ? ' pay2-radio--on' : ''}`}>
+                                            {selectedPayment === 'upi_qr' && <svg width="11" height="9" viewBox="0 0 12 10" fill="none"><path d="M1 5l3.5 3.5L11 1.5" stroke="#fff" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                                        </span>
                                     </button>
-                                    <button className={`pay-upi-btn${selectedPayment === 'phonepe' ? ' pay-upi-btn--active' : ''}`}
-                                        onClick={() => setSelectedPayment('phonepe')}>
-                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <rect width="24" height="24" rx="4" fill="#5F259F"/>
-                                            <text x="4" y="17" fontSize="9" fontWeight="bold" fill="white" fontFamily="sans-serif">Pe</text>
-                                        </svg>
-                                        <span>PhonePe</span>
-                                    </button>
-                                </div>
-                                <div className="pay-upi-id">
-                                    <label className="pay-field__label">Or enter custom UPI ID</label>
-                                    <div className="pay-upi-input-row">
-                                        <input className="pay-upi-input" placeholder="username@bank"
-                                            value={upiId} onChange={e => setUpiId(e.target.value)} />
-                                        <button className="pay-upi-verify">Verify</button>
+                                    <div className="pay2-upi-custom">
+                                        <span className="pay2-upi-custom__label">Or enter custom UPI ID</span>
+                                        <div className="pay2-upi-row">
+                                            <input className="pay2-upi-input" placeholder="Username@Bank"
+                                                value={upiId} onChange={e => { setUpiId(e.target.value); setSelectedPayment('upi_id'); }} />
+                                            <button className="pay2-verify" type="button">VERIFY</button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            </section>
 
-                            {/* ── Net Banking ── */}
-                            <div className="pay-section pay-section--netbanking">
-                                <h2 className="pay-section__title">Net Banking</h2>
-                                <div className="pay-bank-grid">
-                                    {[
-                                        { id: 'hdfc', label: 'HDFC', color: '#004C8F' },
-                                        { id: 'icici', label: 'ICICI', color: '#F58220' },
-                                        { id: 'sbi', label: 'SBI', color: '#22409A' },
-                                        { id: 'axis', label: 'AXIS', color: '#97144D' },
-                                    ].map(bank => (
-                                        <button key={bank.id}
-                                            className={`pay-bank-tile${selectedPayment === bank.id ? ' pay-bank-tile--active' : ''}`}
-                                            onClick={() => setSelectedPayment(bank.id)}>
-                                            <div className="pay-bank-tile__icon" style={{ background: bank.color }}>
-                                                <span>{bank.label[0]}</span>
+                            {/* ── Cards (collapsible) ── */}
+                            <section className="pay2-block">
+                                <h2 className="pay2-heading">Cards</h2>
+                                <div className="pay2-card">
+                                    <button type="button" className="pay2-acc-head" onClick={() => setCardsOpen(o => !o)}>
+                                        <span className="pay2-row__left">
+                                            <span className="pay2-row__icon pay2-row__icon--blue">
+                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="2.5" y="5" width="19" height="14" rx="2.5" stroke="#2563EB" strokeWidth="1.6"/><path d="M2.5 9h19" stroke="#2563EB" strokeWidth="1.6"/><path d="M6 14h4" stroke="#2563EB" strokeWidth="1.6" strokeLinecap="round"/></svg>
+                                            </span>
+                                            <span className="pay2-row__title">Add Credit/ Debit/ ATM cards</span>
+                                        </span>
+                                        <svg className={`pay2-chev${cardsOpen ? ' pay2-chev--open' : ''}`} width="14" height="9" viewBox="0 0 14 9" fill="none"><path d="M1 1.5L7 7.5L13 1.5" stroke="#040205" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                    </button>
+                                    {cardsOpen && (
+                                        <div className="pay2-acc-body">
+                                            <div className="pay2-field">
+                                                <label>Cardholder Name</label>
+                                                <input placeholder="ERIK SVENSSON" value={cardData.name} onChange={e => setCardData(p => ({ ...p, name: e.target.value }))} />
                                             </div>
-                                            <span className="pay-bank-tile__label">{bank.label}</span>
-                                        </button>
-                                    ))}
+                                            <div className="pay2-field">
+                                                <label>Card Number</label>
+                                                <input placeholder="0000 0000 0000 0000" maxLength={19} value={cardData.number} onChange={e => setCardData(p => ({ ...p, number: e.target.value }))} />
+                                            </div>
+                                            <div className="pay2-field-row">
+                                                <div className="pay2-field">
+                                                    <label>Expiry Date</label>
+                                                    <input placeholder="MM/YY" maxLength={5} value={cardData.expiry} onChange={e => setCardData(p => ({ ...p, expiry: e.target.value }))} />
+                                                </div>
+                                                <div className="pay2-field">
+                                                    <label>CVV</label>
+                                                    <input placeholder="•••" maxLength={4} type="password" value={cardData.cvv} onChange={e => setCardData(p => ({ ...p, cvv: e.target.value }))} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
-                                <div className="pay-bank-select-wrap">
-                                    <select className="pay-bank-select" onChange={e => setSelectedPayment(e.target.value)}>
-                                        <option value="">Select from other banks</option>
-                                        <option value="kotak">Kotak Mahindra</option>
-                                        <option value="yes">Yes Bank</option>
-                                        <option value="idfc">IDFC First</option>
-                                        <option value="bob">Bank of Baroda</option>
-                                        <option value="pnb">Punjab National Bank</option>
-                                    </select>
-                                    <svg className="pay-bank-select-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                        <path d="M2 4L6 8L10 4" stroke="#040205" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                    </svg>
+                            </section>
+
+                            {/* ── Net Banking (collapsible) ── */}
+                            <section className="pay2-block">
+                                <h2 className="pay2-heading">Net Banking</h2>
+                                <div className="pay2-card">
+                                    <button type="button" className="pay2-acc-head" onClick={() => setNbOpen(o => !o)}>
+                                        <span className="pay2-row__left">
+                                            <span className="pay2-row__icon">
+                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#2563EB" strokeWidth="1.5"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18" stroke="#2563EB" strokeWidth="1.3"/></svg>
+                                            </span>
+                                            <span className="pay2-row__title">Pay through Net Banking</span>
+                                        </span>
+                                        <svg className={`pay2-chev${nbOpen ? ' pay2-chev--open' : ''}`} width="14" height="9" viewBox="0 0 14 9" fill="none"><path d="M1 1.5L7 7.5L13 1.5" stroke="#040205" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                    </button>
+                                    {nbOpen && (
+                                        <div className="pay2-acc-body">
+                                            <div className="pay2-bank-grid">
+                                                {[
+                                                    { id: 'hdfc', label: 'HDFC', color: '#004C8F' },
+                                                    { id: 'icici', label: 'ICICI', color: '#F58220' },
+                                                    { id: 'sbi', label: 'SBI', color: '#22409A' },
+                                                    { id: 'axis', label: 'AXIS', color: '#97144D' },
+                                                ].map(bank => (
+                                                    <button key={bank.id} type="button"
+                                                        className={`pay2-bank${selectedPayment === bank.id ? ' pay2-bank--active' : ''}`}
+                                                        onClick={() => setSelectedPayment(bank.id)}>
+                                                        <span className="pay2-bank__icon" style={{ background: bank.color }}>{bank.label[0]}</span>
+                                                        <span className="pay2-bank__label">{bank.label}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            <div className="pay2-bank-select">
+                                                <select onChange={e => setSelectedPayment(e.target.value)} defaultValue="">
+                                                    <option value="">Select from other banks</option>
+                                                    <option value="kotak">Kotak Mahindra</option>
+                                                    <option value="yes">Yes Bank</option>
+                                                    <option value="idfc">IDFC First</option>
+                                                    <option value="bob">Bank of Baroda</option>
+                                                    <option value="pnb">Punjab National Bank</option>
+                                                </select>
+                                                <svg width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1 1.5L6 6.5L11 1.5" stroke="#040205" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
-                            </div>
+                            </section>
 
                             {/* ── Digital Wallets ── */}
-                            <div className="pay-section pay-section--wallets">
-                                <span className="pay-wallets-label">Digital Wallets</span>
-                                <div className="pay-wallet-btns">
-                                    <button className={`pay-wallet-btn${selectedPayment === 'paytm' ? ' pay-wallet-btn--active' : ''}`}
-                                        onClick={() => setSelectedPayment('paytm')}>
-                                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <rect width="20" height="20" rx="4" fill="#00BAF2"/>
-                                            <text x="2" y="14" fontSize="7" fontWeight="bold" fill="white" fontFamily="sans-serif">Pay</text>
-                                        </svg>
-                                    </button>
-                                    <button className={`pay-wallet-btn${selectedPayment === 'amazonpay' ? ' pay-wallet-btn--active' : ''}`}
-                                        onClick={() => setSelectedPayment('amazonpay')}>
-                                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <rect width="20" height="20" rx="4" fill="#232F3E"/>
-                                            <text x="1" y="14" fontSize="5" fontWeight="bold" fill="#FF9900" fontFamily="sans-serif">amazon</text>
-                                        </svg>
-                                    </button>
+                            <div className="pay2-wallets">
+                                <span className="pay2-wallets__label">Digital Wallets</span>
+                                <div className="pay2-wallets__card">
+                                    <span className="pay2-razorpay">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M5 21L11 3l-1 9h4L9 21" fill="#3395FF"/></svg>
+                                        Razorpay
+                                    </span>
                                 </div>
                             </div>
 
-                            {paymentMethod !== 'complete_cod' && (
-                                <button className="back-to-list-btn" onClick={() => setCurrentStep(3)}>
-                                    ← Back to Shipping
-                                </button>
-                            )}
-                            </>}
+                            <button className="back-to-list-btn" onClick={() => setCurrentStep(3)}>
+                                ← Back to Shipping
+                            </button>
                             </>
                             )}
                         </div>

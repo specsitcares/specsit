@@ -194,7 +194,7 @@ class LensSerializer(serializers.ModelSerializer):
     class Meta:
         model = Lens
         fields = [
-            'id', 'name', 'package', 'package_name', 'description', 'features',
+            'id', 'name', 'image', 'package', 'package_name', 'description', 'features',
             'type', 'price', 'index', 'index_value', 'is_active', 'is_for_sunglasses', 'is_for_eyeglasses',
             'brand', 'category_ids', 'package_cost_price', 'package_selling_price', 'package_warranty_months',
             'constraints', 'constraint_ids',
@@ -216,6 +216,11 @@ class LensSerializer(serializers.ModelSerializer):
             data['package_warranty_months'] = instance.package.warranty_months
         if instance.brand:
             data['brand_name'] = instance.brand.name
+            data['brand_tagline'] = instance.brand.label or instance.brand.description or ''
+            try:
+                data['brand_logo'] = instance.brand.logo.url if instance.brand.logo else None
+            except Exception:
+                data['brand_logo'] = None
         if instance.type:
             data['type_label'] = instance.type.label
         return data
