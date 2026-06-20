@@ -1,6 +1,16 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import './LensSelectionAside.css';
 import apiClient from '../../../services/api';
+import powerWithImg from '../../../assets/lens/power-with.png';
+import powerZeroImg from '../../../assets/lens/power-zero.png';
+import powerProgressiveImg from '../../../assets/lens/power-progressive.png';
+import powerFrameOnlyImg from '../../../assets/lens/power-frame-only.png';
+import rxManualImg from '../../../assets/lens/rx-manual.png';
+import rxUploadImg from '../../../assets/lens/rx-upload.png';
+import rxLaterImg from '../../../assets/lens/rx-later.png';
+import lensPreviewImg from '../../../assets/lens/lens-preview.png';
+import featureShieldIcon from '../../../assets/lens/feature-shield.svg';
+import warrantyBadgeIcon from '../../../assets/lens/warranty-icon.svg';
 
 /* ════════════════════════════════════════════════════════
    ICONS
@@ -163,59 +173,59 @@ const groupLensesByBrandAndPackage = (lenses) => {
 /* ════════════════════════════════════════════════════════
    LENS PREVIEW — SVG placeholder (no expiring URLs)
    ════════════════════════════════════════════════════════ */
-const LensPreview = ({ selected }) => (
-    <div className={`lsa-lens-preview${selected ? ' lsa-lens-preview--selected' : ''}`}>
-        <svg width="70%" height="70%" viewBox="0 0 80 56" fill="none">
-            <ellipse cx="40" cy="28" rx="38" ry="26" fill={selected ? '#EBE3F2' : '#F4F3F5'} />
-            <ellipse cx="40" cy="28" rx="38" ry="26" stroke={selected ? '#68408D' : '#D4D2D6'} strokeWidth="1.5" />
-            {/* AR coating shimmer */}
-            <ellipse cx="28" cy="18" rx="12" ry="7" fill="white" fillOpacity="0.35" transform="rotate(-20 28 18)" />
-            <ellipse cx="52" cy="36" rx="8" ry="4" fill="white" fillOpacity="0.2" transform="rotate(-20 52 36)" />
-        </svg>
+const LensPreview = () => (
+    <div className="lsa-lens-preview">
+        <img className="lsa-lens-preview__img" src={lensPreviewImg} alt="" />
         <div className="lsa-lens-preview__warranty">
-            <WarrantyIcon />
+            <img src={warrantyBadgeIcon} alt="" />
             <span>1 Year Warranty</span>
         </div>
     </div>
 );
 
 /* ════════════════════════════════════════════════════════
-   LENS PACKAGE CARD
+   LENS PACKAGE CARD (Figma 61:33044)
    ════════════════════════════════════════════════════════ */
-const LensPackageCard = ({ pkg, selected, onSelect, productBasePrice = 0 }) => {
-    const features = Array.isArray(pkg.features) ? pkg.features : [];
+const DEFAULT_LENS_FEATURES = ['Ultimate Scratch Resistance', 'Anti-Glare Coating', '100% UV Protection'];
+
+const LensPackageCard = ({ pkg, selected, onSelect, productBasePrice = 0, topRated }) => {
+    const features = (Array.isArray(pkg.features) && pkg.features.length ? pkg.features : DEFAULT_LENS_FEATURES).slice(0, 3);
     const lensPrice = parseFloat(pkg.price || 0);
-    const warranty = pkg.package_warranty_months || 0;
-    const lensIndex = pkg.index || '—';
+    const total = Math.round((parseFloat(productBasePrice) || 0) + lensPrice);
+    const mrpRaw = parseFloat(pkg.mrp_price || pkg.original_price || 0);
+    const mrp = mrpRaw > 0 ? Math.round((parseFloat(productBasePrice) || 0) + mrpRaw) : null;
+    const coupon = pkg.coupon_code || pkg.coupon || null;
 
     return (
         <button
-            className={`lsa-pkg-card${selected ? ' lsa-pkg-card--selected' : ''}`}
+            className={`lsa-pkg${selected ? ' lsa-pkg--selected' : ''}`}
             onClick={() => onSelect(pkg.id)}
         >
-            <div className="lsa-pkg-card__inner">
-                <LensPreview selected={selected} />
-                <div className="lsa-pkg-card__info">
-                    <h4 className="lsa-pkg-card__name">{pkg.package_name || pkg.name}</h4>
-                    {/* Customer-facing info: Features, Index, Warranty */}
-                    <div style={{ fontSize: 11, color: '#71717a', marginBottom: 6 }}>
-                        <div>Index: {lensIndex}</div>
-                        {warranty > 0 && <div>Warranty: {warranty} months</div>}
-                    </div>
-                    {features.length > 0 && (
-                        <ul className="lsa-pkg-card__features">
-                            {features.map((f, i) => <li key={i}>{f}</li>)}
+            {topRated && <span className="lsa-pkg__badge">Top Rated</span>}
+            <LensPreview />
+            <div className="lsa-pkg__main">
+                <div className="lsa-pkg__top">
+                    <div className="lsa-pkg__info">
+                        <h4 className="lsa-pkg__name">{pkg.package_name || pkg.name}</h4>
+                        <ul className="lsa-pkg__features">
+                            {features.map((f, i) => (
+                                <li key={i}><img src={featureShieldIcon} alt="" />{f}</li>
+                            ))}
                         </ul>
-                    )}
-                    <div className="lsa-pkg-card__price-row">
-                        <div className="lsa-pkg-card__price-stack">
-                            <span className="lsa-pkg-card__label">Lens Price</span>
-                            <div className="lsa-pkg-card__prices">
-                                <span className="lsa-pkg-card__price">₹{lensPrice.toLocaleString('en-IN')}</span>
-                            </div>
-                        </div>
-                        <div className={`lsa-pkg-card__chevron${selected ? ' lsa-pkg-card__chevron--selected' : ''}`}>
-                            <ChevronRight />
+                    </div>
+                    <span className="lsa-pkg__arrow" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M9 6l6 6-6 6" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                    </span>
+                </div>
+                <div className="lsa-pkg__price-row">
+                    {coupon ? <span className="lsa-pkg__coupon">Coupon : {coupon}</span> : <span />}
+                    <div className="lsa-pkg__price-stack">
+                        <span className="lsa-pkg__price-label">Frame + Lens</span>
+                        <div className="lsa-pkg__prices">
+                            <span className="lsa-pkg__price">₹{total.toLocaleString('en-IN')}</span>
+                            {mrp && mrp > total && <span className="lsa-pkg__mrp">₹{mrp.toLocaleString('en-IN')}</span>}
                         </div>
                     </div>
                 </div>
@@ -225,21 +235,39 @@ const LensPackageCard = ({ pkg, selected, onSelect, productBasePrice = 0 }) => {
 };
 
 /* ════════════════════════════════════════════════════════
-   BRAND ACCORDION (now contains lenses directly)
+   BRAND ACCORDION (Figma 61:33031)
    ════════════════════════════════════════════════════════ */
-const BrandAccordion = ({ brand, selectedLens, onSelectLens, productBasePrice }) => {
-    const [openBrand, setOpenBrand] = React.useState(false);
+const BRAND_LOGOS = {
+    zeiss:   { bg: '#005598', color: '#FEFCFF' },
+    kodak:   { bg: '#FFD700', color: '#040205' },
+    essilor: { bg: '#FEFCFF', color: '#040205' },
+    hoya:    { bg: '#FEFCFF', color: '#040205' },
+};
+const BRAND_TAGLINES = {
+    zeiss: 'Precision German Engineering',
+    essilor: 'The Global Standard',
+    hoya: 'Advanced Technology',
+    kodak: 'Trust & Clarity',
+};
+
+const BrandAccordion = ({ brand, selectedLens, onSelectLens, productBasePrice, defaultOpen }) => {
+    const [openBrand, setOpenBrand] = React.useState(!!defaultOpen);
+    const [showAll, setShowAll] = React.useState(false);
+    const key = (brand.name || '').toLowerCase().split(/\s+/)[0];
+    const logo = BRAND_LOGOS[key] || { bg: '#EBE3F2', color: '#68408D' };
+    const tagline = BRAND_TAGLINES[key] || `${brand.lenses.length} package${brand.lenses.length !== 1 ? 's' : ''}`;
+    const visible = showAll ? brand.lenses : brand.lenses.slice(0, 2);
 
     return (
         <div className={`lsa-brand${openBrand ? ' lsa-brand--open' : ''}`}>
             <button className="lsa-brand__header" onClick={() => setOpenBrand(!openBrand)}>
                 <div className="lsa-brand__header-left">
-                    <div className="lsa-brand__logo" style={{ background: '#EBE3F2', color: '#68408D' }}>
-                        {(brand.name || '').slice(0, 2).toUpperCase()}
+                    <div className="lsa-brand__logo" style={{ background: logo.bg, color: logo.color }}>
+                        {(brand.name || '').split(/\s+/)[0].toUpperCase().slice(0, 7)}
                     </div>
                     <div className="lsa-brand__meta">
                         <span className="lsa-brand__name">{brand.name}</span>
-                        <span className="lsa-brand__tagline">{brand.lenses.length} package{brand.lenses.length !== 1 ? 's' : ''}</span>
+                        <span className="lsa-brand__tagline">{tagline}</span>
                     </div>
                 </div>
                 <span className="lsa-brand__toggle-icon">
@@ -248,16 +276,22 @@ const BrandAccordion = ({ brand, selectedLens, onSelectLens, productBasePrice })
             </button>
 
             {openBrand && (
-                <div className="lsa-brand__body" style={{ padding: '0 12px 12px' }}>
-                    {brand.lenses.map(pkg => (
+                <div className="lsa-brand__body">
+                    {visible.map((pkg, i) => (
                         <LensPackageCard
                             key={pkg.id}
                             pkg={pkg}
                             selected={selectedLens === pkg.id}
                             onSelect={onSelectLens}
                             productBasePrice={productBasePrice}
+                            topRated={i === 0}
                         />
                     ))}
+                    {brand.lenses.length > 2 && (
+                        <button type="button" className="lsa-brand__more" onClick={() => setShowAll(s => !s)}>
+                            {showAll ? 'Show less' : 'More Lens'}
+                        </button>
+                    )}
                 </div>
             )}
         </div>
@@ -268,10 +302,10 @@ const BrandAccordion = ({ brand, selectedLens, onSelectLens, productBasePrice })
    STEP 1 — Power Type
    ════════════════════════════════════════════════════════ */
 const POWER_OPTIONS = [
-    { id: 'with_power', icon: <IconWithPower />, iconBg: 'purple', title: 'With Power', subtitle: 'Positive, Negative or Cylindrical', badge: 'Popular' },
-    { id: 'zero_power', icon: <IconZeroPower />, iconBg: 'grey', title: 'Zero Power', subtitle: 'BLU Screen lenses, blue light block' },
-    { id: 'progressive', icon: <IconProgressive />, iconBg: 'grey', title: 'Progressive / Bifocals', subtitle: 'Two powers in one eye' },
-    { id: 'frame_only', icon: <IconFrameOnly />, iconBg: 'grey', title: 'Frame Only', subtitle: 'With no lenses' },
+    { id: 'with_power', img: powerWithImg, title: 'With Power', subtitle: 'Positive, Negative or Cylindrical', badge: 'Popular' },
+    { id: 'zero_power', img: powerZeroImg, title: 'Zero Power', subtitle: 'BLU Screen lenses, blue light block' },
+    { id: 'progressive', img: powerProgressiveImg, title: 'Progressive / Bifocals', subtitle: 'Two powers in one eye' },
+    { id: 'frame_only', img: powerFrameOnlyImg, title: 'Frame Only', subtitle: 'With no lenses' },
 ];
 
 const StepPower = ({ selected, onSelect }) => (
@@ -285,7 +319,7 @@ const StepPower = ({ selected, onSelect }) => (
                     onClick={() => onSelect(opt.id)}
                 >
                     <div className="lsa-option__left">
-                        <div className={`lsa-option__icon lsa-option__icon--${opt.iconBg}`}>{opt.icon}</div>
+                        <img className="lsa-option__img" src={opt.img} alt={opt.title} />
                         <div className="lsa-option__text">
                             <div className="lsa-option__title-row">
                                 <span className="lsa-option__title">{opt.title}</span>
@@ -327,13 +361,14 @@ const StepLenses = ({ selectedLens, onSelectLens, productBasePrice, lensGroups, 
         <div className="lsa-body lsa-body--lenses">
             <h2 className="lsa-heading">Select your Lens Type</h2>
             <div className="lsa-brands">
-                {lensGroups.map(brand => (
+                {lensGroups.map((brand, idx) => (
                     <BrandAccordion
                         key={brand.id}
                         brand={brand}
                         selectedLens={selectedLens}
                         onSelectLens={onSelectLens}
                         productBasePrice={productBasePrice}
+                        defaultOpen={idx === 0}
                     />
                 ))}
             </div>
@@ -798,21 +833,24 @@ const ManualPowerForm = ({ rx, onRxChange, rxMeta, onMetaChange, powerType }) =>
 const RX_OPTIONS = [
     {
         id: 'manual',
-        icon: <IconPrescriptionDoc />,
+        img: rxManualImg,
+        group: 'know',
         title: 'Enter Power Manually',
-        subtitle: 'Type in your SPH, CYL & AXIS values',
+        subtitle: 'Please provide your latest prescription details accurately.',
     },
     {
         id: 'upload',
-        icon: <IconUploadPdf />,
-        title: 'Upload Prescription PDF',
-        subtitle: 'Upload your prescription file from doctor',
+        img: rxUploadImg,
+        group: 'know',
+        title: 'Upload Prescription',
+        subtitle: 'Please provide your latest prescription details accurately.',
     },
     {
         id: 'later',
-        icon: <IconClock />,
-        title: 'Submit Power Later in 15 days',
-        subtitle: 'Add now and submit prescription within 15 days',
+        img: rxLaterImg,
+        group: 'unknown',
+        title: 'Submit Power Later within 15 days',
+        subtitle: 'Please provide your latest prescription details accurately.',
     },
 ];
 
@@ -837,41 +875,58 @@ const StepRx = ({ powerType, rx, onRxChange, rxMode, setRxMode, onUpload, upload
         );
     }
 
-    return (
-        <div className="lsa-body">
-            <h2 className="lsa-heading">Eye Power</h2>
-
-            {/* Help banner */}
-            <div className="lsa-rx-help-banner">
-                <div className="lsa-rx-help-banner__icon">
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                        <circle cx="10" cy="10" r="9" stroke="#22c55e" strokeWidth="1.5" />
-                        <path d="M6 10L9 13L14 7" stroke="#22c55e" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                </div>
-                <div className="lsa-rx-help-banner__text">
-                    <span>Need help with power option?</span>
-                    <a href="#" className="lsa-rx-help-banner__link" onClick={e => e.preventDefault()}>Learn more</a>
+    const RxMethodCard = ({ opt }) => (
+        <button className="lsa-rx-card" onClick={() => setRxMode(opt.id)}>
+            <div className="lsa-rx-card__left">
+                <img className="lsa-rx-card__img" src={opt.img} alt={opt.title} />
+                <div className="lsa-rx-card__text">
+                    <span className="lsa-rx-card__title">{opt.title}</span>
+                    <span className="lsa-rx-card__subtitle">{opt.subtitle}</span>
                 </div>
             </div>
+            <span className="lsa-rx-card__chevron"><ChevronRight /></span>
+        </button>
+    );
 
-            {/* Option cards — shown when no mode selected */}
+    return (
+        <div className="lsa-body">
+            <h2 className="lsa-heading">Select your Power Type</h2>
+
+            {/* Help banner — only on the form sub-views */}
+            {rxMode && (
+                <div className="lsa-rx-help-banner">
+                    <div className="lsa-rx-help-banner__icon">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                            <circle cx="10" cy="10" r="9" stroke="#22c55e" strokeWidth="1.5" />
+                            <path d="M6 10L9 13L14 7" stroke="#22c55e" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                    </div>
+                    <div className="lsa-rx-help-banner__text">
+                        <span>Need help with power option?</span>
+                        <a href="#" className="lsa-rx-help-banner__link" onClick={e => e.preventDefault()}>Learn more</a>
+                    </div>
+                </div>
+            )}
+
+            {/* Method selection — shown when no mode selected */}
             {!rxMode && (
-                <div className="lsa-rx-options">
-                    {RX_OPTIONS.map(opt => (
-                        <button
-                            key={opt.id}
-                            className="lsa-rx-option-card"
-                            onClick={() => setRxMode(opt.id)}
-                        >
-                            <div className="lsa-rx-option-card__icon">{opt.icon}</div>
-                            <div className="lsa-rx-option-card__text">
-                                <span className="lsa-rx-option-card__title">{opt.title}</span>
-                                <span className="lsa-rx-option-card__subtitle">{opt.subtitle}</span>
-                            </div>
-                            <ChevronRight />
-                        </button>
-                    ))}
+                <div className="lsa-rx-method">
+                    <div className="lsa-rx-group">
+                        <h3 className="lsa-rx-group__title">I know my power</h3>
+                        <div className="lsa-rx-group__cards">
+                            {RX_OPTIONS.filter(o => o.group === 'know').map(opt => (
+                                <RxMethodCard key={opt.id} opt={opt} />
+                            ))}
+                        </div>
+                    </div>
+                    <div className="lsa-rx-group">
+                        <h3 className="lsa-rx-group__title">I don't know my power</h3>
+                        <div className="lsa-rx-group__cards">
+                            {RX_OPTIONS.filter(o => o.group === 'unknown').map(opt => (
+                                <RxMethodCard key={opt.id} opt={opt} />
+                            ))}
+                        </div>
+                    </div>
                 </div>
             )}
 
