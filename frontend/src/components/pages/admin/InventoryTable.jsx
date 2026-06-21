@@ -152,9 +152,8 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
         // Edit overall stock
         await apiClient.patch(`/catalog/variants/${selectedVariant.id}/`, { stock: fd.stock });
       }
-      setShowForm(false);
-      fetchInventory();
-    } catch (err) { console.error(err); }
+      await fetchInventory();
+    } finally { /* errors propagate to FormModal + global toast */ }
   };
 
   const handleToggleListed = async (v) => {

@@ -62,24 +62,16 @@ const BrandTable = () => {
         data.append(k, formData[k]);
       }
     });
-    try {
-      if (formMode === 'create') await apiClient.post('/catalog/brands/', data);
-      else await apiClient.patch(`/catalog/brands/${selectedBrand.id}/`, data);
-      setShowForm(false);
-      fetchBrands();
-    } catch (err) {
-      console.error(err);
-    }
+    // Let errors propagate to FormModal (which shows them) and let the modal
+    // close itself only on a real success — keeps the table in sync with the DB.
+    if (formMode === 'create') await apiClient.post('/catalog/brands/', data);
+    else await apiClient.patch(`/catalog/brands/${selectedBrand.id}/`, data);
+    await fetchBrands();
   };
 
   const handleFormDelete = async (id) => {
-    try {
-      await apiClient.delete(`/catalog/brands/${id}/`);
-      setShowForm(false);
-      fetchBrands();
-    } catch (err) {
-      console.error(err);
-    }
+    await apiClient.delete(`/catalog/brands/${id}/`);
+    await fetchBrands();
   };
 
   const filtered = brands

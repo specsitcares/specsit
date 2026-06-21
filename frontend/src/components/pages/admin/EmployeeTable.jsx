@@ -86,13 +86,8 @@ const EmployeeTable = () => {
   };
 
   const handleFormDelete = async (id) => {
-    try {
-      await apiClient.delete(`/accounts/employees/${id}/`);
-      setShowForm(false);
-      fetchEmployees();
-    } catch (err) {
-      console.error(err);
-    }
+    await apiClient.delete(`/accounts/employees/${id}/`);
+    await fetchEmployees();
   };
 
   const filtered = employees.filter(e =>

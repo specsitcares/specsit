@@ -52,24 +52,14 @@ const VariantTable = () => {
         data.append(k, formData[k]);
       }
     });
-    try {
-      if (formMode === 'create') await apiClient.post('/catalog/variants/', data);
-      else await apiClient.patch(`/catalog/variants/${selectedVariant.id}/`, data);
-      setShowForm(false);
-      fetchData();
-    } catch (err) {
-      console.error(err);
-    }
+    if (formMode === 'create') await apiClient.post('/catalog/variants/', data);
+    else await apiClient.patch(`/catalog/variants/${selectedVariant.id}/`, data);
+    await fetchData();
   };
 
   const handleFormDelete = async (id) => {
-    try {
-      await apiClient.delete(`/catalog/variants/${id}/`);
-      setShowForm(false);
-      fetchData();
-    } catch (err) {
-      console.error(err);
-    }
+    await apiClient.delete(`/catalog/variants/${id}/`);
+    await fetchData();
   };
 
   const filtered = variants.filter(v =>

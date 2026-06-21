@@ -44,24 +44,14 @@ const UserFaceTable = () => {
     Object.keys(formData).forEach(k => {
       if (formData[k] != null && formData[k] !== '') body.append(k, formData[k]);
     });
-    try {
-      if (formMode === 'create') await apiClient.post('/catalog/user-faces/', body);
-      else await apiClient.put(`/catalog/user-faces/${selectedFace.id}/`, body);
-      setShowForm(false);
-      fetchFaces();
-    } catch (err) {
-      console.error(err);
-    }
+    if (formMode === 'create') await apiClient.post('/catalog/user-faces/', body);
+    else await apiClient.put(`/catalog/user-faces/${selectedFace.id}/`, body);
+    await fetchFaces();
   };
 
   const handleFormDelete = async (id) => {
-    try {
-      await apiClient.delete(`/catalog/user-faces/${id}/`);
-      setShowForm(false);
-      fetchFaces();
-    } catch (err) {
-      console.error(err);
-    }
+    await apiClient.delete(`/catalog/user-faces/${id}/`);
+    await fetchFaces();
   };
 
   const filtered = faces.filter(f =>

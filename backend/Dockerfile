@@ -7,9 +7,19 @@ ENV PYTHONUNBUFFERED 1
 WORKDIR /app
 
 # Install system dependencies
+# libgl1/libgles2/libegl1/libglib2.0-0 + X libs are required at runtime by
+# MediaPipe & OpenCV (the AI PD-measurement). Without them the import fails with
+# "libGLESv2.so.2: cannot open shared object file".
 RUN apt-get update && apt-get install -y \
     libpq-dev \
     gcc \
+    libgl1 \
+    libgles2 \
+    libegl1 \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install python dependencies

@@ -61,24 +61,14 @@ const CustomerTable = () => {
   const handleDeleteClick = (c) => { setFormMode('edit'); setSelectedCustomer(c); setShowForm(true); };
 
   const handleFormSubmit = async (formData) => {
-    try {
-      if (formMode === 'create') await apiClient.post('/accounts/users/', formData);
-      else await apiClient.patch(`/accounts/users/${selectedCustomer.id}/`, formData);
-      setShowForm(false);
-      fetchCustomers();
-    } catch (err) {
-      console.error('Form submission failed', err);
-    }
+    if (formMode === 'create') await apiClient.post('/accounts/users/', formData);
+    else await apiClient.patch(`/accounts/users/${selectedCustomer.id}/`, formData);
+    await fetchCustomers();
   };
 
   const handleFormDelete = async (id) => {
-    try {
-      await apiClient.delete(`/accounts/users/${id}/`);
-      setShowForm(false);
-      fetchCustomers();
-    } catch (err) {
-      console.error('Delete failed', err);
-    }
+    await apiClient.delete(`/accounts/users/${id}/`);
+    await fetchCustomers();
   };
 
   const filtered = customers.filter(u =>
