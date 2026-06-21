@@ -1,0 +1,27 @@
+# Keep the Docker build context small and reproducible.
+.git
+.gitignore
+.claude
+
+# Local Python virtualenv & caches (wrong-platform binaries — never ship these)
+venv
+**/venv
+**/__pycache__
+**/*.pyc
+*.sqlite3
+backend/db.sqlite3
+
+# Node — reinstalled cleanly inside the frontend build stage
+frontend/node_modules
+frontend/dist
+
+# Pre-collected/generated static (regenerated at start via collectstatic)
+backend/staticfiles_collect
+backend/staticfiles_dist
+
+# Docs / misc
+README.md
+LICENSE
+postman
+scratch
+*.png

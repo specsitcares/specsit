@@ -48,24 +48,14 @@ const CollectionTable = () => {
         data.append(k, formData[k]);
       }
     });
-    try {
-      if (formMode === 'create') await apiClient.post('/catalog/collections/', data);
-      else await apiClient.patch(`/catalog/collections/${selectedCollection.id}/`, data);
-      setShowForm(false);
-      fetchCollections();
-    } catch (err) {
-      console.error(err);
-    }
+    if (formMode === 'create') await apiClient.post('/catalog/collections/', data);
+    else await apiClient.patch(`/catalog/collections/${selectedCollection.id}/`, data);
+    await fetchCollections();
   };
 
   const handleFormDelete = async (id) => {
-    try {
-      await apiClient.delete(`/catalog/collections/${id}/`);
-      setShowForm(false);
-      fetchCollections();
-    } catch (err) {
-      console.error(err);
-    }
+    await apiClient.delete(`/catalog/collections/${id}/`);
+    await fetchCollections();
   };
 
   const filtered = collections.filter(c =>

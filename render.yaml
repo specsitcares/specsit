@@ -1,12 +1,13 @@
 services:
   - type: web
     name: specsit-backend
-    runtime: python
-    buildCommand: bash build.sh
-    startCommand: cd backend && python manage.py migrate && python manage.py create_default_superuser && python manage.py collectstatic --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2
+    runtime: docker
+    # Docker (not native python) so we can install the GL system libraries
+    # MediaPipe/OpenCV need for the AI PD measurement. Migrate + collectstatic
+    # run from the image CMD (see ./Dockerfile).
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.12.0
       - key: DJANGO_SETTINGS_MODULE
         value: config.settings
       - key: DEBUG

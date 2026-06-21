@@ -129,26 +129,14 @@ const CouponTable = () => {
       categories: categoriesArr,
     };
 
-    try {
-      if (formMode === 'create') await apiClient.post('/sales/coupons/', payload);
-      else await apiClient.put(`/sales/coupons/${selectedCoupon.id}/`, payload);
-      setShowForm(false);
-      fetchCoupons();
-    } catch (err) {
-      console.error(err);
-      throw err; // let FormModal surface the error
-    }
+    if (formMode === 'create') await apiClient.post('/sales/coupons/', payload);
+    else await apiClient.put(`/sales/coupons/${selectedCoupon.id}/`, payload);
+    await fetchCoupons();
   };
 
   const handleFormDelete = async (id) => {
-    try {
-      await apiClient.delete(`/sales/coupons/${id}/`);
-      setShowForm(false);
-      fetchCoupons();
-    } catch (err) {
-      console.error(err);
-      throw err;
-    }
+    await apiClient.delete(`/sales/coupons/${id}/`);
+    await fetchCoupons();
   };
 
   /* ── Table data ───────────────────────────────────────────── */

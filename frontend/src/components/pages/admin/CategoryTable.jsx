@@ -82,28 +82,18 @@ const CategoryTable = () => {
         data.append(k, formData[k]);
       }
     });
-    try {
-      /* NEW CATEOGORY ENTRY */
-      if (formMode === 'create') await apiClient.post('/catalog/categories/', data);
-      /* EXISTING CATEOGORY EDIT ENTRY */
-      else await apiClient.patch(`/catalog/categories/${selectedCategory.id}/`, data);
-      setShowForm(false);
-      /* FETCH THE CATEOGORIES AFTER A NEW ENTRY OR AN EDIT FOR AN EXISTING ENTRY */
-      fetchCategories();
-    } catch (err) {
-      console.error(err);
-    }
+    /* NEW CATEOGORY ENTRY */
+    if (formMode === 'create') await apiClient.post('/catalog/categories/', data);
+    /* EXISTING CATEOGORY EDIT ENTRY */
+    else await apiClient.patch(`/catalog/categories/${selectedCategory.id}/`, data);
+    /* FETCH THE CATEOGORIES AFTER A NEW ENTRY OR AN EDIT FOR AN EXISTING ENTRY */
+    await fetchCategories();
   };
   /* delete a particular cateogory */
   const handleFormDelete = async (id) => {
-    try {
-      await apiClient.delete(`/catalog/categories/${id}/`);
-      setShowForm(false);
-      /* fetch the cateogories after deleting one */
-      fetchCategories();
-    } catch (err) {
-      console.error(err);
-    }
+    await apiClient.delete(`/catalog/categories/${id}/`);
+    /* fetch the cateogories after deleting one */
+    await fetchCategories();
   };
 
   /*  */
