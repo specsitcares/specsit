@@ -746,9 +746,9 @@
 
 .lsa-pkg__top {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 16px;
 }
 
 .lsa-pkg__info {
@@ -756,16 +756,63 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
 }
 
 .lsa-pkg__name {
     margin: 0;
     font-family: 'Plus Jakarta Sans', sans-serif;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 700;
-    color: #040205;
-    line-height: 20px;
+    color: #1D2939;
+    line-height: 18px;
+}
+
+.lsa-pkg__side {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.lsa-pkg__index {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    color: #6941C6;
+    background: #F4EBFF;
+    border-radius: 5px;
+    padding: 2px 8px;
+    white-space: nowrap;
+}
+
+.lsa-pkg__range-table {
+    border-collapse: collapse;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+.lsa-pkg__range-table th {
+    font-size: 9px;
+    font-weight: 600;
+    color: #98A2B3;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    padding: 2px 10px;
+    text-align: center;
+}
+
+.lsa-pkg__range-table td {
+    font-size: 11px;
+    font-weight: 600;
+    color: #344054;
+    padding: 2px 10px;
+    text-align: center;
+}
+
+.lsa-pkg__range-table .lsa-pkg__range-rl {
+    color: #6941C6;
+    font-weight: 700;
 }
 
 .lsa-pkg__features {
@@ -782,15 +829,15 @@
     align-items: center;
     gap: 6px;
     font-family: 'Plus Jakarta Sans', sans-serif;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 500;
-    color: #4D4D56;
+    color: #667085;
     line-height: 15px;
 }
 
 .lsa-pkg__features li.lsa-pkg__feature-warranty {
-    font-weight: 700;
-    color: #68408D;
+    font-weight: 600;
+    color: #6941C6;
 }
 
 .lsa-pkg__range-box {
@@ -798,6 +845,31 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 3px;
+}
+
+.lsa-pkg__range-tabs {
+    display: inline-flex;
+    background: #F0EDF4;
+    border-radius: 6px;
+    padding: 2px;
+    margin-bottom: 2px;
+}
+
+.lsa-pkg__range-tab {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    color: #71717A;
+    padding: 3px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s, color 0.15s;
+}
+
+.lsa-pkg__range-tab--active {
+    background: #68408D;
+    color: #FEFCFF;
 }
 
 .lsa-pkg__range-label {
@@ -841,9 +913,9 @@
 
 .lsa-pkg__price-label {
     font-family: 'Plus Jakarta Sans', sans-serif;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 500;
-    color: #71717A;
+    color: #98A2B3;
 }
 
 .lsa-pkg__prices {
@@ -854,16 +926,16 @@
 
 .lsa-pkg__price {
     font-family: 'Plus Jakarta Sans', sans-serif;
-    font-size: 18px;
+    font-size: 15px;
     font-weight: 700;
-    color: #68408D;
+    color: #6941C6;
 }
 
 .lsa-pkg__mrp {
     font-family: 'Plus Jakarta Sans', sans-serif;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 400;
-    color: #71717A;
+    color: #98A2B3;
     text-decoration: line-through;
 }
 

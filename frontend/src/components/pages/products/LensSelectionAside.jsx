@@ -182,7 +182,7 @@ const LensPreview = ({ src }) => (
 /* ════════════════════════════════════════════════════════
    LENS PACKAGE CARD (Figma 61:33044)
    ════════════════════════════════════════════════════════ */
-const LensPackageCard = ({ pkg, selected, onSelect, productBasePrice = 0, topRated }) => {
+const LensPackageCard = ({ pkg, selected, onSelect, productBasePrice = 0 }) => {
     const features = (Array.isArray(pkg.features) ? pkg.features : []).slice(0, 3);
     const lensPrice = Math.round(parseFloat(pkg.price || 0));
     const mrpRaw = Math.round(parseFloat(pkg.mrp_price || pkg.original_price || 0));
@@ -193,18 +193,19 @@ const LensPackageCard = ({ pkg, selected, onSelect, productBasePrice = 0, topRat
         ? `${Math.round(months / 12)} Year Warranty`
         : months > 0 ? `${months} Month Warranty` : null;
 
-    // Supported power range for this lens (signed, 2dp e.g. "-6.00 to +4.00")
+    // Power ranges (signed, 2dp). SPH = min/max_power, CYL = cyl_min/cyl_max.
     const fmtPow = v => { const n = Number(v); return Number.isFinite(n) ? `${n > 0 ? '+' : ''}${n.toFixed(2)}` : null; };
-    const minP = fmtPow(pkg.min_power);
-    const maxP = fmtPow(pkg.max_power);
-    const hasRange = minP != null && maxP != null;
+    const sphMin = fmtPow(pkg.min_power), sphMax = fmtPow(pkg.max_power);
+    const cylMin = fmtPow(pkg.cyl_min), cylMax = fmtPow(pkg.cyl_max);
+    const hasSph = sphMin != null && sphMax != null;
+    const hasCyl = cylMin != null && cylMax != null;
+    const lensIndex = pkg.index || pkg.index_value || null;
 
     return (
         <button
             className={`lsa-pkg${selected ? ' lsa-pkg--selected' : ''}`}
             onClick={() => onSelect(pkg.id)}
         >
-            {topRated && <span className="lsa-pkg__badge">Top Rated</span>}
             <LensPreview src={pkg.image} />
             <div className="lsa-pkg__main">
                 <div className="lsa-pkg__top">
@@ -219,14 +220,28 @@ const LensPackageCard = ({ pkg, selected, onSelect, productBasePrice = 0, topRat
                             </ul>
                         )}
                     </div>
-                </div>
-                <div className="lsa-pkg__price-row">
-                    {hasRange && (
-                        <div className="lsa-pkg__range-box">
-                            <span className="lsa-pkg__range-label">Power Range</span>
-                            <span className="lsa-pkg__range">{minP} to {maxP}</span>
+                    {(lensIndex || hasSph || hasCyl) && (
+                        <div className="lsa-pkg__side">
+                            {lensIndex && <span className="lsa-pkg__index">Index {lensIndex}</span>}
+                            {(hasSph || hasCyl) && (
+                                <table className="lsa-pkg__range-table">
+                                    <thead>
+                                        <tr><th /><th>Min</th><th>Max</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        {hasSph && (
+                                            <tr><td className="lsa-pkg__range-rl">SPH</td><td>{sphMin}</td><td>{sphMax}</td></tr>
+                                        )}
+                                        {hasCyl && (
+                                            <tr><td className="lsa-pkg__range-rl">CYL</td><td>{cylMin}</td><td>{cylMax}</td></tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            )}
                         </div>
                     )}
+                </div>
+                <div className="lsa-pkg__price-row">
                     <div className="lsa-pkg__price-stack">
                         <span className="lsa-pkg__price-label">Lens Price</span>
                         <div className="lsa-pkg__prices">
@@ -278,7 +293,6 @@ const BrandAccordion = ({ brand, selectedLens, onSelectLens, productBasePrice, d
                             selected={selectedLens === pkg.id}
                             onSelect={onSelectLens}
                             productBasePrice={productBasePrice}
-                            topRated={i === 0}
                         />
                     ))}
                     {brand.lenses.length > 2 && (
