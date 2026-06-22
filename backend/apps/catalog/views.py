@@ -222,7 +222,23 @@ class ProductViewSet(viewsets.ModelViewSet):
         except Product.DoesNotExist:
             return Response([])
 
-        lenses = Lens.objects.filter(is_active=True).select_related('package', 'brand', 'type')
+        lenses = Lens.objects.filter(is_active=True).select_related('package', 'brand', 'type', 'type__group')
+
+        # Contact lenses are a separate product line (metadata group "Contact Lens Type").
+        # They must NEVER appear inside an eyeglasses/sunglasses frame PDP.
+        lenses = lenses.exclude(type__group__name__iexact='Contact Lens Type')
+
+        # Segregate by frame type: a sunglasses frame shows only lenses flagged for
+        # sunglasses; every other frame (eyeglasses, computer, etc.) shows lenses
+        # flagged for eyeglasses. Sunglasses-ness is derived from the product category.
+        category = product.category
+        cat_name = (getattr(category, 'name', '') or '').lower()
+        parent_name = (getattr(getattr(category, 'parent', None), 'name', '') or '').lower()
+        is_sunglasses = 'sunglass' in cat_name or 'sunglass' in parent_name
+        if is_sunglasses:
+            lenses = lenses.filter(is_for_sunglasses=True)
+        else:
+            lenses = lenses.filter(is_for_eyeglasses=True)
 
         # Filter by lens type (MetadataItem ID) if provided
         lens_type_id = request.query_params.get('type')
