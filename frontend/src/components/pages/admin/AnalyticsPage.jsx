@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   TrendingUp, TrendingDown, ShoppingBag, ShoppingCart,
-  DollarSign, Package, ChevronDown, MoreVertical, RefreshCw
+  DollarSign, Package, ChevronDown, RefreshCw
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
@@ -503,7 +503,6 @@ const AnalyticsPage = () => {
                   </div>
                   <span className="ao-kpi-label">Abandonment Rate</span>
                 </div>
-                <button className="ao-kpi-menu"><MoreVertical size={18} /></button>
               </div>
               <div className="ao-kpi-value">{ac.abandonmentRate?.value ?? 68.4}%</div>
               {(() => {
@@ -600,7 +599,6 @@ const AnalyticsPage = () => {
                   <div key={label} className="tc-kpi-card">
                     <div className="tc-kpi-top">
                       <div className="tc-kpi-icon"><ShoppingBag size={22} /></div>
-                      <MoreVertical size={18} className="tc-kpi-menu" />
                     </div>
                     <span className="tc-kpi-label">{label}</span>
                     <div className="tc-kpi-bottom">
@@ -742,7 +740,6 @@ const AnalyticsPage = () => {
                   <div key={label} className="tc-kpi-card">
                     <div className="tc-kpi-top">
                       <div className="tc-kpi-icon"><ShoppingBag size={22} /></div>
-                      <MoreVertical size={18} className="tc-kpi-menu" />
                     </div>
                     <span className="tc-kpi-label">{label}</span>
                     <div className="tc-kpi-bottom">
@@ -917,7 +914,6 @@ const KpiCard = ({ icon, iconBg, label, value, trend, trendLabel, subLine, subPr
           <div className="ao-kpi-icon" style={{ background: iconBg }}>{icon}</div>
           <span className="ao-kpi-label">{label}</span>
         </div>
-        <button className="ao-kpi-menu"><MoreVertical size={18} /></button>
       </div>
 
       <div className="ao-kpi-value">{value}</div>

@@ -17,6 +17,9 @@ import assureFreeShipping from '../../../assets/pdp/assure-free-shipping.svg';
 import assureWarranty from '../../../assets/pdp/assure-warranty.svg';
 import assureReturns from '../../../assets/pdp/assure-returns.svg';
 import ctaWand from '../../../assets/pdp/cta-wand.svg';
+import dimTemple from '../../../assets/pdp/dim-temple.png';
+import dimLens from '../../../assets/pdp/dim-lens.png';
+import dimBridge from '../../../assets/pdp/dim-bridge.png';
 import '../../../styles/ProductDetailPage.css';
 
 const ProductDetailPage = () => {
@@ -215,6 +218,30 @@ const ProductDetailPage = () => {
         { label: 'Lens Height', value: fmtDim(sizeDims.lens_height, product.frame_height) },
     ];
 
+    // ── Frame Dimensions diagram row (Figma: Temple Size · Lens Width · Bridge) ──
+    const frameDims = [
+        { label: 'Temple Size', value: fmtDim(sizeDims.temple_length, selectedVariantObj?.temple_length), img: dimTemple },
+        { label: 'Lens Width', value: fmtDim(sizeDims.lens_width, selectedVariantObj?.lens_width, product.frame_width), img: dimLens },
+        { label: 'Bridge', value: fmtDim(sizeDims.bridge_length, selectedVariantObj?.bride_lentgh), img: dimBridge },
+    ];
+
+    // ── Product Specifications grid — pull from variant first, then product;
+    //    only keep fields that actually carry a value so the grid never shows blanks ──
+    const v = selectedVariantObj || {};
+    const productSpecs = [
+        { label: 'SKU', value: v.sku || product.sku },
+        { label: 'Brand', value: product.brand_name },
+        { label: 'Gender', value: product.gender },
+        { label: 'Frame Size', value: selectedSize || product.frame_size },
+        { label: 'Frame Color', value: v.frame_color || v.color || selectedColor || product.frame_color },
+        { label: 'Lens Color', value: v.lens_color },
+        { label: 'Frame Material', value: v.frame_material || product.frame_material },
+        { label: 'Frame Shape', value: product.frame_shape },
+        { label: 'Frame Type', value: product.frame_type },
+        { label: 'Frame Style', value: product.frame_style },
+        { label: 'Lens Type', value: product.lens_type },
+    ].filter(s => s.value != null && String(s.value).trim() !== '' && String(s.value) !== '—');
+
     // ── Variant-aware pricing — cascading: variant.selling_price → variant.discount_percent → product.selling_price → product.discount_percentage
     const mrp = Math.round(parseFloat(selectedVariantObj?.base_price || product.base_price || 0));
     const variantSelling = parseFloat(selectedVariantObj?.selling_price || 0);
@@ -309,52 +336,39 @@ const ProductDetailPage = () => {
                         </div>
                     </section>
 
-                    <section className="pd-features-section reveal-on-scroll">
-                        <div className="pd-section-header">
-                            <h2>What’s Everything included</h2>
-                            <div className="pd-section-subhead">
-                                <p>We also offer progressive, blue-light-filtering, and anti-fatigue lenses—plus more!</p>
-                                <button className="pd-text-link">View all lens types</button>
-                            </div>
-                        </div>
-                        <div className="pd-features-grid">
-                            <div className="pd-feature-card">
-                                <div className="pd-feature-icon"><Layers size={24} /></div>
-                                <div className="pd-feature-info">
-                                    <h4>Polycarbonate lenses</h4>
-                                    <p>The most impact-resistant lens material for glasses</p>
-                                </div>
-                            </div>
-                            <div className="pd-feature-card">
-                                <div className="pd-feature-icon"><Zap size={24} /></div>
-                                <div className="pd-feature-info">
-                                    <h4>Scratch-resistant lens coating</h4>
-                                    <p>And our lenses block 100% of UV rays :-)</p>
-                                </div>
-                            </div>
-                            <div className="pd-feature-card">
-                                <div className="pd-feature-icon"><Truck size={24} /></div>
-                                <div className="pd-feature-info">
-                                    <h4>Free shipping</h4>
-                                    <p>On every single order at Specsit Optics</p>
-                                </div>
-                            </div>
-                            <div className="pd-feature-card">
-                                <div className="pd-feature-icon"><RefreshCw size={24} /></div>
-                                <div className="pd-feature-info">
-                                    <h4>Free returns or exchanges</h4>
-                                    <p>Within 30 days of purchase</p>
-                                </div>
-                            </div>
-                            <div className="pd-feature-card">
-                                <div className="pd-feature-icon"><ShieldCheck size={24} /></div>
-                                <div className="pd-feature-info">
-                                    <h4>Free scratched lens replacement</h4>
-                                    <p>Guaranteed for prescription lenses within six months of purchase</p>
-                                </div>
-                            </div>
+                    {/* ── Frame Dimensions ── */}
+                    <section className="pd-dimensions-section reveal-on-scroll">
+                        <h3 className="pd-spec-heading">Frame Dimensions</h3>
+                        <div className="pd-dimensions-row">
+                            {frameDims.map((d, i) => (
+                                <React.Fragment key={d.label}>
+                                    {i > 0 && <span className="pd-dim-divider" />}
+                                    <div className="pd-dim-item">
+                                        <img src={d.img} alt="" className="pd-dim-img" />
+                                        <div className="pd-dim-text">
+                                            <span className="pd-dim-label">{d.label}</span>
+                                            <span className="pd-dim-value">{d.value}</span>
+                                        </div>
+                                    </div>
+                                </React.Fragment>
+                            ))}
                         </div>
                     </section>
+
+                    {/* ── Product Specifications ── */}
+                    {productSpecs.length > 0 && (
+                        <section className="pd-specs-section reveal-on-scroll">
+                            <h3 className="pd-spec-heading">Product Specifications</h3>
+                            <div className="pd-specs-card">
+                                {productSpecs.map(s => (
+                                    <div key={s.label} className="pd-spec-cell">
+                                        <span className="pd-spec-label">{s.label}</span>
+                                        <span className="pd-spec-value">{s.value}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+                    )}
 
                 </div>
 
