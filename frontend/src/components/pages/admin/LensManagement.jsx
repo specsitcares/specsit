@@ -69,6 +69,7 @@ const LensManagement = ({ editLensId = null }) => {
     features: [], constraints: [], pricing_mode: 'package',
     brand: '', categories: selectedCategoryId ? [selectedCategoryId] : [], cost_price: 0, selling_price: '',
     warranty_months: 0, min_power: '-6.0', max_power: '+4.0',
+    is_for_eyeglasses: true, is_for_sunglasses: false,  // which frame type this lens applies to
     image: null,        // newly picked File
     image_url: '',      // existing image URL (edit mode preview)
   };
@@ -159,6 +160,8 @@ const LensManagement = ({ editLensId = null }) => {
       warranty_months: selectedLens.package_warranty_months || 0,
       min_power:       selectedLens.min_power ?? '-6.0',
       max_power:       selectedLens.max_power ?? '+4.0',
+      is_for_eyeglasses: selectedLens.is_for_eyeglasses ?? true,
+      is_for_sunglasses: selectedLens.is_for_sunglasses ?? false,
       image:           null,
       image_url:       selectedLens.image || '',
     });
@@ -197,6 +200,8 @@ const LensManagement = ({ editLensId = null }) => {
       warranty_months: lens.package_warranty_months || 0,
       min_power:       lens.min_power ?? '-6.0',
       max_power:       lens.max_power ?? '+4.0',
+      is_for_eyeglasses: lens.is_for_eyeglasses ?? true,
+      is_for_sunglasses: lens.is_for_sunglasses ?? false,
       image:           null,
       image_url:       lens.image || '',
     });
@@ -223,6 +228,8 @@ const LensManagement = ({ editLensId = null }) => {
       constraint_ids:          editFormData.constraints.map(c => c.id || c),
       min_power:               editFormData.min_power,
       max_power:               editFormData.max_power,
+      is_for_eyeglasses:       !!editFormData.is_for_eyeglasses,
+      is_for_sunglasses:       !!editFormData.is_for_sunglasses,
     };
     try {
       let lensId;
@@ -275,6 +282,8 @@ const LensManagement = ({ editLensId = null }) => {
         constraint_ids:          (lens.constraints || []).map(c => c.id || c),
         min_power:               lens.min_power ?? '-6.0',
         max_power:               lens.max_power ?? '+4.0',
+        is_for_eyeglasses:       lens.is_for_eyeglasses ?? true,
+        is_for_sunglasses:       lens.is_for_sunglasses ?? false,
       });
       await fetchData();
     } catch (err) {
@@ -941,6 +950,24 @@ const LensManagement = ({ editLensId = null }) => {
                       onChange={e => handlePackageFieldChange('max_power', e.target.value)}
                       placeholder="+4.00" />
                   </div>
+                </div>
+                <div className="lm-form-group">
+                  <label className="lm-form-label">Applies to</label>
+                  <div className="lm-chip-list">
+                    <button
+                      type="button"
+                      className={`lm-chip ${editFormData.is_for_eyeglasses ? 'active' : ''}`}
+                      onClick={() => handlePackageFieldChange('is_for_eyeglasses', !editFormData.is_for_eyeglasses)}
+                    >Eyeglasses</button>
+                    <button
+                      type="button"
+                      className={`lm-chip ${editFormData.is_for_sunglasses ? 'active' : ''}`}
+                      onClick={() => handlePackageFieldChange('is_for_sunglasses', !editFormData.is_for_sunglasses)}
+                    >Sunglasses</button>
+                  </div>
+                  <p style={{ fontSize: 11, color: '#71717A', margin: '6px 0 0' }}>
+                    Controls which frame PDPs show this lens. Contact lenses are managed separately.
+                  </p>
                 </div>
               </div>
 
