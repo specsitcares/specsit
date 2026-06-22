@@ -196,7 +196,7 @@ class LensSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'image', 'package', 'package_name', 'description', 'features',
             'type', 'price', 'index', 'index_value', 'is_active', 'is_for_sunglasses', 'is_for_eyeglasses',
-            'min_power', 'max_power',
+            'min_power', 'max_power', 'cyl_min', 'cyl_max',
             'brand', 'category_ids', 'package_cost_price', 'package_selling_price', 'package_warranty_months',
             'constraints', 'constraint_ids',
             'power_type', 'base_curve', 'replacement', 'material', 'water_content', 'dkt', 'colors', 'lenses_per_box',

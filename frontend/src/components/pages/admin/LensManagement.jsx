@@ -68,7 +68,7 @@ const LensManagement = ({ editLensId = null }) => {
     name: '', description: '', index: '1.5', is_active: true,
     features: [], constraints: [], pricing_mode: 'package',
     brand: '', categories: selectedCategoryId ? [selectedCategoryId] : [], cost_price: 0, selling_price: '',
-    warranty_months: 0, min_power: '-6.0', max_power: '+4.0',
+    warranty_months: 0, min_power: '-6.0', max_power: '+4.0', cyl_min: '-6.0', cyl_max: '0.0',
     is_for_eyeglasses: true, is_for_sunglasses: false,  // which frame type this lens applies to
     image: null,        // newly picked File
     image_url: '',      // existing image URL (edit mode preview)
@@ -160,6 +160,8 @@ const LensManagement = ({ editLensId = null }) => {
       warranty_months: selectedLens.package_warranty_months || 0,
       min_power:       selectedLens.min_power ?? '-6.0',
       max_power:       selectedLens.max_power ?? '+4.0',
+      cyl_min:         selectedLens.cyl_min ?? '-6.0',
+      cyl_max:         selectedLens.cyl_max ?? '0.0',
       is_for_eyeglasses: selectedLens.is_for_eyeglasses ?? true,
       is_for_sunglasses: selectedLens.is_for_sunglasses ?? false,
       image:           null,
@@ -200,6 +202,8 @@ const LensManagement = ({ editLensId = null }) => {
       warranty_months: lens.package_warranty_months || 0,
       min_power:       lens.min_power ?? '-6.0',
       max_power:       lens.max_power ?? '+4.0',
+      cyl_min:         lens.cyl_min ?? '-6.0',
+      cyl_max:         lens.cyl_max ?? '0.0',
       is_for_eyeglasses: lens.is_for_eyeglasses ?? true,
       is_for_sunglasses: lens.is_for_sunglasses ?? false,
       image:           null,
@@ -228,6 +232,8 @@ const LensManagement = ({ editLensId = null }) => {
       constraint_ids:          editFormData.constraints.map(c => c.id || c),
       min_power:               editFormData.min_power,
       max_power:               editFormData.max_power,
+      cyl_min:                 editFormData.cyl_min,
+      cyl_max:                 editFormData.cyl_max,
       is_for_eyeglasses:       !!editFormData.is_for_eyeglasses,
       is_for_sunglasses:       !!editFormData.is_for_sunglasses,
     };
@@ -282,6 +288,8 @@ const LensManagement = ({ editLensId = null }) => {
         constraint_ids:          (lens.constraints || []).map(c => c.id || c),
         min_power:               lens.min_power ?? '-6.0',
         max_power:               lens.max_power ?? '+4.0',
+        cyl_min:                 lens.cyl_min ?? '-6.0',
+        cyl_max:                 lens.cyl_max ?? '0.0',
         is_for_eyeglasses:       lens.is_for_eyeglasses ?? true,
         is_for_sunglasses:       lens.is_for_sunglasses ?? false,
       });
@@ -937,19 +945,41 @@ const LensManagement = ({ editLensId = null }) => {
                 </div>
                   );
                 })()}
-                <div className="lm-form-row-2">
-                  <div className="lm-form-group">
-                    <label className="lm-form-label">Min Power</label>
-                    <input className="lm-form-input" value={editFormData.min_power}
-                      onChange={e => handlePackageFieldChange('min_power', e.target.value)}
-                      placeholder="-6.00" />
-                  </div>
-                  <div className="lm-form-group">
-                    <label className="lm-form-label">Max Power</label>
-                    <input className="lm-form-input" value={editFormData.max_power}
-                      onChange={e => handlePackageFieldChange('max_power', e.target.value)}
-                      placeholder="+4.00" />
-                  </div>
+                <div className="lm-form-group">
+                  <label className="lm-form-label">Power Range (Dioptres)</label>
+                  <table className="lm-power-table">
+                    <thead>
+                      <tr>
+                        <th />
+                        <th>Min</th>
+                        <th>Max</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td className="lm-power-table__label">Spherical (SPH)</td>
+                        <td>
+                          <input className="lm-form-input" value={editFormData.min_power}
+                            onChange={e => handlePackageFieldChange('min_power', e.target.value)} placeholder="-6.00" />
+                        </td>
+                        <td>
+                          <input className="lm-form-input" value={editFormData.max_power}
+                            onChange={e => handlePackageFieldChange('max_power', e.target.value)} placeholder="+4.00" />
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="lm-power-table__label">Cylindrical (CYL)</td>
+                        <td>
+                          <input className="lm-form-input" value={editFormData.cyl_min}
+                            onChange={e => handlePackageFieldChange('cyl_min', e.target.value)} placeholder="-6.00" />
+                        </td>
+                        <td>
+                          <input className="lm-form-input" value={editFormData.cyl_max}
+                            onChange={e => handlePackageFieldChange('cyl_max', e.target.value)} placeholder="0.00" />
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
                 <div className="lm-form-group">
                   <label className="lm-form-label">Applies to</label>
