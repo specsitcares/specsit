@@ -5,8 +5,6 @@ import rxManualImg from '../../../assets/lens/rx-manual.png';
 import rxUploadImg from '../../../assets/lens/rx-upload.png';
 import rxLaterImg from '../../../assets/lens/rx-later.png';
 import lensPreviewImg from '../../../assets/lens/lens-preview.png';
-import featureShieldIcon from '../../../assets/lens/feature-shield.svg';
-import warrantyBadgeIcon from '../../../assets/lens/warranty-icon.svg';
 
 /* ════════════════════════════════════════════════════════
    ICONS
@@ -175,15 +173,9 @@ const groupLensesByBrandAndPackage = (lenses) => {
 /* ════════════════════════════════════════════════════════
    LENS PREVIEW — SVG placeholder (no expiring URLs)
    ════════════════════════════════════════════════════════ */
-const LensPreview = ({ src, warranty }) => (
+const LensPreview = ({ src }) => (
     <div className="lsa-lens-preview">
         <img className="lsa-lens-preview__img" src={src || lensPreviewImg} alt="" />
-        {warranty && (
-            <div className="lsa-lens-preview__warranty">
-                <img src={warrantyBadgeIcon} alt="" />
-                <span>{warranty}</span>
-            </div>
-        )}
     </div>
 );
 
@@ -201,39 +193,47 @@ const LensPackageCard = ({ pkg, selected, onSelect, productBasePrice = 0, topRat
         ? `${Math.round(months / 12)} Year Warranty`
         : months > 0 ? `${months} Month Warranty` : null;
 
+    // Supported power range for this lens (signed, 2dp e.g. "-6.00 to +4.00")
+    const fmtPow = v => { const n = Number(v); return Number.isFinite(n) ? `${n > 0 ? '+' : ''}${n.toFixed(2)}` : null; };
+    const minP = fmtPow(pkg.min_power);
+    const maxP = fmtPow(pkg.max_power);
+    const hasRange = minP != null && maxP != null;
+
     return (
         <button
             className={`lsa-pkg${selected ? ' lsa-pkg--selected' : ''}`}
             onClick={() => onSelect(pkg.id)}
         >
             {topRated && <span className="lsa-pkg__badge">Top Rated</span>}
-            <LensPreview src={pkg.image} warranty={warranty} />
+            <LensPreview src={pkg.image} />
             <div className="lsa-pkg__main">
                 <div className="lsa-pkg__top">
                     <div className="lsa-pkg__info">
                         <h4 className="lsa-pkg__name">{pkg.package_name || pkg.name}</h4>
-                        {features.length > 0 && (
+                        {(features.length > 0 || warranty) && (
                             <ul className="lsa-pkg__features">
                                 {features.map((f, i) => (
-                                    <li key={i}><img src={featureShieldIcon} alt="" />{f}</li>
+                                    <li key={i}>{f}</li>
                                 ))}
+                                {warranty && <li className="lsa-pkg__feature-warranty">{warranty}</li>}
                             </ul>
                         )}
                     </div>
-                    <span className="lsa-pkg__arrow" aria-hidden="true">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                            <path d="M9 6l6 6-6 6" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                    </span>
                 </div>
                 <div className="lsa-pkg__price-row">
-                    {coupon ? <span className="lsa-pkg__coupon">Coupon : {coupon}</span> : <span />}
+                    {hasRange && (
+                        <div className="lsa-pkg__range-box">
+                            <span className="lsa-pkg__range-label">Power Range</span>
+                            <span className="lsa-pkg__range">{minP} to {maxP}</span>
+                        </div>
+                    )}
                     <div className="lsa-pkg__price-stack">
                         <span className="lsa-pkg__price-label">Lens Price</span>
                         <div className="lsa-pkg__prices">
                             <span className="lsa-pkg__price">₹{lensPrice.toLocaleString('en-IN')}</span>
                             {mrp && <span className="lsa-pkg__mrp">₹{mrp.toLocaleString('en-IN')}</span>}
                         </div>
+                        {coupon && <span className="lsa-pkg__coupon">Coupon : {coupon}</span>}
                     </div>
                 </div>
             </div>
