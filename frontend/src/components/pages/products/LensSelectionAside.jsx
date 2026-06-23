@@ -193,12 +193,7 @@ const LensPackageCard = ({ pkg, selected, onSelect, productBasePrice = 0 }) => {
         ? `${Math.round(months / 12)} Year Warranty`
         : months > 0 ? `${months} Month Warranty` : null;
 
-    // Power ranges (signed, 2dp). SPH = min/max_power, CYL = cyl_min/cyl_max.
-    const fmtPow = v => { const n = Number(v); return Number.isFinite(n) ? `${n > 0 ? '+' : ''}${n.toFixed(2)}` : null; };
-    const sphMin = fmtPow(pkg.min_power), sphMax = fmtPow(pkg.max_power);
-    const cylMin = fmtPow(pkg.cyl_min), cylMax = fmtPow(pkg.cyl_max);
-    const hasSph = sphMin != null && sphMax != null;
-    const hasCyl = cylMin != null && cylMax != null;
+    // Power ranges (SPH/CYL min-max) are an admin-only detail — not shown to customers.
     const lensIndex = pkg.index || pkg.index_value || null;
 
     return (
@@ -220,24 +215,9 @@ const LensPackageCard = ({ pkg, selected, onSelect, productBasePrice = 0 }) => {
                             </ul>
                         )}
                     </div>
-                    {(lensIndex || hasSph || hasCyl) && (
+                    {lensIndex && (
                         <div className="lsa-pkg__side">
-                            {lensIndex && <span className="lsa-pkg__index">Index {lensIndex}</span>}
-                            {(hasSph || hasCyl) && (
-                                <table className="lsa-pkg__range-table">
-                                    <thead>
-                                        <tr><th /><th>Min</th><th>Max</th></tr>
-                                    </thead>
-                                    <tbody>
-                                        {hasSph && (
-                                            <tr><td className="lsa-pkg__range-rl">SPH</td><td>{sphMin}</td><td>{sphMax}</td></tr>
-                                        )}
-                                        {hasCyl && (
-                                            <tr><td className="lsa-pkg__range-rl">CYL</td><td>{cylMin}</td><td>{cylMax}</td></tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            )}
+                            <span className="lsa-pkg__index">Index {lensIndex}</span>
                         </div>
                     )}
                 </div>

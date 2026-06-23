@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from decimal import Decimal
-from .models import Category, Brand, Manufacturer, Product, Variant, VariantImage, Collection, LensPackage, Lens, Prescription, UserFace, Review, LensConstraint, MetadataItem
+from .models import Category, Brand, Manufacturer, Product, Variant, VariantImage, Collection, LensPackage, Lens, ContactLens, Prescription, UserFace, Review, LensConstraint, MetadataItem
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -281,6 +281,76 @@ class LensSerializer(serializers.ModelSerializer):
             instance.package.categories.set(category_ids)
         if constraint_ids is not None:
             instance.constraints.set(constraint_ids)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
+
+class ContactLensSerializer(serializers.ModelSerializer):
+    type = serializers.PrimaryKeyRelatedField(queryset=MetadataItem.objects.all(), required=False)
+    package_name = serializers.CharField(required=False)
+    description = serializers.CharField(required=False, allow_blank=True)
+    package_cost_price = serializers.DecimalField(max_digits=12, decimal_places=2, required=False)
+    package_selling_price = serializers.DecimalField(max_digits=12, decimal_places=2, required=False)
+
+    class Meta:
+        model = ContactLens
+        fields = [
+            'id', 'name', 'image', 'package', 'package_name', 'description',
+            'type', 'price', 'is_active', 'min_power', 'max_power', 'brand',
+            'package_cost_price', 'package_selling_price',
+            'power_type', 'base_curve', 'replacement', 'material', 'water_content',
+            'dkt', 'colors', 'lenses_per_box',
+        ]
+        extra_kwargs = {'package': {'read_only': True}}
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if instance.package:
+            data['package_name'] = instance.package.name
+            data['description'] = instance.package.description
+            data['package_cost_price'] = float(instance.package.cost_price or 0)
+            data['package_selling_price'] = float(instance.package.selling_price or 0)
+        if instance.brand:
+            data['brand_name'] = instance.brand.name
+            data['brand_tagline'] = instance.brand.label or instance.brand.description or ''
+            try:
+                data['brand_logo'] = instance.brand.logo.url if instance.brand.logo else None
+            except Exception:
+                data['brand_logo'] = None
+        if instance.type:
+            data['type_label'] = instance.type.label
+        return data
+
+    def create(self, validated_data):
+        package_name = validated_data.pop('package_name', 'Basic')
+        description = validated_data.pop('description', '')
+        cost_price = validated_data.pop('package_cost_price', None)
+        selling_price = validated_data.pop('package_selling_price', None)
+        defaults = {'description': description}
+        if cost_price is not None:
+            defaults['cost_price'] = cost_price
+        if selling_price is not None:
+            defaults['selling_price'] = selling_price
+        package, _ = LensPackage.objects.get_or_create(name=package_name, defaults=defaults)
+        return ContactLens.objects.create(package=package, **validated_data)
+
+    def update(self, instance, validated_data):
+        package_name = validated_data.pop('package_name', None)
+        description = validated_data.pop('description', None)
+        cost_price = validated_data.pop('package_cost_price', None)
+        selling_price = validated_data.pop('package_selling_price', None)
+        if package_name or description is not None or selling_price is not None or cost_price is not None:
+            package = instance.package
+            if package_name:
+                package.name = package_name
+            if description is not None:
+                package.description = description
+            if cost_price is not None:
+                package.cost_price = cost_price
+            if selling_price is not None:
+                package.selling_price = selling_price
+            package.save()
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()

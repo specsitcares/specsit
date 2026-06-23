@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import apiClient from '../../../services/api';
 import { ProductCard } from '../home/NewArrivals';
+import ContactLensListingPage from './ContactLensListingPage';
 import '../../../styles/products.css';
 import '../../../styles/ProductCard.css';
 
@@ -300,6 +301,12 @@ const ProductListingPage = () => {
     };
 
     const appliedPills = getAppliedPills();
+
+    // Contact lenses are a separate product line (Lens objects, not frame Products).
+    // Hand off to the dedicated page so they never mix with spectacle lenses/frames.
+    if (/contact/.test(categorySlug)) {
+        return <ContactLensListingPage />;
+    }
 
     return (
         <div className="product-listing-page" data-name="Body">

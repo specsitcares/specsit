@@ -2,11 +2,11 @@ from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .models import Category, Brand, Manufacturer, Product, Variant, VariantImage, Collection, LensPackage, Lens, Prescription, UserFace, Review, LensConstraint
+from .models import Category, Brand, Manufacturer, Product, Variant, VariantImage, Collection, LensPackage, Lens, ContactLens, Prescription, UserFace, Review, LensConstraint
 from .serializers import (
     CategorySerializer, BrandSerializer, ManufacturerSerializer,
     ProductSerializer, VariantSerializer, CollectionSerializer,
-    LensPackageSerializer, LensSerializer, PrescriptionSerializer, UserFaceSerializer,
+    LensPackageSerializer, LensSerializer, ContactLensSerializer, PrescriptionSerializer, UserFaceSerializer,
     ReviewSerializer, VariantImageSerializer, LensConstraintSerializer
 )
 from decimal import Decimal
@@ -694,6 +694,22 @@ class LensViewSet(viewsets.ModelViewSet):
                 qs = qs.filter(constraint__name__iexact=constraint)
 
         return qs
+
+class ContactLensViewSet(viewsets.ModelViewSet):
+    """Contact lenses only — a separate table from spectacle Lenses."""
+    serializer_class = ContactLensSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get_queryset(self):
+        params = self.request.query_params
+        qs = ContactLens.objects.select_related('package', 'type', 'brand').all()
+
+        # Hide inactive lenses for customers. Staff in admin context/actions sees everything.
+        is_staff = self.request.user.is_staff
+        is_admin_query = params.get('admin') == 'true'
+        if not (is_staff and (is_admin_query or self.action in ['partial_update', 'update', 'destroy'])):
+            qs = qs.filter(is_active=True)
+        return qs.order_by('id')
 
 class PrescriptionViewSet(viewsets.ModelViewSet):
     serializer_class = PrescriptionSerializer

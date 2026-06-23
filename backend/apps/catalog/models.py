@@ -260,6 +260,34 @@ class Lens(models.Model):
 
     def __str__(self): return f"{self.package.name}: {self.type.label if self.type else 'Generic'}"
 
+class ContactLens(models.Model):
+    """Contact lenses — a separate product line from spectacle Lenses, stored in their
+    own table so the two can never mix. `type` is restricted to the 'Contact Lens Type'
+    metadata group."""
+    name = models.CharField(max_length=100, blank=True)  # Optional override
+    image = models.ImageField(upload_to='contact_lenses/', null=True, blank=True)
+    package = models.ForeignKey(LensPackage, on_delete=models.CASCADE, related_name='contact_lenses')
+    type = models.ForeignKey(MetadataItem, on_delete=models.SET_NULL, null=True, blank=True,
+        limit_choices_to={'group__name': 'Contact Lens Type'})
+    brand = models.ForeignKey(Brand, on_delete=models.SET_NULL, null=True, blank=True, related_name='contact_lenses')
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    is_active = models.BooleanField(default=True)
+    # Sphere power range (diopters)
+    min_power = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal('-6.00'))
+    max_power = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal('4.00'))
+    # Contact-lens-specific specs
+    power_type = models.CharField(max_length=50, blank=True, null=True)
+    base_curve = models.JSONField(default=list, blank=True)
+    replacement = models.CharField(max_length=20, blank=True, null=True,
+        choices=[('daily', 'Daily'), ('weekly', 'Weekly'), ('monthly', 'Monthly'), ('yearly', 'Yearly')])
+    material = models.CharField(max_length=100, blank=True, null=True)
+    water_content = models.CharField(max_length=20, blank=True, null=True)
+    dkt = models.CharField(max_length=20, blank=True, null=True)
+    colors = models.JSONField(default=list, blank=True)
+    lenses_per_box = models.IntegerField(null=True, blank=True)
+
+    def __str__(self): return f"{self.package.name}: {self.type.label if self.type else 'Contact Lens'}"
+
 class Prescription(models.Model):
     """
     Enhanced Prescription model with full industry-standard fields.

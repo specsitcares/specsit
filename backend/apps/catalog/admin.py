@@ -7,9 +7,15 @@ from django.contrib import admin
 from django.utils.html import format_html
 import json
 from .models import (
-    Category, Brand, Manufacturer, Product, Variant, VariantImage, Collection, 
-    LensPackage, Lens, Prescription, UserFace, Review, LensConstraint
+    Category, Brand, Manufacturer, Product, Variant, VariantImage, Collection,
+    LensPackage, Lens, ContactLens, Prescription, UserFace, Review, LensConstraint
 )
+
+@admin.register(ContactLens)
+class ContactLensAdmin(admin.ModelAdmin):
+    list_display = ('id', 'package', 'type', 'brand', 'power_type', 'replacement', 'lenses_per_box', 'price', 'is_active')
+    list_filter = ('is_active', 'power_type', 'replacement', 'material')
+    search_fields = ('package__name', 'brand__name')
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
