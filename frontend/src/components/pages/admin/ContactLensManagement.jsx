@@ -57,7 +57,7 @@ const ContactLensManagement = () => {
     try {
       const [groupsRes, pkgsRes, brandsRes] = await Promise.all([
         apiClient.get('/core/metadata-groups/?name=Contact Lens Type'),
-        apiClient.get('/catalog/lenses/?page_size=100&admin=true&type_group=Contact Lens Type'),
+        apiClient.get('/catalog/contact-lenses/?page_size=100&admin=true'),
         apiClient.get('/catalog/brands/?brand_type=Lens'),
       ]);
 
@@ -160,10 +160,10 @@ const ContactLensManagement = () => {
     };
     try {
       if (isCreatingPkg) {
-        await apiClient.post('/catalog/lenses/', payload);
+        await apiClient.post('/catalog/contact-lenses/', payload);
         setIsCreatingPkg(false);
       } else {
-        await apiClient.put(`/catalog/lenses/${selectedPkg.id}/`, { ...selectedPkg, ...payload });
+        await apiClient.put(`/catalog/contact-lenses/${selectedPkg.id}/`, { ...selectedPkg, ...payload });
       }
       setEditFormData({ ...EMPTY_PKG_FORM });
       await fetchData();
@@ -176,7 +176,7 @@ const ContactLensManagement = () => {
   const handleDuplicate = async (e, pkg) => {
     e.stopPropagation();
     try {
-      await apiClient.post('/catalog/lenses/', {
+      await apiClient.post('/catalog/contact-lenses/', {
         type:                  pkg.type,
         price:                 pkg.package_selling_price || pkg.price,
         is_active:             false,
@@ -205,7 +205,7 @@ const ContactLensManagement = () => {
     e.stopPropagation();
     if (!window.confirm(`Delete "${pkg.package_name || pkg.name}"? This cannot be undone.`)) return;
     try {
-      await apiClient.delete(`/catalog/lenses/${pkg.id}/`);
+      await apiClient.delete(`/catalog/contact-lenses/${pkg.id}/`);
       if (selectedPkg?.id === pkg.id) setSelectedPkg(null);
       await fetchData();
     } catch (err) { setError('Failed to delete package.'); }
@@ -232,7 +232,7 @@ const ContactLensManagement = () => {
     try {
       const url = target === 'type'
         ? `/core/metadata-items/${id}/`
-        : `/catalog/lenses/${id}/`;
+        : `/catalog/contact-lenses/${id}/`;
       await apiClient.patch(url, { is_active: newStatus });
       fetchData();
     } catch (err) {

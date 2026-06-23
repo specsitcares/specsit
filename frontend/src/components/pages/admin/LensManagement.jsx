@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import apiClient from '../../../services/api';
 import FormModal from './FormModal';
 import {
-  Plus, Search, AlertCircle, Edit2, Copy, X, Layers, ChevronDown, ArrowLeftRight, Trash2,
+  Plus, Search, AlertCircle, Edit2, Copy, X, Layers, ChevronDown, Trash2,
 } from 'lucide-react';
 import '../../../styles/lens_management.css';
 
@@ -717,8 +717,11 @@ const LensManagement = ({ editLensId = null }) => {
                       <div className="lm-brand-pkgs">
                         {brandLenses.map(lens => {
                           const isSelected = selectedLens?.id === lens.id;
-                          const minPow     = Number(lens.min_power ?? -6).toFixed(2);
-                          const maxPow     = Number(lens.max_power  ??  4).toFixed(2);
+                          const fmtPow     = (v) => { const n = Number(v); return Number.isFinite(n) ? `${n > 0 ? '+' : ''}${n.toFixed(2)}` : '—'; };
+                          const sphMin     = fmtPow(lens.min_power ?? -6);
+                          const sphMax     = fmtPow(lens.max_power ??  4);
+                          const cylMin     = fmtPow(lens.cyl_min  ?? -6);
+                          const cylMax     = fmtPow(lens.cyl_max  ??  0);
                           const features   = lens.features || [];
                           return (
                             <div
@@ -770,14 +773,17 @@ const LensManagement = ({ editLensId = null }) => {
                                 </div>
                               )}
 
-                              {/* Footer: range + price */}
+                              {/* Footer: SPH/CYL power range table + price */}
                               <div className="lm-pkg-footer">
-                                <div className="lm-pkg-range">
-                                  <ArrowLeftRight size={20} className="lm-pkg-range-icon" />
-                                  <span className="lm-pkg-range-text">
-                                    Range: {minPow} to +{maxPow}
-                                  </span>
-                                </div>
+                                <table className="lm-pkg-range-table">
+                                  <thead>
+                                    <tr><th /><th>Min</th><th>Max</th></tr>
+                                  </thead>
+                                  <tbody>
+                                    <tr><td className="lm-pkg-range-rl">SPH</td><td>{sphMin}</td><td>{sphMax}</td></tr>
+                                    <tr><td className="lm-pkg-range-rl">CYL</td><td>{cylMin}</td><td>{cylMax}</td></tr>
+                                  </tbody>
+                                </table>
                                 <div className="lm-pkg-price-wrap">
                                   <span className="lm-pkg-price">
                                     ₹{Number(lens.package_selling_price || lens.price || 0).toLocaleString('en-IN')}

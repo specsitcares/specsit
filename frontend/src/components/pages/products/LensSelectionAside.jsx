@@ -193,12 +193,7 @@ const LensPackageCard = ({ pkg, selected, onSelect, productBasePrice = 0 }) => {
         ? `${Math.round(months / 12)} Year Warranty`
         : months > 0 ? `${months} Month Warranty` : null;
 
-    // Power ranges (signed, 2dp). SPH = min/max_power, CYL = cyl_min/cyl_max.
-    const fmtPow = v => { const n = Number(v); return Number.isFinite(n) ? `${n > 0 ? '+' : ''}${n.toFixed(2)}` : null; };
-    const sphMin = fmtPow(pkg.min_power), sphMax = fmtPow(pkg.max_power);
-    const cylMin = fmtPow(pkg.cyl_min), cylMax = fmtPow(pkg.cyl_max);
-    const hasSph = sphMin != null && sphMax != null;
-    const hasCyl = cylMin != null && cylMax != null;
+    // Power ranges (SPH/CYL min-max) are an admin-only detail — not shown to customers.
     const lensIndex = pkg.index || pkg.index_value || null;
 
     return (
@@ -220,24 +215,9 @@ const LensPackageCard = ({ pkg, selected, onSelect, productBasePrice = 0 }) => {
                             </ul>
                         )}
                     </div>
-                    {(lensIndex || hasSph || hasCyl) && (
+                    {lensIndex && (
                         <div className="lsa-pkg__side">
-                            {lensIndex && <span className="lsa-pkg__index">Index {lensIndex}</span>}
-                            {(hasSph || hasCyl) && (
-                                <table className="lsa-pkg__range-table">
-                                    <thead>
-                                        <tr><th /><th>Min</th><th>Max</th></tr>
-                                    </thead>
-                                    <tbody>
-                                        {hasSph && (
-                                            <tr><td className="lsa-pkg__range-rl">SPH</td><td>{sphMin}</td><td>{sphMax}</td></tr>
-                                        )}
-                                        {hasCyl && (
-                                            <tr><td className="lsa-pkg__range-rl">CYL</td><td>{cylMin}</td><td>{cylMax}</td></tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            )}
+                            <span className="lsa-pkg__index">Index {lensIndex}</span>
                         </div>
                     )}
                 </div>
@@ -1049,38 +1029,19 @@ const LensSelectionAside = ({ isOpen, onClose, product, onAddToCart }) => {
     const [powerTypes, setPowerTypes] = useState([]);
     const [powerTypesLoading, setPowerTypesLoading] = useState(false);
 
-    // Set of lens-type ids that actually have eligible lenses for THIS product.
-    // null = not loaded yet. Used to hide stray/empty power types (e.g. test entries
-    // with no packages) that would otherwise dead-end at "No lenses available".
-    const [eligibleTypeIds, setEligibleTypeIds] = useState(null);
-
-    // Fetch lens types on open
+    // Fetch the lens types that apply to THIS frame. Segregation (sunglasses vs
+    // eyeglasses) and hiding of stray/empty types is enforced server-side in
+    // applicable_lens_types — this is the single source of truth for the type list.
     useEffect(() => {
-        if (!isOpen) return;
+        if (!isOpen || !product?.id) { setPowerTypes([]); return; }
         setPowerTypesLoading(true);
-        apiClient.get('/core/metadata-groups/?name=Lens Type')
+        apiClient.get(`/catalog/products/${product.id}/applicable_lens_types/`)
             .then(res => {
-                const groups = res.data.results || res.data;
-                const grp = Array.isArray(groups)
-                    ? groups.find(g => (g.name || '').toLowerCase() === 'lens type')
-                    : groups;
-                const items = (grp?.items || []).filter(i => i.is_active !== false);
+                const items = (res.data.results || res.data || []).filter(i => i.is_active !== false);
                 setPowerTypes(items);
             })
             .catch(() => setPowerTypes([]))
             .finally(() => setPowerTypesLoading(false));
-    }, [isOpen]);
-
-    // Fetch the product's full eligible-lens set up front so we know which power
-    // types genuinely apply (segregation is enforced server-side in recommended_lenses).
-    useEffect(() => {
-        if (!isOpen || !product?.id) { setEligibleTypeIds(null); return; }
-        apiClient.get(`/catalog/products/${product.id}/recommended_lenses/`)
-            .then(res => {
-                const lenses = res.data.results || res.data || [];
-                setEligibleTypeIds(new Set(lenses.map(l => String(l.type)).filter(id => id && id !== 'null')));
-            })
-            .catch(() => setEligibleTypeIds(new Set()));
     }, [isOpen, product?.id]);
 
     // Fetch lenses filtered by selected power type + product
@@ -1105,12 +1066,8 @@ const LensSelectionAside = ({ isOpen, onClose, product, onAddToCart }) => {
             .finally(() => setLensesLoading(false));
     }, [isOpen, product?.id, powerType]);
 
-    // Only show power types that have eligible lenses for this product. Frame-only and
-    // zero-power types legitimately have no lens packages, so always keep those.
-    const visiblePowerTypes = powerTypes.filter(t =>
-        isFrameOnlyType(t) || isZeroPowerType(t) ||
-        (eligibleTypeIds ? eligibleTypeIds.has(String(t.id)) : false)
-    );
+    // Already segregated + filtered server-side (applicable_lens_types).
+    const visiblePowerTypes = powerTypes;
 
     // Selected lens type + its semantic flags (derived from its name)
     const selectedType = powerTypes.find(t => String(t.id) === String(powerType)) || null;
@@ -1234,7 +1191,7 @@ const LensSelectionAside = ({ isOpen, onClose, product, onAddToCart }) => {
 
                 {/* Scrollable content */}
                 <div className="lsa-content">
-                    {step === 0 && <StepPower types={visiblePowerTypes} loading={powerTypesLoading || eligibleTypeIds === null} selected={powerType} onSelect={handlePowerSelect} />}
+                    {step === 0 && <StepPower types={visiblePowerTypes} loading={powerTypesLoading} selected={powerType} onSelect={handlePowerSelect} />}
                     {step === 1 && (
                         <StepLenses
                             selectedLens={selectedLensId}

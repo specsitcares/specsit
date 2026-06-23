@@ -519,26 +519,36 @@
 }
 .lm-pkg-card.selected .lm-pkg-footer { border-top-color: rgba(255,255,255,0.3); }
 
-.lm-pkg-range {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.lm-pkg-range-icon {
-  width: 20px;
-  height: 20px;
-  color: #111827;
-  flex-shrink: 0;
-}
-.lm-pkg-card.selected .lm-pkg-range-icon { color: white; }
-.lm-pkg-range-text {
-  font-size: 14px;
-  font-weight: 400;
-  color: #111827;
+/* SPH/CYL power-range table — admin-only detail on the package card */
+.lm-pkg-range-table {
+  border-collapse: collapse;
   font-family: 'Roboto', sans-serif;
+}
+.lm-pkg-range-table th {
+  font-size: 10px;
+  font-weight: 600;
+  color: #98A2B3;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  padding: 1px 12px;
+  text-align: center;
+}
+.lm-pkg-range-table td {
+  font-size: 12px;
+  font-weight: 600;
+  color: #344054;
+  padding: 1px 12px;
+  text-align: center;
   white-space: nowrap;
 }
-.lm-pkg-card.selected .lm-pkg-range-text { color: white; }
+.lm-pkg-range-table .lm-pkg-range-rl {
+  color: #6941C6;
+  font-weight: 700;
+  text-align: left;
+}
+.lm-pkg-card.selected .lm-pkg-range-table th,
+.lm-pkg-card.selected .lm-pkg-range-table td,
+.lm-pkg-card.selected .lm-pkg-range-table .lm-pkg-range-rl { color: #fff; }
 
 .lm-pkg-price-wrap {
   display: flex;

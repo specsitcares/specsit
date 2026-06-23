@@ -2,21 +2,29 @@ from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .models import Category, Brand, Manufacturer, Product, Variant, VariantImage, Collection, LensPackage, Lens, Prescription, UserFace, Review, LensConstraint
+from .models import Category, Brand, Manufacturer, Product, Variant, VariantImage, Collection, LensPackage, Lens, ContactLens, Prescription, UserFace, Review, LensConstraint
 from .serializers import (
     CategorySerializer, BrandSerializer, ManufacturerSerializer,
     ProductSerializer, VariantSerializer, CollectionSerializer,
-    LensPackageSerializer, LensSerializer, PrescriptionSerializer, UserFaceSerializer,
+    LensPackageSerializer, LensSerializer, ContactLensSerializer, PrescriptionSerializer, UserFaceSerializer,
     ReviewSerializer, VariantImageSerializer, LensConstraintSerializer
 )
 from decimal import Decimal
 import logging
 import io
 import os
+import re
 import numpy as np
 from PIL import Image
 
 logger = logging.getLogger(__name__)
+
+
+def _category_is_sunglasses(category):
+    """A frame category is 'sunglasses' if its own or its parent's name says so."""
+    cat_name = (getattr(category, 'name', '') or '').lower()
+    parent_name = (getattr(getattr(category, 'parent', None), 'name', '') or '').lower()
+    return 'sunglass' in cat_name or 'sunglass' in parent_name
 
 # --- AI Utility Functions ---
 
@@ -231,10 +239,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         # Segregate by frame type: a sunglasses frame shows only lenses flagged for
         # sunglasses; every other frame (eyeglasses, computer, etc.) shows lenses
         # flagged for eyeglasses. Sunglasses-ness is derived from the product category.
-        category = product.category
-        cat_name = (getattr(category, 'name', '') or '').lower()
-        parent_name = (getattr(getattr(category, 'parent', None), 'name', '') or '').lower()
-        is_sunglasses = 'sunglass' in cat_name or 'sunglass' in parent_name
+        is_sunglasses = _category_is_sunglasses(product.category)
         if is_sunglasses:
             lenses = lenses.filter(is_for_sunglasses=True)
         else:
@@ -254,6 +259,56 @@ class ProductViewSet(viewsets.ModelViewSet):
 
         serializer = LensSerializer(lenses, many=True)
         return Response(serializer.data)
+
+    @action(detail=True, methods=['get'], permission_classes=[permissions.AllowAny])
+    def applicable_lens_types(self, request, pk=None):
+        """Lens types (MetadataItem) that apply to THIS frame, segregated by frame type.
+
+        Segregation rules (single source of truth for the customer lens drawer):
+          • Frame-only types apply to every frame.
+          • Types that have lens packages apply when at least one package is flagged for
+            this frame type (is_for_sunglasses / is_for_eyeglasses).
+          • Package-less types apply only when their home_category matches this frame's
+            type (sunglasses vs not) — mirroring the admin panel, where a package-less
+            type appears solely under its home category. A package-less type with no
+            home_category appears nowhere, exactly as in the admin panel.
+        """
+        from .models import Lens, Product
+        from apps.catalog.core.models import MetadataItem
+        from apps.catalog.core.serializers import MetadataItemSerializer
+
+        try:
+            product = Product.objects.get(pk=pk)
+        except Product.DoesNotExist:
+            return Response([])
+
+        is_sunglasses = _category_is_sunglasses(product.category)
+
+        types = (MetadataItem.objects
+                 .filter(group__name__iexact='Lens Type', is_active=True)
+                 .select_related('home_category')
+                 .order_by('id'))
+
+        result = []
+        for t in types:
+            name = f"{t.value or ''} {t.label or ''}".lower()
+            is_frame_only = bool(re.search(r'frame[\s_-]*only', name))
+            if is_frame_only:
+                result.append(t)
+                continue
+
+            packages = Lens.objects.filter(type_id=t.id, is_active=True)
+            if packages.exists():
+                flag = 'is_for_sunglasses' if is_sunglasses else 'is_for_eyeglasses'
+                if packages.filter(**{flag: True}).exists():
+                    result.append(t)
+                continue
+
+            # Package-less type: show only under its home category (mirrors admin).
+            if t.home_category is not None and _category_is_sunglasses(t.home_category) == is_sunglasses:
+                result.append(t)
+
+        return Response(MetadataItemSerializer(result, many=True).data)
 
     def perform_create(self, serializer):
         serializer.save()
@@ -639,6 +694,22 @@ class LensViewSet(viewsets.ModelViewSet):
                 qs = qs.filter(constraint__name__iexact=constraint)
 
         return qs
+
+class ContactLensViewSet(viewsets.ModelViewSet):
+    """Contact lenses only — a separate table from spectacle Lenses."""
+    serializer_class = ContactLensSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get_queryset(self):
+        params = self.request.query_params
+        qs = ContactLens.objects.select_related('package', 'type', 'brand').all()
+
+        # Hide inactive lenses for customers. Staff in admin context/actions sees everything.
+        is_staff = self.request.user.is_staff
+        is_admin_query = params.get('admin') == 'true'
+        if not (is_staff and (is_admin_query or self.action in ['partial_update', 'update', 'destroy'])):
+            qs = qs.filter(is_active=True)
+        return qs.order_by('id')
 
 class PrescriptionViewSet(viewsets.ModelViewSet):
     serializer_class = PrescriptionSerializer
