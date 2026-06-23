@@ -17,6 +17,12 @@ class MetadataItem(models.Model):
     value = models.CharField(max_length=100) # slug
     image = models.ImageField(upload_to='lens_types/', null=True, blank=True)
     is_active = models.BooleanField(default=True)
+    # Optional "home" frame category for lens-type items that have no packages yet,
+    # so the admin panel can show them under the right category after a refresh.
+    home_category = models.ForeignKey(
+        'catalog.Category', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='+'
+    )
     def __str__(self): return f"{self.group.name}: {self.label}"
 
 class AnalyticsLog(models.Model):

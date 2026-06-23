@@ -69,7 +69,6 @@ const LensManagement = ({ editLensId = null }) => {
     features: [], constraints: [], pricing_mode: 'package',
     brand: '', categories: selectedCategoryId ? [selectedCategoryId] : [], cost_price: 0, selling_price: '',
     warranty_months: 0, min_power: '-6.0', max_power: '+4.0', cyl_min: '-6.0', cyl_max: '0.0',
-    is_for_eyeglasses: true, is_for_sunglasses: false,  // which frame type this lens applies to
     image: null,        // newly picked File
     image_url: '',      // existing image URL (edit mode preview)
   };
@@ -162,8 +161,6 @@ const LensManagement = ({ editLensId = null }) => {
       max_power:       selectedLens.max_power ?? '+4.0',
       cyl_min:         selectedLens.cyl_min ?? '-6.0',
       cyl_max:         selectedLens.cyl_max ?? '0.0',
-      is_for_eyeglasses: selectedLens.is_for_eyeglasses ?? true,
-      is_for_sunglasses: selectedLens.is_for_sunglasses ?? false,
       image:           null,
       image_url:       selectedLens.image || '',
     });
@@ -204,8 +201,6 @@ const LensManagement = ({ editLensId = null }) => {
       max_power:       lens.max_power ?? '+4.0',
       cyl_min:         lens.cyl_min ?? '-6.0',
       cyl_max:         lens.cyl_max ?? '0.0',
-      is_for_eyeglasses: lens.is_for_eyeglasses ?? true,
-      is_for_sunglasses: lens.is_for_sunglasses ?? false,
       image:           null,
       image_url:       lens.image || '',
     });
@@ -216,6 +211,13 @@ const LensManagement = ({ editLensId = null }) => {
       alert('Please select at least one Lens Constraint');
       return;
     }
+    // Derive frame-type applicability from the selected category names — a package
+    // in a "Sunglasses" category applies to sunglasses, otherwise eyeglasses.
+    const _catNames = (editFormData.categories || [])
+      .map(id => (lensCategories.find(c => c.id === id)?.name || '').toLowerCase());
+    const appliesSunglasses = _catNames.some(n => n.includes('sunglass'));
+    const appliesEyeglasses = _catNames.some(n => n && !n.includes('sunglass')) || !appliesSunglasses;
+
     const payload = {
       type:                    selectedType?.id,
       price:                   editFormData.selling_price,
@@ -234,8 +236,10 @@ const LensManagement = ({ editLensId = null }) => {
       max_power:               editFormData.max_power,
       cyl_min:                 editFormData.cyl_min,
       cyl_max:                 editFormData.cyl_max,
-      is_for_eyeglasses:       !!editFormData.is_for_eyeglasses,
-      is_for_sunglasses:       !!editFormData.is_for_sunglasses,
+      // Frame-type applicability is derived from the selected category — single
+      // source of truth, so the admin only chooses the category, never a separate toggle.
+      is_for_eyeglasses:       appliesEyeglasses,
+      is_for_sunglasses:       appliesSunglasses,
     };
     try {
       let lensId;
@@ -369,6 +373,7 @@ const LensManagement = ({ editLensId = null }) => {
       label: formData.label,
       value: formData.label.toLowerCase().replace(/\s+/g, '_'),
       is_active: true,
+      home_category: catId || null,
     });
     let newType = res.data;
 
@@ -533,10 +538,13 @@ const LensManagement = ({ editLensId = null }) => {
                   getPackageCatIds(l).includes(cat.id)
                 );
                 if (hasPackagesHere) return true;
-                // No packages in this category — only show if this is the type's home category
+                // No packages in this category — only show if this is the type's home
+                // category. Prefer the value persisted on the type (survives refresh),
+                // falling back to the in-memory map for the just-created optimistic case.
                 const hasPackagesAnywhere = lenses.some(l => String(l.type) === String(type.id));
                 if (!hasPackagesAnywhere) {
-                  return typeHomeCat[type.id] === cat.id;
+                  const homeCat = type.home_category ?? typeHomeCat[type.id];
+                  return String(homeCat) === String(cat.id);
                 }
                 return false;
               });
@@ -980,24 +988,6 @@ const LensManagement = ({ editLensId = null }) => {
                       </tr>
                     </tbody>
                   </table>
-                </div>
-                <div className="lm-form-group">
-                  <label className="lm-form-label">Applies to</label>
-                  <div className="lm-chip-list">
-                    <button
-                      type="button"
-                      className={`lm-chip ${editFormData.is_for_eyeglasses ? 'active' : ''}`}
-                      onClick={() => handlePackageFieldChange('is_for_eyeglasses', !editFormData.is_for_eyeglasses)}
-                    >Eyeglasses</button>
-                    <button
-                      type="button"
-                      className={`lm-chip ${editFormData.is_for_sunglasses ? 'active' : ''}`}
-                      onClick={() => handlePackageFieldChange('is_for_sunglasses', !editFormData.is_for_sunglasses)}
-                    >Sunglasses</button>
-                  </div>
-                  <p style={{ fontSize: 11, color: '#71717A', margin: '6px 0 0' }}>
-                    Controls which frame PDPs show this lens. Contact lenses are managed separately.
-                  </p>
                 </div>
               </div>
 
