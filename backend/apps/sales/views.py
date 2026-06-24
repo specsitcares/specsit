@@ -644,6 +644,53 @@ class OrderViewSet(viewsets.ModelViewSet):
             'thank_you_url': f'/thank-you/{order.id}',
         })
 
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def request_return(self, request, pk=None):
+        """Customer-initiated Return (refund) or Exchange (replacement) request.
+        get_object() is already scoped to the authenticated user's own orders."""
+        from .models import ReturnRequest, ReturnRequestImage
+        from .serializers import ReturnRequestSerializer
+
+        order = self.get_object()
+
+        if order.order_status != 'delivered':
+            return Response({'detail': 'Returns can only be requested for delivered orders.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        request_type = request.data.get('request_type')
+        reason = request.data.get('reason')
+        description = (request.data.get('description') or '').strip()
+
+        valid_reasons = {c[0] for c in ReturnRequest.REASON_CHOICES}
+        if request_type not in ('refund', 'replacement'):
+            return Response({'detail': 'request_type must be "refund" or "replacement".'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        if reason not in valid_reasons:
+            return Response({'detail': 'Please choose a valid reason.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        # Block duplicate open requests (anything not rejected is still active)
+        if order.return_requests.exclude(status='rejected').exists():
+            return Response({'detail': 'A return or exchange request already exists for this order.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        rr = ReturnRequest.objects.create(
+            order=order,
+            request_type=request_type,
+            reason=reason,
+            description=description,
+            status='pending',
+            refund_amount=order.total_amount if request_type == 'refund' else None,
+            replacement_sku=(request.data.get('replacement_sku') or '') if request_type == 'replacement' else '',
+        )
+
+        # Optional supporting photos (multipart "photos") — up to 5, max 5 MB, images only.
+        for ph in request.FILES.getlist('photos')[:5]:
+            if ph.size <= 5 * 1024 * 1024 and (ph.content_type or '').startswith('image/'):
+                ReturnRequestImage.objects.create(return_request=rr, image=ph)
+
+        return Response(ReturnRequestSerializer(rr, context={'request': request}).data, status=status.HTTP_201_CREATED)
+
     @action(detail=True, methods=['patch'], url_path='items/(?P<item_id>[0-9]+)/status')
     def update_item_status(self, request, pk=None, item_id=None):
         """Update the status of a specific item within an order."""

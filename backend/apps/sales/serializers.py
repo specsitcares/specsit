@@ -62,9 +62,18 @@ class OrderItemSerializer(serializers.ModelSerializer):
     variant_name = serializers.SerializerMethodField()
     variant_image = serializers.SerializerMethodField()
     variant_sku = serializers.SerializerMethodField()
+    brand_name = serializers.SerializerMethodField()
     prescription_status = serializers.SerializerMethodField()
     price = serializers.ReadOnlyField(source='price_at_purchase')
     product_id = serializers.SerializerMethodField()
+
+    def get_brand_name(self, obj):
+        if obj.variant and obj.variant.product:
+            p = obj.variant.product
+            if p.brand:
+                return p.brand.name
+            return p.brand_name or None
+        return None
     prescription = PrescriptionSerializer(read_only=True)
     lens = LensSerializer(read_only=True)
 
@@ -102,7 +111,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrderItem
         fields = [
-            'id', 'variant', 'variant_name', 'variant_image', 'variant_sku', 'product_id',
+            'id', 'variant', 'variant_name', 'variant_image', 'variant_sku', 'brand_name', 'product_id',
             'quantity', 'unit_price', 'item_total', 'price_at_purchase', 'price',
             'lens_prescription_text', 'lens_pd',
             'prescription_status', 'patient_name', 'prescription', 'lens', 'status',
@@ -132,6 +141,19 @@ class PaymentSerializer(serializers.ModelSerializer):
         read_only_fields = ['payment_date', 'created_at', 'updated_at']
 
 class ReturnRequestSerializer(serializers.ModelSerializer):
+    images = serializers.SerializerMethodField(read_only=True)
+
+    def get_images(self, obj):
+        request = self.context.get('request')
+        urls = []
+        for im in obj.images.all():
+            try:
+                url = im.image.url
+                urls.append(request.build_absolute_uri(url) if request else url)
+            except Exception:
+                pass
+        return urls
+
     class Meta:
         model = ReturnRequest
         fields = '__all__'
