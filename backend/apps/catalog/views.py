@@ -293,7 +293,8 @@ class ProductViewSet(viewsets.ModelViewSet):
         for t in types:
             name = f"{t.value or ''} {t.label or ''}".lower()
             is_frame_only = bool(re.search(r'frame[\s_-]*only', name))
-            if is_frame_only:
+            # Frame-only / direct-checkout types provide no lenses and apply to every frame.
+            if is_frame_only or getattr(t, 'direct_checkout', False):
                 result.append(t)
                 continue
 

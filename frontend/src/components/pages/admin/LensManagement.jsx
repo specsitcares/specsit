@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import apiClient from '../../../services/api';
 import FormModal from './FormModal';
 import {
-  Plus, Search, AlertCircle, Edit2, Copy, X, Layers, ChevronDown, Trash2,
+  Plus, Search, AlertCircle, Edit2, Copy, X, Layers, ChevronDown, Trash2, Zap,
 } from 'lucide-react';
 import '../../../styles/lens_management.css';
 
@@ -14,6 +14,10 @@ const getPackageCatIds = (lens) =>
 const LENS_TYPE_FIELDS = [
   { name: 'label', label: 'Type Name' },
   { name: 'image', label: 'Type Image', type: 'file' },
+  {
+    name: 'direct_checkout', label: 'Direct Checkout', type: 'checkbox',
+    placeholder: 'Skip lens selection — send the customer straight to checkout (e.g. Frame Only, no lenses)',
+  },
 ];
 
 /* Purple toggle — for lens type cards */
@@ -357,6 +361,20 @@ const LensManagement = ({ editLensId = null }) => {
     }
   };
 
+  /* Flip the "direct checkout" flag on an existing lens type */
+  const handleDirectCheckoutToggle = async (e, type) => {
+    e.stopPropagation();
+    const newVal = !type.direct_checkout;
+    setLensTypes(prev => prev.map(t => String(t.id) === String(type.id) ? { ...t, direct_checkout: newVal } : t));
+    try {
+      await apiClient.patch(`/core/metadata-items/${type.id}/`, { direct_checkout: newVal });
+      fetchData();
+    } catch (err) {
+      setLensTypes(prev => prev.map(t => String(t.id) === String(type.id) ? { ...t, direct_checkout: !newVal } : t));
+      setError('Failed to update direct checkout.');
+    }
+  };
+
   const handleAddType = async (formData) => {
     const catId = showAddType; // the category this type is being created in
     let groupsRes = await apiClient.get('/core/metadata-groups/?name=Lens Type');
@@ -374,6 +392,7 @@ const LensManagement = ({ editLensId = null }) => {
       value: formData.label.toLowerCase().replace(/\s+/g, '_'),
       is_active: true,
       home_category: catId || null,
+      direct_checkout: !!formData.direct_checkout,
     });
     let newType = res.data;
 
@@ -533,6 +552,9 @@ const LensManagement = ({ editLensId = null }) => {
           <div className="lm-types-scroll">
             {lensCategories.map(cat => {
               const visibleTypes = filteredTypes.filter(type => {
+                // Direct-checkout / frame-only types provide no lenses and apply to every
+                // frame category, so show them under each one (a single type is enough).
+                if (type.direct_checkout) return true;
                 const hasPackagesHere = lenses.some(l =>
                   String(l.type) === String(type.id) &&
                   getPackageCatIds(l).includes(cat.id)
@@ -609,6 +631,20 @@ const LensManagement = ({ editLensId = null }) => {
                                  type.label === 'Photochromic'         ? 'Light adaptive lenses' :
                                  type.description || 'Standard lenses'}
                               </span>
+                              <button
+                                type="button"
+                                onClick={(e) => handleDirectCheckoutToggle(e, type)}
+                                title="Direct checkout — skip lens selection and send the customer straight to checkout"
+                                style={{
+                                  marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 5,
+                                  border: '1px solid', borderColor: type.direct_checkout ? '#68408D' : '#e5e7eb',
+                                  background: type.direct_checkout ? '#f4ebff' : '#fff',
+                                  color: type.direct_checkout ? '#68408D' : '#6b7280',
+                                  borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                                }}
+                              >
+                                <Zap size={11} /> Direct checkout: {type.direct_checkout ? 'On' : 'Off'}
+                              </button>
                             </div>
                             <span className="lm-type-count">
                               {pkgCount} Package{pkgCount !== 1 ? 's' : ''}

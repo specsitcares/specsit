@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './LensSelectionAside.css';
 import apiClient from '../../../services/api';
 import rxManualImg from '../../../assets/lens/rx-manual.png';
@@ -1009,6 +1010,7 @@ const StepRx = ({ skipRx, skipReason, isProgressive, rx, onRxChange, rxMode, set
    MAIN COMPONENT
    ════════════════════════════════════════════════════════ */
 const LensSelectionAside = ({ isOpen, onClose, product, onAddToCart }) => {
+    const navigate = useNavigate();
     const [step, setStep] = useState(0);
     const [powerType, setPowerType] = useState(null);
     const [selectedLensId, setSelectedLensId] = useState(null);
@@ -1112,6 +1114,14 @@ const LensSelectionAside = ({ isOpen, onClose, product, onAddToCart }) => {
     const handlePowerSelect = (id) => {
         setPowerType(id);
         const t = powerTypes.find(pt => String(pt.id) === String(id));
+        // Direct-checkout lens types (e.g. Frame Only) provide no lenses — add the frame
+        // to the bag and send the customer straight to checkout, skipping lens & Rx steps.
+        if (t?.direct_checkout) {
+            onAddToCart(product, null, null, null, null, null);
+            handleClose();
+            navigate('/checkout');
+            return;
+        }
         if (isFrameOnlyType(t)) { setStep(2); return; } // no lenses → straight to summary
         setStep(1);
     };
