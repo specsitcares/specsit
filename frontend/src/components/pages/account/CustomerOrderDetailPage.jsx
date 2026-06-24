@@ -1,91 +1,62 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { ShoppingBag, ClipboardCheck, Package, Truck, PackageCheck } from 'lucide-react';
 import apiClient from '../../../services/api';
+import AccountSidebar from './AccountSidebar';
+import '../../../styles/order_detail.css';
 
-/* ─── helpers ──────────────────────────────────────────────── */
+/* ─── status meta ─────────────────────────────────────────────── */
 const STATUS_COLORS = {
-  pending:           { bg: '#f3f4f6', color: '#374151', label: 'Pending' },
-  confirmed:         { bg: '#dbeafe', color: '#1e40af', label: 'Confirmed' },
-  ready_to_dispatch: { bg: '#fef3c7', color: '#92400e', label: 'Ready to Dispatch' },
-  in_transit:        { bg: '#ede9fe', color: '#6d28d9', label: 'In Transit' },
-  delivered:         { bg: '#d1fae5', color: '#065f46', label: 'Delivered' },
-  cancelled:         { bg: '#fee2e2', color: '#991b1b', label: 'Cancelled' },
+  pending:           { bg: '#f2f4f7', color: '#475467' },
+  confirmed:         { bg: '#eff8ff', color: '#175cd3' },
+  preparing:         { bg: '#eff8ff', color: '#175cd3' },
+  ready_to_dispatch: { bg: '#fffaeb', color: '#b54708' },
+  in_transit:        { bg: '#f4ebff', color: '#6941c6' },
+  delivered:         { bg: '#f2faeb', color: '#4e8729' },
+  cancelled:         { bg: '#fef3f2', color: '#b42318' },
+};
+const STATUS_RANK = { pending: 0, confirmed: 1, preparing: 2, ready_to_dispatch: 3, in_transit: 4, delivered: 5, cancelled: -1 };
+const STATUS_LABEL = {
+  pending: 'Pending', confirmed: 'Confirmed', preparing: 'Preparing', ready_to_dispatch: 'Ready for Dispatch',
+  in_transit: 'In Transit', delivered: 'Delivered', cancelled: 'Cancelled',
+};
+const PAY_LABELS = {
+  credit_card: 'Credit Card', debit_card: 'Debit Card', razorpay: 'Online (Razorpay)', upi: 'UPI',
+  cod: 'Cash on Delivery', netbanking: 'Net Banking', partial_payment: 'Partial Payment', wallet: 'Wallet',
 };
 
-const TIMELINE_STEPS = ['pending', 'confirmed', 'ready_to_dispatch', 'in_transit', 'delivered'];
-const TIMELINE_LABELS = { pending: 'Pending', confirmed: 'Confirmed', ready_to_dispatch: 'Ready', in_transit: 'In Transit', delivered: 'Delivered' };
+const RR_STATUS_LABEL = { pending: 'Pending', approved: 'Approved', rejected: 'Rejected', picked_up: 'Picked Up', received: 'Received', refunded: 'Refunded', replaced: 'Replaced' };
 
-const fmt = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
-const fmtPrice = (v) => `₹${parseFloat(v || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+const fmtStep = (d) => d ? `${new Date(d).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })} · ${new Date(d).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true })}` : '';
+const fmtDateTime = (d) => d ? new Date(d).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) : '';
+const inr = (v) => `₹${parseFloat(v || 0).toLocaleString('en-IN')}`;
+const payLabel = (m) => PAY_LABELS[m] || (m || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || '—';
 
-/* ─── Star display ──────────────────────────────────────────── */
-const Stars = ({ rating }) => (
-  <div style={{ display: 'flex', gap: 2 }}>
-    {[1, 2, 3, 4, 5].map(n => (
-      <svg key={n} width="15" height="15" viewBox="0 0 24 24"
-        fill={n <= (rating || 0) ? '#7c3aed' : 'none'}
-        stroke="#7c3aed" strokeWidth="1.5">
-        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-      </svg>
-    ))}
-  </div>
-);
-
-/* ─── Section card wrapper ──────────────────────────────────── */
-const Card = ({ title, accent, children, extra }) => (
-  <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, marginBottom: 16, overflow: 'hidden' }}>
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', borderBottom: '1px solid #f3f4f6', background: accent || '#fafafa' }}>
-      <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#111827' }}>{title}</h3>
-      {extra}
-    </div>
-    <div style={{ padding: '16px 20px' }}>{children}</div>
-  </div>
-);
-
-/* ─── Label-value row ───────────────────────────────────────── */
-const Row = ({ label, value, bold, color }) => (
-  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, fontSize: 13 }}>
-    <span style={{ color: '#6b7280' }}>{label}</span>
-    <span style={{ fontWeight: bold ? 700 : 500, color: color || '#111827' }}>{value || '—'}</span>
-  </div>
-);
-
-/* ─── Print styles injected once ───────────────────────────── */
-const PRINT_CSS = `
-@media print {
+const PRINT_CSS = `@media print {
   body * { visibility: hidden; }
-  #cod-invoice, #cod-invoice * { visibility: visible; }
-  #cod-invoice { position: fixed; top: 0; left: 0; width: 100%; }
-  button, a[href], .no-print { display: none !important; }
+  .od-wrap, .od-wrap * { visibility: visible; }
+  .od-wrap { position: absolute; left: 0; top: 0; width: 100%; }
+  .acct-sidebar, button, .od-invoice, .od-actions, .od-help { display: none !important; }
 }`;
 
-/* ══════════════════════════════════════════════════════════════
-   Main component
-══════════════════════════════════════════════════════════════ */
 const CustomerOrderDetailPage = () => {
   const { orderId } = useParams();
   const navigate = useNavigate();
   const [order, setOrder] = useState(null);
-  const [review, setReview] = useState(null);
   const [loading, setLoading] = useState(true);
   const [paymentLoading, setPaymentLoading] = useState(false);
-  const [deliveryConfirming, setDeliveryConfirming] = useState(false);
-  const [deliveryConfirmOpen, setDeliveryConfirmOpen] = useState(false);
-  const [deliveryConfirmError, setDeliveryConfirmError] = useState(null);
 
-  // ── Prescription Reupload State ──
-  const [reuploadModal, setReuploadModal] = useState(null); // { prescriptionId, itemName }
-  const [reuploadMode, setReuploadMode] = useState('file'); // 'file' | 'manual'
+  // Prescription reupload state (critical flow — preserved)
+  const [reuploadModal, setReuploadModal] = useState(null);
+  const [reuploadMode, setReuploadMode] = useState('file');
   const [reuploadFile, setReuploadFile] = useState(null);
   const [reuploadManual, setReuploadManual] = useState({ od_sphere: '', od_cylinder: '', od_axis: '', os_sphere: '', os_cylinder: '', os_axis: '', od_add: '', os_add: '' });
   const [reuploadSubmitting, setReuploadSubmitting] = useState(false);
   const [reuploadError, setReuploadError] = useState(null);
   const [reuploadSuccess, setReuploadSuccess] = useState(false);
   const reuploadFileRef = React.useRef(null);
-  const itemsContainerRef = React.useRef(null);
 
-
-  /* inject print css once */
   useEffect(() => {
     const tag = document.createElement('style');
     tag.innerHTML = PRINT_CSS;
@@ -93,15 +64,10 @@ const CustomerOrderDetailPage = () => {
     return () => document.head.removeChild(tag);
   }, []);
 
-  const fetchAll = async (silent = false) => {
+  const fetchOrder = async (silent = false) => {
     try {
-      const [orderRes, reviewRes] = await Promise.all([
-        apiClient.get(`/sales/orders/${orderId}/`),
-        apiClient.get(`/catalog/reviews/?order=${orderId}`),
-      ]);
-      setOrder(orderRes.data);
-      const list = reviewRes.data.results || reviewRes.data;
-      setReview(Array.isArray(list) && list.length > 0 ? list[0] : null);
+      const res = await apiClient.get(`/sales/orders/${orderId}/`);
+      setOrder(res.data);
     } catch (e) {
       if (!silent) console.error(e);
     } finally {
@@ -110,7 +76,7 @@ const CustomerOrderDetailPage = () => {
   };
 
   useEffect(() => {
-    fetchAll();
+    fetchOrder();
     if (!document.querySelector('script[src*="razorpay"]')) {
       const s = document.createElement('script');
       s.src = 'https://checkout.razorpay.com/v1/checkout.js';
@@ -123,20 +89,15 @@ const CustomerOrderDetailPage = () => {
     setPaymentLoading(true);
     try {
       const amount = parseFloat(order.balance_amount);
-      const res = await apiClient.post('/sales/payments/initiate/', {
-        payment_method: 'partial_payment', amount, order_id: order.id,
-      });
+      const res = await apiClient.post('/sales/payments/initiate/', { payment_method: 'partial_payment', amount, order_id: order.id });
       const options = {
         key: res.data.key, amount: res.data.amount, currency: res.data.currency,
-        name: 'Specsit', description: `Remaining balance for Order #${order.id}`,
-        order_id: res.data.id,
+        name: 'Specsit', description: `Remaining balance for Order #${order.id}`, order_id: res.data.id,
         handler: async (response) => {
           try {
             await apiClient.post('/sales/payments/verify/', {
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_signature: response.razorpay_signature,
-              local_order_id: order.id, is_phase2: true,
+              razorpay_payment_id: response.razorpay_payment_id, razorpay_order_id: response.razorpay_order_id,
+              razorpay_signature: response.razorpay_signature, local_order_id: order.id, is_phase2: true,
             });
             const updated = await apiClient.get(`/sales/orders/${orderId}/`);
             setOrder(updated.data);
@@ -144,7 +105,7 @@ const CustomerOrderDetailPage = () => {
           finally { setPaymentLoading(false); }
         },
         modal: { ondismiss: () => setPaymentLoading(false) },
-        theme: { color: '#68408D' },
+        theme: { color: '#6941c6' },
       };
       if (res.data.is_mock) {
         setTimeout(() => options.handler({ razorpay_payment_id: 'pay_mock_phase2', razorpay_order_id: res.data.id, razorpay_signature: 'sig_mock' }), 800);
@@ -152,20 +113,6 @@ const CustomerOrderDetailPage = () => {
         new window.Razorpay(options).open();
       }
     } catch { alert('Could not initiate payment. Please try again.'); setPaymentLoading(false); }
-  };
-
-  const handleCustomerDeliveryConfirm = async () => {
-    setDeliveryConfirming(true);
-    setDeliveryConfirmError(null);
-    try {
-      await apiClient.post(`/sales/orders/${orderId}/mark_delivered/`);
-      setDeliveryConfirmOpen(false);
-      fetchAll(true);
-    } catch (e) {
-      setDeliveryConfirmError(e.response?.data?.detail || 'Could not confirm delivery. Please try again.');
-    } finally {
-      setDeliveryConfirming(false);
-    }
   };
 
   const handleReuploadSubmit = async () => {
@@ -177,7 +124,6 @@ const CustomerOrderDetailPage = () => {
         if (!reuploadFile) { setReuploadError('Please select a file.'); setReuploadSubmitting(false); return; }
         const fd = new FormData();
         fd.append('prescription_file', reuploadFile);
-        
         if (reuploadModal.prescriptionId) {
           fd.append('prescription_id', reuploadModal.prescriptionId);
           await apiClient.post('/sales/prescriptions/reupload/', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
@@ -186,27 +132,23 @@ const CustomerOrderDetailPage = () => {
           fd.append('order_item_id', reuploadModal.orderItemId);
           await apiClient.post('/sales/prescriptions/upload/', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
         }
+      } else if (reuploadModal.prescriptionId) {
+        await apiClient.patch(`/sales/prescriptions/${reuploadModal.prescriptionId}/`, {
+          od_sphere: reuploadManual.od_sphere, od_cylinder: reuploadManual.od_cylinder, od_axis: reuploadManual.od_axis,
+          os_sphere: reuploadManual.os_sphere, os_cylinder: reuploadManual.os_cylinder, os_axis: reuploadManual.os_axis,
+          od_add: reuploadManual.od_add || null, os_add: reuploadManual.os_add || null, status: 'pending',
+        });
       } else {
-        if (reuploadModal.prescriptionId) {
-          await apiClient.patch(`/sales/prescriptions/${reuploadModal.prescriptionId}/`, {
-            od_sphere: reuploadManual.od_sphere, od_cylinder: reuploadManual.od_cylinder, od_axis: reuploadManual.od_axis,
-            os_sphere: reuploadManual.os_sphere, os_cylinder: reuploadManual.os_cylinder, os_axis: reuploadManual.os_axis,
-            od_add: reuploadManual.od_add || null, os_add: reuploadManual.os_add || null,
-            status: 'pending',
-          });
-        } else {
-          await apiClient.post('/sales/prescriptions/manual/', {
-            order_id: orderId,
-            order_item_id: reuploadModal.orderItemId,
-            rx: {
-              od: { sph: reuploadManual.od_sphere, cyl: reuploadManual.od_cylinder, axis: reuploadManual.od_axis, add: reuploadManual.od_add },
-              os: { sph: reuploadManual.os_sphere, cyl: reuploadManual.os_cylinder, axis: reuploadManual.os_axis, add: reuploadManual.os_add }
-            }
-          });
-        }
+        await apiClient.post('/sales/prescriptions/manual/', {
+          order_id: orderId, order_item_id: reuploadModal.orderItemId,
+          rx: {
+            od: { sph: reuploadManual.od_sphere, cyl: reuploadManual.od_cylinder, axis: reuploadManual.od_axis, add: reuploadManual.od_add },
+            os: { sph: reuploadManual.os_sphere, cyl: reuploadManual.os_cylinder, axis: reuploadManual.os_axis, add: reuploadManual.os_add },
+          },
+        });
       }
       setReuploadSuccess(true);
-      setTimeout(() => { setReuploadModal(null); setReuploadSuccess(false); setReuploadFile(null); fetchAll(true); }, 1500);
+      setTimeout(() => { setReuploadModal(null); setReuploadSuccess(false); setReuploadFile(null); fetchOrder(true); }, 1500);
     } catch (e) {
       setReuploadError(e.response?.data?.detail || 'Submission failed. Please try again.');
     } finally {
@@ -214,490 +156,307 @@ const CustomerOrderDetailPage = () => {
     }
   };
 
-  /* ── loading / error ──────────────────────────────────────── */
-  if (loading) return (
-    <div style={{ textAlign: 'center', padding: 80, color: '#9ca3af', fontFamily: 'Inter, sans-serif' }}>
-      Loading order details…
-    </div>
-  );
-  if (!order) return (
-    <div style={{ textAlign: 'center', padding: 80, color: '#dc2626', fontFamily: 'Inter, sans-serif' }}>
-      Order not found.
-    </div>
-  );
+  if (loading) {
+    return (
+      <div className="account-page"><div className="account-body">
+        <AccountSidebar active="orders" />
+        <div className="account-content"><div className="od-loading">Loading order details…</div></div>
+      </div></div>
+    );
+  }
+  if (!order) {
+    return (
+      <div className="account-page"><div className="account-body">
+        <AccountSidebar active="orders" />
+        <div className="account-content"><div className="od-error">Order not found.</div></div>
+      </div></div>
+    );
+  }
 
-  /* ── derived values ───────────────────────────────────────── */
-  const statusStyle   = STATUS_COLORS[order.order_status] || STATUS_COLORS.pending;
-  const statusIdx     = TIMELINE_STEPS.indexOf(order.order_status);
-  const isDelivered   = order.order_status === 'delivered';
-  const isCancelled   = order.order_status === 'cancelled';
-  const addr          = order.shipping_address_detail || {};
-  const tracking      = order.tracking || {};
-  const items         = order.items || [];
-  const showPartial   = order.payment_method === 'partial_payment' && order.payment_status === 'partial_paid';
-
+  /* ── derived ── */
+  const status = order.order_status || 'pending';
+  const rank = STATUS_RANK[status] ?? 0;
+  const isCancelled = status === 'cancelled';
+  const isDelivered = status === 'delivered';
+  const items = order.items || [];
+  const addr = order.shipping_address_detail || {};
+  const tracking = order.tracking || {};
+  const sc = STATUS_COLORS[status] || STATUS_COLORS.pending;
   const orderLabel = `#LO-${String(order.id).padStart(7, '0')}`;
+  const itemCount = items.length;
+  const paid = order.paid_amount || order.total_amount;
 
-  const deferredItems = items.filter(item => 
+  const returnRequests = order.return_requests || [];
+  const existingReturn = returnRequests.length ? returnRequests[returnRequests.length - 1] : null;
+  const showPartial = order.payment_method === 'partial_payment' && order.payment_status === 'partial_paid';
+  const deferredItems = items.filter(item =>
     (!item.prescription && item.lens && item.lens_prescription_text?.toLowerCase().includes('later')) ||
     (item.prescription && item.prescription.status_label?.toLowerCase().includes('reupload'))
   );
 
-  const handleReviewPending = () => {
-    if (deferredItems.length > 0) {
-      const firstPending = document.getElementById(`item-${deferredItems[0].id}`);
-      if (firstPending) {
-        firstPending.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        firstPending.style.transition = 'background-color 0.5s';
-        firstPending.style.backgroundColor = '#f5f3ff';
-        setTimeout(() => {
-          firstPending.style.backgroundColor = 'transparent';
-        }, 1500);
-      }
-    }
+  const steps = [
+    { label: 'Order Placed',     icon: ShoppingBag,    done: true,      date: order.created_at },
+    { label: 'Order Confirmed',  icon: ClipboardCheck, done: rank >= 1, date: rank >= 1 ? order.order_date : null },
+    { label: 'Shipped',          icon: Package,        done: rank >= 3, date: tracking.shipped_date },
+    { label: 'Out for Delivery', icon: Truck,          done: rank >= 4, date: null },
+    { label: 'Delivered',        icon: PackageCheck,   done: rank >= 5, date: order.delivery_date || tracking.actual_delivery_date },
+  ];
+  const currentIdx = steps.reduce((acc, s, i) => (s.done ? i : acc), 0);
+
+  // Price details
+  const subtotal = parseFloat(order.subtotal ?? order.total_amount ?? 0);
+  const discount = parseFloat(order.discount_amount ?? 0);
+  const shipping = parseFloat(order.shipping_cost ?? 0);
+  const gst      = parseFloat(order.tax_amount ?? 0);
+  const total    = parseFloat(order.total_amount ?? 0);
+  const mrpItems = subtotal + discount;
+
+  const openReupload = (item, isDeferred) => {
+    setReuploadModal({ prescriptionId: item.prescription?.id || null, orderItemId: item.id, itemName: item.variant_name || 'Product', isDeferred });
+    setReuploadMode('file'); setReuploadFile(null); setReuploadError(null); setReuploadSuccess(false);
+    setReuploadManual({ od_sphere: '', od_cylinder: '', od_axis: '', os_sphere: '', os_cylinder: '', os_axis: '', od_add: '', os_add: '' });
   };
 
-  /* ── render ───────────────────────────────────────────────── */
   return (
-    <div style={{ maxWidth: 820, margin: '0 auto', padding: '28px 16px', fontFamily: 'Inter, sans-serif' }}>
+    <div className="account-page">
+      <div className="account-body">
+        <AccountSidebar active="orders" />
 
-      {/* Back */}
-      <button onClick={() => navigate('/orders')} className="no-print"
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: '#6b7280', marginBottom: 20, fontWeight: 500, padding: 0 }}>
-        ← Back to Orders
-      </button>
+        <div className="account-content">
+          <div className="od-wrap">
 
-      {/* ── A. ORDER HEADER ─────────────────────────────────── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: '#111827' }}>Order {orderLabel}</h1>
-          <p style={{ margin: '4px 0 0', fontSize: 13, color: '#6b7280' }}>
-            Placed on {fmt(order.created_at)}
-            {order.delivery_date && isDelivered && ` · Delivered on ${fmt(order.delivery_date)}`}
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <span style={{ background: statusStyle.bg, color: statusStyle.color, borderRadius: 20, padding: '5px 14px', fontSize: 13, fontWeight: 700 }}>
-            {statusStyle.label}
-          </span>
-          <button onClick={() => window.print()} className="no-print"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-            🖨 Print Invoice
-          </button>
-        </div>
-      </div>
-
-      {/* Partial payment banner */}
-      {showPartial && (
-        <div style={{ background: '#fef3c7', border: '1px solid #fbbf24', borderRadius: 10, padding: '16px 20px', marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-          <div>
-            <p style={{ margin: '0 0 4px', fontWeight: 700, color: '#92400e', fontSize: 15 }}>Remaining payment due</p>
-            <p style={{ margin: 0, color: '#78350f', fontSize: 13 }}>Balance of {fmtPrice(order.balance_amount)} is due before dispatch.</p>
-          </div>
-          <button onClick={handlePhase2Payment} disabled={paymentLoading}
-            style={{ background: paymentLoading ? '#fbbf24' : '#d97706', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 13, fontWeight: 700, cursor: paymentLoading ? 'not-allowed' : 'pointer' }}>
-            {paymentLoading ? 'Opening…' : `Pay ${fmtPrice(order.balance_amount)} Now`}
-          </button>
-        </div>
-      )}
-
-      {/* ── STATUS TIMELINE ─────────────────────────────────── */}
-      {!isCancelled && (
-        <Card title="Order Status">
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            {TIMELINE_STEPS.map((step, i) => {
-              const done = i <= statusIdx;
-              return (
-                <React.Fragment key={step}>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 60 }}>
-                    <div style={{ width: 26, height: 26, borderRadius: '50%', background: done ? '#7c3aed' : '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .3s' }}>
-                      {done && <span style={{ color: '#fff', fontSize: 13, fontWeight: 700 }}>✓</span>}
-                    </div>
-                    <span style={{ fontSize: 10, color: done ? '#7c3aed' : '#9ca3af', fontWeight: done ? 700 : 400, marginTop: 5, textAlign: 'center', lineHeight: 1.3 }}>
-                      {TIMELINE_LABELS[step]}
-                    </span>
-                  </div>
-                  {i < TIMELINE_STEPS.length - 1 && (
-                    <div style={{ flex: 1, height: 2, background: i < statusIdx ? '#7c3aed' : '#e5e7eb', transition: 'background .3s' }} />
-                  )}
-                </React.Fragment>
-              );
-            })}
-          </div>
-        </Card>
-      )}
-
-      {/* Pending Prescriptions Banner */}
-      {deferredItems.length > 0 && (
-        <div style={{
-          background: 'linear-gradient(135deg, #6d28d9 0%, #7c3aed 100%)',
-          borderRadius: 12, padding: '16px 20px', marginBottom: 16,
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12,
-          boxShadow: '0 4px 6px -1px rgba(124, 58, 237, 0.1), 0 2px 4px -1px rgba(124, 58, 237, 0.06)'
-        }}>
-          <div>
-            <p style={{ margin: '0 0 4px', fontWeight: 800, color: '#fff', fontSize: 16 }}>
-              ⚠️ Action Required: Missing Prescriptions
-            </p>
-            <p style={{ margin: 0, color: 'rgba(255,255,255,0.9)', fontSize: 14 }}>
-              You have {deferredItems.length} item{deferredItems.length > 1 ? 's' : ''} waiting for a prescription to be uploaded.
-            </p>
-          </div>
-          <button onClick={handleReviewPending}
-            style={{
-              background: '#fff', color: '#7c3aed', border: 'none', borderRadius: 8, padding: '10px 20px',
-              fontSize: 14, fontWeight: 700, cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-            }}
-            onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
-            onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
-          >
-            Review Pending Items ↓
-          </button>
-        </div>
-      )}
-
-      {/* ── B. ITEMS & VARIANTS ─────────────────────────────── */}
-      <Card title={`Items Ordered (${items.length})`}>
-        {items.length === 0 ? (
-          <p style={{ color: '#9ca3af', margin: 0, fontSize: 13 }}>No items found.</p>
-        ) : (
-          <div>
-            {items.map((item, i) => (
-              <div key={item.id || i} id={`item-${item.id}`}
-                style={{ display: 'flex', gap: 16, padding: '14px 10px', margin: '0 -10px', borderRadius: 8, borderBottom: i < items.length - 1 ? '1px solid #f3f4f6' : 'none' }}>
-                {/* Thumbnail */}
-                <div style={{ width: 72, height: 72, borderRadius: 10, background: '#f3f4f6', overflow: 'hidden', flexShrink: 0, border: '1px solid #e5e7eb' }}>
-                  {item.variant_image
-                    ? <img src={item.variant_image} alt={item.variant_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30 }}>👓</div>
-                  }
-                </div>
-
-                {/* Details */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: 15, color: '#111827', marginBottom: 4 }}>
-                    {item.variant_name || 'Product'}
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', fontSize: 12, color: '#6b7280', marginBottom: 4 }}>
-                    {item.variant_sku && <span>SKU: <strong style={{ color: '#374151' }}>{item.variant_sku}</strong></span>}
-                    <span>Qty: <strong style={{ color: '#374151' }}>{item.quantity}</strong></span>
-                    {item.lens_pd && <span>PD: <strong style={{ color: '#374151' }}>{item.lens_pd} mm</strong></span>}
-                    {item.patient_name && <span>Patient: <strong style={{ color: '#374151' }}>{item.patient_name}</strong></span>}
-                  </div>
-                  {item.lens_prescription_text && (
-                    <div style={{ fontSize: 11, color: '#7c3aed', background: '#f5f3ff', borderRadius: 6, padding: '4px 8px', display: 'inline-block', marginBottom: 4 }}>
-                      Rx: {item.lens_prescription_text}
-                    </div>
-                  )}
-                  {item.prescription && (
-                    <div style={{ fontSize: 11, color: '#7c3aed', background: '#f5f3ff', borderRadius: 6, padding: '4px 8px', display: 'inline-block', marginBottom: 4 }}>
-                      {item.prescription.prescription_file ? (
-                        <>Prescription: <a href={item.prescription.prescription_file} target="_blank" rel="noopener noreferrer" style={{ color: '#6d28d9', textDecoration: 'underline' }}>View uploaded file</a></>
-                      ) : (
-                        <>Rx: OD {item.prescription.od_sphere} / {item.prescription.od_cylinder} ×{item.prescription.od_axis}{item.prescription.os_sphere ? ` | OS ${item.prescription.os_sphere} / ${item.prescription.os_cylinder} ×${item.prescription.os_axis}` : ''}</>
-                      )}
-                      {item.prescription.status_label && <span style={{ marginLeft: 6, opacity: 0.7 }}>· {item.prescription.status_label}</span>}
-                    </div>
-                  )}
-                  {/* Upload / Reupload button */}
-                  {(() => {
-                    const isDeferred = !item.prescription && item.lens && 
-                      item.lens_prescription_text?.toLowerCase().includes('later');
-                    const isReupload = item.prescription && 
-                      item.prescription.status_label?.toLowerCase().includes('reupload');
-                    if (!isDeferred && !isReupload) return null;
-                    return (
-                      <div style={{ marginTop: 6 }}>
-                        <button
-                          onClick={() => { 
-                            setReuploadModal({ 
-                              prescriptionId: item.prescription?.id || null, 
-                              orderItemId: item.id, 
-                              itemName: item.variant_name || 'Product',
-                              isDeferred,
-                            }); 
-                            setReuploadMode('file'); 
-                            setReuploadFile(null); 
-                            setReuploadError(null); 
-                            setReuploadSuccess(false); 
-                            setReuploadManual({ od_sphere: '', od_cylinder: '', od_axis: '', os_sphere: '', os_cylinder: '', os_axis: '', od_add: '', os_add: '' }); 
-                          }}
-                          style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 6,
-                            background: isDeferred ? '#f5f3ff' : '#fef3c7',
-                            color: isDeferred ? '#6d28d9' : '#92400e',
-                            border: isDeferred ? '1px solid #c4b5fd' : '1px solid #fbbf24',
-                            borderRadius: 8, padding: '8px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer',
-                            transition: 'background 0.2s, transform 0.1s',
-                          }}
-                          onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
-                          onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
-                        >
-                          {isDeferred ? '📋 Upload Prescription Now' : '📋 Admin requested new prescription — Upload now'}
-                        </button>
-                      </div>
-                    );
-                  })()}
-                  {/* per-item unit price */}
-                  <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>
-                    Unit price: {fmtPrice(item.unit_price || item.price_at_purchase)}
-                  </div>
-                </div>
-
-                {/* Line total */}
-                <div style={{ fontWeight: 700, fontSize: 15, color: '#111827', whiteSpace: 'nowrap', alignSelf: 'center' }}>
-                  {fmtPrice(item.item_total || item.price_at_purchase)}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
-
-      {/* ── C. TRACKING & DELIVERY ──────────────────────────── */}
-      {(tracking.tracking_number || tracking.courier_company || tracking.delivery_agent_name) && (
-        <Card title="Tracking & Delivery" accent="#f5f3ff">
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 14 }}>
-
-            {tracking.tracking_number && (
-              <div style={{ background: '#faf5ff', borderRadius: 10, padding: '12px 14px', border: '1px solid #ede9fe' }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: '#7c3aed', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tracking ID</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', wordBreak: 'break-all' }}>{tracking.tracking_number}</div>
-              </div>
-            )}
-
-            {tracking.courier_company && (
-              <div style={{ background: '#faf5ff', borderRadius: 10, padding: '12px 14px', border: '1px solid #ede9fe' }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: '#7c3aed', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Courier</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>{tracking.courier_company}</div>
-              </div>
-            )}
-
-            {tracking.delivery_agent_name && (
-              <div style={{ background: '#faf5ff', borderRadius: 10, padding: '12px 14px', border: '1px solid #ede9fe' }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: '#7c3aed', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Delivery Agent</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>{tracking.delivery_agent_name}</div>
-                {tracking.delivery_agent_phone && (
-                  <a href={`tel:${tracking.delivery_agent_phone}`}
-                    style={{ fontSize: 12, color: '#7c3aed', textDecoration: 'none', fontWeight: 600, marginTop: 2, display: 'block' }}>
-                    📞 {tracking.delivery_agent_phone}
-                  </a>
-                )}
-              </div>
-            )}
-
-            {tracking.shipped_date && (
-              <div style={{ background: '#faf5ff', borderRadius: 10, padding: '12px 14px', border: '1px solid #ede9fe' }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: '#7c3aed', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Shipped On</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>{fmt(tracking.shipped_date)}</div>
-              </div>
-            )}
-
-            {tracking.estimated_delivery_date && (
-              <div style={{ background: '#faf5ff', borderRadius: 10, padding: '12px 14px', border: '1px solid #ede9fe' }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: '#7c3aed', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Est. Delivery</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>{fmt(tracking.estimated_delivery_date)}</div>
-              </div>
-            )}
-
-            {tracking.actual_delivery_date && (
-              <div style={{ background: '#d1fae5', borderRadius: 10, padding: '12px 14px', border: '1px solid #6ee7b7' }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: '#065f46', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Delivered On</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#065f46' }}>{fmt(tracking.actual_delivery_date)}</div>
-              </div>
-            )}
-          </div>
-
-          {order.order_status === 'in_transit' && (
-            <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <Link to={`/order-tracking/${orderId}`}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#7c3aed', color: '#fff', borderRadius: 8, padding: '9px 18px', fontSize: 13, fontWeight: 600, textDecoration: 'none', alignSelf: 'flex-start' }}>
-                Track Live Delivery →
-              </Link>
-
-              {!deliveryConfirmOpen ? (
-                <button
-                  onClick={() => setDeliveryConfirmOpen(true)}
-                  style={{ alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 6, background: '#d1fae5', color: '#065f46', border: '1px solid #6ee7b7', borderRadius: 8, padding: '9px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
-                >
-                  ✓ I received my order
-                </button>
-              ) : (
-                <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#111827' }}>Confirm you received this order?</p>
-                  <p style={{ margin: 0, fontSize: 13, color: '#6b7280' }}>This will mark the order as delivered and unlock your review.</p>
-                  {deliveryConfirmError && (
-                    <p style={{ margin: 0, fontSize: 13, color: '#dc2626', fontWeight: 600 }}>{deliveryConfirmError}</p>
-                  )}
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button
-                      onClick={handleCustomerDeliveryConfirm}
-                      disabled={deliveryConfirming}
-                      style={{ background: '#065f46', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 18px', fontSize: 13, fontWeight: 700, cursor: deliveryConfirming ? 'not-allowed' : 'pointer', opacity: deliveryConfirming ? 0.7 : 1 }}
-                    >
-                      {deliveryConfirming ? 'Confirming…' : 'Yes, received'}
-                    </button>
-                    <button
-                      onClick={() => { setDeliveryConfirmOpen(false); setDeliveryConfirmError(null); }}
-                      style={{ background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: 8, padding: '9px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
+            {/* Breadcrumb */}
+            <div className="od-crumbs">
+              <Link to="/orders">Orders</Link><span>/</span><span className="active">Order Details</span>
             </div>
-          )}
-        </Card>
-      )}
 
-      {/* ── D. INVOICE SUMMARY ──────────────────────────────── */}
-      <div id="cod-invoice">
-        <Card title="Invoice" accent="#f9fafb"
-          extra={
-            <span style={{ fontSize: 11, color: '#9ca3af', fontWeight: 500 }}>
-              {orderLabel} · {fmt(order.created_at)}
-            </span>
-          }>
-
-          {/* Items table */}
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, marginBottom: 16 }}>
-            <thead>
-              <tr style={{ borderBottom: '2px solid #f3f4f6' }}>
-                {['Item', 'SKU', 'Qty', 'Unit Price', 'Total'].map(h => (
-                  <th key={h} style={{ textAlign: h === 'Item' ? 'left' : 'right', padding: '6px 8px', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item, i) => (
-                <tr key={i} style={{ borderBottom: '1px solid #f9fafb' }}>
-                  <td style={{ padding: '9px 8px', color: '#111827', fontWeight: 500 }}>{item.variant_name || 'Product'}</td>
-                  <td style={{ padding: '9px 8px', textAlign: 'right', color: '#6b7280' }}>{item.variant_sku || '—'}</td>
-                  <td style={{ padding: '9px 8px', textAlign: 'right', color: '#374151' }}>{item.quantity}</td>
-                  <td style={{ padding: '9px 8px', textAlign: 'right', color: '#374151' }}>{fmtPrice(item.unit_price || item.price_at_purchase)}</td>
-                  <td style={{ padding: '9px 8px', textAlign: 'right', fontWeight: 700, color: '#111827' }}>{fmtPrice(item.item_total || item.price_at_purchase)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {/* Totals */}
-          <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: 12, maxWidth: 300, marginLeft: 'auto' }}>
-            <Row label="Subtotal" value={fmtPrice(order.subtotal || order.total_amount)} />
-            {parseFloat(order.discount_amount || 0) > 0 && (
-              <Row label="Discount" value={`− ${fmtPrice(order.discount_amount)}`} color="#16a34a" />
-            )}
-            <Row label="Shipping" value={parseFloat(order.shipping_cost || 0) > 0 ? fmtPrice(order.shipping_cost) : 'Free'} />
-            {parseFloat(order.tax_amount || 0) > 0 && (
-              <Row label="Tax (GST)" value={fmtPrice(order.tax_amount)} />
-            )}
-            <div style={{ borderTop: '2px solid #111827', marginTop: 8, paddingTop: 8, display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ fontWeight: 800, fontSize: 15, color: '#111827' }}>Total</span>
-              <span style={{ fontWeight: 800, fontSize: 16, color: '#7c3aed' }}>{fmtPrice(order.total_amount)}</span>
-            </div>
-          </div>
-
-          {/* Payment + address row */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 20, paddingTop: 16, borderTop: '1px solid #f3f4f6' }}>
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Payment</div>
-              <Row label="Method" value={(order.payment_method || '').replace(/_/g, ' ')} />
-              <Row label="Status" value={{ pending: 'Pending', partial_paid: 'Partial Paid', paid: 'Paid', failed: 'Failed', refunded: 'Refunded' }[order.payment_status] || order.payment_status} />
-              <Row label="Paid" value={fmtPrice(order.paid_amount)} />
-              {parseFloat(order.balance_amount || 0) > 0 && (
-                <Row label="Balance Due" value={fmtPrice(order.balance_amount)} color="#dc2626" bold />
-              )}
-            </div>
-            {addr.street && (
+            {/* Header */}
+            <div className="od-head">
               <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Ship To</div>
-                <p style={{ margin: 0, fontSize: 13, color: '#374151', lineHeight: 1.7 }}>
-                  {order.customer_name && <strong style={{ display: 'block' }}>{order.customer_name}</strong>}
-                  {addr.street}<br />
-                  {addr.city}, {addr.state} {addr.pin_code}<br />
-                  {addr.country || 'India'}
+                <span className="od-badge" style={{ background: sc.bg, color: sc.color, border: `1px solid ${sc.color}40` }}>{STATUS_LABEL[status] || status}</span>
+                <h1 className="od-ordno">Order {orderLabel}</h1>
+                <p className="od-meta">
+                  Placed on {fmtDate(order.created_at)} · {itemCount} item{itemCount !== 1 ? 's' : ''} · {inr(paid)} paid
                 </p>
               </div>
-            )}
-          </div>
-        </Card>
-      </div>
+              <button className="od-invoice" onClick={() => window.print()}>↓ Download Invoice</button>
+            </div>
 
-      {/* ── E. REVIEW SECTION ───────────────────────────────── */}
-      {isDelivered && (
-        <Card title="Your Review" accent={review ? '#f5f3ff' : '#fffbeb'}>
-          {review ? (
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                <Stars rating={review.rating} />
-                {!review.is_approved && (
-                  <span style={{ fontSize: 11, background: '#fef3c7', color: '#92400e', borderRadius: 6, padding: '2px 8px', fontWeight: 700 }}>
-                    Pending approval
-                  </span>
-                )}
-              </div>
-              {review.review_title && (
-                <div style={{ fontWeight: 700, fontSize: 15, color: '#111827', marginBottom: 6 }}>{review.review_title}</div>
-              )}
-              {review.review_text && (
-                <p style={{ margin: '0 0 10px', fontSize: 13, color: '#374151', lineHeight: 1.6 }}>{review.review_text}</p>
-              )}
-              {Array.isArray(review.review_images) && review.review_images.length > 0 && (
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
-                  {review.review_images.map((src, i) => (
-                    <img key={i} src={src} alt="" style={{ width: 60, height: 60, borderRadius: 8, objectFit: 'cover', border: '1px solid #e5e7eb', cursor: 'pointer' }}
-                      onClick={() => window.open(src, '_blank')} />
-                  ))}
+            {/* Partial payment banner (critical) */}
+            {showPartial && (
+              <div className="od-alert od-alert--warn">
+                <div>
+                  <p className="od-alert-title" style={{ color: '#b54708' }}>Remaining payment due</p>
+                  <p className="od-alert-sub" style={{ color: '#93370d' }}>Balance of {inr(order.balance_amount)} is due before dispatch.</p>
                 </div>
-              )}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
-                <span style={{ fontSize: 12, color: '#9ca3af' }}>
-                  By {review.reviewer_display_name || review.username} · {fmt(review.created_at)}
-                </span>
-                <Link to={`/orders/${orderId}/write-review`}
-                  style={{ fontSize: 12, color: '#7c3aed', textDecoration: 'none', fontWeight: 700 }}>
-                  Edit review →
-                </Link>
+                <button className="od-btn od-btn--primary" style={{ background: '#dc6803', borderColor: '#dc6803' }}
+                  onClick={handlePhase2Payment} disabled={paymentLoading}>
+                  {paymentLoading ? 'Opening…' : `Pay ${inr(order.balance_amount)} Now`}
+                </button>
+              </div>
+            )}
+
+            {/* Pending prescription banner (critical) */}
+            {deferredItems.length > 0 && (
+              <div className="od-alert od-alert--rx">
+                <div>
+                  <p className="od-alert-title" style={{ color: '#fff' }}>⚠️ Action required: prescription needed</p>
+                  <p className="od-alert-sub" style={{ color: 'rgba(255,255,255,0.9)' }}>
+                    {deferredItems.length} item{deferredItems.length > 1 ? 's' : ''} waiting for a prescription.
+                  </p>
+                </div>
+                <button className="od-btn od-btn--ghost" onClick={() => openReupload(deferredItems[0], !deferredItems[0].prescription)}>
+                  Upload now
+                </button>
+              </div>
+            )}
+
+            {/* Return / Exchange status banner */}
+            {existingReturn && (
+              <div className="od-alert" style={{ background: '#f4ebff', border: '1px solid #e9d7fe' }}>
+                <div>
+                  <p className="od-alert-title" style={{ color: '#42307d' }}>
+                    {existingReturn.request_type === 'replacement' ? 'Exchange' : 'Return'} request · {RR_STATUS_LABEL[existingReturn.status] || existingReturn.status}
+                  </p>
+                  <p className="od-alert-sub" style={{ color: '#68408d' }}>
+                    Raised on {fmtDate(existingReturn.created_at)}. We'll keep you updated on its progress.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Delivery Status */}
+            {!isCancelled && (
+              <div className="od-card">
+                <h3 className="od-card-title">Delivery Status</h3>
+                {isDelivered && (order.delivery_date || tracking.actual_delivery_date) && (
+                  <p className="od-card-note">Delivered on {fmtDateTime(order.delivery_date || tracking.actual_delivery_date)}</p>
+                )}
+                <p className="od-status-label">Order Status</p>
+                <div className="od-steps">
+                  {steps.map((s, i) => {
+                    const Icon = s.icon;
+                    const isDeliveredStep = s.label === 'Delivered' && s.done;
+                    return (
+                      <React.Fragment key={s.label}>
+                        <div className="od-step">
+                          <div className={`od-step-dot ${s.done ? 'done' : ''} ${i === currentIdx && !isDelivered ? 'current' : ''}`}>
+                            <Icon size={18} strokeWidth={1.8} />
+                          </div>
+                          <span className={`od-step-label ${s.done ? 'done' : ''} ${isDeliveredStep ? 'delivered' : ''}`}>{s.label}</span>
+                          {s.date && <span className="od-step-date">{fmtStep(s.date)}</span>}
+                        </div>
+                        {i < steps.length - 1 && <div className={`od-step-line ${steps[i + 1].done ? 'done' : ''}`} />}
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Product + actions card */}
+            <div className="od-card od-card--product">
+              <div className="od-product-main">
+              {items.length === 0 ? (
+                <p style={{ color: '#98a2b3', margin: 0, fontSize: 13 }}>No items found.</p>
+              ) : items.map((item, idx) => {
+                const lineTotal = parseFloat(item.item_total || item.price_at_purchase || 0);
+                const showSaved = itemCount === 1 && discount > 0;
+                const lensLine = item.lens?.package_name || item.lens_prescription_text;
+                return (
+                  <div key={item.id || idx} style={{ borderTop: idx > 0 ? '1px solid #f0f1f4' : 'none', paddingTop: idx > 0 ? 18 : 0, marginTop: idx > 0 ? 18 : 0 }}>
+                    <div className="od-product">
+                      <div className="od-product-img">
+                        {item.variant_image ? <img src={item.variant_image} alt={item.variant_name} /> : <span className="od-product-noimg">👓</span>}
+                      </div>
+                      <div className="od-product-body">
+                        {item.brand_name && <span className="od-product-brand">{item.brand_name}</span>}
+                        <h4 className="od-product-name">{item.variant_name || 'Product'}</h4>
+                        {item.variant_sku && <p className="od-product-spec">SKU: {item.variant_sku}{item.patient_name ? ` · Patient: ${item.patient_name}` : ''}</p>}
+                        {lensLine && <p className="od-product-spec">{lensLine}{item.lens_pd ? ` · PD: ${item.lens_pd} mm` : ''} · Qty : {item.quantity}</p>}
+                        {!lensLine && <p className="od-product-spec">Qty : {item.quantity}</p>}
+                        {item.prescription?.status_label && (
+                          <p className="od-product-spec" style={{ color: '#68408d' }}>Prescription: {item.prescription.status_label}</p>
+                        )}
+                      </div>
+                    </div>
+                    <hr className="od-divider-dotted" />
+                    <div className="od-pricerow">
+                      <span className="od-price-label">{item.quantity} item{item.quantity !== 1 ? 's' : ''} price</span>
+                      <div className="od-product-priceblock">
+                        {showSaved && <span className="od-saved">You saved {inr(discount)}</span>}
+                        <div>
+                          <span className="od-price">{inr(lineTotal)}</span>
+                          {showSaved && <span className="od-mrp">{inr(lineTotal + discount)}</span>}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Per-item upload button when needed */}
+                    {(() => {
+                      const isDeferred = !item.prescription && item.lens && item.lens_prescription_text?.toLowerCase().includes('later');
+                      const isReupload = item.prescription && item.prescription.status_label?.toLowerCase().includes('reupload');
+                      if (!isDeferred && !isReupload) return null;
+                      return (
+                        <button className="od-btn od-btn--ghost" style={{ marginTop: 12 }} onClick={() => openReupload(item, isDeferred)}>
+                          📋 {isDeferred ? 'Upload prescription now' : 'Upload new prescription'}
+                        </button>
+                      );
+                    })()}
+                  </div>
+                );
+              })}
+              </div>
+
+              {/* Actions footer */}
+              <div className="od-product-footer">
+                <div className="od-actions od-actions--bare">
+                  {isDelivered && (
+                    <Link to={`/orders/${orderId}/write-review`} className="od-btn od-btn--primary">Rate This Product</Link>
+                  )}
+                  {existingReturn ? (
+                    <span className="od-btn od-btn--ghost" style={{ cursor: 'default' }}>
+                      {existingReturn.request_type === 'replacement' ? 'Exchange' : 'Return'}: {RR_STATUS_LABEL[existingReturn.status] || existingReturn.status}
+                    </span>
+                  ) : (
+                    <button type="button" className="od-btn od-btn--ghost"
+                      onClick={() => navigate(`/orders/${orderId}/return`)}>
+                      Return / Exchange
+                    </button>
+                  )}
+                  <Link to="/support/contact" className="od-btn od-btn--ghost">Need Help?</Link>
+                </div>
               </div>
             </div>
-          ) : (
-            <div style={{ textAlign: 'center', padding: '20px 0' }}>
-              <div style={{ fontSize: 32, marginBottom: 10 }}>⭐</div>
-              <p style={{ margin: '0 0 16px', fontSize: 14, color: '#374151', fontWeight: 500 }}>
-                How was your experience with this order?
-              </p>
-              <Link to={`/orders/${orderId}/write-review`}
-                style={{ display: 'inline-block', background: '#7c3aed', color: '#fff', borderRadius: 8, padding: '11px 28px', fontSize: 14, fontWeight: 700, textDecoration: 'none' }}>
-                Write a Review
-              </Link>
+
+            {/* Address + Price details */}
+            <div className="od-cols">
+              <div className="od-card">
+                <h3 className="od-card-title">Delivery Address</h3>
+                <hr className="od-divider-dotted" />
+                {addr.street ? (
+                  <>
+                    <p className="od-addr-name">{addr.full_name || order.customer_name}</p>
+                    <p className="od-addr-line">
+                      {addr.street}<br />
+                      {[addr.city, addr.state].filter(Boolean).join(', ')} {addr.pin_code}<br />
+                      {addr.country || 'India'}
+                      {addr.phone && <><br />📞 {addr.phone}</>}
+                    </p>
+                  </>
+                ) : <p className="od-addr-line">No address on file.</p>}
+              </div>
+
+              <div className="od-card">
+                <h3 className="od-card-title">Price Details</h3>
+                <hr className="od-divider-dotted" />
+                <div className="od-prow"><span>MRP ({itemCount} item{itemCount !== 1 ? 's' : ''})</span><span>{inr(mrpItems)}</span></div>
+                {discount > 0 && <div className="od-prow od-prow--green"><span>Product Discount</span><span>− {inr(discount)}</span></div>}
+                <div className="od-prow"><span>Shipping</span><span className={shipping > 0 ? '' : 'od-free'}>{shipping > 0 ? inr(shipping) : 'FREE'}</span></div>
+                {gst > 0 && <div className="od-prow"><span>GST(18%)</span><span>{inr(gst)}</span></div>}
+                <hr className="od-divider-dotted" />
+                <div className="od-prow od-prow--total"><span>Total Paid</span><span>{inr(total)}</span></div>
+              </div>
             </div>
-          )}
-        </Card>
-      )}
+
+            {/* Payment method */}
+            <div className="od-card">
+              <h3 className="od-card-title" style={{ marginBottom: 14 }}>Payment Method</h3>
+              <div className="od-pay">
+                <span className="od-pay-icon">💳</span>
+                <span>{payLabel(order.payment_method)}</span>
+                <span style={{ color: '#98a2b3', fontWeight: 500, fontSize: 13 }}>
+                  · {{ pending: 'Pending', partial_paid: 'Partially Paid', paid: 'Paid', failed: 'Failed', refunded: 'Refunded' }[order.payment_status] || order.payment_status}
+                </span>
+              </div>
+            </div>
+
+            {/* Contact support */}
+            <div className="od-help">
+              <div>
+                <p className="od-help-title">Need help with this order?</p>
+                <p className="od-help-sub">Our support team is available 24/7 for fitting queries, returns &amp; exchanges.</p>
+              </div>
+              <Link to="/support/contact" className="od-btn od-btn--primary">Contact Support</Link>
+            </div>
+
+          </div>
+        </div>
+      </div>
 
       {/* ── Prescription Reupload Modal ── */}
       {reuploadModal && (
         <div onClick={(e) => e.target === e.currentTarget && setReuploadModal(null)}
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 500, boxShadow: '0 25px 50px rgba(0,0,0,0.25)', overflow: 'hidden' }}>
-            {/* Header — violet for deferred first-time, amber for admin reupload */}
-            <div style={{
-              background: reuploadModal.isDeferred ? 'linear-gradient(135deg, #6d28d9 0%, #7c3aed 100%)' : '#fef3c7',
-              padding: '18px 20px',
-              borderBottom: reuploadModal.isDeferred ? '1px solid #5b21b6' : '1px solid #fbbf24',
-            }}>
+            <div style={{ background: reuploadModal.isDeferred ? 'linear-gradient(135deg, #6d28d9 0%, #7c3aed 100%)' : '#fef3c7', padding: '18px 20px' }}>
               <p style={{ margin: 0, fontWeight: 800, fontSize: 16, color: reuploadModal.isDeferred ? '#fff' : '#92400e' }}>
                 {reuploadModal.isDeferred ? '📋 Submit Your Prescription' : '📋 New Prescription Required'}
               </p>
               <p style={{ margin: '4px 0 0', fontSize: 13, color: reuploadModal.isDeferred ? 'rgba(255,255,255,0.85)' : '#78350f' }}>
-                {reuploadModal.isDeferred
-                  ? `${reuploadModal.itemName} — upload or enter your prescription details below.`
-                  : `${reuploadModal.itemName} — please provide an updated prescription.`}
+                {reuploadModal.itemName} — upload or enter your prescription details below.
               </p>
             </div>
-            {/* Mode tabs */}
             <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb' }}>
               {[['file', '📁 Upload File'], ['manual', '✏️ Enter Manually']].map(([key, label]) => (
                 <button key={key} onClick={() => setReuploadMode(key)}
@@ -706,40 +465,33 @@ const CustomerOrderDetailPage = () => {
                 </button>
               ))}
             </div>
-            {/* Body */}
-            <div style={{ padding: '20px', maxHeight: '60vh', overflowY: 'auto' }}>
+            <div style={{ padding: 20, maxHeight: '60vh', overflowY: 'auto' }}>
               {reuploadSuccess ? (
                 <div style={{ textAlign: 'center', padding: '30px 0' }}>
                   <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
                   <p style={{ fontWeight: 700, color: '#065f46', fontSize: 16 }}>Prescription submitted!</p>
-                  <p style={{ fontSize: 13, color: '#6b7280' }}>Our team will review it shortly.</p>
                 </div>
               ) : reuploadMode === 'file' ? (
                 <div>
-                  <p style={{ fontSize: 13, color: '#374151', marginTop: 0 }}>Upload a clear photo or PDF of your prescription from your doctor.</p>
-                  <input ref={reuploadFileRef} type="file" accept="image/*,application/pdf" style={{ display: 'none' }}
-                    onChange={e => setReuploadFile(e.target.files[0])} />
+                  <p style={{ fontSize: 13, color: '#374151', marginTop: 0 }}>Upload a clear photo or PDF of your prescription.</p>
+                  <input ref={reuploadFileRef} type="file" accept="image/*,application/pdf" style={{ display: 'none' }} onChange={e => setReuploadFile(e.target.files[0])} />
                   <div onClick={() => reuploadFileRef.current?.click()}
-                    style={{ border: '2px dashed #d8b4fe', borderRadius: 12, padding: '28px 20px', textAlign: 'center', cursor: 'pointer', background: '#faf5ff', marginBottom: 12 }}>
-                    {reuploadFile ? (
-                      <><div style={{ fontSize: 28 }}>📄</div><p style={{ margin: '8px 0 0', fontWeight: 700, color: '#7c3aed', fontSize: 14 }}>{reuploadFile.name}</p></>
-                    ) : (
-                      <><div style={{ fontSize: 28 }}>📁</div><p style={{ margin: '8px 0 0', color: '#6b7280', fontSize: 13 }}>Tap to choose file<br /><span style={{ fontSize: 11 }}>JPEG, PNG or PDF — max 10MB</span></p></>
-                    )}
+                    style={{ border: '2px dashed #d8b4fe', borderRadius: 12, padding: '28px 20px', textAlign: 'center', cursor: 'pointer', background: '#faf5ff' }}>
+                    {reuploadFile
+                      ? <><div style={{ fontSize: 28 }}>📄</div><p style={{ margin: '8px 0 0', fontWeight: 700, color: '#7c3aed', fontSize: 14 }}>{reuploadFile.name}</p></>
+                      : <><div style={{ fontSize: 28 }}>📁</div><p style={{ margin: '8px 0 0', color: '#6b7280', fontSize: 13 }}>Tap to choose file<br /><span style={{ fontSize: 11 }}>JPEG, PNG or PDF — max 10MB</span></p></>}
                   </div>
                 </div>
               ) : (
                 <div>
-                  <p style={{ fontSize: 13, color: '#374151', marginTop: 0 }}>Enter your prescription values as given by your doctor.</p>
                   {[['OD (Right Eye)', 'od'], ['OS (Left Eye)', 'os']].map(([eyeLabel, eye]) => (
                     <div key={eye} style={{ marginBottom: 16 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{eyeLabel}</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 8 }}>{eyeLabel}</div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8 }}>
                         {['sphere', 'cylinder', 'axis', 'add'].map(field => (
                           <div key={field}>
                             <label style={{ fontSize: 10, color: '#6b7280', fontWeight: 600, textTransform: 'uppercase' }}>{field}</label>
-                            <input type="number" step="0.25"
-                              value={reuploadManual[`${eye}_${field}`]}
+                            <input type="number" step="0.25" value={reuploadManual[`${eye}_${field}`]}
                               onChange={e => setReuploadManual(p => ({ ...p, [`${eye}_${field}`]: e.target.value }))}
                               placeholder={field === 'axis' ? '0–180' : '0.00'}
                               style={{ width: '100%', padding: '7px 8px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, boxSizing: 'border-box', marginTop: 3 }} />
@@ -752,15 +504,11 @@ const CustomerOrderDetailPage = () => {
               )}
               {reuploadError && <p style={{ color: '#dc2626', fontSize: 13, marginTop: 8, fontWeight: 600 }}>{reuploadError}</p>}
             </div>
-            {/* Footer */}
             {!reuploadSuccess && (
               <div style={{ display: 'flex', gap: 10, padding: '14px 20px', borderTop: '1px solid #e5e7eb' }}>
-                <button onClick={() => setReuploadModal(null)}
-                  style={{ flex: 1, padding: '10px', border: '1px solid #d1d5db', borderRadius: 8, background: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', color: '#374151' }}>
-                  Cancel
-                </button>
+                <button onClick={() => setReuploadModal(null)} style={{ flex: 1, padding: 10, border: '1px solid #d1d5db', borderRadius: 8, background: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', color: '#374151' }}>Cancel</button>
                 <button onClick={handleReuploadSubmit} disabled={reuploadSubmitting}
-                  style={{ flex: 2, padding: '10px', border: 'none', borderRadius: 8, background: reuploadSubmitting ? '#a78bfa' : '#7c3aed', color: '#fff', fontSize: 14, fontWeight: 700, cursor: reuploadSubmitting ? 'not-allowed' : 'pointer' }}>
+                  style={{ flex: 2, padding: 10, border: 'none', borderRadius: 8, background: reuploadSubmitting ? '#a78bfa' : '#7c3aed', color: '#fff', fontSize: 14, fontWeight: 700, cursor: reuploadSubmitting ? 'not-allowed' : 'pointer' }}>
                   {reuploadSubmitting ? 'Submitting…' : 'Submit Prescription'}
                 </button>
               </div>
@@ -768,7 +516,6 @@ const CustomerOrderDetailPage = () => {
           </div>
         </div>
       )}
-
     </div>
   );
 };

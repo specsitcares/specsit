@@ -292,6 +292,13 @@ class ReturnRequest(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     def __str__(self): return f"Return #{self.id} for Order #{self.order_id}"
 
+class ReturnRequestImage(models.Model):
+    """Customer-uploaded photos supporting a return/exchange request."""
+    return_request = models.ForeignKey(ReturnRequest, on_delete=models.CASCADE, related_name='images')
+    image = models.ImageField(upload_to='return_requests/')
+    created_at = models.DateTimeField(auto_now_add=True)
+    def __str__(self): return f"Image for Return #{self.return_request_id}"
+
 class WarrantyClaim(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Pending'),
