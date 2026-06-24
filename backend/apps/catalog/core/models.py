@@ -23,6 +23,9 @@ class MetadataItem(models.Model):
         'catalog.Category', on_delete=models.SET_NULL,
         null=True, blank=True, related_name='+'
     )
+    # When True, selecting this lens type skips lens/prescription selection and sends the
+    # customer straight to checkout (e.g. "Frame Only" — no lenses are provided).
+    direct_checkout = models.BooleanField(default=False)
     def __str__(self): return f"{self.group.name}: {self.label}"
 
 class AnalyticsLog(models.Model):
