@@ -17,12 +17,43 @@ const SPH_OPTIONS = buildDiopterOptions(-20, 20);
 const CYL_OPTIONS = buildDiopterOptions(-6, 0);
 
 /* ─── Shared: Order summary right column ─── */
-const OrderSummary = ({ totalAmount, savings = 0, depositAmount = 0, balanceAmount = 0, depositPct }) => {
+const OrderSummary = ({ items = [], totalAmount, savings = 0, depositAmount = 0, balanceAmount = 0, depositPct }) => {
     const itemsTotal = totalAmount + (savings || 0);
     return (
         <div className="conf-right">
             <div className="ck-summary">
                 <h3 className="ck-order__title">Your Order</h3>
+
+                {/* Ordered items (Figma 70:1193) */}
+                {items.length > 0 && (
+                    <div className="conf-os-items">
+                        {items.map((it, i) => {
+                            const name = it.variant_name || it.product?.title || 'Item';
+                            const lensLabel = it.lens?.name || (it.lens ? `${it.lens.type || 'Power'} Lenses` : null);
+                            const qty = it.quantity || 1;
+                            const linePrice = parseFloat(it.price ?? it.price_at_purchase ?? 0) * qty;
+                            return (
+                                <div key={it.id || i} className="conf-os-item">
+                                    <div className="conf-os-item__thumb">
+                                        {it.variant_image
+                                            ? <img src={it.variant_image} alt={name} />
+                                            : <div className="conf-os-item__ph" />}
+                                    </div>
+                                    <div className="conf-os-item__info">
+                                        <span className="conf-os-item__name">{name}</span>
+                                        {it.brand_name && <span className="conf-os-item__sub">{it.brand_name}</span>}
+                                        {lensLabel && <span className="conf-os-item__lens">{lensLabel}</span>}
+                                    </div>
+                                    <div className="conf-os-item__price">
+                                        <span>{it.lens ? 'Frame + Lens' : 'Frame'}</span>
+                                        <strong>₹{linePrice.toLocaleString('en-IN')}</strong>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+
                 <div className="ck-order">
                     <div className="ck-order__line">
                         <span className="ck-order__label">Item(s) total</span>
