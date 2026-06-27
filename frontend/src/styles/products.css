@@ -111,9 +111,11 @@
   min-width: 0;
   background: var(--plp-card-bg);
   padding: 24px 28px;
-  border: 1px solid #e8e8e8;
   border-radius: 4px;
-  overflow: hidden;
+  /* Filters are strictly fixed (pinned below the sticky navbar) — they never
+     scroll. Only the product grid scrolls. */
+  position: sticky;
+  top: 88px;
   align-self: flex-start;
 }
 
@@ -334,7 +336,18 @@
   flex-direction: column;
   gap: 14px;
   min-width: 0;
+  /* The products column is the scrollable pane. It scrolls on its own (the page
+     and the filters stay put). Scrollbar hidden on all browsers. */
+  position: sticky;
+  top: 88px;
+  align-self: flex-start;
+  max-height: calc(100vh - 104px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;       /* Firefox */
+  -ms-overflow-style: none;    /* IE/Edge */
 }
+.plp-main-content::-webkit-scrollbar { display: none; }  /* Chrome/Safari */
 
 /* ── Sorting & Actions Row ───────────────────────────── */
 .sorting-actions-wrapper {

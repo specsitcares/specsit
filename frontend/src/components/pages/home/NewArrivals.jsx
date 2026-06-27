@@ -76,8 +76,6 @@ const ProductCard = ({ product }) => {
     setImgIdx(0);
   };
 
-  const mainImg = images[imgIdx] || images[0] || '';
-
   // Variant-aware pricing — cascading: variant.selling_price → variant.discount_percent → product.selling_price → product.discount_percentage
   const mrp            = Math.round(parseFloat(selectedVariant?.base_price || product.base_price || 0));
   const variantSelling = parseFloat(selectedVariant?.selling_price || 0);
@@ -128,8 +126,17 @@ const ProductCard = ({ product }) => {
         onMouseLeave={stopCarousel}
       >
         <div className="product-card__image-wrap">
-          {mainImg
-            ? <img src={mainImg} alt={title} onError={(e) => { e.target.style.display = 'none'; }} />
+          {imageCount > 0
+            ? (
+              <div
+                className="product-card__image-track"
+                style={{ transform: `translateX(-${imgIdx * 100}%)` }}
+              >
+                {images.map((src, i) => (
+                  <img key={i} src={src} alt={title} onError={(e) => { e.target.style.visibility = 'hidden'; }} />
+                ))}
+              </div>
+            )
             : <div className="product-card__image-placeholder" />
           }
 

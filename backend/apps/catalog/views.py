@@ -293,8 +293,11 @@ class ProductViewSet(viewsets.ModelViewSet):
         for t in types:
             name = f"{t.value or ''} {t.label or ''}".lower()
             is_frame_only = bool(re.search(r'frame[\s_-]*only', name))
-            # Frame-only / direct-checkout types provide no lenses and apply to every frame.
-            if is_frame_only or getattr(t, 'direct_checkout', False):
+            # Legacy "Frame Only" types (matched by name) provide no lenses and apply to
+            # every frame. Direct-checkout types are NOT treated this way — they stay
+            # dedicated to their own category (handled by the package-less branch below),
+            # so they never spill into the wrong segment (e.g. Sunglasses).
+            if is_frame_only:
                 result.append(t)
                 continue
 

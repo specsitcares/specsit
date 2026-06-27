@@ -235,6 +235,23 @@
 .lm-type-delete-btn:hover { color: #ef4444; background: #fef2f2; }
 .lm-type-card.selected .lm-type-delete-btn { color: #c4b5fd; }
 .lm-type-card.selected .lm-type-delete-btn:hover { color: #ef4444; background: rgba(255,255,255,0.15); }
+.lm-type-edit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: #9CA3AF;
+  cursor: pointer;
+  padding: 0;
+  border-radius: 3px;
+  transition: color 0.15s, background 0.15s;
+}
+.lm-type-edit-btn:hover { color: #68408D; background: #f4ebff; }
+.lm-type-card.selected .lm-type-edit-btn { color: #c4b5fd; }
+.lm-type-card.selected .lm-type-edit-btn:hover { color: #68408D; background: rgba(255,255,255,0.15); }
 .lm-type-name {
   font-size: 13px;
   font-weight: 600;
