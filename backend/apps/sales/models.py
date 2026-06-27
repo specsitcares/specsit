@@ -182,6 +182,7 @@ class OrderTracking(models.Model):
     order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name='tracking')
     tracking_number = models.CharField(max_length=100, unique=True, null=True, blank=True)
     courier_company = models.CharField(max_length=100, null=True, blank=True)
+    tracking_link = models.URLField(max_length=500, null=True, blank=True)  # carrier portal link from dispatch form
     current_status = models.CharField(max_length=50, default='pending')
     shipped_date = models.DateTimeField(null=True, blank=True)
     estimated_delivery_date = models.DateField(null=True, blank=True)

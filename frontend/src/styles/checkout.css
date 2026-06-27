@@ -3187,14 +3187,62 @@
   transform: translateY(-1px);
 }
 
+/* ── COD + 1-2 hour (bolt) delivery confirmation ── */
+.cod-bolt-subtitle {
+  margin: 4px 0 0;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 16px;
+  color: #71717A;
+  text-align: center;
+}
+.cod-bolt-section { display: flex; flex-direction: column; gap: 10px; }
+.cod-bolt-label {
+  margin: 0;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 16px; font-weight: 700; letter-spacing: -0.4px; color: #040205;
+}
+.cod-bolt-addr {
+  display: flex; flex-direction: column; gap: 4px;
+  background: #FEFCFF; border: 1px solid #D9D9D9; border-radius: 12px; padding: 14px 16px;
+}
+.cod-bolt-addr strong { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 700; color: #040205; }
+.cod-bolt-addr span { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; color: #71717A; line-height: 19px; }
+.cod-bolt-pay {
+  display: flex; flex-direction: column; gap: 14px;
+  background: #FEFCFF; border: 1px solid #D9D9D9; border-radius: 12px; padding: 14px;
+}
+.cod-bolt-due {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  background: #F9F7FC; border-radius: 12px; padding: 18px 20px;
+}
+.cod-bolt-due__left { display: flex; flex-direction: column; gap: 3px; }
+.cod-bolt-due__left strong { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 17px; font-weight: 700; color: #040205; }
+.cod-bolt-due__left span { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; color: #71717A; }
+.cod-bolt-due__right { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; text-align: right; }
+.cod-bolt-due__right strong { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 30px; font-weight: 800; color: #68408D; line-height: 1; }
+.cod-bolt-due__right span { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 11px; color: #71717A; }
+.cod-bolt-pay__title { margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 700; color: #040205; }
+.cod-bolt-tiles { display: flex; gap: 12px; }
+.cod-bolt-tile {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;
+  background: #F9F7FC; border-radius: 10px; padding: 14px; font-size: 24px;
+}
+.cod-bolt-tile span { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 11px; font-weight: 700; color: #71717A; }
+.cod-bolt-reminders { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.cod-bolt-reminders li { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; color: #71717A; line-height: 19px; }
+
 /* Right column - order summary */
 .conf-right {
   width: 416px;
   flex-shrink: 0;
+  /* Lock the order summary in place; only the left column scrolls with the page. */
+  position: sticky;
+  top: 88px;
+  align-self: flex-start;
 }
 
 @media (max-width: 960px) {
-  .conf-right { width: 100%; }
+  .conf-right { width: 100%; position: static; }
 }
 
 .conf-summary-card {
@@ -4969,7 +5017,11 @@
 .pay2-row__left { display:flex; align-items:center; gap:12px; }
 .pay2-row__icon { width:34px; height:34px; border-radius:8px; background:#F4EEFA; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .pay2-row__icon--blue { background:#EAF2FF; }
+.pay2-row__icon--green { background:#E7F7EC; }
 .pay2-row__title { font-family:'Plus Jakarta Sans',sans-serif; font-size:18px; font-weight:700; color:#040205; }
+.pay2-row__textcol { display:flex; flex-direction:column; gap:3px; }
+.pay2-row__sub { font-family:'Plus Jakarta Sans',sans-serif; font-size:14px; font-weight:400; color:#71717A; }
+.pay2-row--active { background:#F7F2FB; }
 .pay2-radio { width:22px; height:22px; border-radius:50%; border:2px solid #D9D9D9; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .pay2-radio--on { background:#68408D; border-color:#68408D; }
 

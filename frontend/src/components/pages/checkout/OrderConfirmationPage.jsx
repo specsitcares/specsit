@@ -70,6 +70,8 @@ const OrderConfirmationPage = () => {
 
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
+    // Bolt (1-2 hr) eligibility — resolved from the pincode delivery table; ?bolt= is a hint.
+    const [isBolt, setIsBolt] = useState(searchParams.get('bolt') === 'true');
 
     /* Deferred prescription flow step:
        0 = Screen 1 (Submit Your Lens Power)
@@ -108,6 +110,14 @@ const OrderConfirmationPage = () => {
             const response = await apiClient.get(`/sales/orders/${orderId}/`);
             const data = response.data;
             setOrder(data);
+            // Source bolt eligibility from the pincode delivery table (Excel bolt-eligible
+            // locations) using the order's shipping pincode — survives page refresh.
+            const pin = data.shipping_address_detail?.pin_code;
+            if (pin) {
+                apiClient.get('/sales/pincode-rate/?pincode=' + pin)
+                    .then(r => setIsBolt(!!r.data.bolt_delivery))
+                    .catch(() => {});
+            }
             if (hasDeferredRx) {
                 const alreadySubmitted = (data.items || []).some(
                     item => item.prescription_status && item.prescription_status !== 'Pending'
@@ -203,6 +213,16 @@ const OrderConfirmationPage = () => {
     const displayOrderId = `LO-${String(order.id || orderId).padStart(7, '0')}`;
     const items = order.items || order.order_items || [];
 
+    /* ── COD confirmation variant (bolt 1-2hr vs careful/normal) ──
+       `isBolt` is sourced from the pincode delivery table (the Excel bolt-eligible
+       locations), looked up in fetchOrderDetails; the ?bolt= param is only a hint. */
+    const isCod = String(order.payment_method || '').toLowerCase().includes('cod');
+    const shipAddr = order.shipping_address_detail || {};
+    const codAmountDue = parseFloat(order.balance_amount) > 0 ? parseFloat(order.balance_amount) : totalAmount;
+    const shipAddrLine = [shipAddr.street, shipAddr.city, shipAddr.state, shipAddr.pin_code, shipAddr.country]
+        .filter(Boolean).join(', ');
+    const trackingLink = order.tracking?.tracking_link || '';
+
     /* ── Shared header ── */
     const renderHeader = (heading, orderIdText) => (
         <div className="conf-header">
@@ -221,6 +241,133 @@ const OrderConfirmationPage = () => {
     /* ─────────────────────────────────────────────────────────────────────
        NON-DEFERRED flow: regular delivery confirmation (existing UI)
        ───────────────────────────────────────────────────────────────────── */
+    /* ─────────────────────────────────────────────────────────────────────
+       COD confirmation — bolt 1-2hr (Figma 655:1097) or careful/normal (655:1438)
+       ───────────────────────────────────────────────────────────────────── */
+    if (!hasDeferredRx && isCod) {
+        return (
+            <div className="checkout-redesign">
+                <div className="conf-page">
+                    <div className="conf-header">
+                        <div className="conf-check-box">
+                            <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
+                                <path d="M6 15L12 21L24 9" stroke="#68408D" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                        </div>
+                        <h1 className="conf-thank-you conf-thank-you--alt">Order Placed Successfully! 🎉</h1>
+                        <p className="cod-bolt-subtitle">Your order has been confirmed with Cash on Delivery.</p>
+                        <p className="conf-order-id">
+                            Order ID: <span className="conf-order-id__bold">#{displayOrderId}</span>
+                        </p>
+                    </div>
+
+                    <div className="conf-body">
+                        <div className="conf-left">
+                            <div className="conf-delivery-card">
+                                <div className="conf-delivery-card__inner">
+                                    <div className="conf-delivery-top">
+                                        <div className="conf-priority-row">
+                                            <svg width="20" height="16" viewBox="0 0 20 16" fill="none">
+                                                <path d="M11 1L3 9H10L9 15L17 7H10L11 1Z" fill="#68408D"/>
+                                            </svg>
+                                            <span className="conf-priority-label">Priority Fulfillment</span>
+                                        </div>
+                                        <h2 className="conf-delivery-heading">{isBolt ? '1-2 Hour Delivery' : 'Careful Delivery'}</h2>
+                                        <p className="conf-delivery-desc">
+                                            Our concierge delivery partner is preparing your curated eyewear selection for immediate dispatch within Hyderabad.
+                                        </p>
+                                    </div>
+
+                                    {/* Delivery address */}
+                                    <div className="cod-bolt-section">
+                                        <h3 className="cod-bolt-label">Delivery</h3>
+                                        <div className="cod-bolt-addr">
+                                            <strong>{shipAddr.full_name || order.customer_name || 'Customer'}</strong>
+                                            <span>{shipAddrLine || '—'}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Payment information */}
+                                    <div className="cod-bolt-section">
+                                        <h3 className="cod-bolt-label">Payment Information</h3>
+                                        <div className="cod-bolt-pay">
+                                            <div className="cod-bolt-due">
+                                                <div className="cod-bolt-due__left">
+                                                    <strong>Amount Due at Delivery</strong>
+                                                    <span>Pay this amount to the delivery agent</span>
+                                                </div>
+                                                <div className="cod-bolt-due__right">
+                                                    <strong>₹{codAmountDue.toLocaleString('en-IN')}</strong>
+                                                    <span>Cash / Card accepted</span>
+                                                </div>
+                                            </div>
+
+                                            <p className="cod-bolt-pay__title">Pay through online</p>
+                                            <div className="cod-bolt-tiles">
+                                                <div className="cod-bolt-tile">💵<span>Cash</span></div>
+                                                <div className="cod-bolt-tile">📲<span>UPI at door</span></div>
+                                            </div>
+
+                                            <p className="cod-bolt-pay__title">Reminders:</p>
+                                            <ul className="cod-bolt-reminders">
+                                                <li>📌 Keep ₹{codAmountDue.toLocaleString('en-IN')} ready at the time of delivery</li>
+                                                <li>📌 Our agent will carry a receipt for your payment</li>
+                                                <li>❌ Order cannot be cancelled after dispatch</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+
+                                    <div className="conf-tracking-row">
+                                        <div className="conf-tracking-left">
+                                            <div className="conf-tracking-icon-box">{isBolt ? '⚡' : '📦'}</div>
+                                            <div className="conf-tracking-text">
+                                                <span className="conf-tracking-title">{isBolt ? 'Live Tracking Active' : 'Track your package'}</span>
+                                                <span className="conf-tracking-eta">{isBolt ? '1-2 hour delivery across Hyderabad' : 'Delivery across Hyderabad'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="conf-cta-row">
+                                {trackingLink ? (
+                                    <a href={trackingLink} target="_blank" rel="noopener noreferrer" className="conf-track-btn">
+                                        <svg width="10" height="12" viewBox="0 0 10 12" fill="none">
+                                            <path d="M5 1C2.79 1 1 2.79 1 5C1 8 5 11.5 5 11.5C5 11.5 9 8 9 5C9 2.79 7.21 1 5 1ZM5 6.5C4.17 6.5 3.5 5.83 3.5 5C3.5 4.17 4.17 3.5 5 3.5C5.83 3.5 6.5 4.17 6.5 5C6.5 5.83 5.83 6.5 5 6.5Z" fill="white"/>
+                                        </svg>
+                                        Track Order
+                                    </a>
+                                ) : (
+                                    <Link to={`/orders/${order.id || orderId}`} className="conf-track-btn">
+                                        <svg width="10" height="12" viewBox="0 0 10 12" fill="none">
+                                            <path d="M5 1C2.79 1 1 2.79 1 5C1 8 5 11.5 5 11.5C5 11.5 9 8 9 5C9 2.79 7.21 1 5 1ZM5 6.5C4.17 6.5 3.5 5.83 3.5 5C3.5 4.17 4.17 3.5 5 3.5C5.83 3.5 6.5 4.17 6.5 5C6.5 5.83 5.83 6.5 5 6.5Z" fill="white"/>
+                                        </svg>
+                                        Track Order
+                                    </Link>
+                                )}
+                                <Link to="/products" className="conf-shop-btn">Continue Shopping</Link>
+                            </div>
+                        </div>
+                        <OrderSummary
+                            items={items}
+                            totalAmount={totalAmount}
+                            savings={savings}
+                            depositAmount={0}
+                            balanceAmount={0}
+                            depositPct={0}
+                            showAwaitingBadge={false}
+                        />
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    /* ─────────────────────────────────────────────────────────────────────
+       ONLINE PAID confirmation — bolt 1-2hr (Figma 655:1779) or careful/normal
+       (Figma 655:2029). Reached only when not COD (COD is handled above); the
+       heading switches on bolt eligibility (pincode delivery table).
+       ───────────────────────────────────────────────────────────────────── */
     if (!hasDeferredRx) {
         return (
             <div className="checkout-redesign">
@@ -237,47 +384,49 @@ const OrderConfirmationPage = () => {
                                             </svg>
                                             <span className="conf-priority-label">Priority Fulfillment</span>
                                         </div>
-                                        <h2 className="conf-delivery-heading">1-2 Hour Delivery</h2>
+                                        <h2 className="conf-delivery-heading">{isBolt ? '1-2 Hour Delivery' : 'Careful Delivery'}</h2>
                                         <p className="conf-delivery-desc">
                                             Our concierge delivery partner is preparing your curated eyewear selection for immediate dispatch within Hyderabad.
                                         </p>
                                     </div>
+
+                                    {/* Delivery address */}
+                                    <div className="cod-bolt-section">
+                                        <h3 className="cod-bolt-label">Delivery</h3>
+                                        <div className="cod-bolt-addr">
+                                            <strong>{shipAddr.full_name || order.customer_name || 'Customer'}</strong>
+                                            <span>{shipAddrLine || '—'}</span>
+                                        </div>
+                                    </div>
+
                                     <div className="conf-tracking-row">
                                         <div className="conf-tracking-left">
-                                            <div className="conf-tracking-icon-box">
-                                                <svg width="20" height="14" viewBox="0 0 20 14" fill="none">
-                                                    <path d="M1 1H13V10H1V1Z" stroke="#71717A" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-                                                    <path d="M13 4H16L19 7V10H13V4Z" stroke="#71717A" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-                                                    <circle cx="4" cy="12" r="1.5" stroke="#71717A" strokeWidth="1.3"/>
-                                                    <circle cx="16" cy="12" r="1.5" stroke="#71717A" strokeWidth="1.3"/>
-                                                </svg>
-                                            </div>
+                                            <div className="conf-tracking-icon-box">⚡</div>
                                             <div className="conf-tracking-text">
                                                 <span className="conf-tracking-title">Live Tracking Active</span>
-                                                <span className="conf-tracking-eta">Estimated arrival: Today, 4:45 PM</span>
+                                                <span className="conf-tracking-eta">1-2 hour delivery across Hyderabad</span>
                                             </div>
-                                        </div>
-                                        <div className="conf-tracking-right">
-                                            {order?.tracking?.courier_person && (
-                                                <span className="conf-courier-name">Courier: {order.tracking.courier_person}</span>
-                                            )}
-                                            <button className="conf-contact-pill">
-                                                <svg width="10.5" height="10.5" viewBox="0 0 24 24" fill="none" stroke="#040205" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                    <path d="M22 16.92V19.92C22 20.48 21.76 21.01 21.34 21.38C20.92 21.76 20.36 21.93 19.8 21.86C16.74 21.49 13.8 20.39 11.22 18.64C8.82 17.04 6.8 15.02 5.2 12.62C3.44 10.03 2.34 7.07 1.98 3.99C1.91 3.44 2.08 2.88 2.45 2.46C2.83 2.04 3.36 1.8 3.92 1.8H6.92C7.88 1.8 8.7 2.47 8.87 3.42C9.02 4.27 9.26 5.1 9.59 5.9C9.85 6.53 9.7 7.25 9.22 7.72L7.97 8.97C9.44 11.47 11.53 13.56 14.03 15.03L15.28 13.78C15.75 13.3 16.47 13.15 17.1 13.41C17.9 13.74 18.73 13.98 19.58 14.13C20.54 14.3 21.22 15.13 21.2 16.09L22 16.92Z"/>
-                                                </svg>
-                                                <span className="conf-contact-pill__text">Contact</span>
-                                            </button>
                                         </div>
                                     </div>
                                 </div>
                             </div>
+
                             <div className="conf-cta-row">
-                                <Link to="/orders" className="conf-track-btn">
-                                    <svg width="10" height="12" viewBox="0 0 10 12" fill="none">
-                                        <path d="M5 1C2.79 1 1 2.79 1 5C1 8 5 11.5 5 11.5C5 11.5 9 8 9 5C9 2.79 7.21 1 5 1ZM5 6.5C4.17 6.5 3.5 5.83 3.5 5C3.5 4.17 4.17 3.5 5 3.5C5.83 3.5 6.5 4.17 6.5 5C6.5 5.83 5.83 6.5 5 6.5Z" fill="white"/>
-                                    </svg>
-                                    Track Order
-                                </Link>
+                                {trackingLink ? (
+                                    <a href={trackingLink} target="_blank" rel="noopener noreferrer" className="conf-track-btn">
+                                        <svg width="10" height="12" viewBox="0 0 10 12" fill="none">
+                                            <path d="M5 1C2.79 1 1 2.79 1 5C1 8 5 11.5 5 11.5C5 11.5 9 8 9 5C9 2.79 7.21 1 5 1ZM5 6.5C4.17 6.5 3.5 5.83 3.5 5C3.5 4.17 4.17 3.5 5 3.5C5.83 3.5 6.5 4.17 6.5 5C6.5 5.83 5.83 6.5 5 6.5Z" fill="white"/>
+                                        </svg>
+                                        Track Order
+                                    </a>
+                                ) : (
+                                    <Link to={`/orders/${order.id || orderId}`} className="conf-track-btn">
+                                        <svg width="10" height="12" viewBox="0 0 10 12" fill="none">
+                                            <path d="M5 1C2.79 1 1 2.79 1 5C1 8 5 11.5 5 11.5C5 11.5 9 8 9 5C9 2.79 7.21 1 5 1ZM5 6.5C4.17 6.5 3.5 5.83 3.5 5C3.5 4.17 4.17 3.5 5 3.5C5.83 3.5 6.5 4.17 6.5 5C6.5 5.83 5.83 6.5 5 6.5Z" fill="white"/>
+                                        </svg>
+                                        Track Order
+                                    </Link>
+                                )}
                                 <Link to="/products" className="conf-shop-btn">Continue Shopping</Link>
                             </div>
                         </div>

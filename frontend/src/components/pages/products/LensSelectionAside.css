@@ -102,6 +102,14 @@
     flex-shrink: 0;
 }
 
+/* Steps the customer can jump to (to & fro navigation) */
+.lsa-step--clickable {
+    cursor: pointer;
+}
+.lsa-step--clickable:hover .lsa-step__label {
+    color: #68408D;
+}
+
 .lsa-step__circle {
     width: 26px;
     height: 26px;

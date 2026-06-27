@@ -120,11 +120,19 @@ const STEPS = [
     { label: 'Rx' },
 ];
 
-const Stepper = ({ current }) => (
+const Stepper = ({ current, onStepClick, canGoTo }) => (
     <div className="lsa-stepper">
-        {STEPS.map((s, i) => (
+        {STEPS.map((s, i) => {
+            const clickable = i !== current && (canGoTo ? canGoTo(i) : false);
+            return (
             <React.Fragment key={i}>
-                <div className="lsa-step">
+                <div
+                    className={`lsa-step${clickable ? ' lsa-step--clickable' : ''}`}
+                    onClick={() => { if (clickable && onStepClick) onStepClick(i); }}
+                    role={clickable ? 'button' : undefined}
+                    tabIndex={clickable ? 0 : undefined}
+                    onKeyDown={(e) => { if (clickable && onStepClick && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onStepClick(i); } }}
+                >
                     <div className={`lsa-step__circle${i < current ? ' lsa-step__circle--done' : i === current ? ' lsa-step__circle--active' : ''}`}>
                         {i < current ? (
                             <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
@@ -142,7 +150,8 @@ const Stepper = ({ current }) => (
                     <div className={`lsa-step__divider${i < current ? ' lsa-step__divider--done' : ''}`} />
                 )}
             </React.Fragment>
-        ))}
+            );
+        })}
     </div>
 );
 
@@ -1120,6 +1129,24 @@ const LensSelectionAside = ({ isOpen, onClose, product, onAddToCart }) => {
         setStep(s => s - 1);
     };
 
+    // Which steps the customer is allowed to jump to via the stepper (to & fro).
+    // Step 0 (Power) is always reachable; Lenses needs a power type with lenses;
+    // Rx needs a selected lens (or a frame-only type that has no lens step).
+    const canGoTo = (target) => {
+        if (target === 0) return true;
+        if (target === 1) return !!powerType && !isFrameOnly;
+        if (target === 2) return !!selectedLensId || isFrameOnly;
+        return false;
+    };
+
+    // Jump to a step when its stepper item is clicked.
+    const handleStepClick = (target) => {
+        if (target === step || !canGoTo(target)) return;
+        // Leaving the Rx form backwards resets the chosen Rx method, mirroring handleBack.
+        if (step === 2 && target < 2 && rxMode !== null) setRxMode(null);
+        setStep(target);
+    };
+
     const handlePowerSelect = (id) => {
         setPowerType(id);
         const t = powerTypes.find(pt => String(pt.id) === String(id));
@@ -1205,7 +1232,7 @@ const LensSelectionAside = ({ isOpen, onClose, product, onAddToCart }) => {
 
                 {/* Stepper */}
                 <div className="lsa-stepper-wrap">
-                    <Stepper current={step} />
+                    <Stepper current={step} onStepClick={handleStepClick} canGoTo={canGoTo} />
                 </div>
 
                 {/* Scrollable content */}
