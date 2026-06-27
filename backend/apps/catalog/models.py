@@ -161,7 +161,7 @@ class Variant(models.Model):
     vto_image_front = models.ImageField(upload_to='vto_assets/', blank=True, null=True)
     vto_video = models.FileField(upload_to='vto_assets/', blank=True, null=True)
 
-    is_warranty_eligible = models.BooleanField(default=True)
+    is_warranty_eligible = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
         from django.utils import timezone

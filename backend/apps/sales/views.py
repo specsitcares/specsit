@@ -47,6 +47,13 @@ class OrderViewSet(viewsets.ModelViewSet):
             'return_requests', 'warranty_claims',
         )
 
+        # Hide online orders that were never paid — payment failed at the gateway or the
+        # customer abandoned it. These should not appear as placed orders anywhere.
+        # COD orders legitimately stay payment-pending, so they are not excluded.
+        from django.db.models import Q
+        ONLINE_METHODS = ['complete_online', 'partial_payment', 'ONLINE', 'online']
+        qs = qs.exclude(Q(payment_status__in=['pending', 'failed']) & Q(payment_method__in=ONLINE_METHODS))
+
         if not self.request.user.is_staff:
             return qs.filter(user=self.request.user).order_by('-created_at')
 

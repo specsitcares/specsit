@@ -72,6 +72,11 @@ logger = logging.getLogger(__name__)
 
 def _get_razorpay_client():
     config = PaymentGatewayConfig.objects.filter(name='razorpay', is_active=True).first()
+    # Dev bypass: in DEBUG, never hit the real gateway — online payments auto-succeed
+    # (mock), so checkout works even with no/invalid card details. Set
+    # PAYMENTS_FORCE_LIVE=True to test real payments while in DEBUG.
+    if getattr(settings, 'DEBUG', False) and not getattr(settings, 'PAYMENTS_FORCE_LIVE', False):
+        return config, False
     return config, (config and config.key_id and config.key_secret and not config.is_sandbox)
 
 
