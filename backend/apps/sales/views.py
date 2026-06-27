@@ -860,6 +860,20 @@ class OrderViewSet(viewsets.ModelViewSet):
             instance.qc_image = qc_image
             instance.save(update_fields=['qc_image'])
 
+        # Keep the order's own status in sync when tracking is marked delivered, so the
+        # order card never lags behind (showing "In Transit" for a delivered order).
+        if (instance.current_status or '').lower() == 'delivered' and order.order_status != 'delivered':
+            from apps.catalog.core.models import MetadataGroup, MetadataItem as MI
+            order.order_status = 'delivered'
+            if not order.delivery_date:
+                order.delivery_date = timezone.now()
+            if order.payment_method in ('complete_cod', 'COD'):
+                order.payment_status = 'paid'
+            grp, _ = MetadataGroup.objects.get_or_create(name='Order Status')
+            meta, _ = MI.objects.get_or_create(group=grp, label='Delivered', defaults={'value': 'delivered', 'is_active': True})
+            order.status = meta
+            order.save(update_fields=['order_status', 'delivery_date', 'payment_status', 'status'])
+
         return Response(OrderTrackingSerializer(instance, context={'request': request}).data)
 
 class CartViewSet(viewsets.ModelViewSet):

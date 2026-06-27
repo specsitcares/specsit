@@ -253,6 +253,50 @@
   line-height: 13px;
 }
 
+/* ── Order card (Figma 90:8297) ── */
+.omc { background:#FEFCFF; border:1px solid #D9D9D9; border-radius:16px; overflow:hidden; margin-bottom:16px; font-family:'Plus Jakarta Sans', sans-serif; }
+
+/* Status strip */
+.omc__strip { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px; }
+.omc__strip--green { background:#E9FFEA; }
+.omc__strip--red { background:#FFF0F0; }
+.omc__strip--purple { background:#F4EEFA; }
+.omc__strip-left { display:flex; align-items:center; gap:12px; min-width:0; }
+.omc__strip-icon { display:flex; flex-shrink:0; }
+.omc__strip-text { display:flex; flex-direction:column; min-width:0; }
+.omc__status { font-size:12px; font-weight:700; letter-spacing:0.6px; text-transform:uppercase; line-height:16px; }
+.omc__strip-meta { font-size:14px; font-weight:500; color:#040205; line-height:20px; }
+.omc__strip-right { flex-shrink:0; }
+.omc__strip-link { background:none; border:none; padding:0; cursor:pointer; font-family:inherit; font-size:14px; font-weight:600; color:#040205; text-decoration:underline; }
+.omc__strip-reason { font-size:14px; font-weight:500; color:#B42318; }
+
+/* Body */
+.omc__body { position:relative; display:flex; align-items:stretch; gap:24px; padding:20px; background:#FEFCFF; overflow:hidden; }
+.omc__watermark { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:0.15; pointer-events:none; }
+.omc__thumb { position:relative; z-index:1; width:144px; flex-shrink:0; border:1px solid rgba(205,195,209,0.5); border-radius:8px; background:#FEFCFF; overflow:hidden; display:flex; align-items:center; justify-content:center; color:#9CA3AF; }
+.omc__thumb img { width:100%; height:100%; object-fit:cover; }
+.omc__main { position:relative; z-index:1; flex:1; min-width:0; display:flex; flex-direction:column; gap:12px; }
+.omc__info { display:flex; flex-direction:column; gap:4px; padding-bottom:20px; border-bottom:1px dashed #DADADA; }
+.omc__brand { font-size:12px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:#68408D; line-height:16px; }
+.omc__name { font-size:24px; font-weight:700; letter-spacing:-0.5px; color:#040205; line-height:28px; }
+.omc__sub { font-size:16px; font-weight:500; color:#3C3C3C; line-height:20px; }
+.omc__priceline { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.omc__priceline-label { font-size:14px; font-weight:400; letter-spacing:-0.5px; color:#040205; line-height:22px; }
+.omc__priceline-price { font-size:16px; font-weight:700; color:#040205; line-height:28px; }
+
+/* Footer */
+.omc__footer { display:flex; align-items:center; gap:12px; padding:12px; background:#F9F9F9; }
+.omc__footer--end { justify-content:flex-end; }
+.omc__rate-label { font-size:12px; font-weight:700; text-transform:uppercase; color:#040205; line-height:16px; margin-right:auto; }
+.omc__reorder { background:#040205; color:#FEFCFF; border:none; border-radius:8px; padding:9px 20px; font-family:inherit; font-size:13px; font-weight:600; cursor:pointer; transition:opacity 0.15s; }
+.omc__reorder:hover { opacity:0.88; }
+.omc__view { font-family:inherit; font-size:13px; font-weight:600; color:#71717A; text-decoration:none; }
+.omc__view:hover { color:#68408D; }
+
+/* Footer "Rate this product" stacks label above stars like the Figma */
+.omc__footer:not(.omc__footer--end) { flex-direction:column; align-items:flex-start; gap:8px; }
+.omc__footer:not(.omc__footer--end) .omc__rate-label { margin-right:0; }
+
 /* Order card */
 .ord-card {
   background: var(--specsit-bg-white);

@@ -6,6 +6,7 @@ import apiClient from '../../../services/api';
 import AccountSidebar from './AccountSidebar';
 import '../../../styles/account.css';
 import '../../../styles/my-orders.css';
+import orderWatermark from '../../../assets/orders/watermark-green.png';
 
 /* ── Inline SVGs ────────────────────────────────────────────── */
 const SearchIcon = () => (
@@ -136,128 +137,166 @@ const RecoSection = () => {
     );
 };
 
-/* ── Interactive stars (unreviewed delivered) ───────────────── */
+/* ── Rating star — solid star, recolorable (purple when filled, grey when empty) ── */
+const StarIcon = ({ filled, size = 24 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? '#68408D' : '#C7C7C7'} xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 1.5l3.09 6.26 6.91 1.01-5 4.87 1.18 6.88L12 17.27l-6.18 3.25L7 13.64l-5-4.87 6.91-1.01L12 1.5z"/>
+    </svg>
+);
+
+/* ── Interactive stars (unreviewed) — click opens the review page ── */
 const InteractiveStars = ({ orderId, navigate }) => {
     const [hover, setHover] = useState(0);
     return (
-        <div style={{ display: 'flex', gap: 3 }}>
+        <div style={{ display: 'flex', gap: 4 }}>
             {[1, 2, 3, 4, 5].map(n => (
                 <button key={n} type="button"
-                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', lineHeight: 1 }}
+                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', lineHeight: 0 }}
                     onMouseEnter={() => setHover(n)}
                     onMouseLeave={() => setHover(0)}
                     onClick={() => navigate(`/orders/${orderId}/write-review?rating=${n}`)}>
-                    <svg width="18" height="18" viewBox="0 0 24 24"
-                        fill={n <= hover ? 'var(--specsit-purple-primary)' : 'none'}
-                        stroke="var(--specsit-purple-primary)" strokeWidth="1.5"
-                        strokeLinecap="round" strokeLinejoin="round">
-                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                    </svg>
+                    <StarIcon filled={n <= hover} />
                 </button>
             ))}
         </div>
     );
 };
 
-/* ── Static stars (reviewed) ────────────────────────────────── */
-const StaticStars = ({ rating }) => (
-    <div style={{ display: 'flex', gap: 3 }}>
+/* ── Static stars (reviewed) — click opens the review page to edit ── */
+const StaticStars = ({ rating, orderId, navigate }) => (
+    <div style={{ display: 'flex', gap: 4 }}>
         {[1, 2, 3, 4, 5].map(n => (
-            <svg key={n} width="18" height="18" viewBox="0 0 24 24"
-                fill={n <= (rating || 0) ? 'var(--specsit-purple-primary)' : 'none'}
-                stroke="var(--specsit-purple-primary)" strokeWidth="1.5"
-                strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-            </svg>
+            <button key={n} type="button"
+                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', lineHeight: 0 }}
+                onClick={() => navigate(`/orders/${orderId}/write-review`)}>
+                <StarIcon filled={n <= (rating || 0)} />
+            </button>
         ))}
     </div>
 );
 
-/* ── Single order card ──────────────────────────────────────── */
+/* ── Status strip icons ─────────────────────────────────────── */
+/* Exact Figma check artwork (node 89:7785), recolorable */
+const FigmaCheck = ({ color }) => (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M8.6 14.6L15.65 7.55L14.25 6.15L8.6 11.8L5.75 8.95L4.35 10.35L8.6 14.6V14.6M10 20C8.61667 20 7.31667 19.7375 6.1 19.2125C4.88333 18.6875 3.825 17.975 2.925 17.075C2.025 16.175 1.3125 15.1167 0.7875 13.9C0.2625 12.6833 0 11.3833 0 10C0 8.61667 0.2625 7.31667 0.7875 6.1C1.3125 4.88333 2.025 3.825 2.925 2.925C3.825 2.025 4.88333 1.3125 6.1 0.7875C7.31667 0.2625 8.61667 0 10 0C11.3833 0 12.6833 0.2625 13.9 0.7875C15.1167 1.3125 16.175 2.025 17.075 2.925C17.975 3.825 18.6875 4.88333 19.2125 6.1C19.7375 7.31667 20 8.61667 20 10C20 11.3833 19.7375 12.6833 19.2125 13.9C18.6875 15.1167 17.975 16.175 17.075 17.075C16.175 17.975 15.1167 18.6875 13.9 19.2125C12.6833 19.7375 11.3833 20 10 20V20" fill={color}/>
+    </svg>
+);
+const FigmaCross = ({ color }) => (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 0C4.477 0 0 4.477 0 10C0 15.523 4.477 20 10 20C15.523 20 20 15.523 20 10C20 4.477 15.523 0 10 0ZM13.3 12.25L12.25 13.3L10 11.05L7.75 13.3L6.7 12.25L8.95 10L6.7 7.75L7.75 6.7L10 8.95L12.25 6.7L13.3 7.75L11.05 10L13.3 12.25Z" fill={color}/></svg>
+);
+const FigmaDot = ({ color }) => (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="10" fill={color} opacity="0.2"/><circle cx="10" cy="10" r="4" fill={color}/></svg>
+);
+
+const stripTone = (statusKey, label) => {
+    if (statusKey === 'refunded') return { cls: 'green', Icon: FigmaCheck, color: '#17CF23', label: 'Refund Credited' };
+    if (statusKey === 'delivered') return { cls: 'green', Icon: FigmaCheck, color: '#17CF23', label: 'Delivered' };
+    if (statusKey === 'cancelled') return { cls: 'red', Icon: FigmaCross, color: '#E5484D', label: 'Cancelled' };
+    return { cls: 'purple', Icon: FigmaDot, color: '#68408D', label: label || 'Processing' };
+};
+
+/* ── Single order card (Figma 89:7686) ──────────────────────── */
 const OrderCard = ({ order }) => {
     const navigate = useNavigate();
-    const isDelivered = order.order_status === 'delivered' || (order.status_label || '').toLowerCase() === 'delivered';
     const items = order.items || [];
+    const first = items[0] || {};
+
+    const norm = (s) => (s || '').toLowerCase().replace(/\s+/g, '_');
+    const trackingStatus = norm(order.tracking?.current_status);
+    // Delivery is marked at the item level, and order_status / tracking can lag behind.
+    // Treat the order as delivered if ANY authoritative signal says so.
+    const allItemsDelivered = items.length > 0 && items.every(it => norm(it.status) === 'delivered');
+    let statusKey = norm(order.order_status || order.status_label);
+    if (statusKey !== 'cancelled' && (
+        statusKey === 'delivered' || trackingStatus === 'delivered' ||
+        allItemsDelivered || !!order.delivery_date
+    )) {
+        statusKey = 'delivered';
+    }
+    const isDelivered = statusKey === 'delivered';
+    const isRefunded = statusKey === 'refunded';
+    const isCancelled = statusKey === 'cancelled';
+    // Show "Rate this product" for anything that was delivered — including post-delivery
+    // states like refund / replacement / warranty — but never for cancelled orders.
+    const wasDelivered = !isCancelled && (isDelivered || isRefunded || !!order.delivery_date || allItemsDelivered);
 
     const orderLabel = `#LO-${String(order.id).padStart(7, '0')}`;
-
     const dateStr = order.created_at
         ? new Date(order.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
         : '';
+    const tone = stripTone(statusKey, order.status_label);
+    const reason = order.cancellation_reason || order.cancel_reason || '';
 
-    const firstImage = items[0]?.variant_image;
-
-    const footerLabel = isDelivered
-        ? (order.has_review ? 'Review submitted' : 'Share your experience')
-        : '';
-
-    const buttonLabel = isDelivered
-        ? (order.has_review ? 'Edit your review →' : 'Write a review →')
-        : 'View details →';
-
-    const buttonDest = isDelivered
-        ? `/orders/${order.id}/write-review`
-        : `/orders/${order.id}`;
+    const handleReorder = () => {
+        if (first.product_id) navigate(`/product/${first.product_id}`);
+        else navigate('/products');
+    };
 
     return (
-        <div className="ord-card">
-            {/* Row 1 — Order ID + Status badge */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-                <div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--specsit-black)' }}>{orderLabel}</div>
-                    <div className="ord-card__variant-info" style={{ marginTop: 2 }}>{dateStr}</div>
-                </div>
-                <StatusBadge status={order.order_status} label={order.status_label} />
-            </div>
-
-            {/* Row 2 — Thumbnail + Product names */}
-            <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-                <div className="ord-card__thumb" style={{ width: 56, height: 56, flexShrink: 0 }}>
-                    {firstImage
-                        ? <img src={firstImage} alt={items[0]?.variant_name || 'Product'} />
-                        : <div className="ord-card__thumb-placeholder" />
-                    }
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 3, paddingTop: 4 }}>
-                    {items.length === 0
-                        ? <span className="ord-card__product-name">—</span>
-                        : items.map((item, i) => (
-                            <span key={i} className="ord-card__product-name" style={{ fontSize: 15 }}>
-                                {item.variant_name || 'Product'}
-                            </span>
-                        ))
-                    }
-                </div>
-            </div>
-
-            {/* Row 3 — Price + Stars */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                <span className="ord-card__price">
-                    ₹{parseFloat(order.total_amount || 0).toLocaleString('en-IN')}
-                </span>
-                {isDelivered && (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                        <span className="ord-card__rate-label">
-                            {order.has_review ? 'Your rating' : 'Not yet reviewed'}
-                        </span>
-                        {order.has_review
-                            ? <StaticStars rating={order.review_rating} />
-                            : <InteractiveStars orderId={order.id} navigate={navigate} />
-                        }
+        <div className="omc">
+            {/* Status strip */}
+            <div className={`omc__strip omc__strip--${tone.cls}`}>
+                <div className="omc__strip-left">
+                    <span className="omc__strip-icon"><tone.Icon color={tone.color} /></span>
+                    <div className="omc__strip-text">
+                        <span className="omc__status" style={{ color: tone.color }}>{tone.label}</span>
+                        <span className="omc__strip-meta">Order {orderLabel}{dateStr && ` • ${dateStr}`}</span>
                     </div>
-                )}
+                </div>
+                <div className="omc__strip-right">
+                    {isRefunded && (
+                        <button className="omc__strip-link" onClick={() => navigate(`/orders/${order.id}`)}>View Refund details</button>
+                    )}
+                    {isCancelled && reason && <span className="omc__strip-reason">Reason: {reason}</span>}
+                </div>
             </div>
 
-            {/* Footer */}
-            <div className="ord-card__footer">
-                <span className="ord-card__footer-star-label">{footerLabel}</span>
-                <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-                    <Link to={`/orders/${order.id}`} className="ord-card__footer-link" style={{ color: '#6b7280' }}>View Details →</Link>
-                    {isDelivered && (
-                        <Link to={buttonDest} className="ord-card__footer-link">{buttonLabel}</Link>
+            {/* Body */}
+            <div className="omc__body">
+                {tone.cls === 'green' && <img src={orderWatermark} alt="" className="omc__watermark" aria-hidden />}
+                <div className="omc__thumb">
+                    {first.variant_image
+                        ? <img src={first.variant_image} alt={first.variant_name || 'Product'} />
+                        : <PackageIcon />}
+                </div>
+                <div className="omc__main">
+                    <div className="omc__info">
+                        <span className="omc__brand">{first.brand_name || 'Specsit'}</span>
+                        <span className="omc__name">{first.variant_name || 'Product'}</span>
+                        {first.lens?.name && <span className="omc__sub">{first.lens.name}</span>}
+                    </div>
+                    <div className="omc__priceline">
+                        <span className="omc__priceline-label">{items.length} item{items.length !== 1 ? 's' : ''} price</span>
+                        <span className="omc__priceline-price">₹{parseFloat(order.total_amount || 0).toLocaleString('en-IN')}</span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Footer — contextual action */}
+            {wasDelivered ? (
+                <div className="omc__footer">
+                    {order.has_review ? (
+                        <>
+                            <span className="omc__rate-label">Your rating</span>
+                            <StaticStars rating={order.review_rating} orderId={order.id} navigate={navigate} />
+                        </>
+                    ) : (
+                        <>
+                            <span className="omc__rate-label">Rate this product</span>
+                            <InteractiveStars orderId={order.id} navigate={navigate} />
+                        </>
                     )}
                 </div>
-            </div>
+            ) : isCancelled ? (
+                <div className="omc__footer omc__footer--end">
+                    <button className="omc__reorder" onClick={handleReorder}>Reorder Item</button>
+                </div>
+            ) : (
+                <div className="omc__footer omc__footer--end">
+                    <Link to={`/orders/${order.id}`} className="omc__view">View Details →</Link>
+                </div>
+            )}
         </div>
     );
 };
@@ -359,7 +398,7 @@ const MyOrdersPage = () => {
                             <div className="order-history-header">
                                 <h2 className="order-history-title">Order History</h2>
                                 {filtered.length > 0 && (
-                                    <span className="order-count-badge">{filtered.length}</span>
+                                    <span className="order-count-badge">{filtered.length} Recent</span>
                                 )}
                             </div>
 
