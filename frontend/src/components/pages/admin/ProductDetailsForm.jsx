@@ -156,7 +156,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
             return {
               id: v.id,
               sku: v.sku,
-              variantName: '',
+              variantName: v.name || '',
               colorName: v.color || '',
               quantity: v.stock || 0,
               stock_by_size: v.stock_by_size || {
@@ -343,6 +343,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
         variantPayload.append('product', productId);
 
         variantPayload.append('sku', v.sku?.trim() || '');
+        variantPayload.append('name', v.variantName?.trim() || '');
         variantPayload.append('color', v.colorName || 'Default');
         variantPayload.append('lens_color', v.colorName || '');
         variantPayload.append('frame_color', v.colorName || '');

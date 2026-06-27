@@ -110,6 +110,7 @@ class Product(models.Model):
 class Variant(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='variants')
     sku = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=100, blank=True, default='')  # Admin-configured variant name (e.g. "Classic Tortoise")
     
     # Color Differentiation
     lens_color = models.CharField(max_length=100, blank=True, default='')
