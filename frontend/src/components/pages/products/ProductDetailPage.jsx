@@ -486,31 +486,8 @@ const ProductDetailPage = () => {
                         </div>
                     </div>
 
-                    {/* ── See full details + CTA ── */}
+                    {/* ── CTA ── */}
                     <div className="pd-cta-group">
-                        <button
-                            type="button"
-                            className="pd-see-details"
-                            onClick={() => setShowDimensions(v => !v)}
-                            aria-expanded={showDimensions}
-                        >
-                            {showDimensions ? 'Hide frame details' : 'See full frame details'}
-                        </button>
-
-                        {showDimensions && (
-                            <div className="pd-fd-card">
-                                <h4 className="pd-fd-title">Frame Dimensions</h4>
-                                <div className="pd-fd-grid">
-                                    {frameDimensions.map(d => (
-                                        <div key={d.label} className="pd-fd-cell">
-                                            <span className="pd-fd-label">{d.label}</span>
-                                            <strong className="pd-fd-value">{d.value}</strong>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
                         <button onClick={() => setIsAsideOpen(true)} className="pd-main-cta">
                             <img src={ctaWand} alt="" className="pd-cta-icon" />
                             Select Lenses &amp; Add to Cart

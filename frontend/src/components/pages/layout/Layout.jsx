@@ -14,13 +14,12 @@ const Layout = () => {
     console.log('LAYOUT PATHNAME:', pathname);
     
     const isAuthPage = AUTH_ROUTES.some((r) => pathname.toLowerCase().startsWith(r.toLowerCase()));
-    const isProductDetailPage = pathname.toLowerCase().startsWith('/product/');
     const isCheckoutPage = pathname.toLowerCase().includes('checkout');
     const isCartPage = pathname.toLowerCase().startsWith('/cart');
     const isWishlistPage = pathname.toLowerCase() === '/wishlist';
 
-    // Hide header on Auth, Product Detail, Checkout, Cart, and Wishlist pages
-    const hideHeader = isAuthPage || isProductDetailPage || isCheckoutPage || isCartPage || isWishlistPage;
+    // Hide header on Auth, Checkout, Cart, and Wishlist pages (PDP now shows the header)
+    const hideHeader = isAuthPage || isCheckoutPage || isCartPage || isWishlistPage;
     // Hide footer on Auth, Checkout, and Cart pages (Checkout/Cart has its own simple footer)
     const hideFooter = isAuthPage || isCheckoutPage || isCartPage;
 
