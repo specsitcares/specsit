@@ -4963,6 +4963,21 @@
 
 .ck-summary { display:flex; flex-direction:column; gap:20px; padding:24px; background:#FEFCFF; border:1px solid #EFEDF0; border-radius:16px; }
 .ck-summary__title { margin:0; font-family:'Plus Jakarta Sans',sans-serif; font-size:18px; font-weight:700; color:#040205; }
+
+/* Order summary — ordered items list (Figma 70:1193) */
+.conf-os-items { border:1px solid #E6E6E6; border-radius:12px; padding:16px; display:flex; flex-direction:column; }
+.conf-os-item { display:flex; align-items:center; gap:12px; padding-bottom:16px; margin-bottom:16px; border-bottom:1px solid #E6E6E6; }
+.conf-os-item:last-child { padding-bottom:0; margin-bottom:0; border-bottom:none; }
+.conf-os-item__thumb { width:56px; height:56px; flex-shrink:0; border-radius:8px; background:#F1F1F1; overflow:hidden; display:flex; align-items:center; justify-content:center; }
+.conf-os-item__thumb img { width:100%; height:100%; object-fit:cover; }
+.conf-os-item__ph { width:100%; height:100%; background:#EFEDF0; }
+.conf-os-item__info { flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; }
+.conf-os-item__name { font-family:'Plus Jakarta Sans',sans-serif; font-size:14px; font-weight:700; color:#040205; line-height:16px; }
+.conf-os-item__sub { font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; font-weight:500; color:#3C3C3C; line-height:16px; }
+.conf-os-item__lens { font-family:'Plus Jakarta Sans',sans-serif; font-size:11px; font-weight:400; color:#3C3C3C; line-height:16px; }
+.conf-os-item__price { display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex-shrink:0; text-align:right; }
+.conf-os-item__price span { font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; font-weight:500; color:#71717A; line-height:1; }
+.conf-os-item__price strong { font-family:'Plus Jakarta Sans',sans-serif; font-size:14px; font-weight:700; color:#040205; line-height:16px; }
 .ck-partial { background:#FAF8FC; border:1px solid #EBE3F2; border-radius:10px; padding:14px; }
 .ck-partial__head { display:flex; align-items:center; gap:6px; font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; font-weight:700; color:#68408D; }
 .ck-partial p { margin:6px 0 0; font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; line-height:17px; color:#71717A; }
