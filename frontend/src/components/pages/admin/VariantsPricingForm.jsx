@@ -422,7 +422,7 @@ const VariantsPricingForm = forwardRef(({ formData, onFormDataChange, saving, er
                           <input
                             type="color"
                             value={v.colorCode || '#000000'}
-                            onChange={(e) => updateVariantFields(v.id, { colorCode: e.target.value, colorName: e.target.value })}
+                            onChange={(e) => updateVariantFields(v.id, { colorCode: e.target.value })}
                           />
                         </div>
                         <input
@@ -614,7 +614,7 @@ const VariantsPricingForm = forwardRef(({ formData, onFormDataChange, saving, er
                                 <input
                                   type="color"
                                   value={v.lens_color_code || '#000000'}
-                                  onChange={(e) => updateVariantFields(v.id, { lens_color_code: e.target.value, lens_color_name: e.target.value })}
+                                  onChange={(e) => updateVariantFields(v.id, { lens_color_code: e.target.value })}
                                 />
                               </div>
                               <input

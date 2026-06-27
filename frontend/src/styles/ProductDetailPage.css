@@ -28,7 +28,7 @@
   min-height: 100vh;
   font-family: 'Plus Jakarta Sans', sans-serif;
   color: var(--pd-text);
-  padding-top: 48px;
+  padding-top: 0;
   padding-bottom: 64px;
 }
 
@@ -1894,6 +1894,12 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  /* Keep the "Select Lenses & Add to Cart" button visible while scrolling. */
+  position: sticky;
+  bottom: 16px;
+  z-index: 5;
+  background: var(--pd-bg);
+  padding-top: 10px;
 }
 
 .pd-see-details {

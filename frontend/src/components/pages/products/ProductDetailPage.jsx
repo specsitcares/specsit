@@ -22,6 +22,17 @@ import dimLens from '../../../assets/pdp/dim-lens.png';
 import dimBridge from '../../../assets/pdp/dim-bridge.png';
 import '../../../styles/ProductDetailPage.css';
 
+// A variant's color label must be a readable name, never a hex code. Some legacy
+// variants stored a hex in `color`, so hex-looking values are ignored here.
+const isHexColor = (s) => /^#?[0-9a-fA-F]{3,8}$/.test(String(s || '').trim());
+const variantColorLabel = (v) => {
+    const c = (v?.color || '').trim();
+    const fc = (v?.frame_color || '').trim();
+    if (c && !isHexColor(c)) return c;
+    if (fc && !isHexColor(fc)) return fc;
+    return 'Default';
+};
+
 const ProductDetailPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -94,7 +105,7 @@ const ProductDetailPage = () => {
                     const target = variantParam
                         ? (p.variants.find(v => String(v.id) === variantParam) || p.variants[0])
                         : p.variants[0];
-                    setSelectedColor(target.color || target.frame_color || 'Default');
+                    setSelectedColor(variantColorLabel(target));
                     const targetSizeKeys = (target.stock_by_size && typeof target.stock_by_size === 'object')
                         ? Object.keys(target.stock_by_size) : [];
                     setSelectedSize(target.frame_size || targetSizeKeys[0] || '');
@@ -183,7 +194,7 @@ const ProductDetailPage = () => {
     // ── Derived variants ─────────────────────────────────────────────────────
     const variantColors = (product.variants || [])
         .map(v => ({
-            name: v.color || v.frame_color || 'Default',
+            name: variantColorLabel(v),
             code: v.color_code || '#555555',
             id: v.id,
             images: (v.images || []).map(img => img.image || img).filter(Boolean),
@@ -193,7 +204,7 @@ const ProductDetailPage = () => {
     // ── Selected variant object — drives price, stock, wishlist ───────────────
     // Match by color name; fall back to first variant so UI never shows product-level stale data
     const selectedVariantObj = (product.variants || []).find(
-        v => (v.color || v.frame_color || 'Default') === selectedColor
+        v => variantColorLabel(v) === selectedColor
     ) || product.variants?.[0] || null;
 
     const stockBySize = selectedVariantObj?.stock_by_size || {};
@@ -233,7 +244,7 @@ const ProductDetailPage = () => {
         { label: 'Brand', value: product.brand_name },
         { label: 'Gender', value: product.gender },
         { label: 'Frame Size', value: selectedSize || product.frame_size },
-        { label: 'Frame Color', value: v.frame_color || v.color || selectedColor || product.frame_color },
+        { label: 'Frame Color', value: (selectedColor && selectedColor !== 'Default') ? selectedColor : product.frame_color },
         { label: 'Lens Color', value: v.lens_color },
         { label: 'Frame Material', value: v.frame_material || product.frame_material },
         { label: 'Frame Shape', value: product.frame_shape },
@@ -456,7 +467,6 @@ const ProductDetailPage = () => {
                                         );
                                     })}
                                 </div>
-                                <button type="button" className="pd-size-guide">Size Guide</button>
                             </div>
                         </div>
                     )}
@@ -486,31 +496,8 @@ const ProductDetailPage = () => {
                         </div>
                     </div>
 
-                    {/* ── See full details + CTA ── */}
+                    {/* ── CTA ── */}
                     <div className="pd-cta-group">
-                        <button
-                            type="button"
-                            className="pd-see-details"
-                            onClick={() => setShowDimensions(v => !v)}
-                            aria-expanded={showDimensions}
-                        >
-                            {showDimensions ? 'Hide frame details' : 'See full frame details'}
-                        </button>
-
-                        {showDimensions && (
-                            <div className="pd-fd-card">
-                                <h4 className="pd-fd-title">Frame Dimensions</h4>
-                                <div className="pd-fd-grid">
-                                    {frameDimensions.map(d => (
-                                        <div key={d.label} className="pd-fd-cell">
-                                            <span className="pd-fd-label">{d.label}</span>
-                                            <strong className="pd-fd-value">{d.value}</strong>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
                         <button onClick={() => setIsAsideOpen(true)} className="pd-main-cta">
                             <img src={ctaWand} alt="" className="pd-cta-icon" />
                             Select Lenses &amp; Add to Cart
