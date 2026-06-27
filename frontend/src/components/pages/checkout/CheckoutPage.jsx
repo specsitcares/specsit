@@ -45,7 +45,7 @@ const CheckoutPage = () => {
     const [saveAddress, setSaveAddress] = useState(false);
     const [formData, setFormData] = useState({
         full_name: '', mobile: '', pincode: '', locality: '',
-        address_line: '', city: '', state: '', landmark: ''
+        address_line: '', city: '', state: '', landmark: '', gstin: ''
     });
     const [addressErrors, setAddressErrors] = useState({});
 
@@ -115,6 +115,7 @@ const CheckoutPage = () => {
     const [codEnabled, setCodEnabled] = useState(true);
     const [onlineEnabled, setOnlineEnabled] = useState(true);
     const [partialPaymentEnabled, setPartialPaymentEnabled] = useState(true);
+    const [isBoltDelivery, setIsBoltDelivery] = useState(false); // 1-2 hr express delivery eligible
 
     // Breakdown based on method (using integer paise to avoid rounding errors)
     const shippingCost = shippingRate || 0;
@@ -158,12 +159,26 @@ const CheckoutPage = () => {
         document.body.appendChild(script);
     }, []);
 
-    // The payment screen design is online-only (UPI/Cards/Net Banking/Wallets via Razorpay)
+    // On entering the payment step, default to an online method (COD stays an explicit
+    // choice in its own card below). If the admin disabled both online & partial, fall
+    // back to COD when it's enabled so the only available method is preselected.
     useEffect(() => {
-        if (currentStep === 4 && paymentMethod === 'complete_cod') {
+        if (currentStep !== 4) return;
+        setPaymentMethod(prev => {
+            if (prev !== 'complete_cod') return prev;
+            if (onlineEnabled) return 'complete_online';
+            if (partialPaymentEnabled) return 'partial_payment';
+            return codEnabled ? 'complete_cod' : 'complete_online';
+        });
+    }, [currentStep]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Picking any online sub-method (UPI/cards/net-banking) switches the high-level
+    // method away from COD, so the selection and the CTA stay in sync.
+    useEffect(() => {
+        if (selectedPayment && selectedPayment !== 'cod' && paymentMethod === 'complete_cod') {
             setPaymentMethod(onlineEnabled ? 'complete_online' : partialPaymentEnabled ? 'partial_payment' : 'complete_online');
         }
-    }, [currentStep]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [selectedPayment]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const lookupShippingRate = async (pincode) => {
         if (!pincode || !/^\d{6}$/.test(pincode)) { setShippingRate(null); return; }
@@ -171,8 +186,10 @@ const CheckoutPage = () => {
         try {
             const res = await apiClient.get('/sales/pincode-rate/?pincode=' + pincode);
             setShippingRate(res.data.cost != null ? parseFloat(res.data.cost) : 0);
+            setIsBoltDelivery(!!res.data.bolt_delivery);
         } catch (err) {
             setShippingRate(0);
+            setIsBoltDelivery(false);
         } finally {
             setShippingLoading(false);
         }
@@ -213,6 +230,7 @@ const CheckoutPage = () => {
                             city: formData.city,
                             state: formData.state,
                             pin_code: formData.pincode,
+                            gstin: formData.gstin.trim().toUpperCase(),
                         });
                         setSavedAddresses(prev => [...prev, saved.data]);
                         setSelectedAddressId(saved.data.id);
@@ -253,6 +271,11 @@ const CheckoutPage = () => {
         if (!trim(formData.address_line)) errs.address_line = 'Address is required.';
         if (!trim(formData.city)) errs.city = 'City is required.';
         if (!trim(formData.state)) errs.state = 'State is required.';
+
+        // GSTIN is optional, but if entered it must be a valid 15-character GST number.
+        if (trim(formData.gstin) && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(trim(formData.gstin).toUpperCase())) {
+            errs.gstin = 'Enter a valid 15-character GSTIN.';
+        }
 
         setAddressErrors(errs);
         return Object.keys(errs).length === 0;
@@ -335,7 +358,12 @@ const CheckoutPage = () => {
        "Submit Power Later in 15 days". Manual entry and upload → order confirmed. */
     const getPostOrderRoute = (orderId) => {
         const needsPrescription = cart.some(item => item.lens && item.rxMode === 'later');
-        return needsPrescription ? `/order-confirmation/${orderId}?has_deferred_rx=true` : `/order-confirmation/${orderId}`;
+        const params = new URLSearchParams();
+        if (needsPrescription) params.set('has_deferred_rx', 'true');
+        // Flag the COD 1-2 hour (bolt) confirmation variant.
+        if (paymentMethod === 'complete_cod' && isBoltDelivery) params.set('bolt', 'true');
+        const qs = params.toString();
+        return `/order-confirmation/${orderId}${qs ? `?${qs}` : ''}`;
     };
 
     const handleConfirmOrder = async () => {
@@ -821,10 +849,17 @@ const CheckoutPage = () => {
                                             </div>
                                         </div>
 
-                                        {/* Row 5: Landmark */}
-                                        <div className="underline-field-group">
-                                            <label className="underline-label">Landmark (Optional)</label>
-                                            <input className="underline-input" value={formData.landmark} onChange={handleField('landmark')} />
+                                        {/* Row 5: Landmark + GSTIN */}
+                                        <div className="underline-form-grid-2">
+                                            <div className="underline-field-group">
+                                                <label className="underline-label">Landmark (Optional)</label>
+                                                <input className="underline-input" value={formData.landmark} onChange={handleField('landmark')} />
+                                            </div>
+                                            <div className="underline-field-group">
+                                                <label className="underline-label">GSTIN (Optional)</label>
+                                                <input className="underline-input" style={{ borderColor: addressErrors.gstin ? '#DC2626' : undefined, textTransform: 'uppercase' }} maxLength={15} value={formData.gstin} onChange={handleField('gstin')} placeholder="e.g. 22AAAAA0000A1Z5" />
+                                                {addressErrors.gstin && <p style={{ fontSize: 12, color: '#DC2626', marginTop: 4 }}>{addressErrors.gstin}</p>}
+                                            </div>
                                         </div>
 
                                         {/* Save checkbox */}
@@ -1102,6 +1137,31 @@ const CheckoutPage = () => {
                                     )}
                                 </div>
                             </section>
+
+                            {/* ── Cash on Delivery ── */}
+                            {codEnabled && (
+                            <section className="pay2-block">
+                                <h2 className="pay2-heading">Cash on Delivery</h2>
+                                <div className="pay2-card">
+                                    <button type="button"
+                                        className={`pay2-row${paymentMethod === 'complete_cod' ? ' pay2-row--active' : ''}`}
+                                        onClick={() => { setPaymentMethod('complete_cod'); setSelectedPayment('cod'); }}>
+                                        <span className="pay2-row__left">
+                                            <span className="pay2-row__icon pay2-row__icon--green">
+                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="2.5" y="6" width="19" height="12" rx="2" stroke="#0D9B3A" strokeWidth="1.6"/><circle cx="12" cy="12" r="2.6" stroke="#0D9B3A" strokeWidth="1.6"/><path d="M6 9.5h.01M18 14.5h.01" stroke="#0D9B3A" strokeWidth="1.6" strokeLinecap="round"/></svg>
+                                            </span>
+                                            <span className="pay2-row__textcol">
+                                                <span className="pay2-row__title">Pay at Doorstep (COD)</span>
+                                                <span className="pay2-row__sub">No extra charges • Pay when you receive</span>
+                                            </span>
+                                        </span>
+                                        <span className={`pay2-radio${paymentMethod === 'complete_cod' ? ' pay2-radio--on' : ''}`}>
+                                            {paymentMethod === 'complete_cod' && <svg width="11" height="9" viewBox="0 0 12 10" fill="none"><path d="M1 5l3.5 3.5L11 1.5" stroke="#fff" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                                        </span>
+                                    </button>
+                                </div>
+                            </section>
+                            )}
 
                             {/* ── Digital Wallets ── */}
                             <div className="pay2-wallets">
