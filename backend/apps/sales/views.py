@@ -1004,6 +1004,79 @@ class CouponViewSet(viewsets.ModelViewSet):
             'brandName': brand_names_str or None,
             'message': f"Coupon '{coupon.code}' applied! You saved ₹{savings}" if savings else f"Coupon '{coupon.code}' applied!",
         })
+
+    @action(detail=False, methods=['post'], url_path='available',
+            permission_classes=[permissions.AllowAny])
+    def available(self, request):
+        """Return every active coupon with an `eligible` flag computed against the
+        current cart (min cart value, brand/category restrictions, expiry)."""
+        from apps.catalog.models import Variant
+        cart_value = float(request.data.get('cartValue', 0) or 0)
+        items = request.data.get('items', [])
+
+        variant_ids = []
+        for it in items:
+            vid = it.get('variant_id') or it.get('variant')
+            try:
+                variant_ids.append(int(vid))
+            except (ValueError, TypeError):
+                pass
+        vmap = {}
+        if variant_ids:
+            vmap = {
+                v['id']: {'brand': v['product__brand'], 'category': v['product__category']}
+                for v in Variant.objects.filter(id__in=variant_ids)
+                    .values('id', 'product__brand', 'product__category')
+            }
+
+        now = timezone.now()
+        results = []
+        coupons = (Coupon.objects.filter(is_active=True)
+                   .prefetch_related('brands', 'categories')
+                   .order_by('-discount_percentage'))
+        for coupon in coupons:
+            cb = {b.id for b in coupon.brands.all()}
+            cc = {c.id for c in coupon.categories.all()}
+            scope = ', '.join([b.name for b in coupon.brands.all()] + [c.name for c in coupon.categories.all()])
+            eligible, reason, savings = True, '', 0.0
+
+            if coupon.valid_until and now > coupon.valid_until:
+                eligible, reason = False, 'Expired'
+            elif cart_value and float(coupon.min_cart_value) > cart_value:
+                eligible, reason = False, f'Add ₹{int(float(coupon.min_cart_value) - cart_value)} more to use this'
+            else:
+                if cb or cc:
+                    applicable_subtotal = 0.0
+                    for it in items:
+                        vid = it.get('variant_id') or it.get('variant')
+                        try:
+                            vid = int(vid)
+                        except (ValueError, TypeError):
+                            vid = None
+                        d = vmap.get(vid)
+                        if d and (not cb or d['brand'] in cb) and (not cc or d['category'] in cc):
+                            applicable_subtotal += float(it.get('price', 0) or 0) * int(it.get('quantity', 1) or 1)
+                    if applicable_subtotal == 0:
+                        eligible, reason = False, f"Only for {scope}" if scope else 'Not applicable to your cart'
+                    else:
+                        savings = round(applicable_subtotal * coupon.discount_percentage / 100, 2)
+                else:
+                    savings = round(cart_value * coupon.discount_percentage / 100, 2) if cart_value else 0.0
+
+            results.append({
+                'id': coupon.id,
+                'code': coupon.code,
+                'discount_percentage': coupon.discount_percentage,
+                'min_cart_value': float(coupon.min_cart_value),
+                'scope': scope,
+                'eligible': eligible,
+                'reason': reason,
+                'savings': savings,
+            })
+        # Eligible first, then by highest discount
+        results.sort(key=lambda r: (not r['eligible'], -r['discount_percentage']))
+        return Response({'coupons': results})
+
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
 class ShipmentViewSet(viewsets.ModelViewSet):
