@@ -240,6 +240,8 @@ const ProductDetailPage = () => {
     //    only keep fields that actually carry a value so the grid never shows blanks ──
     const v = selectedVariantObj || {};
     const productSpecs = [
+        // Admin-configured variant name (variant.name)
+        { label: 'Variant Name', value: v.name },
         { label: 'SKU', value: v.sku || product.sku },
         { label: 'Brand', value: product.brand_name },
         { label: 'Gender', value: product.gender },
@@ -404,10 +406,9 @@ const ProductDetailPage = () => {
                             )}
                         </div>
                         <h1 className="pd-title">{product.title}</h1>
-                        {[selectedColor, product.frame_type, product.frame_shape].filter(Boolean).length > 0 && (
-                            <p className="pd-subtitle">
-                                {[selectedColor, product.frame_type, product.frame_shape].filter(Boolean).join(' ')}
-                            </p>
+                        {/* Admin-configured variant name (variant.name) shown under the title */}
+                        {selectedVariantObj?.name && (
+                            <p className="pd-subtitle">{selectedVariantObj.name}</p>
                         )}
                     </div>
 
