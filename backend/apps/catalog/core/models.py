@@ -26,6 +26,12 @@ class MetadataItem(models.Model):
     # When True, selecting this lens type skips lens/prescription selection and sends the
     # customer straight to checkout (e.g. "Frame Only" — no lenses are provided).
     direct_checkout = models.BooleanField(default=False)
+    # When True, the customer POV shows the PD (Pupillary Distance) calculation in the
+    # manual prescription step. When False, the PD row is hidden for this lens type.
+    enable_pd = models.BooleanField(default=True)
+    # When True, the customer POV skips the power/prescription (Rx) step for this lens
+    # type — no power details are collected and the customer goes straight to add-to-bag.
+    skip_power = models.BooleanField(default=False)
     def __str__(self): return f"{self.group.name}: {self.label}"
 
 class AnalyticsLog(models.Model):

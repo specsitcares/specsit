@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import apiClient from '../../../services/api';
 import FormModal from './FormModal';
 import {
-  Plus, Search, AlertCircle, Edit2, Copy, X, Layers, ChevronDown, Trash2, Zap,
+  Plus, Search, AlertCircle, Edit2, Copy, X, Layers, ChevronDown, Trash2, Zap, Ruler, SkipForward,
 } from 'lucide-react';
 import '../../../styles/lens_management.css';
 
@@ -17,6 +17,14 @@ const LENS_TYPE_FIELDS = [
   {
     name: 'direct_checkout', label: 'Direct Checkout', type: 'checkbox',
     placeholder: 'Skip lens selection — send the customer straight to checkout (e.g. Frame Only, no lenses)',
+  },
+  {
+    name: 'enable_pd', label: 'PD Calculation', type: 'checkbox', defaultValue: true,
+    placeholder: 'Show the PD (Pupillary Distance) calculation in the customer prescription step',
+  },
+  {
+    name: 'skip_power', label: 'Skip Power Details', type: 'checkbox',
+    placeholder: 'Skip the power/prescription step — no power details are collected from the customer',
   },
 ];
 
@@ -58,6 +66,7 @@ const LensManagement = ({ editLensId = null }) => {
 
   const [selectedCategoryId,   setSelectedCategoryId]   = useState(null);
   const [showAddType,          setShowAddType]          = useState(null); // null = closed, number = category ID
+  const [showEditType,         setShowEditType]         = useState(null); // null = closed, type object = editing
   const [typeHomeCat,          setTypeHomeCat]          = useState({});   // typeId → catId for 0-package types
   const [groupCollapsed,       setGroupCollapsed]       = useState({});
   const [brandCollapsed,       setBrandCollapsed]       = useState({});
@@ -375,6 +384,60 @@ const LensManagement = ({ editLensId = null }) => {
     }
   };
 
+  /* Flip the "PD calculation" flag on an existing lens type */
+  const handlePdToggle = async (e, type) => {
+    e.stopPropagation();
+    const newVal = !(type.enable_pd !== false);
+    setLensTypes(prev => prev.map(t => String(t.id) === String(type.id) ? { ...t, enable_pd: newVal } : t));
+    try {
+      await apiClient.patch(`/core/metadata-items/${type.id}/`, { enable_pd: newVal });
+      fetchData();
+    } catch (err) {
+      setLensTypes(prev => prev.map(t => String(t.id) === String(type.id) ? { ...t, enable_pd: !newVal } : t));
+      setError('Failed to update PD calculation.');
+    }
+  };
+
+  /* Flip the "skip power details" flag on an existing lens type */
+  const handleSkipPowerToggle = async (e, type) => {
+    e.stopPropagation();
+    const newVal = !type.skip_power;
+    setLensTypes(prev => prev.map(t => String(t.id) === String(type.id) ? { ...t, skip_power: newVal } : t));
+    try {
+      await apiClient.patch(`/core/metadata-items/${type.id}/`, { skip_power: newVal });
+      fetchData();
+    } catch (err) {
+      setLensTypes(prev => prev.map(t => String(t.id) === String(type.id) ? { ...t, skip_power: !newVal } : t));
+      setError('Failed to update skip power details.');
+    }
+  };
+
+  /* Update an existing lens type (label, image, and the behaviour toggles) */
+  const handleEditType = async (formData) => {
+    const type = showEditType;
+    if (!type) return;
+    let updated = (await apiClient.patch(`/core/metadata-items/${type.id}/`, {
+      label: formData.label,
+      value: formData.label.toLowerCase().replace(/\s+/g, '_'),
+      direct_checkout: !!formData.direct_checkout,
+      enable_pd: formData.enable_pd !== false,
+      skip_power: !!formData.skip_power,
+    })).data;
+
+    // Upload a new lens-type image (multipart) only when a fresh file was picked
+    if (formData.image instanceof File) {
+      const fd = new FormData();
+      fd.append('image', formData.image);
+      const imgRes = await apiClient.patch(`/core/metadata-items/${type.id}/`, fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      updated = imgRes.data || updated;
+    }
+
+    await fetchData();
+    if (selectedType?.id === type.id) setSelectedType(updated);
+  };
+
   const handleAddType = async (formData) => {
     const catId = showAddType; // the category this type is being created in
     let groupsRes = await apiClient.get('/core/metadata-groups/?name=Lens Type');
@@ -393,6 +456,8 @@ const LensManagement = ({ editLensId = null }) => {
       is_active: true,
       home_category: catId || null,
       direct_checkout: !!formData.direct_checkout,
+      enable_pd: formData.enable_pd !== false,
+      skip_power: !!formData.skip_power,
     });
     let newType = res.data;
 
@@ -552,9 +617,10 @@ const LensManagement = ({ editLensId = null }) => {
           <div className="lm-types-scroll">
             {lensCategories.map(cat => {
               const visibleTypes = filteredTypes.filter(type => {
-                // Direct-checkout / frame-only types provide no lenses and apply to every
-                // frame category, so show them under each one (a single type is enough).
-                if (type.direct_checkout) return true;
+                // Every lens type — including direct-checkout ones — stays dedicated to its
+                // own category. It shows here only if it has a package in this category, or
+                // (when it has no packages) this is its home category. No spilling into
+                // other categories such as Sunglasses.
                 const hasPackagesHere = lenses.some(l =>
                   String(l.type) === String(type.id) &&
                   getPackageCatIds(l).includes(cat.id)
@@ -612,6 +678,14 @@ const LensManagement = ({ editLensId = null }) => {
                                 <div className="lm-type-card-actions">
                                   <button
                                     type="button"
+                                    className="lm-type-edit-btn"
+                                    title="Edit"
+                                    onClick={(e) => { e.stopPropagation(); setShowEditType(type); }}
+                                  >
+                                    <Edit2 size={13} />
+                                  </button>
+                                  <button
+                                    type="button"
                                     className="lm-type-delete-btn"
                                     title="Delete"
                                     onClick={(e) => handleDeleteType(e, type)}
@@ -644,6 +718,34 @@ const LensManagement = ({ editLensId = null }) => {
                                 }}
                               >
                                 <Zap size={11} /> Direct checkout: {type.direct_checkout ? 'On' : 'Off'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => handlePdToggle(e, type)}
+                                title="PD calculation — show the Pupillary Distance step in the customer prescription flow"
+                                style={{
+                                  marginTop: 8, marginLeft: 6, display: 'inline-flex', alignItems: 'center', gap: 5,
+                                  border: '1px solid', borderColor: type.enable_pd !== false ? '#68408D' : '#e5e7eb',
+                                  background: type.enable_pd !== false ? '#f4ebff' : '#fff',
+                                  color: type.enable_pd !== false ? '#68408D' : '#6b7280',
+                                  borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                                }}
+                              >
+                                <Ruler size={11} /> PD calc: {type.enable_pd !== false ? 'On' : 'Off'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => handleSkipPowerToggle(e, type)}
+                                title="Skip power details — skip the prescription/power step in the customer flow"
+                                style={{
+                                  marginTop: 8, marginLeft: 6, display: 'inline-flex', alignItems: 'center', gap: 5,
+                                  border: '1px solid', borderColor: type.skip_power ? '#68408D' : '#e5e7eb',
+                                  background: type.skip_power ? '#f4ebff' : '#fff',
+                                  color: type.skip_power ? '#68408D' : '#6b7280',
+                                  borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                                }}
+                              >
+                                <SkipForward size={11} /> Skip power: {type.skip_power ? 'On' : 'Off'}
                               </button>
                             </div>
                             <span className="lm-type-count">
@@ -849,6 +951,24 @@ const LensManagement = ({ editLensId = null }) => {
         onSubmit={handleAddType}
         title="Lens Type"
         fields={LENS_TYPE_FIELDS}
+      />
+
+      {/* ── Edit Lens Type modal ── */}
+      <FormModal
+        isOpen={showEditType !== null}
+        mode="edit"
+        onClose={() => setShowEditType(null)}
+        onSubmit={handleEditType}
+        title="Lens Type"
+        fields={LENS_TYPE_FIELDS}
+        initialData={showEditType ? {
+          id: showEditType.id,
+          label: showEditType.label || '',
+          image: showEditType.image || '',
+          direct_checkout: !!showEditType.direct_checkout,
+          enable_pd: showEditType.enable_pd !== false,
+          skip_power: !!showEditType.skip_power,
+        } : {}}
       />
 
       {/* ── Create / Edit Package offcanvas ── */}

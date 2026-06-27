@@ -614,7 +614,7 @@ const PDMeasureModal = ({ onClose, onPdMeasured }) => {
 /* ════════════════════════════════════════════════════════
    MANUAL POWER FORM — Figma 401:16362
    ════════════════════════════════════════════════════════ */
-const ManualPowerForm = ({ rx, onRxChange, rxMeta, onMetaChange, isProgressive }) => {
+const ManualPowerForm = ({ rx, onRxChange, rxMeta, onMetaChange, isProgressive, enablePd = true }) => {
     const { samePower, hasCyl, name, phone, pd } = rxMeta;
     const [showPdModal, setShowPdModal] = useState(false);
 
@@ -731,7 +731,8 @@ const ManualPowerForm = ({ rx, onRxChange, rxMeta, onMetaChange, isProgressive }
                     </div>
                 ))}
 
-                {/* PD (Pupillary Distance) row */}
+                {/* PD (Pupillary Distance) row — shown only when the lens type enables it */}
+                {enablePd && (<>
                 <div className="lsa-power-grid__pd-row">
                     <div className="lsa-power-grid__pd-left">
                         <span className="lsa-power-grid__pd-label">PD</span>
@@ -775,6 +776,7 @@ const ManualPowerForm = ({ rx, onRxChange, rxMeta, onMetaChange, isProgressive }
                         onPdMeasured={val => { onMetaChange('pd', val); setShowPdModal(false); }}
                     />
                 )}
+                </>)}
 
                 {/* Progressive ADD power row */}
                 {isProgressive && (
@@ -860,7 +862,7 @@ const RX_OPTIONS = [
     },
 ];
 
-const StepRx = ({ skipRx, skipReason, isProgressive, rx, onRxChange, rxMode, setRxMode, onUpload, uploadedFile, rxMeta, onMetaChange }) => {
+const StepRx = ({ skipRx, skipReason, isProgressive, enablePd, rx, onRxChange, rxMode, setRxMode, onUpload, uploadedFile, rxMeta, onMetaChange }) => {
     if (skipRx) {
         return (
             <div className="lsa-body">
@@ -868,7 +870,9 @@ const StepRx = ({ skipRx, skipReason, isProgressive, rx, onRxChange, rxMode, set
                 <p className="lsa-subheading">
                     {skipReason === 'zero_power'
                         ? 'Zero power lenses have no refractive correction.'
-                        : 'Frame only — no lenses will be fitted.'}
+                        : skipReason === 'skip_power'
+                            ? 'Power details are not required for this lens type.'
+                            : 'Frame only — no lenses will be fitted.'}
                 </p>
                 <div className="lsa-rx-skip-card">
                     <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
@@ -944,6 +948,7 @@ const StepRx = ({ skipRx, skipReason, isProgressive, rx, onRxChange, rxMode, set
                     rxMeta={rxMeta}
                     onMetaChange={onMetaChange}
                     isProgressive={isProgressive}
+                    enablePd={enablePd}
                 />
             )}
 
@@ -1076,6 +1081,10 @@ const LensSelectionAside = ({ isOpen, onClose, product, onAddToCart }) => {
     const isFrameOnly = isFrameOnlyType(selectedType);
     const isZeroPower = isZeroPowerType(selectedType);
     const isProgressive = isProgressiveType(selectedType);
+    // Admin-controlled per lens type: when false, hide the PD row in the Rx step.
+    const enablePd = selectedType?.enable_pd !== false;
+    // Admin-controlled per lens type: when true, skip the power/prescription (Rx) step.
+    const skipPower = selectedType?.skip_power === true;
 
     // Lenses are already filtered by type from the API, group by brand
     const lensGroups = groupLensesByBrandAndPackage(allLenses);
@@ -1136,7 +1145,7 @@ const LensSelectionAside = ({ isOpen, onClose, product, onAddToCart }) => {
 
     const handleAddToCart = () => {
         const lensObj = allLenses.find(l => l.id === selectedLensId) || null;
-        const needsRx = !isFrameOnly && !isZeroPower;
+        const needsRx = !isFrameOnly && !isZeroPower && !skipPower;
         const prescriptionObj = needsRx && rxMode === 'manual'
             ? { ...rx, pd: rxMeta.pd, name: rxMeta.name, phone: rxMeta.phone }
             : needsRx && (rxMode === 'upload' || rxMode === 'later') && rxMeta.name
@@ -1150,7 +1159,7 @@ const LensSelectionAside = ({ isOpen, onClose, product, onAddToCart }) => {
     };
 
     /* CTA config per step */
-    const rxReady = isZeroPower || isFrameOnly ||
+    const rxReady = isZeroPower || isFrameOnly || skipPower ||
         (rxMode === 'manual' || rxMode === 'later') ||
         (rxMode === 'upload' && !!uploadedFile);
     const cta = [
@@ -1213,9 +1222,10 @@ const LensSelectionAside = ({ isOpen, onClose, product, onAddToCart }) => {
                     )}
                     {step === 2 && (
                         <StepRx
-                            skipRx={isZeroPower || isFrameOnly}
-                            skipReason={isFrameOnly ? 'frame_only' : 'zero_power'}
+                            skipRx={isZeroPower || isFrameOnly || skipPower}
+                            skipReason={isFrameOnly ? 'frame_only' : isZeroPower ? 'zero_power' : 'skip_power'}
                             isProgressive={isProgressive}
+                            enablePd={enablePd}
                             rx={rx}
                             onRxChange={handleRxChange}
                             rxMode={rxMode}
