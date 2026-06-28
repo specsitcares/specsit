@@ -151,23 +151,29 @@ if not env('DATABASE_URL', default=None) and env('DB_NAME', default=None):
         'PORT': env('DB_PORT', default=''),
     }
 
-# Cache Configuration
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'unique-snowflake',
+# Cache Configuration — Upstash serverless Redis when REDIS_URL is set
+# (rediss://… TLS URL), else in-memory for local/dev. IGNORE_EXCEPTIONS keeps
+# the app serving if the cache is briefly unreachable.
+REDIS_URL = env('REDIS_URL', default=None)
+if REDIS_URL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': REDIS_URL,
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+                'IGNORE_EXCEPTIONS': True,
+            },
+        }
     }
-}
-
-# If Redis is available, use it (Disabled for local debug)
-# if env('REDIS_URL', default=None):
-#     CACHES['default'] = {
-#         'BACKEND': 'django_redis.cache.RedisCache',
-#         'LOCATION': env('REDIS_URL'),
-#         'OPTIONS': {
-#             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-#         }
-#     }
+    DJANGO_REDIS_IGNORE_EXCEPTIONS = True
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'unique-snowflake',
+        }
+    }
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [

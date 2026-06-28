@@ -15,6 +15,7 @@ import io
 import os
 import re
 import numpy as np
+from apps.core_utils.cache import CachedReadMixin
 from PIL import Image
 
 logger = logging.getLogger(__name__)
@@ -104,7 +105,8 @@ def calculate_pd_from_image(image_file):
         logger.error(f"AI PD Calculation Error: {str(e)}")
         return {'error': 'Measurement failed', 'details': str(e)}, 500
 
-class CategoryViewSet(viewsets.ModelViewSet):
+class CategoryViewSet(CachedReadMixin, viewsets.ModelViewSet):
+    cache_namespace = 'catalog_categories'
     queryset = Category.objects.select_related('parent').all().order_by('id')
     serializer_class = CategorySerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
@@ -198,7 +200,8 @@ class CategoryViewSet(viewsets.ModelViewSet):
         return Response(data)
 
 
-class BrandViewSet(viewsets.ModelViewSet):
+class BrandViewSet(CachedReadMixin, viewsets.ModelViewSet):
+    cache_namespace = 'catalog_brands'
     queryset = Brand.objects.all().order_by('id')
     serializer_class = BrandSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
@@ -215,20 +218,35 @@ class ManufacturerViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = ManufacturerSerializer
     permission_classes = [permissions.AllowAny]
 
-class ProductViewSet(viewsets.ModelViewSet):
+class ProductViewSet(CachedReadMixin, viewsets.ModelViewSet):
     queryset = Product.objects.select_related('category', 'brand', 'manufacturer').prefetch_related('variants', 'reviews').all().order_by('-created_at')
     serializer_class = ProductSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    cache_namespace = 'catalog_products'
 
     @action(detail=True, methods=['get'], permission_classes=[permissions.AllowAny])
     def recommended_lenses(self, request, pk=None):
+        from .models import Lens, Product
+        from .serializers import LensSerializer
+        from apps.core_utils.cache import cache_aside, cache_version
+
+        lens_type_id = request.query_params.get('type')
+        # Heavy PDP call — cache per (product, lens-type filter). Bust when either
+        # products or lenses change.
+        if not (request.user and request.user.is_staff):
+            ck = f"catalog:reclens:v{cache_version('catalog_products')}.{cache_version('catalog_lenses')}:{pk}:{lens_type_id or ''}"
+            cached = cache_aside(ck, 300, lambda: self._recommended_lenses_data(pk, lens_type_id))
+            return Response(cached)
+        return Response(self._recommended_lenses_data(pk, lens_type_id))
+
+    def _recommended_lenses_data(self, pk, lens_type_id=None):
         from .models import Lens, Product
         from .serializers import LensSerializer
 
         try:
             product = Product.objects.get(pk=pk)
         except Product.DoesNotExist:
-            return Response([])
+            return []
 
         lenses = Lens.objects.filter(is_active=True).select_related('package', 'brand', 'type', 'type__group')
 
@@ -246,7 +264,6 @@ class ProductViewSet(viewsets.ModelViewSet):
             lenses = lenses.filter(is_for_eyeglasses=True)
 
         # Filter by lens type (MetadataItem ID) if provided
-        lens_type_id = request.query_params.get('type')
         if lens_type_id:
             lenses = lenses.filter(type_id=lens_type_id)
 
@@ -257,8 +274,7 @@ class ProductViewSet(viewsets.ModelViewSet):
                 index='1.59'
             ).distinct()
 
-        serializer = LensSerializer(lenses, many=True)
-        return Response(serializer.data)
+        return LensSerializer(lenses, many=True).data
 
     @action(detail=True, methods=['get'], permission_classes=[permissions.AllowAny])
     def applicable_lens_types(self, request, pk=None):
@@ -313,9 +329,6 @@ class ProductViewSet(viewsets.ModelViewSet):
                 result.append(t)
 
         return Response(MetadataItemSerializer(result, many=True).data)
-
-    def perform_create(self, serializer):
-        serializer.save()
 
     def destroy(self, request, *args, **kwargs):
         from apps.sales.models import OrderItem
@@ -637,7 +650,8 @@ class VariantViewSet(viewsets.ModelViewSet):
         return self.update(request, *args, **kwargs)
 
 
-class CollectionViewSet(viewsets.ModelViewSet):
+class CollectionViewSet(CachedReadMixin, viewsets.ModelViewSet):
+    cache_namespace = 'catalog_collections'
     queryset = Collection.objects.prefetch_related('products').all().order_by('id')
     serializer_class = CollectionSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
@@ -659,7 +673,8 @@ class LensConstraintViewSet(viewsets.ModelViewSet):
     serializer_class = LensConstraintSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
-class LensViewSet(viewsets.ModelViewSet):
+class LensViewSet(CachedReadMixin, viewsets.ModelViewSet):
+    cache_namespace = 'catalog_lenses'
     serializer_class = LensSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
@@ -699,7 +714,8 @@ class LensViewSet(viewsets.ModelViewSet):
 
         return qs
 
-class ContactLensViewSet(viewsets.ModelViewSet):
+class ContactLensViewSet(CachedReadMixin, viewsets.ModelViewSet):
+    cache_namespace = 'catalog_contact_lenses'
     """Contact lenses only — a separate table from spectacle Lenses."""
     serializer_class = ContactLensSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]

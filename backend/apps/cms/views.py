@@ -1,8 +1,8 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, serializers
+from rest_framework import status, serializers, viewsets
 from rest_framework.permissions import AllowAny, IsAdminUser
-from .models import Announcement, HeroSlide, EditorialSection, Benefit, HomeSectionTitle, SiteSettings
+from .models import Announcement, HeroSlide, EditorialSection, Benefit, HomeSectionTitle, SiteSettings, HomeSection
 
 class AnnouncementSerializer(serializers.ModelSerializer):
     class Meta:
@@ -46,6 +46,35 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
         model = SiteSettings
         fields = ['store_name', 'meta_title_template', 'meta_description_template']
 
+class HomeSectionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = HomeSection
+        fields = ['id', 'key', 'title', 'status', 'is_published', 'order', 'image', 'scheduled_at', 'updated_at']
+        read_only_fields = ['key', 'updated_at']
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get('request')
+        if instance.image and request:
+            data['image'] = request.build_absolute_uri(instance.image.url)
+        return data
+
+class HomeSectionViewSet(viewsets.ModelViewSet):
+    """Homepage Management grid. Public reads see only published sections; admins
+    see all and can toggle/edit."""
+    serializer_class = HomeSectionSerializer
+
+    def get_queryset(self):
+        qs = HomeSection.objects.all()
+        if not (self.request.user and self.request.user.is_staff):
+            qs = qs.filter(is_published=True)
+        return qs
+
+    def get_permissions(self):
+        if self.action in ('list', 'retrieve'):
+            return [AllowAny()]
+        return [IsAdminUser()]
+
 class SiteSettingsView(APIView):
     permission_classes = [AllowAny]
 
@@ -65,17 +94,23 @@ class HomePageCMSView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
+        from apps.core_utils.cache import cache_aside, cache_version
+        if request.user and request.user.is_staff:
+            return Response(self._build(request))
+        key = f"cms_home:v{cache_version('cms_home')}"
+        return Response(cache_aside(key, 300, lambda: self._build(request)))
+
+    def _build(self, request):
         announcement = Announcement.objects.filter(is_active=True).last()
         slides = HeroSlide.objects.filter(is_active=True)
         editorials = EditorialSection.objects.filter(is_active=True)
         benefits = Benefit.objects.filter(is_active=True)
         titles = HomeSectionTitle.objects.all()
 
-        data = {
+        return {
             'announcement': AnnouncementSerializer(announcement).data if announcement else None,
             'hero_slides': HeroSlideSerializer(slides, many=True, context={'request': request}).data,
             'editorial_sections': EditorialSectionSerializer(editorials, many=True, context={'request': request}).data,
             'benefits': BenefitSerializer(benefits, many=True).data,
             'section_titles': {t.key: {'title': t.title, 'subtitle': t.subtitle} for t in titles}
         }
-        return Response(data)
