@@ -97,4 +97,74 @@ apiClient.interceptors.response.use(
   }
 );
 
+/* ──────────────────────────────────────────────────────────────────────────
+ * Global GET cache + in-flight de-duplication.
+ *
+ * Every component in the app calls through apiClient.get(), so wrapping it here
+ * makes the WHOLE site efficient without touching a single component:
+ *   • De-dupe: simultaneous identical GETs (navbar + page + widget all asking for
+ *     /catalog/categories) collapse into ONE network request.
+ *   • Micro-cache: a GET is reused from memory until its TTL expires, so remounts,
+ *     tab switches and back/forward navigation don't re-hit the server.
+ *   • Auto-invalidate: any successful write (POST/PUT/PATCH/DELETE) flushes the
+ *     read cache so the next GET reflects the change immediately.
+ * Dynamic/auth routes (cart, checkout, orders, payments, me, …) are never cached.
+ * ──────────────────────────────────────────────────────────────────────────*/
+const _getCache = new Map();    // key -> { response, expiry }
+const _inflight = new Map();    // key -> Promise
+
+// Reference data changes rarely -> long TTL. Everything else -> short TTL.
+const LONG_TTL = 5 * 60 * 1000;   // 5 min
+const SHORT_TTL = 30 * 1000;      // 30 s
+const LONG_PATTERNS = [/\/catalog\/categories/, /\/catalog\/brands/, /\/catalog\/collections/, /\/cms\//, /metadata-groups/, /metadata-items/, /site-settings/];
+// Never cache user-specific / live / write-sensitive reads.
+const NO_CACHE_PATTERNS = [
+  /\/cart/, /\/wishlist/, /\/checkout/, /\/sales\/orders/, /\/order-payments/, /\/payments/,
+  /\/accounts\/(me|profile|users)/, /\/auth/, /\/login/, /\/prescriptions/, /\/return-requests/,
+  /\/warranty-claims/, /\/analytics/, /\/admin\//, /\/order-tracking/,
+];
+
+const _ttlFor = (url = '') => {
+  if (NO_CACHE_PATTERNS.some((r) => r.test(url))) return 0;
+  if (LONG_PATTERNS.some((r) => r.test(url))) return LONG_TTL;
+  return SHORT_TTL;
+};
+const _keyFor = (url, config) => `${url}::${JSON.stringify(config?.params || {})}`;
+
+const _origGet = apiClient.get.bind(apiClient);
+apiClient.get = (url, config = {}) => {
+  const key = _keyFor(url, config);
+  const ttl = config.cache === false ? 0 : _ttlFor(url);
+  const now = Date.now();
+
+  if (ttl > 0) {
+    const hit = _getCache.get(key);
+    if (hit && hit.expiry > now) return Promise.resolve(hit.response);
+  }
+  // De-dupe identical in-flight GETs regardless of caching.
+  if (_inflight.has(key)) return _inflight.get(key);
+
+  const p = _origGet(url, config)
+    .then((res) => {
+      if (ttl > 0) _getCache.set(key, { response: res, expiry: Date.now() + ttl });
+      _inflight.delete(key);
+      return res;
+    })
+    .catch((err) => { _inflight.delete(key); throw err; });
+
+  _inflight.set(key, p);
+  return p;
+};
+
+// Any successful write flushes the read cache so reads never go stale.
+const _flushCache = () => _getCache.clear();
+['post', 'put', 'patch', 'delete'].forEach((method) => {
+  const orig = apiClient[method].bind(apiClient);
+  apiClient[method] = (...args) =>
+    orig(...args).then((res) => { _flushCache(); return res; });
+});
+
+// Manual hook if a component ever needs to force-refresh.
+export const clearApiCache = _flushCache;
+
 export default apiClient;

@@ -1,9 +1,10 @@
+import os
 import math
 import logging
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.conf import settings
 from django.db import transaction
 from apps.core_utils.idempotency import idempotent_payment_operation
@@ -325,3 +326,90 @@ class PaymentCancelView(APIView):
             order.save(update_fields=['payment_status', 'order_status'])
 
         return Response({'status': 'cancelled', 'order_id': order.id})
+
+
+def _mark_order_paid(order, razorpay_payment_id, razorpay_order_id):
+    """Settle an order exactly once. Caller holds the row lock. Returns True if it
+    transitioned to paid, False if it was already settled (idempotent no-op)."""
+    if order.payment_status == 'paid' or order.balance_amount == 0 and order.paid_amount >= order.total_amount:
+        return False
+
+    amount_paid = float(order.total_amount)
+    order.payment_status = 'paid'
+    order.paid_amount = amount_paid
+    order.balance_amount = 0
+    order.order_status = 'confirmed'
+    if razorpay_payment_id:
+        order.razorpay_payment_id = razorpay_payment_id
+    if razorpay_order_id:
+        order.razorpay_order_id = razorpay_order_id
+
+    from apps.catalog.core.models import MetadataGroup, MetadataItem as MI
+    confirmed_group, _ = MetadataGroup.objects.get_or_create(name='Order Status')
+    confirmed_meta, _ = MI.objects.get_or_create(
+        group=confirmed_group, label='Confirmed',
+        defaults={'value': 'confirmed', 'is_active': True},
+    )
+    order.status = confirmed_meta
+    order.save()
+
+    Payment.objects.create(
+        transaction_id=razorpay_payment_id or f"webhook_{order.id}",
+        order=order,
+        payment_method='razorpay',
+        amount_paid=amount_paid,
+        payment_gateway='razorpay',
+        payment_status='completed',
+    )
+    return True
+
+
+class PaymentWebhookView(APIView):
+    """Razorpay async event sink. Verifies the signature with the webhook secret
+    (env-only, never the DB) and settles orders idempotently so a customer is
+    never provisioned twice for the same payment."""
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        secret = os.environ.get('RAZORPAY_WEBHOOK_SECRET')
+        signature = request.headers.get('X-Razorpay-Signature', '')
+        body = request.body
+
+        if secret:
+            try:
+                import razorpay
+                razorpay.Utility().verify_webhook_signature(body.decode('utf-8'), signature, secret)
+            except Exception as e:
+                logger.warning("Razorpay webhook signature verification failed: %s", e)
+                return Response({'error': 'invalid signature'}, status=status.HTTP_400_BAD_REQUEST)
+
+        event = request.data or {}
+        if event.get('event') not in ('payment.captured', 'order.paid'):
+            return Response({'status': 'ignored'}, status=status.HTTP_200_OK)
+
+        payload = event.get('payload', {}) or {}
+        payment_entity = (payload.get('payment', {}) or {}).get('entity', {}) or {}
+        order_entity = (payload.get('order', {}) or {}).get('entity', {}) or {}
+        rzp_payment_id = payment_entity.get('id')
+        rzp_order_id = payment_entity.get('order_id') or order_entity.get('id')
+
+        if not rzp_order_id:
+            return Response({'status': 'no_order_ref'}, status=status.HTTP_200_OK)
+
+        # Idempotency gate 1: this exact payment is already recorded.
+        if rzp_payment_id and Payment.objects.filter(transaction_id=rzp_payment_id).exists():
+            return Response({'status': 'already_processed'}, status=status.HTTP_200_OK)
+
+        try:
+            order_id = Order.objects.values_list('id', flat=True).get(razorpay_order_id=rzp_order_id)
+        except Order.DoesNotExist:
+            return Response({'status': 'order_not_found'}, status=status.HTTP_200_OK)
+
+        # Idempotency gate 2: row lock + status check so concurrent deliveries
+        # (handler verify + webhook, or Razorpay retries) settle only once.
+        with transaction.atomic():
+            order = Order.objects.select_for_update().get(id=order_id)
+            changed = _mark_order_paid(order, rzp_payment_id, rzp_order_id)
+
+        return Response({'status': 'settled' if changed else 'already_paid'}, status=status.HTTP_200_OK)

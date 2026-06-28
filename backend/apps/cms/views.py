@@ -65,17 +65,23 @@ class HomePageCMSView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
+        from apps.core_utils.cache import cache_aside, cache_version
+        if request.user and request.user.is_staff:
+            return Response(self._build(request))
+        key = f"cms_home:v{cache_version('cms_home')}"
+        return Response(cache_aside(key, 300, lambda: self._build(request)))
+
+    def _build(self, request):
         announcement = Announcement.objects.filter(is_active=True).last()
         slides = HeroSlide.objects.filter(is_active=True)
         editorials = EditorialSection.objects.filter(is_active=True)
         benefits = Benefit.objects.filter(is_active=True)
         titles = HomeSectionTitle.objects.all()
 
-        data = {
+        return {
             'announcement': AnnouncementSerializer(announcement).data if announcement else None,
             'hero_slides': HeroSlideSerializer(slides, many=True, context={'request': request}).data,
             'editorial_sections': EditorialSectionSerializer(editorials, many=True, context={'request': request}).data,
             'benefits': BenefitSerializer(benefits, many=True).data,
             'section_titles': {t.key: {'title': t.title, 'subtitle': t.subtitle} for t in titles}
         }
-        return Response(data)

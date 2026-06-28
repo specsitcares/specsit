@@ -8,7 +8,7 @@ from .views import (
     ReturnRequestViewSet, WarrantyClaimViewSet,
     OrdersOverviewView, AnalyticsLiveStreamView, PincodeRateLookupView,
 )
-from .payment_views import PaymentInitiateView, PaymentVerifyView, PaymentCancelView, PaymentSettingsView
+from .payment_views import PaymentInitiateView, PaymentVerifyView, PaymentCancelView, PaymentSettingsView, PaymentWebhookView
 
 router = SimpleRouter()
 router.register(r'orders', OrderViewSet, basename='order')
@@ -36,5 +36,6 @@ urlpatterns = [
     path('payments/initiate/', PaymentInitiateView.as_view(), name='payment-initiate'),
     path('payments/verify/', PaymentVerifyView.as_view(), name='payment-verify'),
     path('payments/cancel/', PaymentCancelView.as_view(), name='payment-cancel'),
+    path('payments/webhook/', PaymentWebhookView.as_view(), name='payment-webhook'),
     path('', include(router.urls)),
 ]
