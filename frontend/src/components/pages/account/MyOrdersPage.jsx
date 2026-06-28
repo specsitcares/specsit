@@ -209,7 +209,7 @@ const OrderCard = ({ order }) => {
     const allItemsDelivered = items.length > 0 && items.every(it => norm(it.status) === 'delivered');
     let statusKey = norm(order.order_status || order.status_label);
     if (statusKey !== 'cancelled' && (
-        statusKey === 'delivered' || trackingStatus === 'delivered' ||
+        order.is_delivered || statusKey === 'delivered' || trackingStatus === 'delivered' ||
         allItemsDelivered || !!order.delivery_date
     )) {
         statusKey = 'delivered';
@@ -275,18 +275,21 @@ const OrderCard = ({ order }) => {
 
             {/* Footer — contextual action */}
             {wasDelivered ? (
-                <div className="omc__footer">
-                    {order.has_review ? (
-                        <>
-                            <span className="omc__rate-label">Your rating</span>
-                            <StaticStars rating={order.review_rating} orderId={order.id} navigate={navigate} />
-                        </>
-                    ) : (
-                        <>
-                            <span className="omc__rate-label">Rate this product</span>
-                            <InteractiveStars orderId={order.id} navigate={navigate} />
-                        </>
-                    )}
+                <div className="omc__footer omc__footer--rate">
+                    <div className="omc__rate-group">
+                        {order.has_review ? (
+                            <>
+                                <span className="omc__rate-label">Your rating</span>
+                                <StaticStars rating={order.review_rating} orderId={order.id} navigate={navigate} />
+                            </>
+                        ) : (
+                            <>
+                                <span className="omc__rate-label">Rate this product</span>
+                                <InteractiveStars orderId={order.id} navigate={navigate} />
+                            </>
+                        )}
+                    </div>
+                    <Link to={`/orders/${order.id}`} className="omc__view">View Details →</Link>
                 </div>
             ) : isCancelled ? (
                 <div className="omc__footer omc__footer--end">

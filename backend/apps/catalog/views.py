@@ -936,34 +936,46 @@ class ReviewViewSet(viewsets.ModelViewSet):
         except Order.DoesNotExist:
             raise DRFValidationError({'order': 'Order not found.'})
 
-        # Accept both the order_status CharField and the MetadataItem label
-        # so orders marked via the admin pipeline (MetadataItem-based) also qualify.
-        def _is_delivered(order):
-            if order.order_status == 'delivered':
-                return True
-            if order.status:
-                label = order.status.label.lower()
-                return any(k in label for k in ['deliver', 'complet'])
-            return False
-
-        if not _is_delivered(order):
+        if not order.is_delivered:
             raise PermissionDenied('You can only review delivered orders.')
 
         if order.user != self.request.user:
             raise PermissionDenied('You can only review your own orders.')
 
-        if Review.objects.filter(order=order, user=self.request.user).exists():
-            raise DRFValidationError({'non_field_errors': 'You have already submitted a review for this order.'})
+        # One review per product per order (the page submits a review per item).
+        product_id = self.request.data.get('product')
+        if Review.objects.filter(order=order, user=self.request.user, product_id=product_id).exists():
+            raise DRFValidationError({'non_field_errors': 'You have already reviewed this item.'})
 
         rating = int(self.request.data.get('rating', 0))
         if not (1 <= rating <= 5):
             raise DRFValidationError({'rating': 'Rating must be between 1 and 5.'})
 
-        serializer.save(user=self.request.user, is_verified_purchase=True, is_approved=False)
+        review = serializer.save(user=self.request.user, is_verified_purchase=True, is_approved=False)
+        self._save_review_images(review)
 
     def perform_update(self, serializer):
         # Reset approval so admin can re-approve edited reviews
-        serializer.save(is_approved=False)
+        review = serializer.save(is_approved=False)
+        self._save_review_images(review)
+
+    def _save_review_images(self, review):
+        """Persist customer-uploaded review photos (image_0, image_1, …) and store
+        their URLs on the review's review_images list."""
+        files = [f for k, f in self.request.FILES.items() if k.startswith('image_')]
+        if not files:
+            return
+        from django.core.files.storage import default_storage
+        from django.core.files.base import ContentFile
+        urls = list(review.review_images or [])
+        for f in files[:5]:
+            path = default_storage.save(f'review_images/{review.id}_{f.name}', ContentFile(f.read()))
+            url = default_storage.url(path)
+            if not url.startswith('http'):
+                url = self.request.build_absolute_uri(url)
+            urls.append(url)
+        review.review_images = urls
+        review.save(update_fields=['review_images'])
 
     def get_object(self):
         obj = super().get_object()

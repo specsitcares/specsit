@@ -140,8 +140,23 @@ class PaymentSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['payment_date', 'created_at', 'updated_at']
 
+class ReturnRequestNoteSerializer(serializers.ModelSerializer):
+    author_name = serializers.SerializerMethodField()
+
+    def get_author_name(self, obj):
+        if obj.author:
+            return obj.author.get_full_name() or obj.author.username
+        return 'Admin'
+
+    class Meta:
+        from .models import ReturnRequestNote
+        model = ReturnRequestNote
+        fields = ['id', 'text', 'author_name', 'created_at']
+        read_only_fields = ['id', 'author_name', 'created_at']
+
 class ReturnRequestSerializer(serializers.ModelSerializer):
     images = serializers.SerializerMethodField(read_only=True)
+    notes = ReturnRequestNoteSerializer(many=True, read_only=True)
 
     def get_images(self, obj):
         request = self.context.get('request')
@@ -160,6 +175,19 @@ class ReturnRequestSerializer(serializers.ModelSerializer):
         read_only_fields = ['created_at', 'updated_at']
 
 class WarrantyClaimSerializer(serializers.ModelSerializer):
+    images = serializers.SerializerMethodField(read_only=True)
+
+    def get_images(self, obj):
+        request = self.context.get('request')
+        urls = []
+        for im in obj.images.all():
+            try:
+                url = im.image.url
+                urls.append(request.build_absolute_uri(url) if request else url)
+            except Exception:
+                pass
+        return urls
+
     class Meta:
         model = WarrantyClaim
         fields = '__all__'
@@ -179,6 +207,7 @@ class OrderSerializer(serializers.ModelSerializer):
     billing_address_detail = serializers.SerializerMethodField(read_only=True)
     has_review = serializers.SerializerMethodField(read_only=True)
     review_rating = serializers.SerializerMethodField(read_only=True)
+    is_delivered = serializers.ReadOnlyField()
 
     def get_has_review(self, obj):
         from apps.catalog.models import Review
@@ -287,7 +316,7 @@ class OrderSerializer(serializers.ModelSerializer):
             'items', 'tracking', 'payments',
             'return_requests', 'warranty_claims',
             'razorpay_order_id', 'razorpay_payment_id',
-            'has_review', 'review_rating',
+            'has_review', 'review_rating', 'is_delivered',
         ]
         read_only_fields = ['created_at', 'updated_at', 'order_date']
 

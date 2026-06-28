@@ -35,7 +35,7 @@ const STATUS_BADGE_STYLE = {
 const getStatusClass = (label) =>
   STATUS_CLASS[(label || '').toLowerCase()] || 'badge-neutral';
 
-const OrderTable = ({ category = null, onViewDetails, hideKPIs = false }) => {
+const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewWarranty, hideKPIs = false }) => {
   const [orders, setOrders] = useState([]);
   const [expandedRows, setExpandedRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -590,7 +590,13 @@ const OrderTable = ({ category = null, onViewDetails, hideKPIs = false }) => {
                 <React.Fragment key={o.id || idx}>
                   {/* Main Order Row */}
                   <tr
-                    onClick={() => o.items?.length > 1 ? toggleRow(o.id) : onViewDetails(o.id)}
+                    onClick={() => {
+                      const rr = o.return_requests?.[0];
+                      const wc = o.warranty_claims?.[0];
+                      if (category === 'returns' && activeReturnTab === 'requests' && rr && onViewReturn) { onViewReturn(rr.id); return; }
+                      if (category === 'warranty' && wc && onViewWarranty) { onViewWarranty(wc.id); return; }
+                      o.items?.length > 1 ? toggleRow(o.id) : onViewDetails(o.id);
+                    }}
                     style={{ cursor: 'pointer', borderBottom: '1px solid #EAECF0', backgroundColor: expandedRows.includes(o.id) ? '#F9F5FF' : '#fff', transition: 'background 0.2s' }}
                   >
                     <td style={{ padding: '12px 16px', backgroundColor: expandedRows.includes(o.id) ? '#F5F3FF' : 'inherit' }}>
