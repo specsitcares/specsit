@@ -28,6 +28,8 @@ import QueryTable from './QueryTable';
 import AnalyticsPage from './AnalyticsPage';
 import { useAuth } from '../../../context/AuthContext';
 import OrderDetail from './OrderDetail';
+import ReturnRequestDetail from './ReturnRequestDetail';
+import WarrantyClaimDetail from './WarrantyClaimDetail';
 import '../../../styles/admin.css';
 
 /* ── Route wrappers that pull params from the URL ─────────── */
@@ -179,8 +181,10 @@ const AdminDashboard = () => {
 
               {/* Orders */}
               <Route path="orders"          element={<OrderTable category={null}       onViewDetails={id => navigate(`/admin/orders/${id}`)} />} />
-              <Route path="orders/returns"  element={<OrderTable category="returns"    onViewDetails={id => navigate(`/admin/orders/${id}`)} />} />
-              <Route path="orders/warranty" element={<OrderTable category="warranty"   onViewDetails={id => navigate(`/admin/orders/${id}`)} />} />
+              <Route path="orders/returns"  element={<OrderTable category="returns"    onViewDetails={id => navigate(`/admin/orders/${id}`)} onViewReturn={rid => navigate(`/admin/returns/${rid}`)} />} />
+              <Route path="orders/warranty" element={<OrderTable category="warranty"   onViewDetails={id => navigate(`/admin/orders/${id}`)} onViewWarranty={cid => navigate(`/admin/warranty/${cid}`)} />} />
+              <Route path="returns/:returnId" element={<ReturnRequestDetail />} />
+              <Route path="warranty/:claimId" element={<WarrantyClaimDetail />} />
               <Route path="orders/:orderId" element={<OrderDetailRoute />} />
 
               {/* Products */}

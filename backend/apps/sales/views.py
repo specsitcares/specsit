@@ -59,10 +59,22 @@ class OrderViewSet(viewsets.ModelViewSet):
 
         # View Presets — filter by delivery_date (not created_at) so the window
         # starts from when the customer actually received the order.
+        # Delivered detection that doesn't depend solely on order_status (which can lag):
+        # accept order_status, a set delivery_date, or tracking marked delivered.
+        delivered_q = (
+            Q(order_status='delivered')
+            | Q(delivery_date__isnull=False)
+            | Q(tracking__current_status__iexact='delivered')
+            | Q(items__status__iexact='delivered')
+        )
+
         view_preset = self.request.query_params.get('view_preset')
         if view_preset == 'returns':
             ten_days_ago = timezone.now() - timedelta(days=10)
-            qs = qs.filter(order_status='delivered', delivery_date__gte=ten_days_ago)
+            # Window on delivery_date when present, else fall back to created_at so
+            # delivered orders without a delivery_date still appear.
+            window_q = Q(delivery_date__gte=ten_days_ago) | (Q(delivery_date__isnull=True) & Q(created_at__gte=ten_days_ago))
+            qs = qs.filter(delivered_q & window_q).distinct()
             # Sub-tab filtering
             return_tab = self.request.query_params.get('return_tab')
             if return_tab == 'requests':
@@ -73,7 +85,8 @@ class OrderViewSet(viewsets.ModelViewSet):
                 qs = qs.filter(return_requests__request_type='replacement').distinct()
         elif view_preset == 'warranty':
             one_year_ago = timezone.now() - timedelta(days=365)
-            qs = qs.filter(order_status='delivered', delivery_date__gte=one_year_ago)
+            window_q = Q(delivery_date__gte=one_year_ago) | (Q(delivery_date__isnull=True) & Q(created_at__gte=one_year_ago))
+            qs = qs.filter(delivered_q & window_q).distinct()
             # Sub-tab filtering
             warranty_tab = self.request.query_params.get('warranty_tab')
             if warranty_tab == 'requests_received' or warranty_tab == 'claimed':
@@ -660,7 +673,7 @@ class OrderViewSet(viewsets.ModelViewSet):
 
         order = self.get_object()
 
-        if order.order_status != 'delivered':
+        if not order.is_delivered:
             return Response({'detail': 'Returns can only be requested for delivered orders.'},
                             status=status.HTTP_400_BAD_REQUEST)
 
@@ -697,6 +710,44 @@ class OrderViewSet(viewsets.ModelViewSet):
                 ReturnRequestImage.objects.create(return_request=rr, image=ph)
 
         return Response(ReturnRequestSerializer(rr, context={'request': request}).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def request_warranty(self, request, pk=None):
+        """Customer-initiated warranty claim for a delivered order within the warranty window."""
+        from .models import WarrantyClaim, WarrantyClaimImage
+        from .serializers import WarrantyClaimSerializer
+
+        order = self.get_object()
+
+        if not order.is_delivered:
+            return Response({'detail': 'Warranty claims can only be raised for delivered orders.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        # Warranty window: 1 year from delivery (fall back to order date).
+        ref_date = order.delivery_date or order.created_at
+        if ref_date and (timezone.now() - ref_date) > timedelta(days=365):
+            return Response({'detail': 'The 1-year warranty period for this order has expired.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        issue = (request.data.get('issue_description') or request.data.get('description') or '').strip()
+        if not issue:
+            return Response({'detail': 'Please describe the issue.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if order.warranty_claims.exclude(status='rejected').exists():
+            return Response({'detail': 'A warranty claim already exists for this order.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        preferred_fix = (request.data.get('preferred_fix') or '').strip()[:20]
+        claim = WarrantyClaim.objects.create(
+            order=order, issue_description=issue, preferred_fix=preferred_fix, status='pending',
+        )
+
+        # Optional evidence photos (multipart "photos") — up to 5, max 5 MB, images only.
+        for ph in request.FILES.getlist('photos')[:5]:
+            if ph.size <= 5 * 1024 * 1024 and (ph.content_type or '').startswith('image/'):
+                WarrantyClaimImage.objects.create(warranty_claim=claim, image=ph)
+
+        return Response(WarrantyClaimSerializer(claim, context={'request': request}).data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['patch'], url_path='items/(?P<item_id>[0-9]+)/status')
     def update_item_status(self, request, pk=None, item_id=None):
@@ -1203,11 +1254,22 @@ class ReturnRequestViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAdminUser]
 
     def get_queryset(self):
-        qs = ReturnRequest.objects.select_related('order').all()
+        qs = ReturnRequest.objects.select_related('order').prefetch_related('notes', 'notes__author').all()
         order_id = self.request.query_params.get('order')
         if order_id:
             qs = qs.filter(order_id=order_id)
         return qs.order_by('-created_at')
+
+    @action(detail=True, methods=['post'])
+    def add_note(self, request, pk=None):
+        """Append an internal note (chat-style) authored by the current admin."""
+        from .models import ReturnRequestNote
+        rr = self.get_object()
+        text = (request.data.get('text') or '').strip()
+        if not text:
+            return Response({'detail': 'Note text is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        ReturnRequestNote.objects.create(return_request=rr, author=request.user, text=text)
+        return Response(self.get_serializer(rr).data)
 
 class WarrantyClaimViewSet(viewsets.ModelViewSet):
     serializer_class = WarrantyClaimSerializer

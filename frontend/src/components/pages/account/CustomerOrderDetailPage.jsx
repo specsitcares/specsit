@@ -177,10 +177,17 @@ const CustomerOrderDetailPage = () => {
   const status = order.order_status || 'pending';
   const rank = STATUS_RANK[status] ?? 0;
   const isCancelled = status === 'cancelled';
-  const isDelivered = status === 'delivered';
+  const tracking = order.tracking || {};
+  // order_status can lag behind actual delivery — trust the authoritative flag + signals.
+  const norm = (s) => (s || '').toLowerCase().replace(/\s+/g, '_');
+  const isDelivered = !isCancelled && (
+    order.is_delivered || status === 'delivered'
+    || norm(tracking.current_status) === 'delivered'
+    || !!order.delivery_date
+    || ((order.items || []).length > 0 && (order.items || []).every(it => norm(it.status) === 'delivered'))
+  );
   const items = order.items || [];
   const addr = order.shipping_address_detail || {};
-  const tracking = order.tracking || {};
   const sc = STATUS_COLORS[status] || STATUS_COLORS.pending;
   const orderLabel = `#LO-${String(order.id).padStart(7, '0')}`;
   const itemCount = items.length;
@@ -382,6 +389,12 @@ const CustomerOrderDetailPage = () => {
                     <button type="button" className="od-btn od-btn--ghost"
                       onClick={() => navigate(`/orders/${orderId}/return`)}>
                       Return / Exchange
+                    </button>
+                  )}
+                  {isDelivered && (
+                    <button type="button" className="od-btn od-btn--ghost"
+                      onClick={() => navigate(`/orders/${orderId}/warranty`)}>
+                      Claim Warranty
                     </button>
                   )}
                   <Link to="/support/contact" className="od-btn od-btn--ghost">Need Help?</Link>

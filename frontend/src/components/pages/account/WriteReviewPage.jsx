@@ -69,7 +69,8 @@ const WriteReviewPage = () => {
                 // Accept any authoritative delivered signal (order_status can lag).
                 const norm = (s) => (s || '').toLowerCase().replace(/\s+/g, '_');
                 const ordItems = ord.items || [];
-                const isDelivered = norm(ord.order_status) === 'delivered'
+                const isDelivered = ord.is_delivered
+                    || norm(ord.order_status) === 'delivered'
                     || norm(ord.tracking?.current_status) === 'delivered'
                     || !!ord.delivery_date
                     || (ordItems.length > 0 && ordItems.every(it => norm(it.status) === 'delivered'));

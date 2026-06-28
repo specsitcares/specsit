@@ -27,6 +27,7 @@ import NotificationsPage from './components/pages/account/NotificationsPage';
 import WishlistPage from './components/pages/account/WishlistPage';
 import CustomerOrderDetailPage from './components/pages/account/CustomerOrderDetailPage';
 import ReturnExchangePage from './components/pages/account/ReturnExchangePage';
+import WarrantyClaimPage from './components/pages/account/WarrantyClaimPage';
 import ThankYouPage from './components/pages/checkout/ThankYouPage';
 import OrderConfirmedPage from './components/pages/checkout/OrderConfirmedPage';
 import OrderTrackingPage from './components/pages/account/OrderTrackingPage';
@@ -108,6 +109,7 @@ const App = () => {
                                     <Route path="orders" element={<ProtectedRoute><MyOrdersPage /></ProtectedRoute>} />
                                     <Route path="orders/:orderId" element={<ProtectedRoute><CustomerOrderDetailPage /></ProtectedRoute>} />
                                     <Route path="orders/:orderId/return" element={<ProtectedRoute><ReturnExchangePage /></ProtectedRoute>} />
+                                    <Route path="orders/:orderId/warranty" element={<ProtectedRoute><WarrantyClaimPage /></ProtectedRoute>} />
                                     <Route path="orders/:orderId/review" element={<ProtectedRoute><OrderReviewPage /></ProtectedRoute>} />
                                     <Route path="orders/:orderId/write-review" element={<ProtectedRoute><WriteReviewPage /></ProtectedRoute>} />
                                     <Route path="customer/order/:orderId" element={<ProtectedRoute><CustomerOrderDetailPage /></ProtectedRoute>} />

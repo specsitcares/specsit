@@ -293,9 +293,10 @@
 .omc__view { font-family:inherit; font-size:13px; font-weight:600; color:#71717A; text-decoration:none; }
 .omc__view:hover { color:#68408D; }
 
-/* Footer "Rate this product" stacks label above stars like the Figma */
-.omc__footer:not(.omc__footer--end) { flex-direction:column; align-items:flex-start; gap:8px; }
-.omc__footer:not(.omc__footer--end) .omc__rate-label { margin-right:0; }
+/* Footer "Rate this product": label+stars on the left, View Details on the right */
+.omc__footer.omc__footer--rate { flex-direction:row; align-items:center; justify-content:space-between; }
+.omc__rate-group { display:flex; flex-direction:column; align-items:flex-start; gap:8px; }
+.omc__rate-group .omc__rate-label { margin-right:0; }
 
 /* Order card */
 .ord-card {

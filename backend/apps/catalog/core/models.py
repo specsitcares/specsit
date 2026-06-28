@@ -32,6 +32,12 @@ class MetadataItem(models.Model):
     # When True, the customer POV skips the power/prescription (Rx) step for this lens
     # type — no power details are collected and the customer goes straight to add-to-bag.
     skip_power = models.BooleanField(default=False)
+    # Optional parent item for nesting (e.g. a contact-lens lens-type nested under a
+    # power-type item: Spherical → Monthly).
+    parent = models.ForeignKey(
+        'self', on_delete=models.CASCADE,
+        null=True, blank=True, related_name='children'
+    )
     def __str__(self): return f"{self.group.name}: {self.label}"
 
 class AnalyticsLog(models.Model):

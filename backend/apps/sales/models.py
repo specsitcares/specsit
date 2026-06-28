@@ -142,6 +142,25 @@ class Order(models.Model):
 
     def __str__(self): return f"Order #{self.id}"
 
+    @property
+    def is_delivered(self):
+        """Single source of truth for "delivered". The order_status field can lag
+        behind actual delivery (which may be recorded via tracking, delivery_date, the
+        MetadataItem status label, or at the item level), so accept any of those."""
+        if self.order_status == 'delivered':
+            return True
+        if self.delivery_date:
+            return True
+        tracking = getattr(self, 'tracking', None)
+        if tracking and (tracking.current_status or '').lower() == 'delivered':
+            return True
+        if self.status and any(k in self.status.label.lower() for k in ['deliver', 'complet']):
+            return True
+        items = list(self.items.all())
+        if items and all((i.status or '').lower() == 'delivered' for i in items):
+            return True
+        return False
+
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
     variant = models.ForeignKey(Variant, on_delete=models.CASCADE, null=True, blank=True)
@@ -298,6 +317,18 @@ class ReturnRequestImage(models.Model):
     return_request = models.ForeignKey(ReturnRequest, on_delete=models.CASCADE, related_name='images')
     image = models.ImageField(upload_to='return_requests/')
     created_at = models.DateTimeField(auto_now_add=True)
+
+class ReturnRequestNote(models.Model):
+    """Internal team notes on a return request — stored as a running thread (chat)."""
+    return_request = models.ForeignKey(ReturnRequest, on_delete=models.CASCADE, related_name='notes')
+    author = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self): return f"Note on Return #{self.return_request_id}"
     def __str__(self): return f"Image for Return #{self.return_request_id}"
 
 class WarrantyClaim(models.Model):
@@ -314,9 +345,16 @@ class WarrantyClaim(models.Model):
     claimed_at = models.DateTimeField(auto_now_add=True)
     resolved_at = models.DateTimeField(null=True, blank=True)
     admin_notes = models.TextField(blank=True)
+    preferred_fix = models.CharField(max_length=20, blank=True)  # repair / replace / refund
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     def __str__(self): return f"Warranty #{self.id} for Order #{self.order_id}"
+
+class WarrantyClaimImage(models.Model):
+    """Customer-uploaded evidence photos for a warranty claim."""
+    warranty_claim = models.ForeignKey(WarrantyClaim, on_delete=models.CASCADE, related_name='images')
+    image = models.ImageField(upload_to='warranty_claims/')
+    created_at = models.DateTimeField(auto_now_add=True)
 
 
 class PincodeDeliveryRate(models.Model):

@@ -1,0 +1,91 @@
+/* ── Raise Warranty Claim (customer) — Figma 123:12262 ── */
+.wc-wrap { max-width: 860px; }
+.wc-breadcrumb { display: flex; align-items: center; gap: 6px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: #71717A; margin-bottom: 16px; }
+.wc-breadcrumb a { color: #71717A; text-decoration: none; }
+.wc-breadcrumb a:hover { color: #68408D; }
+.wc-breadcrumb .wc-bc-active { color: #68408D; }
+.wc-title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 26px; font-weight: 800; letter-spacing: -0.5px; color: #040205; margin: 0 0 20px; }
+
+/* Stepper */
+.wc-steps { display: flex; align-items: center; gap: 8px; margin-bottom: 28px; }
+.wc-step { display: flex; align-items: center; gap: 8px; }
+.wc-step__num { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; font-family: 'Plus Jakarta Sans', sans-serif; flex-shrink: 0; }
+.wc-step__num--on { background: #68408D; color: #fff; }
+.wc-step__num--off { background: #EFEDF0; color: #9CA3AF; }
+.wc-step__label { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 600; color: #71717A; white-space: nowrap; }
+.wc-step__label--on { color: #040205; }
+.wc-step__line { flex: 1; height: 2px; background: #EFEDF0; min-width: 16px; }
+
+/* Cards */
+.wc-card { background: #FEFCFF; border: 1px solid #EFEDF0; border-radius: 12px; padding: 20px; margin-bottom: 18px; }
+.wc-card__title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 700; color: #040205; margin: 0 0 4px; }
+.wc-card__hint { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; color: #71717A; margin: 0 0 16px; }
+
+/* Product under warranty */
+.wc-product { display: flex; align-items: center; gap: 16px; }
+.wc-product__thumb { width: 64px; height: 64px; flex-shrink: 0; border-radius: 8px; background: #F1F1F1; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.wc-product__thumb img { width: 100%; height: 100%; object-fit: cover; }
+.wc-product__info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.wc-product__brand { font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: #68408D; font-family: 'Plus Jakarta Sans', sans-serif; }
+.wc-product__name { font-size: 16px; font-weight: 700; color: #040205; font-family: 'Plus Jakarta Sans', sans-serif; }
+.wc-product__sub { font-size: 12px; color: #71717A; font-family: 'Plus Jakarta Sans', sans-serif; }
+.wc-product__meta { font-size: 11px; color: #9CA3AF; font-family: 'Plus Jakarta Sans', sans-serif; margin-top: 2px; }
+.wc-warranty-badge { flex-shrink: 0; background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 8px; padding: 10px 14px; text-align: right; }
+.wc-warranty-badge__title { font-size: 11px; font-weight: 700; color: #16A34A; font-family: 'Plus Jakarta Sans', sans-serif; }
+.wc-warranty-badge__meta { font-size: 11px; color: #15803D; font-family: 'Plus Jakarta Sans', sans-serif; margin-top: 3px; }
+
+/* Coverage */
+.wc-coverage { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.wc-cov { border-radius: 8px; padding: 14px; }
+.wc-cov--yes { background: #F0FDF4; border: 1px solid #BBF7D0; }
+.wc-cov--no { background: #FFF1F2; border: 1px solid #FECACA; }
+.wc-cov__title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+.wc-cov--yes .wc-cov__title { color: #16A34A; }
+.wc-cov--no .wc-cov__title { color: #DC2626; }
+.wc-cov__item { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; color: #374151; line-height: 1.7; }
+
+/* Option list (issues / resolution) */
+.wc-opt { display: flex; align-items: flex-start; gap: 12px; padding: 13px 15px; border: 1px solid #EFEDF0; border-radius: 10px; cursor: pointer; margin-bottom: 10px; background: #fff; transition: border-color 0.15s, background 0.15s; }
+.wc-opt:last-child { margin-bottom: 0; }
+.wc-opt--on { border-color: #68408D; background: #FAF8FC; }
+.wc-opt input { margin-top: 2px; accent-color: #68408D; flex-shrink: 0; }
+.wc-opt__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.wc-opt__label { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 600; color: #040205; }
+.wc-opt__sub { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; color: #71717A; }
+
+/* Photos */
+.wc-photos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.wc-photo { position: relative; height: 110px; border-radius: 10px; overflow: hidden; border: 1px solid #BBF7D0; background: #F0FDF4; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
+.wc-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.wc-photo__rm { position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; border-radius: 50%; background: rgba(4,2,5,0.7); color: #fff; border: none; cursor: pointer; font-size: 13px; line-height: 1; display: flex; align-items: center; justify-content: center; z-index: 2; }
+.wc-photo__added { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 11px; font-weight: 600; color: #16A34A; }
+.wc-photo--add { border: 1.5px dashed #D9D4DD; background: #FCFBFD; cursor: pointer; color: #68408D; }
+.wc-photo--add:hover { border-color: #68408D; background: #FAF8FC; }
+.wc-photo__addicon { width: 32px; height: 32px; border-radius: 50%; background: #EBE3F2; display: flex; align-items: center; justify-content: center; }
+.wc-photo__addtext { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 11px; font-weight: 600; color: #68408D; }
+
+/* Textarea */
+.wc-textarea { width: 100%; box-sizing: border-box; min-height: 96px; border: 1px solid #EFEDF0; border-radius: 10px; padding: 12px 14px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; color: #040205; resize: vertical; outline: none; }
+.wc-textarea:focus { border-color: #68408D; }
+
+/* Summary */
+.wc-sumrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px dashed #EFEDF0; }
+.wc-sumrow:last-child { border-bottom: none; }
+.wc-sumrow__label { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; color: #71717A; }
+.wc-sumrow__value { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 600; color: #040205; text-align: right; }
+
+/* Policy note */
+.wc-policy { background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 10px; padding: 12px 16px; margin-bottom: 18px; }
+.wc-policy__title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 700; color: #92400E; margin: 0 0 4px; }
+.wc-policy__text { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; color: #78350F; margin: 0; line-height: 1.5; }
+
+/* Actions */
+.wc-actions { display: flex; align-items: center; gap: 12px; }
+.wc-submit { background: #68408D; color: #FEFCFF; border: none; border-radius: 8px; padding: 12px 26px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; }
+.wc-submit:hover:not(:disabled) { background: #56336F; }
+.wc-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+.wc-cancel { background: #FEFCFF; color: #040205; border: 1px solid #EFEDF0; border-radius: 8px; padding: 12px 22px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; }
+
+@media (max-width: 640px) {
+    .wc-coverage, .wc-photos { grid-template-columns: 1fr; }
+}

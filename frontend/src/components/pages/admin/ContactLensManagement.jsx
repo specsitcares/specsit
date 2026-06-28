@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import apiClient from '../../../services/api';
 import FormModal from './FormModal';
 import ContactLensPackageForm from './ContactLensPackageForm';
@@ -8,70 +8,92 @@ import {
 import '../../../styles/lens_management.css';
 import '../../../styles/contact_lens_management.css';
 
-const CL_TYPE_FIELDS = [{ name: 'label', label: 'Type Name' }];
+const POWER_GROUP = 'Contact Lens Power Type';
+const LENS_GROUP = 'Contact Lens Type';
+const DEFAULT_POWER_TYPES = ['Spherical', 'Toric', 'Multifocal'];
+const TYPE_FIELDS = [{ name: 'label', label: 'Name' }];
 
 const Toggle = ({ checked, onChange }) => (
-  <div
-    className={`lm-toggle ${checked ? 'on' : ''}`}
-    onClick={(e) => { e.stopPropagation(); e.preventDefault(); onChange(e); }}
-  >
+  <div className={`lm-toggle ${checked ? 'on' : ''}`} onClick={(e) => { e.stopPropagation(); e.preventDefault(); onChange(e); }}>
     <div className="lm-toggle-knob" />
   </div>
 );
-
 const PackageToggle = ({ checked, onChange }) => (
-  <div
-    className={`lm-pkg-toggle ${checked ? 'on' : ''}`}
-    onClick={(e) => { e.stopPropagation(); e.preventDefault(); onChange(e); }}
-  >
+  <div className={`lm-pkg-toggle ${checked ? 'on' : ''}`} onClick={(e) => { e.stopPropagation(); e.preventDefault(); onChange(e); }}>
     <div className="lm-pkg-toggle-knob" />
   </div>
 );
 
 const ContactLensManagement = () => {
-  const [clTypes,        setClTypes]        = useState([]);
-  const [selectedType,   setSelectedType]   = useState(null);
-  const [packages,       setPackages]       = useState([]);
-  const [selectedPkg,    setSelectedPkg]    = useState(null);
-  const [searchQuery,    setSearchQuery]    = useState('');
-  const [loading,        setLoading]        = useState(true);
-  const [error,          setError]          = useState(null);
-  const [brands,         setBrands]         = useState([]);
-  const [showAddType,    setShowAddType]    = useState(false);
+  const [powerTypes, setPowerTypes] = useState([]);
+  const [lensTypes, setLensTypes] = useState([]);   // each has .parent = power type id
+  const [packages, setPackages] = useState([]);
+  const [brands, setBrands] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const [selectedPowerType, setSelectedPowerType] = useState(null);
+  const [selectedLensType, setSelectedLensType] = useState(null);
+  const [selectedPkg, setSelectedPkg] = useState(null);
+
+  const [collapsed, setCollapsed] = useState({});       // powerTypeId -> collapsed
   const [brandCollapsed, setBrandCollapsed] = useState({});
-  const [isCreatingPkg,  setIsCreatingPkg]  = useState(false);
-  const [isEditingPkg,   setIsEditingPkg]   = useState(false);
+  const [showAddPower, setShowAddPower] = useState(false);
+  const [addLensFor, setAddLensFor] = useState(null);   // power type object when adding a lens type
+  const [isCreatingPkg, setIsCreatingPkg] = useState(false);
+  const [isEditingPkg, setIsEditingPkg] = useState(false);
+  const seededRef = useRef(false);
 
   const EMPTY_PKG_FORM = {
-    package_name: '', description: '', is_active: true,
-    brand: '', selling_price: '',
-    min_power: '-6.00', max_power: '+4.00',
-    power_type: '', base_curve: [], replacement: '',
-    material: '', water_content: '', dkt: '',
-    colors: [], lenses_per_box: '',
+    package_name: '', description: '', is_active: true, brand: '', selling_price: '',
+    min_power: '-6.00', max_power: '+4.00', power_type: '', base_curve: [], replacement: '',
+    material: '', water_content: '', dkt: '', colors: [], lenses_per_box: '',
   };
   const [editFormData, setEditFormData] = useState({ ...EMPTY_PKG_FORM });
+
+  /* ── group helpers ── */
+  const findGroup = (res, name) => {
+    const items = res.data.results || res.data;
+    return Array.isArray(items) ? items.find(g => g.name === name) : (items?.name === name ? items : null);
+  };
+  const ensureGroup = async (name) => {
+    const r = await apiClient.get(`/core/metadata-groups/?name=${encodeURIComponent(name)}`);
+    let g = findGroup(r, name);
+    if (!g) g = (await apiClient.post('/core/metadata-groups/', { name })).data;
+    return g;
+  };
 
   /* ── fetch ── */
   const fetchData = async () => {
     try {
-      const [groupsRes, pkgsRes, brandsRes] = await Promise.all([
-        apiClient.get('/core/metadata-groups/?name=Contact Lens Type'),
+      const [ptRes, ltRes, pkgsRes, brandsRes] = await Promise.all([
+        apiClient.get(`/core/metadata-groups/?name=${encodeURIComponent(POWER_GROUP)}`),
+        apiClient.get(`/core/metadata-groups/?name=${encodeURIComponent(LENS_GROUP)}`),
         apiClient.get('/catalog/contact-lenses/?page_size=100&admin=true'),
         apiClient.get('/catalog/brands/?brand_type=Lens'),
       ]);
 
-      const items = groupsRes.data.results || groupsRes.data;
-      const clGroup = Array.isArray(items)
-        ? items.find(g => g.name === 'Contact Lens Type')
-        : (items.name === 'Contact Lens Type' ? items : null);
-      if (clGroup) {
-        setClTypes(clGroup.items || []);
-        if (!selectedType && clGroup.items?.length > 0) setSelectedType(clGroup.items[0]);
+      const ptGroup = findGroup(ptRes, POWER_GROUP);
+      let pts = ptGroup?.items || [];
+
+      // Seed the default power types once if none exist yet.
+      if (pts.length === 0 && !seededRef.current) {
+        seededRef.current = true;
+        const g = ptGroup || await ensureGroup(POWER_GROUP);
+        for (const label of DEFAULT_POWER_TYPES) {
+          await apiClient.post('/core/metadata-items/', { group: g.id, label, value: label.toLowerCase(), is_active: true });
+        }
+        return fetchData();
       }
 
+      const lts = findGroup(ltRes, LENS_GROUP)?.items || [];
+      setPowerTypes(pts);
+      setLensTypes(lts);
       setPackages(pkgsRes.data.results || pkgsRes.data || []);
       setBrands(brandsRes.data.results || brandsRes.data || []);
+
+      if (!selectedPowerType && pts.length) setSelectedPowerType(pts[0]);
       setLoading(false);
     } catch (err) {
       console.error(err);
@@ -82,123 +104,95 @@ const ContactLensManagement = () => {
 
   useEffect(() => { fetchData(); }, []);
 
-  useEffect(() => {
-    if (!selectedPkg) return;
-    setEditFormData({
-      package_name:  selectedPkg.package_name || selectedPkg.name || '',
-      description:   selectedPkg.description || '',
-      is_active:     selectedPkg.is_active,
-      brand:         selectedPkg.brand || '',
-      selling_price: selectedPkg.package_selling_price || selectedPkg.price || '',
-      min_power:     selectedPkg.min_power ?? '-6.00',
-      max_power:     selectedPkg.max_power ?? '+4.00',
-      power_type:    selectedPkg.power_type || '',
-      base_curve:    selectedPkg.base_curve || [],
-      replacement:   selectedPkg.replacement || '',
-      material:      selectedPkg.material || '',
-      water_content: selectedPkg.water_content || '',
-      dkt:           selectedPkg.dkt || '',
-      colors:        selectedPkg.colors || [],
-      lenses_per_box: selectedPkg.lenses_per_box ?? '',
-    });
-  }, [selectedPkg]);
+  /* ── derived ── */
+  const lensTypesFor = (pt) => lensTypes.filter(lt => String(lt.parent) === String(pt.id));
+  const pkgCountForLens = (lt) => packages.filter(p => String(p.type) === String(lt.id)).length;
 
-  /* ── handlers ── */
-  const handleFieldChange = (name, value) =>
-    setEditFormData(prev => ({ ...prev, [name]: value }));
+  const currentPkgs = packages.filter(p => selectedLensType && String(p.type) === String(selectedLensType.id));
+  const groupedByBrand = currentPkgs.reduce((acc, pkg) => {
+    const key = pkg.brand ? String(pkg.brand) : '__none__';
+    (acc[key] = acc[key] || []).push(pkg);
+    return acc;
+  }, {});
+  const orderedBrandKeys = [
+    ...brands.filter(b => groupedByBrand[String(b.id)]).map(b => String(b.id)),
+    ...(groupedByBrand['__none__'] ? ['__none__'] : []),
+  ];
 
-  const handleClosePkgForm = () => {
-    setIsCreatingPkg(false);
-    setIsEditingPkg(false);
-    setEditFormData({ ...EMPTY_PKG_FORM });
-  };
+  const visiblePowerTypes = powerTypes.filter(pt =>
+    !searchQuery ||
+    pt.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    lensTypesFor(pt).some(lt => lt.label.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  /* ── package form ── */
+  const handleFieldChange = (name, value) => setEditFormData(prev => ({ ...prev, [name]: value }));
+  const handleClosePkgForm = () => { setIsCreatingPkg(false); setIsEditingPkg(false); setEditFormData({ ...EMPTY_PKG_FORM }); };
+
+  const fillForm = (pkg) => ({
+    package_name: pkg.package_name || pkg.name || '',
+    description: pkg.description || '',
+    is_active: pkg.is_active,
+    brand: pkg.brand || '',
+    selling_price: pkg.package_selling_price || pkg.price || '',
+    min_power: pkg.min_power ?? '-6.00',
+    max_power: pkg.max_power ?? '+4.00',
+    power_type: pkg.power_type || '',
+    base_curve: pkg.base_curve || [],
+    replacement: pkg.replacement || '',
+    material: pkg.material || '',
+    water_content: pkg.water_content || '',
+    dkt: pkg.dkt || '',
+    colors: pkg.colors || [],
+    lenses_per_box: pkg.lenses_per_box ?? '',
+  });
 
   const openEditForm = (pkg) => {
     setSelectedPkg(pkg);
-    setIsEditingPkg(true);
-    setIsCreatingPkg(false);
-    const t = clTypes.find(t => String(t.id) === String(pkg.type));
-    if (t) setSelectedType(t);
-    setEditFormData({
-      package_name:  pkg.package_name || pkg.name || '',
-      description:   pkg.description || '',
-      is_active:     pkg.is_active,
-      brand:         pkg.brand || '',
-      selling_price: pkg.package_selling_price || pkg.price || '',
-      min_power:     pkg.min_power ?? '-6.00',
-      max_power:     pkg.max_power ?? '+4.00',
-      power_type:    pkg.power_type || '',
-      base_curve:    pkg.base_curve || [],
-      replacement:   pkg.replacement || '',
-      material:      pkg.material || '',
-      water_content: pkg.water_content || '',
-      dkt:           pkg.dkt || '',
-      colors:        pkg.colors || [],
-      lenses_per_box: pkg.lenses_per_box ?? '',
-    });
+    setIsEditingPkg(true); setIsCreatingPkg(false);
+    setEditFormData(fillForm(pkg));
   };
 
   const handleSave = async () => {
+    if (!selectedLensType) { setError('Select a lens type first.'); return; }
     const payload = {
-      type:                  selectedType?.id,
-      price:                 editFormData.selling_price,
-      is_active:             editFormData.is_active,
-      package_name:          editFormData.package_name,
-      description:           editFormData.description || '',
-      brand:                 editFormData.brand ? Number(editFormData.brand) : null,
+      type: selectedLensType.id,
+      price: editFormData.selling_price,
+      is_active: editFormData.is_active,
+      package_name: editFormData.package_name,
+      description: editFormData.description || '',
+      brand: editFormData.brand ? Number(editFormData.brand) : null,
       package_selling_price: editFormData.selling_price,
-      min_power:             editFormData.min_power,
-      max_power:             editFormData.max_power,
-      power_type:            editFormData.power_type || null,
-      base_curve:            editFormData.base_curve || [],
-      replacement:           editFormData.replacement || null,
-      material:              editFormData.material || null,
-      water_content:         editFormData.water_content || null,
-      dkt:                   editFormData.dkt || null,
-      colors:                editFormData.colors || [],
-      lenses_per_box:        editFormData.lenses_per_box ? Number(editFormData.lenses_per_box) : null,
+      min_power: editFormData.min_power,
+      max_power: editFormData.max_power,
+      power_type: selectedPowerType?.label || editFormData.power_type || null,
+      base_curve: editFormData.base_curve || [],
+      replacement: editFormData.replacement || null,
+      material: editFormData.material || null,
+      water_content: editFormData.water_content || null,
+      dkt: editFormData.dkt || null,
+      colors: editFormData.colors || [],
+      lenses_per_box: editFormData.lenses_per_box ? Number(editFormData.lenses_per_box) : null,
     };
     try {
-      if (isCreatingPkg) {
-        await apiClient.post('/catalog/contact-lenses/', payload);
-        setIsCreatingPkg(false);
-      } else {
-        await apiClient.put(`/catalog/contact-lenses/${selectedPkg.id}/`, { ...selectedPkg, ...payload });
-      }
-      setEditFormData({ ...EMPTY_PKG_FORM });
+      if (isCreatingPkg) await apiClient.post('/catalog/contact-lenses/', payload);
+      else await apiClient.put(`/catalog/contact-lenses/${selectedPkg.id}/`, { ...selectedPkg, ...payload });
+      handleClosePkgForm();
       await fetchData();
-    } catch (err) {
-      console.error(err);
-      setError('Failed to save package.');
-    }
+    } catch (err) { console.error(err); setError('Failed to save package.'); }
   };
 
   const handleDuplicate = async (e, pkg) => {
     e.stopPropagation();
     try {
       await apiClient.post('/catalog/contact-lenses/', {
-        type:                  pkg.type,
-        price:                 pkg.package_selling_price || pkg.price,
-        is_active:             false,
-        package_name:          `${pkg.package_name || pkg.name} (Copy)`,
-        description:           pkg.description || '',
-        brand:                 pkg.brand || null,
+        ...fillForm(pkg), type: pkg.type, is_active: false,
+        package_name: `${pkg.package_name || pkg.name} (Copy)`,
         package_selling_price: pkg.package_selling_price || pkg.price || 0,
-        min_power:             pkg.min_power ?? '-6.0',
-        max_power:             pkg.max_power ?? '+6.0',
-        power_type:            pkg.power_type || null,
-        base_curve:            pkg.base_curve || [],
-        replacement:           pkg.replacement || null,
-        material:              pkg.material || null,
-        water_content:         pkg.water_content || null,
-        dkt:                   pkg.dkt || null,
-        colors:                pkg.colors || [],
-        lenses_per_box:        pkg.lenses_per_box || null,
+        power_type: pkg.power_type || null,
       });
       await fetchData();
-    } catch (err) {
-      alert('Failed to duplicate package.');
-    }
+    } catch { setError('Failed to duplicate package.'); }
   };
 
   const handleDeletePkg = async (e, pkg) => {
@@ -208,295 +202,214 @@ const ContactLensManagement = () => {
       await apiClient.delete(`/catalog/contact-lenses/${pkg.id}/`);
       if (selectedPkg?.id === pkg.id) setSelectedPkg(null);
       await fetchData();
-    } catch (err) { setError('Failed to delete package.'); }
+    } catch { setError('Failed to delete package.'); }
   };
 
-  const handleDeleteType = async (e, type) => {
-    e.stopPropagation();
-    if (!window.confirm(`Delete type "${type.label}"? This cannot be undone.`)) return;
-    try {
-      await apiClient.delete(`/core/metadata-items/${type.id}/`);
-      if (selectedType?.id === type.id) setSelectedType(null);
-      await fetchData();
-    } catch (err) { setError('Failed to delete type.'); }
-  };
-
-  const handleStatusToggle = async (e, target, id, currentStatus) => {
-    e.stopPropagation();
-    const newStatus = !currentStatus;
-    if (target === 'type') {
-      setClTypes(prev => prev.map(t => String(t.id) === String(id) ? { ...t, is_active: newStatus } : t));
-    } else {
-      setPackages(prev => prev.map(p => String(p.id) === String(id) ? { ...p, is_active: newStatus } : p));
-    }
-    try {
-      const url = target === 'type'
-        ? `/core/metadata-items/${id}/`
-        : `/catalog/contact-lenses/${id}/`;
-      await apiClient.patch(url, { is_active: newStatus });
-      fetchData();
-    } catch (err) {
-      if (target === 'type') {
-        setClTypes(prev => prev.map(t => String(t.id) === String(id) ? { ...t, is_active: currentStatus } : t));
-      } else {
-        setPackages(prev => prev.map(p => String(p.id) === String(id) ? { ...p, is_active: currentStatus } : p));
-      }
-      setError('Failed to update status.');
-    }
-  };
-
-  const handleAddType = async (formData) => {
-    let groupsRes = await apiClient.get('/core/metadata-groups/?name=Contact Lens Type');
-    let items = groupsRes.data.results || groupsRes.data;
-    let clGroup = Array.isArray(items)
-      ? items.find(g => g.name.toLowerCase() === 'contact lens type')
-      : (items.name?.toLowerCase() === 'contact lens type' ? items : null);
-    if (!clGroup) {
-      const r = await apiClient.post('/core/metadata-groups/', { name: 'Contact Lens Type' });
-      clGroup = r.data;
-    }
+  /* ── power type / lens type CRUD ── */
+  const handleAddPower = async (formData) => {
+    const g = await ensureGroup(POWER_GROUP);
     const res = await apiClient.post('/core/metadata-items/', {
-      group: clGroup.id,
-      label: formData.label,
-      value: formData.label.toLowerCase().replace(/\s+/g, '_'),
-      is_active: true,
+      group: g.id, label: formData.label, value: formData.label.toLowerCase().replace(/\s+/g, '_'), is_active: true,
     });
     await fetchData();
-    setSelectedType(res.data);
+    setSelectedPowerType(res.data);
   };
 
-  /* ── derived ── */
-  const filteredTypes = clTypes.filter(t =>
-    t.label.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const handleAddLens = async (formData) => {
+    const pt = addLensFor;
+    const g = await ensureGroup(LENS_GROUP);
+    const res = await apiClient.post('/core/metadata-items/', {
+      group: g.id, label: formData.label, value: formData.label.toLowerCase().replace(/\s+/g, '_'),
+      is_active: true, parent: pt.id,
+    });
+    await fetchData();
+    setSelectedPowerType(pt);
+    setSelectedLensType(res.data);
+  };
 
-  const currentTypePkgs = packages.filter(p =>
-    selectedType && String(p.type) === String(selectedType.id)
-  );
+  const handleDeletePower = async (e, pt) => {
+    e.stopPropagation();
+    if (!window.confirm(`Delete power type "${pt.label}" and all its lens types? This cannot be undone.`)) return;
+    try {
+      await apiClient.delete(`/core/metadata-items/${pt.id}/`);
+      if (selectedPowerType?.id === pt.id) { setSelectedPowerType(null); setSelectedLensType(null); }
+      await fetchData();
+    } catch { setError('Failed to delete power type.'); }
+  };
 
-  const groupedByBrand = currentTypePkgs.reduce((acc, pkg) => {
-    const key = pkg.brand ? String(pkg.brand) : '__none__';
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(pkg);
-    return acc;
-  }, {});
+  const handleDeleteLens = async (e, lt) => {
+    e.stopPropagation();
+    if (!window.confirm(`Delete lens type "${lt.label}"? This cannot be undone.`)) return;
+    try {
+      await apiClient.delete(`/core/metadata-items/${lt.id}/`);
+      if (selectedLensType?.id === lt.id) setSelectedLensType(null);
+      await fetchData();
+    } catch { setError('Failed to delete lens type.'); }
+  };
 
-  const orderedBrandKeys = [
-    ...brands.filter(b => groupedByBrand[String(b.id)]).map(b => String(b.id)),
-    ...(groupedByBrand['__none__'] ? ['__none__'] : []),
-  ];
+  const handleStatusToggle = async (e, kind, id, current) => {
+    e.stopPropagation();
+    const newVal = !current;
+    const url = kind === 'pkg' ? `/catalog/contact-lenses/${id}/` : `/core/metadata-items/${id}/`;
+    try { await apiClient.patch(url, { is_active: newVal }); await fetchData(); }
+    catch { setError('Failed to update status.'); }
+  };
 
-  if (loading && !clTypes.length) {
+  if (loading && !powerTypes.length) {
     return <div className="lm-loading"><div className="lm-spinner" /></div>;
   }
 
   /* ══════════════ RENDER ══════════════ */
   return (
     <div className="lm-screen cl-screen">
-
-      {/* Header */}
       <div className="lm-header">
         <div>
           <h1 className="lm-page-title">Contact Lens Catalog</h1>
-          <p className="lm-page-sub">Manage contact lens types, brands &amp; prescriptions.</p>
+          <p className="lm-page-sub">Power types &rarr; lens types &rarr; packages, grouped by brand.</p>
         </div>
-        <button className="cl-add-type-btn" onClick={() => setShowAddType(true)}>
-          <Plus size={15} /> Add Contact Lens type
+        <button className="cl-add-type-btn" onClick={() => setShowAddPower(true)}>
+          <Plus size={15} /> Add Power Type
         </button>
       </div>
 
-      {/* Two-column layout */}
       <div className="lm-grid">
-
-        {/* ── Left: Flat type list ── */}
+        {/* ── Left: Power types → Lens types ── */}
         <div className="lm-left-panel">
           <div className="lm-left-header">
-            <span className="lm-left-title">Contact Lens Types ({filteredTypes.length})</span>
+            <span className="lm-left-title">Lens Types</span>
           </div>
-
           <div className="lm-search-wrap">
             <Search size={13} className="lm-search-icon" />
-            <input
-              className="lm-search-input"
-              placeholder="Search Contact lens types..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-            />
+            <input className="lm-search-input" placeholder="Search power / lens types..."
+              value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
           </div>
 
           <div className="lm-types-scroll">
-            <div className="cl-type-list">
-              {filteredTypes.map(type => {
-                const pkgCount = packages.filter(p => String(p.type) === String(type.id)).length;
-                const isActive = selectedType?.id === type.id;
-                return (
-                  <div
-                    key={type.id}
-                    className={`lm-type-card ${isActive ? 'selected' : ''}`}
-                    onClick={() => setSelectedType(type)}
-                  >
-                    <div>
-                      <div className="lm-type-card-top">
-                        <span className="lm-type-name">{type.label}</span>
-                        <div className="lm-type-card-actions">
-                          <button
-                            type="button"
-                            className="lm-type-delete-btn"
-                            title="Delete"
-                            onClick={(e) => handleDeleteType(e, type)}
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                          <Toggle
-                            checked={type.is_active}
-                            onChange={(e) => handleStatusToggle(e, 'type', type.id, type.is_active)}
-                          />
-                        </div>
-                      </div>
-                      <span className="lm-type-desc">{type.description || type.label}</span>
+            {visiblePowerTypes.map(pt => {
+              const types = lensTypesFor(pt);
+              const isCollapsed = !!collapsed[pt.id];
+              const count = String(types.length).padStart(2, '0');
+              return (
+                <div key={pt.id} className="lm-cat-section">
+                  <div className="lm-cat-header" onClick={() => setCollapsed(prev => ({ ...prev, [pt.id]: !prev[pt.id] }))}>
+                    <div className="lm-cat-header-left">
+                      <span className="lm-cat-badge">{count}</span>
+                      <span className="lm-cat-name">{pt.label}</span>
                     </div>
-                    <span className="lm-type-count">{pkgCount} Package{pkgCount !== 1 ? 's' : ''}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <button type="button" className="lm-type-delete-btn" title="Delete power type" onClick={(e) => handleDeletePower(e, pt)}>
+                        <Trash2 size={13} />
+                      </button>
+                      <Toggle checked={pt.is_active} onChange={(e) => handleStatusToggle(e, 'power', pt.id, pt.is_active)} />
+                      <ChevronDown size={18} className={`lm-cat-caret${isCollapsed ? ' collapsed' : ''}`} />
+                    </div>
                   </div>
-                );
-              })}
 
-              {filteredTypes.length === 0 && (
-                <div className="lm-empty-state" style={{ padding: '24px 16px' }}>
-                  No contact lens types found.
+                  {!isCollapsed && (
+                    <div className="lm-cat-types">
+                      {types.map(lt => {
+                        const isActive = selectedLensType?.id === lt.id && selectedPowerType?.id === pt.id;
+                        return (
+                          <div key={lt.id} className={`lm-type-card ${isActive ? 'selected' : ''}`}
+                            onClick={() => { setSelectedPowerType(pt); setSelectedLensType(lt); }}>
+                            <div>
+                              <div className="lm-type-card-top">
+                                <span className="lm-type-name">{lt.label}</span>
+                                <div className="lm-type-card-actions">
+                                  <button type="button" className="lm-type-delete-btn" title="Delete" onClick={(e) => handleDeleteLens(e, lt)}>
+                                    <Trash2 size={13} />
+                                  </button>
+                                  <Toggle checked={lt.is_active} onChange={(e) => handleStatusToggle(e, 'lens', lt.id, lt.is_active)} />
+                                </div>
+                              </div>
+                              <span className="lm-type-desc">{lt.description || `${pt.label} contact lenses`}</span>
+                            </div>
+                            <span className="lm-type-count">{pkgCountForLens(lt)} Package{pkgCountForLens(lt) !== 1 ? 's' : ''}</span>
+                          </div>
+                        );
+                      })}
+                      <button type="button" className="lm-cat-add" onClick={() => setAddLensFor(pt)}>
+                        <Plus size={18} />
+                        <span className="lm-cat-add-text">Add {pt.label} lens type</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              );
+            })}
+            {visiblePowerTypes.length === 0 && (
+              <div className="lm-empty-state" style={{ padding: '24px 16px' }}>No power types found.</div>
+            )}
           </div>
         </div>
 
-        {/* ── Right: Packages ── */}
+        {/* ── Right: Packages grouped by brand ── */}
         <div className="lm-right-panel">
           <div className="lm-right-header">
             <span className="lm-right-title">
-              Package for &ldquo;{selectedType?.label || '—'}&rdquo;
+              {selectedLensType ? `${selectedPowerType?.label || ''} · ${selectedLensType.label} packages` : 'Select a lens type'}
             </span>
-            <button
-              className="lm-add-pkg-btn"
-              disabled={!selectedType}
-              onClick={() => {
-                setIsEditingPkg(false);
-                setIsCreatingPkg(true);
-                setEditFormData({ ...EMPTY_PKG_FORM });
-              }}
-            >
+            <button className="lm-add-pkg-btn" disabled={!selectedLensType}
+              onClick={() => { setIsEditingPkg(false); setIsCreatingPkg(true); setEditFormData({ ...EMPTY_PKG_FORM }); }}>
               <Plus size={13} /> Add Package
             </button>
           </div>
 
           <div className="lm-pkg-list">
-            {currentTypePkgs.length === 0 ? (
+            {!selectedLensType ? (
               <div className="lm-empty-state">
                 <Layers size={40} style={{ color: '#D0D5DD', marginBottom: 12 }} />
-                <p style={{ color: '#667085', margin: 0, fontSize: 13 }}>
-                  No packages yet for this contact lens type.
-                </p>
-                <button
-                  className="lm-add-pkg-btn"
-                  style={{ marginTop: 16 }}
-                  disabled={!selectedType}
-                  onClick={() => {
-                    setIsEditingPkg(false);
-                    setIsCreatingPkg(true);
-                    setEditFormData({ ...EMPTY_PKG_FORM });
-                  }}
-                >
+                <p style={{ color: '#667085', margin: 0, fontSize: 13 }}>Pick a power type and lens type on the left to manage its packages.</p>
+              </div>
+            ) : currentPkgs.length === 0 ? (
+              <div className="lm-empty-state">
+                <Layers size={40} style={{ color: '#D0D5DD', marginBottom: 12 }} />
+                <p style={{ color: '#667085', margin: 0, fontSize: 13 }}>No packages yet for this lens type.</p>
+                <button className="lm-add-pkg-btn" style={{ marginTop: 16 }}
+                  onClick={() => { setIsEditingPkg(false); setIsCreatingPkg(true); setEditFormData({ ...EMPTY_PKG_FORM }); }}>
                   <Plus size={13} /> Create First Package
                 </button>
               </div>
             ) : (
               orderedBrandKeys.map(brandKey => {
-                const brandPkgs  = groupedByBrand[brandKey];
-                const brand      = brandKey !== '__none__' ? brands.find(b => String(b.id) === brandKey) : null;
-                const count      = String(brandPkgs.length).padStart(2, '0');
-                const collapsed  = !!brandCollapsed[brandKey];
-
+                const brandPkgs = groupedByBrand[brandKey];
+                const brand = brandKey !== '__none__' ? brands.find(b => String(b.id) === brandKey) : null;
+                const count = String(brandPkgs.length).padStart(2, '0');
+                const bCollapsed = !!brandCollapsed[brandKey];
                 return (
                   <div key={brandKey} className="lm-brand-section">
-                    <div
-                      className="lm-brand-header"
-                      onClick={() => setBrandCollapsed(prev => ({ ...prev, [brandKey]: !prev[brandKey] }))}
-                    >
+                    <div className="lm-brand-header" onClick={() => setBrandCollapsed(prev => ({ ...prev, [brandKey]: !prev[brandKey] }))}>
                       <div className="lm-brand-header-left">
                         <span className="lm-cat-badge">{count}</span>
                         <span className="lm-brand-hdr-name">{brand?.name || 'Other'}</span>
                       </div>
-                      <ChevronDown size={20} className={`lm-cat-caret${collapsed ? ' collapsed' : ''}`} />
+                      <ChevronDown size={20} className={`lm-cat-caret${bCollapsed ? ' collapsed' : ''}`} />
                     </div>
-
-                    {!collapsed && (
+                    {!bCollapsed && (
                       <div className="lm-brand-pkgs">
                         {brandPkgs.map(pkg => {
                           const isSelected = selectedPkg?.id === pkg.id;
-                          const minPow     = Number(pkg.min_power ?? -6).toFixed(2);
-                          const maxPow     = Number(pkg.max_power  ??  6).toFixed(2);
-                          const feats      = pkg.features || [];
+                          const minPow = Number(pkg.min_power ?? -6).toFixed(2);
+                          const maxPow = Number(pkg.max_power ?? 6).toFixed(2);
                           return (
-                            <div
-                              key={pkg.id}
-                              className={`lm-pkg-card ${isSelected ? 'selected' : ''}`}
-                              onClick={() => setSelectedPkg(pkg)}
-                            >
+                            <div key={pkg.id} className={`lm-pkg-card ${isSelected ? 'selected' : ''}`} onClick={() => setSelectedPkg(pkg)}>
                               <div className="lm-pkg-top">
                                 <span className="lm-pkg-name">{pkg.package_name || pkg.name}</span>
                                 <div className="lm-pkg-actions">
-                                  <button
-                                    type="button"
-                                    className="lm-pkg-icon-btn"
-                                    title="Edit"
-                                    onClick={(e) => { e.stopPropagation(); openEditForm(pkg); }}
-                                  >
-                                    <Edit2 size={16} />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="lm-pkg-icon-btn"
-                                    title="Duplicate"
-                                    onClick={(e) => handleDuplicate(e, pkg)}
-                                  >
-                                    <Copy size={16} />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="lm-pkg-icon-btn lm-pkg-delete-btn"
-                                    title="Delete"
-                                    onClick={(e) => handleDeletePkg(e, pkg)}
-                                  >
-                                    <Trash2 size={16} />
-                                  </button>
-                                  <PackageToggle
-                                    checked={pkg.is_active}
-                                    onChange={(e) => handleStatusToggle(e, 'pkg', pkg.id, pkg.is_active)}
-                                  />
+                                  <button type="button" className="lm-pkg-icon-btn" title="Edit" onClick={(e) => { e.stopPropagation(); openEditForm(pkg); }}><Edit2 size={16} /></button>
+                                  <button type="button" className="lm-pkg-icon-btn" title="Duplicate" onClick={(e) => handleDuplicate(e, pkg)}><Copy size={16} /></button>
+                                  <button type="button" className="lm-pkg-icon-btn lm-pkg-delete-btn" title="Delete" onClick={(e) => handleDeletePkg(e, pkg)}><Trash2 size={16} /></button>
+                                  <PackageToggle checked={pkg.is_active} onChange={(e) => handleStatusToggle(e, 'pkg', pkg.id, pkg.is_active)} />
                                 </div>
                               </div>
-
-                              {feats.length > 0 && (
-                                <div className="lm-pkg-tags">
-                                  {feats.map((f, i) => (
-                                    <span key={i} className="lm-pkg-tag">{f}</span>
-                                  ))}
-                                </div>
-                              )}
-
                               <div className="lm-pkg-footer">
                                 <div className="lm-pkg-range">
                                   <ArrowLeftRight size={20} className="lm-pkg-range-icon" />
-                                  <span className="lm-pkg-range-text">
-                                    Range: {minPow} to +{maxPow}
-                                  </span>
+                                  <span className="lm-pkg-range-text">Range: {minPow} to +{maxPow}</span>
                                 </div>
                                 <div className="lm-pkg-price-wrap">
-                                  <span className="lm-pkg-price">
-                                    ₹{Number(pkg.package_selling_price || pkg.price || 0).toLocaleString('en-IN')}
-                                  </span>
-                                  {pkg.description && (
-                                    <span className="lm-pkg-price-sub">{pkg.description}</span>
-                                  )}
+                                  <span className="lm-pkg-price">₹{Number(pkg.package_selling_price || pkg.price || 0).toLocaleString('en-IN')}</span>
+                                  {pkg.description && <span className="lm-pkg-price-sub">{pkg.description}</span>}
                                 </div>
                               </div>
                             </div>
@@ -512,14 +425,13 @@ const ContactLensManagement = () => {
         </div>
       </div>
 
-      {/* Add Type modal */}
-      <FormModal
-        isOpen={showAddType}
-        onClose={() => setShowAddType(false)}
-        onSubmit={handleAddType}
-        title="Contact Lens Type"
-        fields={CL_TYPE_FIELDS}
-      />
+      {/* Add Power Type modal */}
+      <FormModal isOpen={showAddPower} onClose={() => setShowAddPower(false)} onSubmit={handleAddPower}
+        title="Power Type" fields={TYPE_FIELDS} />
+
+      {/* Add Lens Type modal */}
+      <FormModal isOpen={!!addLensFor} onClose={() => setAddLensFor(null)} onSubmit={handleAddLens}
+        title={addLensFor ? `${addLensFor.label} Lens Type` : 'Lens Type'} fields={TYPE_FIELDS} />
 
       {/* Create / Edit Package offcanvas */}
       {(isCreatingPkg || isEditingPkg) && (
@@ -539,8 +451,7 @@ const ContactLensManagement = () => {
 
       {error && (
         <div className="lm-toast">
-          <AlertCircle size={16} />
-          <span>{error}</span>
+          <AlertCircle size={16} /><span>{error}</span>
           <button onClick={() => setError(null)}><X size={14} /></button>
         </div>
       )}

@@ -104,7 +104,14 @@ const ReturnExchangePage = () => {
   const addr = order.shipping_address_detail || {};
   const orderLabel = `#LO-${String(order.id).padStart(7, '0')}`;
   const isExchange = type === 'replacement';
-  const isDelivered = order.order_status === 'delivered';
+  // order_status can lag behind actual delivery — trust the authoritative flag plus
+  // any other delivered signal (tracking / delivery_date / all items delivered).
+  const norm = (s) => (s || '').toLowerCase().replace(/\s+/g, '_');
+  const isDelivered = order.is_delivered
+    || norm(order.order_status) === 'delivered'
+    || norm(order.tracking?.current_status) === 'delivered'
+    || !!order.delivery_date
+    || ((order.items || []).length > 0 && (order.items || []).every(it => norm(it.status) === 'delivered'));
   const existing = (order.return_requests || [])[0];
 
   const productName = item.variant_name || 'Product';
