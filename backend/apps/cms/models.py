@@ -36,6 +36,29 @@ class SiteSettings(models.Model):
     def __str__(self):
         return 'Site Settings'
 
+class HomeSection(models.Model):
+    """A manageable homepage section (Hero Banner, Best Sellers, Footer, …).
+    Drives the admin Homepage Management grid and storefront visibility."""
+    STATUS_CHOICES = [
+        ('published', 'Published'),
+        ('draft', 'Draft'),
+        ('scheduled', 'Scheduled'),
+    ]
+    key = models.SlugField(max_length=60, unique=True)
+    title = models.CharField(max_length=120)
+    status = models.CharField(max_length=12, choices=STATUS_CHOICES, default='published')
+    is_published = models.BooleanField(default=True)
+    order = models.PositiveIntegerField(default=0)
+    image = models.ImageField(upload_to='cms/home_sections/', null=True, blank=True)
+    scheduled_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['order', 'id']
+
+    def __str__(self):
+        return f"{self.title} ({self.status})"
+
 class Announcement(models.Model):
     text = models.CharField(max_length=255, help_text="Text shown in the top announcement bar.")
     is_active = models.BooleanField(default=True)

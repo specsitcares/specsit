@@ -1,8 +1,8 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, serializers
+from rest_framework import status, serializers, viewsets
 from rest_framework.permissions import AllowAny, IsAdminUser
-from .models import Announcement, HeroSlide, EditorialSection, Benefit, HomeSectionTitle, SiteSettings
+from .models import Announcement, HeroSlide, EditorialSection, Benefit, HomeSectionTitle, SiteSettings, HomeSection
 
 class AnnouncementSerializer(serializers.ModelSerializer):
     class Meta:
@@ -45,6 +45,35 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = SiteSettings
         fields = ['store_name', 'meta_title_template', 'meta_description_template']
+
+class HomeSectionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = HomeSection
+        fields = ['id', 'key', 'title', 'status', 'is_published', 'order', 'image', 'scheduled_at', 'updated_at']
+        read_only_fields = ['key', 'updated_at']
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get('request')
+        if instance.image and request:
+            data['image'] = request.build_absolute_uri(instance.image.url)
+        return data
+
+class HomeSectionViewSet(viewsets.ModelViewSet):
+    """Homepage Management grid. Public reads see only published sections; admins
+    see all and can toggle/edit."""
+    serializer_class = HomeSectionSerializer
+
+    def get_queryset(self):
+        qs = HomeSection.objects.all()
+        if not (self.request.user and self.request.user.is_staff):
+            qs = qs.filter(is_published=True)
+        return qs
+
+    def get_permissions(self):
+        if self.action in ('list', 'retrieve'):
+            return [AllowAny()]
+        return [IsAdminUser()]
 
 class SiteSettingsView(APIView):
     permission_classes = [AllowAny]

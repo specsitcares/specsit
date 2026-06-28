@@ -131,10 +131,16 @@ const _ttlFor = (url = '') => {
 };
 const _keyFor = (url, config) => `${url}::${JSON.stringify(config?.params || {})}`;
 
+// Admin pages must never serve cached/deduped reads — they need live data.
+const _isAdminContext = () =>
+  typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
+
 const _origGet = apiClient.get.bind(apiClient);
 apiClient.get = (url, config = {}) => {
+  if (config.cache === false || _isAdminContext()) return _origGet(url, config);
+
   const key = _keyFor(url, config);
-  const ttl = config.cache === false ? 0 : _ttlFor(url);
+  const ttl = _ttlFor(url);
   const now = Date.now();
 
   if (ttl > 0) {
