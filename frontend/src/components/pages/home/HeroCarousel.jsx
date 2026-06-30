@@ -1,22 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-
-const slides = [
-  {
-    headline: 'Get 20% off when you buy frames and lenses together!',
-    sub: 'Any style. Any frame. Designed specifically for your unique aesthetic.',
-    ctaText: 'Shop Now',
-    ctaLink: '/products',
-    image: '',
-  },
-  {
-    headline: 'Discover eyewear that defines your personality.',
-    sub: 'Handpicked styles across 50+ premium brands, delivered in hours.',
-    ctaText: 'Explore Collection',
-    ctaLink: '/products',
-    image: '',
-  },
-];
+import { useHomeData } from '../../../context/HomeDataContext';
 
 const ChevronLeft = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -29,24 +13,37 @@ const ChevronRight = () => (
   </svg>
 );
 
-const HeroCarousel = ({ slidesData = slides }) => {
+const HeroCarousel = ({ slidesData = null }) => {
   const [current, setCurrent] = useState(0);
-  const count = slidesData.length;
+  const home = useHomeData();
+
+  const cmsSlides = (home?.hero_slides || []).slice(0, 3).map(s => ({
+    headline: s.title,
+    sub: s.subtitle,
+    ctaText: s.button1_enabled ? (s.button_text || 'Shop Now') : '',
+    ctaLink: s.use_custom ? (s.banner_link || '/products') : (s.button_link || '/products'),
+    image: s.use_custom ? s.custom_image : s.image,
+  })).filter(s => s.image || s.headline);
+
+  const data = (slidesData || cmsSlides).slice(0, 3);
+  const count = data.length;
 
   const go = useCallback((dir) => {
     setCurrent(p => (p + dir + count) % count);
   }, [count]);
 
   useEffect(() => {
+    if (count <= 1) return undefined;
     const t = setInterval(() => setCurrent(p => (p + 1) % count), 6000);
     return () => clearInterval(t);
   }, [count]);
 
-  const s = slidesData[current];
+  if (count === 0) return null;
+  const s = data[current % count] || data[0];
 
   return (
     <section className="hero-v2">
-      {slidesData.map((slide, i) => (
+      {data.map((slide, i) => (
         <div
           key={i}
           className={`hero-v2__bg${i === current ? ' is-active' : ''}`}
@@ -59,7 +56,7 @@ const HeroCarousel = ({ slidesData = slides }) => {
         <div className="hero-v2__text">
           <h1 className="hero-v2__heading">{s.headline}</h1>
           <p className="hero-v2__sub">{s.sub}</p>
-          <Link to={s.ctaLink} className="hero-v2__cta">{s.ctaText}</Link>
+          {s.ctaText && <Link to={s.ctaLink} className="hero-v2__cta">{s.ctaText}</Link>}
         </div>
       </div>
 
@@ -71,7 +68,7 @@ const HeroCarousel = ({ slidesData = slides }) => {
       </button>
 
       <div className="hero-v2__dots">
-        {slidesData.map((_, i) => (
+        {data.map((_, i) => (
           <button
             key={i}
             className={`hero-v2__dot${i === current ? ' active' : ''}`}

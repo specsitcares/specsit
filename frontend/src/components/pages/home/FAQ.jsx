@@ -1,26 +1,12 @@
 import React, { useState } from 'react';
+import { useHomeData } from '../../../context/HomeDataContext';
 
-const defaultFaqs = [
-  {
-    question: 'How long does express delivery take in Hyderabad?',
-    answer: 'We offer 1-2 hour express delivery across Hyderabad on all in-stock eyewear products. Standard delivery takes 2-3 business days for the rest of India.'
-  },
-  {
-    question: 'Do you offer a warranty on frames?',
-    answer: 'Yes, all our frames come with a 1-year manufacturer warranty covering manufacturing defects. Premium frames include an extended 2-year warranty.'
-  },
-  {
-    question: 'Can I try frames before purchasing?',
-    answer: 'Absolutely! Visit our flagship atelier in Madhapur, Hyderabad to try any frame from our collection. We also offer a virtual try-on feature on our website.'
-  },
-  {
-    question: 'What is your return and exchange policy?',
-    answer: 'We offer a 14-day hassle-free return and exchange policy on all unused products in original packaging. Prescription lenses are non-returnable once crafted.'
-  },
-];
-
-const FAQ = ({ faqs = defaultFaqs }) => {
+const FAQ = ({ faqs: faqsProp = null }) => {
   const [openIdx, setOpenIdx] = useState(-1);
+  const home = useHomeData();
+
+  const faqs = faqsProp || home?.faqs || [];
+  if (faqs.length === 0) return null;
 
   const toggle = (idx) => {
     setOpenIdx(openIdx === idx ? -1 : idx);

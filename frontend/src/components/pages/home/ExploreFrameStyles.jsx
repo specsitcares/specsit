@@ -1,16 +1,6 @@
 import React, { useRef } from 'react';
 import { Link } from 'react-router-dom';
-
-const defaultStyles = [
-  { name: 'Rectangle' },
-  { name: 'Square' },
-  { name: 'Round' },
-  { name: 'Oval' },
-  { name: 'Aviator' },
-  { name: 'Cat Eye' },
-  { name: 'Wayfarer' },
-  { name: 'Rimless' },
-];
+import { useHomeData } from '../../../context/HomeDataContext';
 
 const ImagePlaceholder = () => (
   <div className="frame-styles__shape-placeholder">
@@ -22,13 +12,16 @@ const ImagePlaceholder = () => (
   </div>
 );
 
-const ExploreFrameStyles = ({ styles = defaultStyles, data }) => {
+const ExploreFrameStyles = ({ styles = null, data }) => {
   const trackRef = useRef(null);
-  const title = data?.title || 'Explore Frame Styles';
+  const home = useHomeData();
+  const title = data?.title || home?.sections?.explore_frame_styles?.title || 'Explore Frame Styles';
+  const cms = (home?.explore_frame_styles || []).map(c => ({ name: c.name, image: c.image, link: c.link }));
 
-  const scrollBy = (dir) => {
-    if (trackRef.current) trackRef.current.scrollBy({ left: dir * 280, behavior: 'smooth' });
-  };
+  const items = styles || cms;
+  if (items.length === 0) return null;
+  // Duplicate once so the marquee loops seamlessly (-50% animation).
+  const loop = [...items, ...items];
 
   return (
     <section className="frame-styles hp-reveal" id="explore-frame-styles">
@@ -37,12 +30,11 @@ const ExploreFrameStyles = ({ styles = defaultStyles, data }) => {
       </div>
 
       <div className="frame-styles__carousel">
-        <button className="frame-styles__carousel-btn" onClick={() => scrollBy(-1)} aria-label="Previous style">‹</button>
         <div className="frame-styles__carousel-track" ref={trackRef}>
-          {styles.map((style, idx) => (
+          {loop.map((style, idx) => (
             <Link
               key={idx}
-              to={`/products?shape=${style.name.toLowerCase().replace(/\s+/g, '-')}`}
+              to={style.link || `/products?shape=${(style.name || '').toLowerCase().replace(/\s+/g, '-')}`}
               className="frame-styles__shape-card"
             >
               <div className="frame-styles__shape-img">
@@ -52,7 +44,6 @@ const ExploreFrameStyles = ({ styles = defaultStyles, data }) => {
             </Link>
           ))}
         </div>
-        <button className="frame-styles__carousel-btn" onClick={() => scrollBy(1)} aria-label="Next style">›</button>
       </div>
     </section>
   );

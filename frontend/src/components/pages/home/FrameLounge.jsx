@@ -1,8 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import eyeglassesImg from '../../../assets/frame-lounge/eyeglasses.png';
-import sunglassesImg from '../../../assets/frame-lounge/sunglasses.png';
-import readersImg from '../../../assets/frame-lounge/readers.png';
+import { useHomeData } from '../../../context/HomeDataContext';
 
 const GlassIcon = ({ type }) => {
   if (type === 'sunglasses') return (
@@ -51,30 +49,30 @@ const ArrowIcon = () => (
   </svg>
 );
 
-const CATEGORIES = [
-  { label: 'Eyeglass',   type: 'eyeglasses', link: '/products?category=eyeglasses',  icon: 'eyeglasses', image: eyeglassesImg },
-  { label: 'Sunglasses', type: 'sunglasses', link: '/products?category=sunglasses',  icon: 'sunglasses', image: sunglassesImg },
-  { label: 'Readers',    type: 'readers',    link: '/products?category=readers',     icon: 'readers',    image: readersImg },
-  { label: 'Clip Ons',   type: 'clipons',    link: '/products?category=clip-ons',    icon: 'clipons',    image: sunglassesImg },
-];
+const FrameLounge = () => {
+  const home = useHomeData();
+  const title = home?.sections?.frame_range_categories?.title || 'Frame lounge';
+  const data = (home?.frame_range_cards || []).map(c => ({ label: c.name, link: c.link || '/products', image: c.image, icon: null }));
+  if (data.length === 0) return null;
 
-const FrameLounge = () => (
-  <section className="frame-lounge" id="frame-lounge">
-    <h2 className="frame-lounge__title">Frame lounge</h2>
-    <div className="frame-lounge__grid">
-      {CATEGORIES.map(cat => (
-        <Link key={cat.label} to={cat.link} className="frame-lounge__card">
-          <span className="frame-lounge__card-label">{cat.label}</span>
-          <div className="frame-lounge__card-img">
-            {cat.image ? <img src={cat.image} alt={cat.label} /> : <GlassIcon type={cat.icon} />}
-          </div>
-          <div className="frame-lounge__card-arrow">
-            <ArrowIcon />
-          </div>
-        </Link>
-      ))}
-    </div>
-  </section>
-);
+  return (
+    <section className="frame-lounge" id="frame-lounge">
+      <h2 className="frame-lounge__title">{title}</h2>
+      <div className="frame-lounge__grid">
+        {data.map((cat, i) => (
+          <Link key={cat.label || i} to={cat.link} className="frame-lounge__card">
+            <span className="frame-lounge__card-label">{cat.label}</span>
+            <div className="frame-lounge__card-img">
+              {cat.image ? <img src={cat.image} alt={cat.label} /> : <GlassIcon type={cat.icon} />}
+            </div>
+            <div className="frame-lounge__card-arrow">
+              <ArrowIcon />
+            </div>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+};
 
 export default FrameLounge;

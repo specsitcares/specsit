@@ -51,6 +51,9 @@ class HomeSection(models.Model):
     order = models.PositiveIntegerField(default=0)
     image = models.ImageField(upload_to='cms/home_sections/', null=True, blank=True)
     scheduled_at = models.DateTimeField(null=True, blank=True)
+    # Optional list-section settings (used by Our Blog, etc.)
+    max_visible = models.PositiveIntegerField(null=True, blank=True)
+    sort = models.CharField(max_length=20, blank=True, default='')
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -58,6 +61,119 @@ class HomeSection(models.Model):
 
     def __str__(self):
         return f"{self.title} ({self.status})"
+
+class BrandLogo(models.Model):
+    """A logo shown in the homepage 'Brand Logos' strip."""
+    name = models.CharField(max_length=100)
+    logo = models.ImageField(upload_to='cms/brand_logos/', null=True, blank=True)
+    order = models.PositiveIntegerField(default=0)
+    is_published = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['order', 'id']
+
+    def __str__(self):
+        return self.name
+
+class FrameRangeCard(models.Model):
+    """A category card in the homepage 'Frame Lounge / Frame Range' section."""
+    name = models.CharField(max_length=100)
+    image = models.ImageField(upload_to='cms/frame_range/', null=True, blank=True)
+    link = models.CharField(max_length=255, blank=True, default='')
+    order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['order', 'id']
+
+    def __str__(self):
+        return self.name
+
+class SectionCard(models.Model):
+    """Generic homepage section card (Explore Frame Styles, Best Sellers, …).
+    `section` is the HomeSection key it belongs to."""
+    section = models.SlugField(max_length=60, db_index=True)
+    name = models.CharField(max_length=120)
+    image = models.ImageField(upload_to='cms/section_cards/', null=True, blank=True)
+    link = models.CharField(max_length=255, blank=True, default='')
+    order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['order', 'id']
+
+    def __str__(self):
+        return f"{self.section}: {self.name}"
+
+class PromoBanner(models.Model):
+    """A promotional banner for a homepage section (Built with Premium Intent,
+    Promo Banner 1/2). One record per `section`."""
+    ALIGN = [('left', 'Left'), ('center', 'Center'), ('right', 'Right')]
+    TEXT = [('light', 'Light'), ('dark', 'Dark')]
+    STATUS = [('published', 'Published'), ('draft', 'Draft')]
+    WIDTH = [('full', 'Full width'), ('three_quarter', 'Three-quarter'), ('half', 'Half width')]
+    HEIGHT = [('small', 'Small'), ('medium', 'Medium'), ('large', 'Large')]
+
+    section = models.SlugField(max_length=60, unique=True)
+    width = models.CharField(max_length=15, choices=WIDTH, default='full')
+    height = models.CharField(max_length=10, choices=HEIGHT, default='medium')
+    title = models.CharField(max_length=160, blank=True, default='')
+    subtitle = models.TextField(blank=True, default='')
+    alignment = models.CharField(max_length=10, choices=ALIGN, default='center')
+    primary_enabled = models.BooleanField(default=True)
+    primary_text = models.CharField(max_length=50, blank=True, default='Shop Now')
+    primary_link = models.CharField(max_length=255, blank=True, default='')
+    secondary_enabled = models.BooleanField(default=False)
+    secondary_text = models.CharField(max_length=50, blank=True, default='')
+    secondary_link = models.CharField(max_length=255, blank=True, default='')
+    bg_color = models.CharField(max_length=20, blank=True, default='#6B5CE7')
+    text_color = models.CharField(max_length=10, choices=TEXT, default='light')
+    background_image = models.ImageField(upload_to='cms/promo/', null=True, blank=True)
+    use_custom = models.BooleanField(default=False)
+    custom_image = models.ImageField(upload_to='cms/promo/custom/', null=True, blank=True)
+    banner_link = models.CharField(max_length=255, blank=True, default='')
+    seo_title = models.CharField(max_length=160, blank=True, default='')
+    seo_description = models.TextField(blank=True, default='')
+    status = models.CharField(max_length=12, choices=STATUS, default='published')
+    is_published = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"PromoBanner: {self.section}"
+
+class Blog(models.Model):
+    """A blog post for the homepage 'Our Blog' section + the blog listing."""
+    STATUS = [('published', 'Published'), ('draft', 'Draft')]
+    title = models.CharField(max_length=200)
+    slug = models.SlugField(max_length=220, blank=True)
+    thumbnail = models.ImageField(upload_to='cms/blogs/', null=True, blank=True)
+    category = models.CharField(max_length=80, blank=True, default='')
+    author = models.CharField(max_length=100, blank=True, default='')
+    excerpt = models.TextField(blank=True, default='')
+    content = models.TextField(blank=True, default='')
+    status = models.CharField(max_length=12, choices=STATUS, default='draft')
+    is_featured = models.BooleanField(default=False)
+    published_date = models.DateField(null=True, blank=True)
+    order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-published_date', '-created_at']
+
+    def __str__(self):
+        return self.title
+
+class Faq(models.Model):
+    """A homepage FAQ entry."""
+    question = models.CharField(max_length=300)
+    answer = models.TextField(blank=True, default='')
+    order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['order', 'id']
+
+    def __str__(self):
+        return self.question
 
 class Announcement(models.Model):
     text = models.CharField(max_length=255, help_text="Text shown in the top announcement bar.")
@@ -68,11 +184,30 @@ class Announcement(models.Model):
         return self.text
 
 class HeroSlide(models.Model):
+    ALIGN_CHOICES = [('left', 'Left'), ('center', 'Center'), ('right', 'Right')]
+    STATUS_CHOICES = [('published', 'Published'), ('draft', 'Draft')]
+
     title = models.CharField(max_length=100)
     subtitle = models.TextField(blank=True)
-    image = models.ImageField(upload_to='cms/hero/', help_text="Banner image for the hero section.")
-    button_text = models.CharField(max_length=50, default="Shop Now")
-    button_link = models.CharField(max_length=255, default="/products")
+    image = models.ImageField(upload_to='cms/hero/', null=True, blank=True, help_text="Banner image for the hero section.")
+    alignment = models.CharField(max_length=10, choices=ALIGN_CHOICES, default='left')
+    # Button 1
+    button1_enabled = models.BooleanField(default=True)
+    button_text = models.CharField(max_length=50, default="Shop Now", blank=True)
+    button_link = models.CharField(max_length=255, default="/products", blank=True)
+    # Button 2
+    button2_enabled = models.BooleanField(default=False)
+    button2_text = models.CharField(max_length=50, blank=True, default="")
+    button2_link = models.CharField(max_length=255, blank=True, default="")
+    # Custom (pre-designed) banner mode
+    use_custom = models.BooleanField(default=False)
+    custom_image = models.ImageField(upload_to='cms/hero/custom/', null=True, blank=True)
+    banner_link = models.CharField(max_length=255, blank=True, default="")
+    # SEO
+    seo_title = models.CharField(max_length=160, blank=True, default="")
+    seo_description = models.TextField(blank=True, default="")
+
+    status = models.CharField(max_length=12, choices=STATUS_CHOICES, default='published')
     is_active = models.BooleanField(default=True)
     order = models.PositiveIntegerField(default=0)
 

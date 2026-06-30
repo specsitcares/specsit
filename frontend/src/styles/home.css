@@ -382,6 +382,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  overflow: hidden;
 }
 .frame-styles__carousel-btn {
   flex-shrink: 0;
@@ -407,24 +408,29 @@
 
 .frame-styles__carousel-track {
   display: flex;
-  gap: 16px;
-  overflow-x: auto;
-  flex: 1;
-  scrollbar-width: none;
+  gap: 24px;
+  width: max-content;
   padding: 4px 2px;
+  animation: frame-styles-scroll 45s linear infinite;
 }
-.frame-styles__carousel-track::-webkit-scrollbar { display: none; }
+.frame-styles__carousel:hover .frame-styles__carousel-track {
+  animation-play-state: paused;
+}
+@keyframes frame-styles-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
 
 .frame-styles__shape-card {
   flex: 0 0 auto;
-  width: 150px;
+  width: 240px;
   border: 1px solid var(--sp-border);
   border-radius: var(--sp-radius-md);
-  padding: 14px 12px;
+  padding: 22px 18px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 16px;
   cursor: pointer;
   text-decoration: none;
   transition: all var(--sp-transition);
@@ -438,7 +444,7 @@
 
 .frame-styles__shape-img {
   width: 100%;
-  height: 56px;
+  height: 160px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -459,8 +465,8 @@
   color: #b7afc4;
 }
 .frame-styles__shape-name {
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 16px;
+  font-weight: 600;
   color: var(--sp-text);
   text-align: center;
 }

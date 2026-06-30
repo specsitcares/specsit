@@ -354,6 +354,7 @@ class Review(models.Model):
     is_verified_purchase = models.BooleanField(default=True)
     is_approved = models.BooleanField(default=False)
     is_rejected = models.BooleanField(default=False)
+    is_featured = models.BooleanField(default=False)  # shown in the homepage testimonials
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
