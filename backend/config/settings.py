@@ -175,6 +175,13 @@ else:
         }
     }
 
+# Rate-limit counters live in a LOCAL in-memory cache, never Upstash — otherwise
+# every single API request (incl. admin) would burn 2 Upstash commands on throttling.
+CACHES['throttle'] = {
+    'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+    'LOCATION': 'drf-throttle',
+}
+
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -210,8 +217,8 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ],
     'DEFAULT_THROTTLE_CLASSES': [
-        'rest_framework.throttling.AnonRateThrottle',
-        'rest_framework.throttling.UserRateThrottle'
+        'apps.core_utils.throttling.LocalAnonThrottle',
+        'apps.core_utils.throttling.LocalUserThrottle'
     ],
     'DEFAULT_THROTTLE_RATES': {
         'anon': '1000/hour',

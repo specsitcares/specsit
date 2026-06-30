@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowRight } from 'lucide-react';
 import apiClient from '../../../services/api';
 
 const STATUS_PILL = {
@@ -7,6 +9,19 @@ const STATUS_PILL = {
     scheduled: { bg: '#FEF0C7', color: '#B54708', dot: '#F79009', label: 'Scheduled' },
 };
 const PURPLE = '#7F56D9';
+
+// Sections that have a dedicated editor page (arrow opens it instead of the modal).
+const EDITOR_ROUTES = {
+    hero_banner: '/admin/settings/cms/hero-banner',
+    brand_logos: '/admin/settings/cms/brand-logos',
+    frame_range_categories: '/admin/settings/cms/frame-range',
+    explore_frame_styles: '/admin/settings/cms/explore-frame-styles',
+    built_with_premium_intent: '/admin/settings/cms/premium-intent',
+    promo_banner_1: '/admin/settings/cms/promo-banner-1',
+    promo_banner_2: '/admin/settings/cms/promo-banner-2',
+    our_blog: '/admin/settings/cms/blogs',
+    faq: '/admin/settings/cms/faqs',
+};
 
 const Toggle = ({ on, onChange, disabled }) => (
     <div
@@ -27,6 +42,7 @@ const PlaceholderIcon = () => (
 );
 
 const CmsManagement = () => {
+    const navigate = useNavigate();
     const [sections, setSections] = useState([]);
     const [loading, setLoading] = useState(true);
     const [busyId, setBusyId] = useState(null);
@@ -111,9 +127,11 @@ const CmsManagement = () => {
                                     </span>
                                     <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 8 }}>
                                         <Toggle on={sec.is_published} disabled={busyId === sec.id} onChange={(v) => toggle(sec, v)} />
-                                        <button onClick={() => openEdit(sec)}
-                                            style={{ background: PURPLE, color: '#fff', border: 'none', borderRadius: 6, padding: '7px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-                                            Edit
+                                        <button
+                                            title={EDITOR_ROUTES[sec.key] ? 'Open editor' : 'Edit'}
+                                            onClick={() => EDITOR_ROUTES[sec.key] ? navigate(EDITOR_ROUTES[sec.key]) : openEdit(sec)}
+                                            style={{ width: 34, height: 34, borderRadius: '50%', background: '#F9F5FF', border: `1px solid ${PURPLE}`, color: PURPLE, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                                            <ArrowRight size={18} />
                                         </button>
                                     </div>
                                 </div>

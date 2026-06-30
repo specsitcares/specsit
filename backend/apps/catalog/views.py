@@ -1014,8 +1014,27 @@ class ReviewViewSet(viewsets.ModelViewSet):
         review = self.get_object()
         review.is_approved = False
         review.is_rejected = True
-        review.save(update_fields=['is_approved', 'is_rejected'])
+        review.is_featured = False
+        review.save(update_fields=['is_approved', 'is_rejected', 'is_featured'])
         return Response({'status': 'review rejected'}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
+    def feature(self, request, pk=None):
+        """Toggle whether this review appears in the homepage testimonials.
+        Featuring auto-approves it so it's publicly visible."""
+        review = self.get_object()
+        review.is_featured = not review.is_featured
+        if review.is_featured:
+            review.is_approved = True
+            review.is_rejected = False
+        review.save(update_fields=['is_featured', 'is_approved', 'is_rejected'])
+        return Response({'status': 'featured' if review.is_featured else 'unfeatured', 'is_featured': review.is_featured}, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], permission_classes=[permissions.AllowAny])
+    def featured(self, request):
+        """Public: approved + featured reviews for the homepage testimonials section."""
+        qs = Review.objects.filter(is_featured=True, is_approved=True).select_related('user', 'product').order_by('-updated_at')[:12]
+        return Response(ReviewSerializer(qs, many=True, context={'request': request}).data)
 
 
 class MeasurePDView(APIView):

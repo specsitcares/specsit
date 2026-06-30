@@ -116,15 +116,7 @@ class CachedReadMixin:
         key = f"{self.cache_namespace}:detail:v{self._ns_version()}:{pk}"
         return Response(cache_aside(key, self.cache_ttl, lambda: parent.retrieve(request, *args, **kwargs).data))
 
-    def _bump_cache(self):
-        if self.cache_namespace:
-            invalidate(self.cache_namespace)
-
-    def finalize_response(self, request, response, *args, **kwargs):
-        response = super().finalize_response(request, response, *args, **kwargs)
-        try:
-            if self.cache_namespace and request.method in ('POST', 'PUT', 'PATCH', 'DELETE') and response.status_code < 400:
-                self._bump_cache()
-        except Exception:
-            pass
-        return response
+    # NOTE: invalidation is intentionally TTL-based (see cache_ttl). We do NOT bump
+    # the namespace on writes, because writes are admin/staff actions and we keep the
+    # admin side completely disconnected from Upstash (zero commands). The storefront
+    # cache simply expires after cache_ttl, so edits appear within that window.

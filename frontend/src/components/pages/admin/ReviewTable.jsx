@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, Star, User, CheckCircle, XCircle, Trash2, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
+import { Search, Star, User, CheckCircle, XCircle, Trash2, ChevronLeft, ChevronRight, RefreshCw, Home } from 'lucide-react';
 import apiClient from '../../../services/api';
 
 const TABS = [
@@ -86,6 +86,22 @@ const ReviewTable = () => {
           : r
       ));
       showToast(`Review ${action === 'approve' ? 'approved' : 'rejected'} successfully`);
+    } catch {
+      showToast('Action failed', false);
+    } finally {
+      setActionLoading(p => ({ ...p, [id]: null }));
+    }
+  };
+
+  const handleFeature = async (id) => {
+    setActionLoading(p => ({ ...p, [id]: 'feature' }));
+    try {
+      const res = await apiClient.post(`/catalog/reviews/${id}/feature/`);
+      const featured = res.data?.is_featured;
+      setReviews(prev => prev.map(r =>
+        r.id === id ? { ...r, is_featured: featured, is_approved: featured ? true : r.is_approved, is_rejected: featured ? false : r.is_rejected } : r
+      ));
+      showToast(featured ? 'Added to homepage testimonials' : 'Removed from homepage');
     } catch {
       showToast('Action failed', false);
     } finally {
@@ -369,6 +385,14 @@ const ReviewTable = () => {
                             style={{ display: 'flex', alignItems: 'center', gap: 5, background: busy === 'reject' ? '#FEF3C7' : '#FFFAEB', border: '1px solid #FEDF89', borderRadius: 7, padding: '5px 10px', cursor: busy ? 'not-allowed' : 'pointer', fontSize: 12, fontWeight: 700, color: '#B54708' }}>
                             <XCircle size={13} />
                             {busy === 'reject' ? '…' : 'Reject'}
+                          </button>
+                        )}
+                        {!r.is_rejected && (
+                          <button onClick={() => handleFeature(r.id)} disabled={!!busy}
+                            title={r.is_featured ? 'Remove from homepage' : 'Feature on homepage'}
+                            style={{ display: 'flex', alignItems: 'center', gap: 5, background: r.is_featured ? '#7F56D9' : '#F4EBFF', border: `1px solid ${r.is_featured ? '#7F56D9' : '#E9D7FE'}`, borderRadius: 7, padding: '5px 10px', cursor: busy ? 'not-allowed' : 'pointer', fontSize: 12, fontWeight: 700, color: r.is_featured ? '#fff' : '#6941C6' }}>
+                            <Home size={13} />
+                            {busy === 'feature' ? '…' : (r.is_featured ? 'Featured' : 'Feature')}
                           </button>
                         )}
                         <button onClick={() => handleDelete(r.id)} disabled={!!busy}

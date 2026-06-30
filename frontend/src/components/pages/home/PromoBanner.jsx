@@ -1,21 +1,45 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useHomeData } from '../../../context/HomeDataContext';
 
-const PromoBanner = ({ data }) => {
-  const heading = data?.heading || 'Flat 20% Off on Premium Frames';
-  const subtitle = data?.subtitle || 'Exclusive curated collection for the Hyderabad atelier.';
-  const ctaText = data?.cta_text || 'Shop Now';
-  const ctaLink = data?.cta_link || '/products';
-  const bgImage = data?.image || '';
+const WIDTH_MAP = { three_quarter: '75%', half: '50%' };
+const HEIGHT_MAP = { small: 180, medium: 300, large: 460 };
+
+const PromoBanner = ({ section = 'promo_banner_1' }) => {
+  const home = useHomeData();
+  const banner = home?.promo?.[section];
+  if (!banner || !banner.id) return null;
+
+  const align = banner.alignment === 'center' ? 'center' : banner.alignment === 'right' ? 'flex-end' : 'flex-start';
+  const textCol = banner.text_color === 'dark' ? '#101828' : '#fff';
+  const bgImg = banner.use_custom ? banner.custom_image : banner.background_image;
+  const wholeLink = banner.use_custom ? (banner.banner_link || null) : null;
+  const isFull = !banner.width || banner.width === 'full';
+  const minH = HEIGHT_MAP[banner.height] || 300;
+
+  const sectionStyle = isFull
+    ? { background: banner.bg_color || '#6B5CE7', overflow: 'hidden', width: '100vw', marginLeft: '50%', transform: 'translateX(-50%)' }
+    : { background: banner.bg_color || '#6B5CE7', overflow: 'hidden', borderRadius: 16, margin: '0 auto', maxWidth: 1280, width: WIDTH_MAP[banner.width] || '100%' };
+
+  const inner = (
+    <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: align, textAlign: banner.alignment, gap: 14, padding: '56px 48px', minHeight: minH, justifyContent: 'center' }}>
+      {bgImg && <img src={bgImg} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
+      {!banner.use_custom && (
+        <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: align, gap: 14, maxWidth: 760 }}>
+          <h2 style={{ color: textCol, fontSize: 34, fontWeight: 800, margin: 0, lineHeight: 1.2 }}>{banner.title}</h2>
+          {banner.subtitle && <p style={{ color: textCol, opacity: 0.92, fontSize: 16, margin: 0 }}>{banner.subtitle}</p>}
+          <div style={{ display: 'flex', gap: 12, marginTop: 6 }}>
+            {banner.primary_enabled && <Link to={banner.primary_link || '/products'} style={{ background: '#fff', color: '#101828', fontWeight: 600, fontSize: 14, padding: '11px 22px', borderRadius: 8, textDecoration: 'none' }}>{banner.primary_text || 'Shop Now'}</Link>}
+            {banner.secondary_enabled && <Link to={banner.secondary_link || '/products'} style={{ border: `1px solid ${textCol}`, color: textCol, fontWeight: 600, fontSize: 14, padding: '11px 22px', borderRadius: 8, textDecoration: 'none' }}>{banner.secondary_text || 'Explore'}</Link>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 
   return (
-    <section className="promo-banner" id="promo-banner">
-      {bgImage && <div className="promo-banner__bg" style={{ backgroundImage: `url(${bgImage})` }} />}
-      <div className="promo-banner__content">
-        <h2 className="promo-banner__heading">{heading}</h2>
-        {subtitle && <p className="promo-banner__desc">{subtitle}</p>}
-        <Link to={ctaLink} className="promo-banner__cta">{ctaText}</Link>
-      </div>
+    <section className="promo-banner-cms hp-reveal" id={`promo-banner-${section}`} style={sectionStyle}>
+      {wholeLink ? <Link to={wholeLink} style={{ display: 'block', textDecoration: 'none' }}>{inner}</Link> : inner}
     </section>
   );
 };
