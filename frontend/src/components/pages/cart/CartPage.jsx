@@ -69,7 +69,7 @@ const CartPage = () => {
             const itemsPayload = cart.map(item => ({
                 variant: item.variant?.id ?? null,
                 quantity: item.quantity,
-                price: resolveProductPrice(item.product, item.variant) + (item.lens ? parseFloat(item.lens.price || 0) : 0),
+                price: itemUnitPrice(item),
             }));
             const res = await apiClient.post('/sales/coupons/validate/', { code, cartValue: cartTotal, items: itemsPayload });
             if (res.data.valid) {
@@ -102,7 +102,7 @@ const CartPage = () => {
             const itemsPayload = cart.map(item => ({
                 variant: item.variant?.id ?? null,
                 quantity: item.quantity,
-                price: resolveProductPrice(item.product, item.variant) + (item.lens ? parseFloat(item.lens.price || 0) : 0),
+                price: itemUnitPrice(item),
             }));
             const res = await apiClient.post('/sales/coupons/available/', { cartValue: cartTotal, items: itemsPayload });
             setOffers(res.data.coupons || []);
@@ -123,7 +123,18 @@ const CartPage = () => {
 
     const orderTotal = cartTotal - savings;
 
-    const lineTotal = (item) => (resolveProductPrice(item.product, item.variant) + (item.lens ? parseFloat(item.lens.price || 0) : 0)) * item.quantity;
+    const itemUnitPrice = (item) => item.type === 'contactlens'
+        ? (parseFloat(item.price) || 0)
+        : resolveProductPrice(item.product, item.variant) + (item.lens ? parseFloat(item.lens.price || 0) : 0);
+    const lineTotal = (item) => itemUnitPrice(item) * item.quantity;
+    const powerSummary = (p) => {
+        if (!p || typeof p !== 'object') return '';
+        const parts = [];
+        if (p.right) parts.push(`R: ${p.right}`);
+        if (p.left) parts.push(`L: ${p.left}`);
+        if (p.base_curve) parts.push(`BC ${p.base_curve}`);
+        return parts.join('  ·  ');
+    };
 
     /* ── EMPTY STATE (Figma 116:9098) ── */
     if (cart.length === 0) {
@@ -177,6 +188,45 @@ const CartPage = () => {
                 {/* ────────── LEFT ────────── */}
                 <div className="cart-left-figma">
                     {cart.map(item => {
+                        if (item.type === 'contactlens') {
+                            const clPrice = parseFloat(item.price) || 0;
+                            const summary = powerSummary(item.power);
+                            return (
+                                <div key={item.id} className="ck-item">
+                                    <div className="ck-item__thumb">
+                                        {item.image
+                                            ? <img src={item.image} alt={item.name} />
+                                            : <svg width="56" height="56" viewBox="0 0 56 56" fill="none"><rect width="56" height="56" rx="4" fill="#EFEDF0" /><circle cx="28" cy="28" r="14" stroke="#71717A" strokeWidth="2" opacity="0.4" /></svg>}
+                                    </div>
+                                    <div className="ck-item__body">
+                                        <div className="ck-item__row ck-item__row--top">
+                                            <div className="ck-item__titles">
+                                                <span className="ck-item__brand">{item.contactLens?.brand_name || 'Contact Lens'}</span>
+                                                <h3 className="ck-item__name">{item.name}</h3>
+                                                {summary && <span className="ck-item__sub">{summary}</span>}
+                                            </div>
+                                            <span className="ck-item__price">₹{clPrice.toLocaleString('en-IN')}</span>
+                                        </div>
+                                        <div className="ck-item__final">
+                                            <span>Final Price</span>
+                                            <span>₹{(clPrice * item.quantity).toLocaleString('en-IN')}</span>
+                                        </div>
+                                        <div className="ck-item__actions">
+                                            <div className="ck-qty">
+                                                <button onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)} aria-label="Decrease">
+                                                    <svg width="8" height="2" viewBox="0 0 8 2" fill="none"><path d="M1 1H7" stroke="#040205" strokeWidth="1.5" strokeLinecap="round" /></svg>
+                                                </button>
+                                                <span>{item.quantity}</span>
+                                                <button onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)} aria-label="Increase">
+                                                    <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M4 1V7M1 4H7" stroke="#040205" strokeWidth="1.5" strokeLinecap="round" /></svg>
+                                                </button>
+                                            </div>
+                                            <button className="ck-remove" onClick={() => removeFromCart(item.id)}>Remove</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        }
                         const framePrice = resolveProductPrice(item.product, item.variant);
                         const lensPrice = item.lens ? parseFloat(item.lens.price || 0) : 0;
                         const finalPrice = framePrice + lensPrice;
