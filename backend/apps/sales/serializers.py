@@ -108,12 +108,28 @@ class OrderItemSerializer(serializers.ModelSerializer):
             return 'Not Submitted'
         return 'Frame Only'
 
+    contact_lens_name = serializers.SerializerMethodField()
+    contact_lens_image = serializers.SerializerMethodField()
+
+    def get_contact_lens_name(self, obj):
+        if obj.contact_lens:
+            return obj.contact_lens.name or (obj.contact_lens.package.name if obj.contact_lens.package else 'Contact Lens')
+        return None
+
+    def get_contact_lens_image(self, obj):
+        if obj.contact_lens and obj.contact_lens.image:
+            request = self.context.get('request')
+            url = obj.contact_lens.image.url
+            return request.build_absolute_uri(url) if request else url
+        return None
+
     class Meta:
         model = OrderItem
         fields = [
             'id', 'variant', 'variant_name', 'variant_image', 'variant_sku', 'brand_name', 'product_id',
             'quantity', 'unit_price', 'item_total', 'price_at_purchase', 'price',
             'lens_prescription_text', 'lens_pd',
+            'contact_lens', 'contact_lens_name', 'contact_lens_image', 'contact_lens_power',
             'prescription_status', 'patient_name', 'prescription', 'lens', 'status',
             'created_at',
         ]
@@ -377,6 +393,8 @@ class OrderSerializer(serializers.ModelSerializer):
                 order=order,
                 variant_id=safe_int(item_data.get('variant') or item_data.get('variant_id')),
                 lens_id=safe_int(item_data.get('lens_id')),
+                contact_lens_id=safe_int(item_data.get('contact_lens')),
+                contact_lens_power=item_data.get('contact_lens_power') or {},
                 prescription_id=safe_int(item_data.get('prescription_id')),
                 patient_name=item_data.get('patient_name'),
                 quantity=qty,

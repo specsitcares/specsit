@@ -91,6 +91,28 @@ export const CartProvider = ({ children }) => {
         }
     };
 
+    // Contact lenses: a separate cart item type carrying per-eye power + base curve.
+    const addContactLens = (contactLens, power, quantity = 1) => {
+        const price = parseFloat(contactLens.package_selling_price || contactLens.price || 0) || 0;
+        const sig = JSON.stringify(power || {});
+        const newItemId = `cl-${contactLens.id}-${btoa(unescape(encodeURIComponent(sig))).slice(0, 12)}`;
+        const newItem = {
+            id: newItemId,
+            type: 'contactlens',
+            contactLens,
+            power: power || {},
+            price,
+            name: contactLens.name || contactLens.package_name || 'Contact Lens',
+            image: contactLens.image || null,
+            quantity,
+        };
+        setCart(prev => {
+            const existing = prev.find(item => item.id === newItemId);
+            if (existing) return prev.map(item => item.id === newItemId ? { ...item, quantity: item.quantity + quantity } : item);
+            return [...prev, newItem];
+        });
+    };
+
     const removeFromCart = (id) => setCart(prev => prev.filter(item => item.id !== id));
 
     const updateQuantity = (id, quantity) => {
@@ -102,6 +124,9 @@ export const CartProvider = ({ children }) => {
 
     // BUG 1 FIX — use resolveProductPrice so "0.00" strings don't short-circuit the chain
     const cartTotal = Math.round(cart.reduce((acc, item) => {
+        if (item.type === 'contactlens') {
+            return acc + Math.round((parseFloat(item.price) || 0) * 100) * item.quantity;
+        }
         const productPrice = resolveProductPrice(item.product, item.variant);
         const lensPrice    = item.lens ? parseFloat(item.lens.price || 0) : 0;
         return acc + Math.round((productPrice + lensPrice) * 100) * item.quantity;
@@ -110,7 +135,7 @@ export const CartProvider = ({ children }) => {
     const savings = Math.min(appliedCoupon?.discount || 0, cartTotal);
 
     return (
-        <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, clearCart, cartTotal, resolveProductPrice, appliedCoupon, applyCoupon, removeCoupon, savings }}>
+        <CartContext.Provider value={{ cart, addToCart, addContactLens, removeFromCart, updateQuantity, clearCart, cartTotal, resolveProductPrice, appliedCoupon, applyCoupon, removeCoupon, savings }}>
             {children}
         </CartContext.Provider>
     );

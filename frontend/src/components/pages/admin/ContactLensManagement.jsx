@@ -150,6 +150,14 @@ const ContactLensManagement = () => {
   const openEditForm = (pkg) => {
     setSelectedPkg(pkg);
     setIsEditingPkg(true); setIsCreatingPkg(false);
+    // Lock the editor onto THIS package's own node so a save can't drift to a
+    // different power type / lens type.
+    const lt = lensTypes.find(t => String(t.id) === String(pkg.type));
+    if (lt) {
+      setSelectedLensType(lt);
+      const pt = powerTypes.find(p => String(p.id) === String(lt.parent));
+      if (pt) setSelectedPowerType(pt);
+    }
     setEditFormData(fillForm(pkg));
   };
 
@@ -167,7 +175,9 @@ const ContactLensManagement = () => {
       max_power: editFormData.max_power,
       power_type: selectedPowerType?.label || editFormData.power_type || null,
       base_curve: editFormData.base_curve || [],
-      replacement: editFormData.replacement || null,
+      // The lens type (Daily/Weekly/…) IS the replacement schedule — keep them in
+      // sync so the storefront "usage" filter matches the admin grouping.
+      replacement: (selectedLensType?.label || editFormData.replacement || '').toLowerCase() || null,
       material: editFormData.material || null,
       water_content: editFormData.water_content || null,
       dkt: editFormData.dkt || null,
@@ -444,6 +454,8 @@ const ContactLensManagement = () => {
               onClose={handleClosePkgForm}
               isEditing={isEditingPkg}
               brands={brands}
+              targetPowerType={selectedPowerType?.label}
+              targetLensType={selectedLensType?.label}
             />
           </div>
         </div>

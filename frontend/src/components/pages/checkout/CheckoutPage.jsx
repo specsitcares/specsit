@@ -78,7 +78,9 @@ const CheckoutPage = () => {
             const items = cart.map(item => ({
                 variant: item.variant?.id ?? null,
                 quantity: item.quantity,
-                price: resolveProductPrice(item.product, item.variant) + (item.lens ? parseFloat(item.lens.price || 0) : 0),
+                price: item.type === 'contactlens'
+                    ? (parseFloat(item.price) || 0)
+                    : resolveProductPrice(item.product, item.variant) + (item.lens ? parseFloat(item.lens.price || 0) : 0),
             }));
             const res = await apiClient.post('/sales/coupons/validate/', { code, cartValue: cartTotal, items });
             if (res.data.valid) { applyCoupon({ code, discount: res.data.savings || 0, message: res.data.message }); setCouponOpen(false); setPromoCode(''); }
@@ -336,22 +338,31 @@ const CheckoutPage = () => {
             state: formData.state,
             pin: formData.pincode,
         },
-        items: cart.map(item => ({
-            variant: item.variant?.id || item.product?.variants?.[0]?.id,
-            lens_id: item.lens?.id,
-            prescription_id: prescriptionIds[item.id] ?? item.prescription?.id ?? null,
-            quantity: item.quantity,
-            price_at_purchase: resolveProductPrice(item.product) + (item.lens ? parseFloat(item.lens.price || 0) : 0),
-            lens_pd: pdValues[item.id] ? parseFloat(pdValues[item.id]) : undefined,
-            patient_name: item.prescription?.name || item.prescription?.patient_name || undefined,
-            lens_prescription_text: item.rxMode === 'manual'
-                ? formatRxText(item.prescription)
-                : item.rxMode === 'upload'
-                ? 'Prescription uploaded by customer at time of order'
-                : item.rxMode === 'later'
-                ? 'Submit Power Later in 15 days'
-                : undefined,
-        })),
+        items: cart.map(item => (
+            item.type === 'contactlens'
+                ? {
+                    contact_lens: item.contactLens?.id,
+                    contact_lens_power: item.power || {},
+                    quantity: item.quantity,
+                    price_at_purchase: parseFloat(item.price) || 0,
+                }
+                : {
+                    variant: item.variant?.id || item.product?.variants?.[0]?.id,
+                    lens_id: item.lens?.id,
+                    prescription_id: prescriptionIds[item.id] ?? item.prescription?.id ?? null,
+                    quantity: item.quantity,
+                    price_at_purchase: resolveProductPrice(item.product) + (item.lens ? parseFloat(item.lens.price || 0) : 0),
+                    lens_pd: pdValues[item.id] ? parseFloat(pdValues[item.id]) : undefined,
+                    patient_name: item.prescription?.name || item.prescription?.patient_name || undefined,
+                    lens_prescription_text: item.rxMode === 'manual'
+                        ? formatRxText(item.prescription)
+                        : item.rxMode === 'upload'
+                        ? 'Prescription uploaded by customer at time of order'
+                        : item.rxMode === 'later'
+                        ? 'Submit Power Later in 15 days'
+                        : undefined,
+                }
+        )),
     });
 
     /* Only send to SubmitPrescriptionPage when the customer explicitly chose

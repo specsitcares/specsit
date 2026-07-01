@@ -44,6 +44,8 @@ const ContactLensPackageForm = ({
   onClose,
   isEditing,
   brands,
+  targetPowerType,
+  targetLensType,
 }) => {
   const [newBcValue,    setNewBcValue]    = useState('');
   const [addingBc,      setAddingBc]      = useState(false);
@@ -92,6 +94,12 @@ const ContactLensPackageForm = ({
       {/* ── Body ── */}
       <div className="clpf-body">
 
+        {(targetPowerType || targetLensType) && (
+          <div style={{ background: '#F4EBFF', border: '1px solid #E9D7FE', borderRadius: 8, padding: '10px 12px', marginBottom: 14, fontSize: 13, color: '#6941C6', fontWeight: 600 }}>
+            Adding to: {targetPowerType || '—'} &rsaquo; {targetLensType || '—'}
+          </div>
+        )}
+
         {/* ── Basic Info ── */}
         <div className="clpf-section">
           <div className="clpf-section-title">Basic Info</div>
@@ -116,21 +124,6 @@ const ContactLensPackageForm = ({
               >
                 <option value="">Select brand</option>
                 {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-              </select>
-              <ChevronDown size={16} className="clpf-select-icon" />
-            </div>
-          </div>
-
-          <div className="clpf-row">
-            <label className="clpf-label">Power Type <span className="clpf-req">*</span></label>
-            <div className="clpf-select-wrap">
-              <select
-                className="clpf-select"
-                value={formData.power_type || ''}
-                onChange={e => field('power_type', e.target.value)}
-              >
-                <option value="">Select power type</option>
-                {POWER_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
               <ChevronDown size={16} className="clpf-select-icon" />
             </div>
@@ -216,21 +209,6 @@ const ContactLensPackageForm = ({
             </div>
           </div>
 
-          <div className="clpf-row clpf-row--top">
-            <label className="clpf-label">Replacement <span className="clpf-req">*</span></label>
-            <div className="clpf-pill-group">
-              {REPLACEMENTS.map(r => (
-                <button
-                  key={r}
-                  type="button"
-                  className={`clpf-pill ${formData.replacement === r ? 'selected' : ''}`}
-                  onClick={() => field('replacement', r)}
-                >
-                  {REPLACEMENT_LABELS[r]}
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
 
         <div className="clpf-divider" />

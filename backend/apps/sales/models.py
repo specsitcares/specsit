@@ -165,6 +165,8 @@ class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
     variant = models.ForeignKey(Variant, on_delete=models.CASCADE, null=True, blank=True)
     lens = models.ForeignKey(Lens, on_delete=models.SET_NULL, null=True, blank=True)
+    contact_lens = models.ForeignKey('catalog.ContactLens', on_delete=models.SET_NULL, null=True, blank=True, related_name='order_items')
+    contact_lens_power = models.JSONField(default=dict, blank=True)
     prescription = models.ForeignKey(Prescription, on_delete=models.SET_NULL, null=True, blank=True, related_name='order_items')
     patient_name = models.CharField(max_length=100, blank=True, null=True)
     quantity = models.IntegerField(default=1)

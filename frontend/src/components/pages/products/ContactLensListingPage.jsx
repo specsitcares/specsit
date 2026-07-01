@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { Search, ChevronDown, Heart, X, SlidersHorizontal } from 'lucide-react';
 import apiClient from '../../../services/api';
+import { useCart } from '../../../context/CartContext';
+import ContactLensSelectModal from './ContactLensSelectModal';
 import '../../../styles/contact_lens_listing.css';
 
 /* Contact lenses are a separate table (/catalog/contact-lenses/), so this page can never
@@ -34,6 +36,9 @@ const ContactLensListingPage = () => {
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(null);
   const [wishlist, setWishlist] = useState({});
+  const [selecting, setSelecting] = useState(null); // contact lens being configured
+  const { addContactLens } = useCart();
+  const navigate = useNavigate();
 
   const [sortBy,    setSortBy]    = useState('newest');
   const [activeTab, setActiveTab] = useState('All');
@@ -341,8 +346,12 @@ const ContactLensListingPage = () => {
                           <span className="cll-card-price">₹{price.toLocaleString('en-IN')}</span>
                           {off > 0 && <span className="cll-card-off">{off}% OFF</span>}
                         </div>
-                        {l.lenses_per_box != null && <span className="cll-card-box">{l.lenses_per_box} lenses / box</span>}
+        {l.lenses_per_box != null && <span className="cll-card-box">{l.lenses_per_box} lenses / box</span>}
                       </div>
+                      <button className="cll-card-add" onClick={() => setSelecting(l)}
+                        style={{ marginTop: 10, width: '100%', background: '#68408D', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 0', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                        Select Power &amp; Add
+                      </button>
                     </div>
                   </div>
                 );
@@ -351,6 +360,14 @@ const ContactLensListingPage = () => {
           )}
         </main>
       </div>
+
+      {selecting && (
+        <ContactLensSelectModal
+          lens={selecting}
+          onClose={() => setSelecting(null)}
+          onAdd={(lens, power, qty) => { addContactLens(lens, power, qty); setSelecting(null); navigate('/cart'); }}
+        />
+      )}
     </div>
   );
 };
