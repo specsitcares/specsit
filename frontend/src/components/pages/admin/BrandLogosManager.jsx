@@ -56,12 +56,11 @@ const BrandLogosManager = () => {
     };
 
     const addBrand = async () => {
-        if (!name.trim()) return;
         if (file && file.size > MAX_BYTES) { setErr('Logo must be under 2 KB.'); return; }
         setSaving(true);
         try {
             const fd = new FormData();
-            fd.append('name', name.trim());
+            fd.append('name', name.trim() || 'Untitled brand');
             fd.append('order', logos.length);
             fd.append('is_published', true);
             if (file) fd.append('logo', file);
@@ -133,7 +132,7 @@ const BrandLogosManager = () => {
                         <div style={{ fontSize: 12, color: err ? '#D92D20' : '#98A2B3', marginBottom: 16 }}>{err || 'PNG/SVG, must be under 2 KB.'}</div>
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
                             <button onClick={() => setAdding(false)} style={{ padding: '10px 16px', border: '1px solid #D0D5DD', borderRadius: 8, background: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
-                            <button onClick={addBrand} disabled={saving || !name.trim()} style={{ padding: '10px 18px', border: 'none', borderRadius: 8, background: PURPLE, color: '#fff', fontSize: 14, fontWeight: 600, cursor: (saving || !name.trim()) ? 'not-allowed' : 'pointer', opacity: (saving || !name.trim()) ? 0.7 : 1, fontFamily: 'inherit' }}>
+                            <button onClick={addBrand} disabled={saving} style={{ padding: '10px 18px', border: 'none', borderRadius: 8, background: PURPLE, color: '#fff', fontSize: 14, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1, fontFamily: 'inherit' }}>
                                 {saving ? 'Adding…' : 'Add Brand'}
                             </button>
                         </div>

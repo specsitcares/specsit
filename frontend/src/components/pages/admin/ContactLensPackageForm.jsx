@@ -97,7 +97,7 @@ const ContactLensPackageForm = ({
         {/* Category (power type) + Timeline (lens type) — change these to move the
             package to a different node in the left tree on save. */}
         <div className="clpf-row">
-          <label className="clpf-label">Category (Power Type) <span className="clpf-req">*</span></label>
+          <label className="clpf-label">Category (Power Type)</label>
           <div className="clpf-select-wrap">
             <select className="clpf-select" value={formData.power_type_id || ''}
               onChange={e => { field('power_type_id', e.target.value); field('lens_type_id', ''); }}>
@@ -109,7 +109,7 @@ const ContactLensPackageForm = ({
         </div>
 
         <div className="clpf-row">
-          <label className="clpf-label">Timeline <span className="clpf-req">*</span></label>
+          <label className="clpf-label">Timeline</label>
           <div className="clpf-select-wrap">
             <select className="clpf-select" value={formData.lens_type_id || ''}
               onChange={e => field('lens_type_id', e.target.value)} disabled={!formData.power_type_id}>
@@ -125,7 +125,7 @@ const ContactLensPackageForm = ({
 
         {formData.lens_type_id === '__new__' && (
           <div className="clpf-row">
-            <label className="clpf-label">New timeline name <span className="clpf-req">*</span></label>
+            <label className="clpf-label">New timeline name</label>
             <input className="clpf-input" value={formData.new_lens_type || ''}
               onChange={e => field('new_lens_type', e.target.value)} placeholder="e.g. Daily" />
           </div>
@@ -136,7 +136,7 @@ const ContactLensPackageForm = ({
           <div className="clpf-section-title">Basic Info</div>
 
           <div className="clpf-row">
-            <label className="clpf-label">Package Name <span className="clpf-req">*</span></label>
+            <label className="clpf-label">Package Name</label>
             <input
               className="clpf-input"
               placeholder="e.g. Premium Daily"
@@ -146,7 +146,7 @@ const ContactLensPackageForm = ({
           </div>
 
           <div className="clpf-row">
-            <label className="clpf-label">Brand Name <span className="clpf-req">*</span></label>
+            <label className="clpf-label">Brand Name</label>
             <div className="clpf-select-wrap">
               <select
                 className="clpf-select"
@@ -161,7 +161,7 @@ const ContactLensPackageForm = ({
           </div>
 
           <div className="clpf-row">
-            <label className="clpf-label">Price (₹) <span className="clpf-req">*</span></label>
+            <label className="clpf-label">Price (₹)</label>
             <input
               type="number"
               className="clpf-input"
@@ -171,16 +171,6 @@ const ContactLensPackageForm = ({
             />
           </div>
 
-          <div className="clpf-row clpf-row--top">
-            <label className="clpf-label">Description <span className="clpf-req">*</span></label>
-            <textarea
-              className="clpf-textarea"
-              rows={3}
-              placeholder="Blue light blocking with anti-glare coating"
-              value={formData.description || ''}
-              onChange={e => field('description', e.target.value)}
-            />
-          </div>
         </div>
 
         <div className="clpf-divider" />
@@ -190,7 +180,7 @@ const ContactLensPackageForm = ({
           <div className="clpf-section-title">Optical Specs</div>
 
           <div className="clpf-row">
-            <label className="clpf-label">Sphere Power <span className="clpf-req">*</span></label>
+            <label className="clpf-label">Sphere Power</label>
             <div className="clpf-spinner-pair">
               <Spinner
                 value={formData.min_power || '-6.00'}
@@ -208,7 +198,7 @@ const ContactLensPackageForm = ({
           </div>
 
           <div className="clpf-row clpf-row--top">
-            <label className="clpf-label">Base Curve (BC) <span className="clpf-req">*</span></label>
+            <label className="clpf-label">Base Curve (BC)</label>
             <div className="clpf-bc-wrap">
               {(formData.base_curve || []).map(v => (
                 <span key={v} className="clpf-bc-chip">
@@ -249,7 +239,7 @@ const ContactLensPackageForm = ({
           <div className="clpf-section-title">Lens Properties</div>
 
           <div className="clpf-row">
-            <label className="clpf-label">Material <span className="clpf-req">*</span></label>
+            <label className="clpf-label">Material</label>
             <div className="clpf-select-wrap">
               <select
                 className="clpf-select"
@@ -264,7 +254,7 @@ const ContactLensPackageForm = ({
           </div>
 
           <div className="clpf-row">
-            <label className="clpf-label">Water Content (%) <span className="clpf-req">*</span></label>
+            <label className="clpf-label">Water Content (%)</label>
             <input
               className="clpf-input"
               placeholder="e.g. 38%"
@@ -274,7 +264,7 @@ const ContactLensPackageForm = ({
           </div>
 
           <div className="clpf-row">
-            <label className="clpf-label">Dk/t <span className="clpf-req">*</span></label>
+            <label className="clpf-label">Dk/t</label>
             <input
               className="clpf-input"
               placeholder="e.g. 121"

@@ -72,7 +72,7 @@ const ContactLensManagement = () => {
         apiClient.get(`/core/metadata-groups/?name=${encodeURIComponent(POWER_GROUP)}`),
         apiClient.get(`/core/metadata-groups/?name=${encodeURIComponent(LENS_GROUP)}`),
         apiClient.get('/catalog/contact-lenses/?page_size=100&admin=true'),
-        apiClient.get('/catalog/brands/?brand_type=Lens'),
+        apiClient.get('/catalog/brands/'), // all brands: legacy packages may reference non-Contact brands
       ]);
 
       const ptGroup = findGroup(ptRes, POWER_GROUP);
@@ -117,6 +117,8 @@ const ContactLensManagement = () => {
   }, {});
   const orderedBrandKeys = [
     ...brands.filter(b => groupedByBrand[String(b.id)]).map(b => String(b.id)),
+    // Packages whose brand isn't in the list anymore still need to render
+    ...Object.keys(groupedByBrand).filter(k => k !== '__none__' && !brands.some(b => String(b.id) === k)),
     ...(groupedByBrand['__none__'] ? ['__none__'] : []),
   ];
 
@@ -497,7 +499,7 @@ const ContactLensManagement = () => {
               onSubmit={handleSave}
               onClose={handleClosePkgForm}
               isEditing={isEditingPkg}
-              brands={brands}
+              brands={brands.filter(b => b.brand_type === 'Contact')}
               powerTypes={powerTypes}
               lensTypes={lensTypes}
             />

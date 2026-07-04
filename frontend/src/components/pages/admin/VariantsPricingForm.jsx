@@ -1,4 +1,5 @@
-import React, { useState, useRef, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
+import apiClient from '../../../services/api';
 import {
   Plus,
   ChevronDown,
@@ -197,6 +198,23 @@ const VariantsPricingForm = forwardRef(({ formData, onFormDataChange, saving, er
     FRAME_SHAPE_OPTIONS.filter(o => o.value).map(o => o.value)
   );
   const [frameTypeOptions, setFrameTypeOptions] = useState(['Rimless', 'Half Rim', 'Full Rim']);
+
+  // Frame types come from the Lens Constraints so the frame ↔ lens wiring always matches
+  // (a frame's type filters the customer lens drawer by the same-named constraint).
+  useEffect(() => {
+    apiClient.get('/catalog/lens-constraints/', { cache: false })
+      .then(res => {
+        const names = (res.data.results || res.data || []).map(c => c.name).filter(Boolean);
+        if (names.length) setFrameTypeOptions(names);
+      })
+      .catch(() => { /* keep defaults */ });
+  }, []);
+
+  const addFrameTypeOption = async (opt) => {
+    setFrameTypeOptions(prev => prev.includes(opt) ? prev : [...prev, opt]);
+    // Keep Lens Constraints in sync so the new frame type actually filters lenses.
+    try { await apiClient.post('/catalog/lens-constraints/', { name: opt, description: '' }); } catch { /* may already exist */ }
+  };
 
   const fileInputRefs = useRef({});
 
@@ -603,7 +621,7 @@ const VariantsPricingForm = forwardRef(({ formData, onFormDataChange, saving, er
                               value={v.frame_type || ''}
                               onChange={(val) => updateVariant(v.id, 'frame_type', val)}
                               options={frameTypeOptions}
-                              onAddOption={(opt) => setFrameTypeOptions(prev => [...prev, opt])}
+                              onAddOption={addFrameTypeOption}
                               placeholder="Select frame type"
                             />
                           </div>
@@ -761,6 +779,16 @@ const VariantsPricingForm = forwardRef(({ formData, onFormDataChange, saving, er
                       <>
                         {/* Eyeglasses tech specs */}
                         <div className="vp-row-4">
+                          <div className="form-field">
+                            <label className="form-field-label">Frame type</label>
+                            <SelectWithAdd
+                              value={v.frame_type || ''}
+                              onChange={(val) => updateVariant(v.id, 'frame_type', val)}
+                              options={frameTypeOptions}
+                              onAddOption={addFrameTypeOption}
+                              placeholder="Select frame type"
+                            />
+                          </div>
                           <div className="form-field">
                             <label className="form-field-label">Frame Material</label>
                             <SelectWithAdd

@@ -20,9 +20,9 @@ const Toggle = ({ on, onChange }) => (
     </div>
 );
 
-const Label = ({ children, req }) => (
+const Label = ({ children }) => (
     <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#344054', marginBottom: 6 }}>
-        {children}{req && <span style={{ color: '#D92D20' }}> *</span>}
+        {children}
     </label>
 );
 const inputStyle = { width: '100%', boxSizing: 'border-box', border: `1px solid ${BORDER}`, borderRadius: 8, padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', color: '#101828' };
