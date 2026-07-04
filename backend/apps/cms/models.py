@@ -267,6 +267,42 @@ class HomeSectionTitle(models.Model):
         return self.get_key_display()
 
 
+class NewsletterSettings(models.Model):
+    """Singleton config for the homepage Newsletter section — content, email
+    provider integration and signup-discount settings (admin CMS editor)."""
+    PROVIDERS = [
+        ('mailchimp', 'Mailchimp'),
+        ('klaviyo', 'Klaviyo'),
+        ('sendgrid', 'SendGrid'),
+        ('brevo', 'Brevo'),
+    ]
+    # Content
+    headline = models.CharField(max_length=160, default='Subscribe to our Newsletter')
+    subheadline = models.TextField(blank=True, default='Join our community and get exclusive early access to new frame drops and special offers.')
+    email_placeholder = models.CharField(max_length=100, default='Enter your email address')
+    cta_text = models.CharField(max_length=50, default='Get 20% off')
+    bg_color = models.CharField(max_length=20, default='#F3F4F6')
+    # Integration
+    provider = models.CharField(max_length=20, choices=PROVIDERS, default='mailchimp')
+    api_key = models.CharField(max_length=255, blank=True, default='')
+    list_id = models.CharField(max_length=100, blank=True, default='')
+    # Discount
+    discount_code = models.CharField(max_length=50, blank=True, default='WELCOME20')
+    discount_value = models.PositiveIntegerField(default=20)
+    auto_apply = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = 'Newsletter Settings'
+
+    @classmethod
+    def get(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+    def __str__(self):
+        return 'Newsletter Settings'
+
+
 class sizesettings(models.Model):
     sizes_choices = [
         ()

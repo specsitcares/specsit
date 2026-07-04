@@ -8,6 +8,7 @@ import ProtectedRoute from './components/pages/auth/ProtectedRoute';
 import Layout from './components/pages/layout/Layout';
 import HomePage from './components/pages/home/HomePage';
 import ProductListingPage from './components/pages/products/ProductListingPage';
+import ContactLensDetailPage from './components/pages/products/ContactLensDetailPage';
 import ProductDetailPage from './components/pages/products/ProductDetailPage';
 import CartPage from './components/pages/cart/CartPage';
 import CheckoutPage from './components/pages/checkout/CheckoutPage';
@@ -99,6 +100,7 @@ const App = () => {
                                     <Route index element={<HomePage />} />
                                     <Route path="products" element={<ProductListingPage />} />
                                     <Route path="product/:id" element={<ProductDetailPage />} />
+                                    <Route path="contact-lenses/:id" element={<ContactLensDetailPage />} />
                                     <Route path="cart" element={<CartPage />} />
                                     <Route path="checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
                                     <Route path="order-confirmation/:orderId" element={<ConfirmationErrorBoundary><OrderConfirmationPage /></ConfirmationErrorBoundary>} />

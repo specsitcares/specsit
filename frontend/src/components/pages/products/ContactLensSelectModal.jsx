@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { X } from 'lucide-react';
+import { X, Check } from 'lucide-react';
 
+const NAVY = '#201A5C';
 const PURPLE = '#68408D';
 
-// Build a list of dioptre options between min and max in 0.25 steps.
 const buildPowers = (min, max) => {
   const lo = Number(min ?? -6), hi = Number(max ?? 4);
   const out = [];
@@ -13,97 +13,153 @@ const buildPowers = (min, max) => {
   }
   return out;
 };
-const CYL = ['-0.75', '-1.25', '-1.75', '-2.25'];
-const AXIS = Array.from({ length: 18 }, (_, i) => String((i + 1) * 10));
-const ADD = ['+1.00', '+1.50', '+2.00', '+2.50'];
+const CYL = ['', '-0.75', '-1.25', '-1.75', '-2.25'];
+const AXIS = ['', ...Array.from({ length: 37 }, (_, i) => String(i * 5))];
+const BOXES = Array.from({ length: 12 }, (_, i) => String(i + 1));
 
-const Sel = ({ label, value, onChange, options, placeholder }) => (
-  <label style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
-    <span style={{ fontSize: 11, fontWeight: 600, color: '#71717A' }}>{label}</span>
-    <select value={value} onChange={e => onChange(e.target.value)}
-      style={{ border: '1px solid #EFEDF0', borderRadius: 8, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', background: '#fff' }}>
-      <option value="">{placeholder || '—'}</option>
-      {options.map(o => <option key={o} value={o}>{o}</option>)}
-    </select>
-  </label>
+const Dropdown = ({ value, onChange, options, disabled, placeholder = 'Select' }) => (
+  <select value={value} onChange={e => onChange(e.target.value)} disabled={disabled}
+    style={{
+      width: '100%', boxSizing: 'border-box', appearance: 'none',
+      border: `1.5px solid ${disabled ? '#EDEBF3' : (value ? NAVY : '#E4E1EC')}`,
+      borderRadius: 10, padding: '11px 30px 11px 14px', fontSize: 14, fontWeight: 600,
+      color: disabled ? '#C7C3D4' : (value ? '#040205' : '#9A94AC'),
+      background: `#fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='${disabled ? '%23C7C3D4' : '%23201A5C'}' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>") no-repeat right 12px center`,
+      cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
+    }}>
+    <option value="">{placeholder}</option>
+    {options.filter(o => o !== '').map(o => <option key={o} value={o}>{o}</option>)}
+  </select>
 );
 
-const ContactLensSelectModal = ({ lens, onClose, onAdd }) => {
-  const ptype = (lens.power_type || '').toLowerCase();
-  const isToric = ptype.includes('toric');
-  const isMulti = ptype.includes('multi');
+const EyeCheck = ({ label, on, onToggle }) => (
+  <button type="button" onClick={onToggle} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}>
+    <span style={{ width: 22, height: 22, borderRadius: 6, background: on ? NAVY : '#fff', border: `1.5px solid ${on ? NAVY : '#D6D2E0'}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {on && <Check size={14} color="#fff" strokeWidth={3} />}
+    </span>
+    <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: 0.4, color: '#201A5C' }}>{label}</span>
+  </button>
+);
+
+const Radio = ({ on, onClick, children }) => (
+  <button type="button" onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}>
+    <span style={{ width: 22, height: 22, borderRadius: '50%', border: `2px solid ${on ? NAVY : '#D6D2E0'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      {on && <span style={{ width: 11, height: 11, borderRadius: '50%', background: NAVY }} />}
+    </span>
+    <span style={{ fontSize: 16, fontWeight: 700, color: '#201A5C' }}>{children}</span>
+  </button>
+);
+
+const Row = ({ title, sub, right, left, rDisabled, lDisabled, options, placeholder }) => (
+  <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr 1fr', gap: 14, alignItems: 'center', marginBottom: 14 }}>
+    <div>
+      <div style={{ fontSize: 15, fontWeight: 700, color: '#040205' }}>{title}</div>
+      {sub && <div style={{ fontSize: 12, color: '#9A94AC' }}>{sub}</div>}
+    </div>
+    <Dropdown value={right.value} onChange={right.set} options={options} disabled={rDisabled} placeholder={placeholder} />
+    <Dropdown value={left.value} onChange={left.set} options={options} disabled={lDisabled} placeholder={placeholder} />
+  </div>
+);
+
+const ContactLensSelectModal = ({ lens, onClose, onAdd, asDrawer = false }) => {
   const sphOpts = useMemo(() => buildPowers(lens.min_power, lens.max_power), [lens]);
-  const bcOpts = Array.isArray(lens.base_curve) ? lens.base_curve.map(String) : [];
-
-  const [eye, setEye] = useState({
-    rSph: '', rCyl: '', rAxis: '', rAdd: '',
-    lSph: '', lCyl: '', lAxis: '', lAdd: '',
-    bc: bcOpts[0] || '', qty: 1,
-  });
-  const set = (k, v) => setEye(p => ({ ...p, [k]: v }));
-  const [err, setErr] = useState('');
-
+  const perBox = lens.lenses_per_box || 30;
   const price = Number(lens.package_selling_price || lens.price || 0);
 
-  const buildEye = (sph, cyl, axis, add) => {
-    if (!sph) return '';
-    let s = `SPH ${sph}`;
-    if (isToric) s += ` CYL ${cyl || '—'} AXIS ${axis || '—'}`;
-    if (isMulti) s += ` ADD ${add || '—'}`;
+  const [mode, setMode] = useState('manual'); // 'manual' | 'later'
+  const [rOn, setROn] = useState(true);
+  const [lOn, setLOn] = useState(true);
+  const [f, setF] = useState({ rSph: '', rCyl: '', rAxis: '', rBox: '1', lSph: '', lCyl: '', lAxis: '', lBox: '1' });
+  const set = (k) => (v) => setF(p => ({ ...p, [k]: v }));
+  const [err, setErr] = useState('');
+
+  const boxes = mode === 'later' ? 1 : ((rOn ? Number(f.rBox) || 0 : 0) + (lOn ? Number(f.lBox) || 0 : 0)) || 1;
+  const total = price * boxes;
+
+  const eyeStr = (sph, cyl, axis, box) => {
+    let s = `SPH ${sph || '—'}`;
+    if (cyl) s += ` CYL ${cyl}`;
+    if (axis) s += ` AXIS ${axis}`;
+    s += ` × ${box} box`;
     return s;
   };
 
   const submit = () => {
-    if (!eye.rSph || !eye.lSph) { setErr('Select power for both eyes.'); return; }
-    const power = { right: buildEye(eye.rSph, eye.rCyl, eye.rAxis, eye.rAdd), left: buildEye(eye.lSph, eye.lCyl, eye.lAxis, eye.lAdd) };
-    if (eye.bc) power.base_curve = eye.bc;
-    onAdd(lens, power, Math.max(1, Number(eye.qty) || 1));
+    if (mode === 'later') {
+      onAdd(lens, { mode: 'later', right: 'Power to be submitted later', left: '' }, 1);
+      return;
+    }
+    if (!rOn && !lOn) { setErr('Select at least one eye.'); return; }
+    if ((rOn && !f.rSph) || (lOn && !f.lSph)) { setErr('Select spherical power for the chosen eye(s).'); return; }
+    const power = { mode: 'manual' };
+    if (rOn) power.right = eyeStr(f.rSph, f.rCyl, f.rAxis, f.rBox);
+    if (lOn) power.left = eyeStr(f.lSph, f.lCyl, f.lAxis, f.lBox);
+    onAdd(lens, power, boxes);
   };
 
+  const outerStyle = asDrawer
+    ? { position: 'fixed', inset: 0, background: 'rgba(4,2,5,0.5)', display: 'flex', alignItems: 'stretch', justifyContent: 'flex-end', zIndex: 2000 }
+    : { position: 'fixed', inset: 0, background: 'rgba(4,2,5,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: 20 };
+  const innerStyle = asDrawer
+    ? { background: '#fff', width: '100%', maxWidth: 520, height: '100vh', overflowY: 'auto', fontFamily: "'Plus Jakarta Sans', sans-serif", boxShadow: '-8px 0 32px rgba(16,24,40,0.18)', display: 'flex', flexDirection: 'column' }
+    : { background: '#fff', borderRadius: 16, width: '100%', maxWidth: 560, maxHeight: '92vh', overflowY: 'auto', fontFamily: "'Plus Jakarta Sans', sans-serif", display: 'flex', flexDirection: 'column' };
+
+  const manual = mode === 'manual';
+
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(4,2,5,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: 20 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 14, width: '100%', maxWidth: 460, maxHeight: '90vh', overflowY: 'auto', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', borderBottom: '1px solid #EFEDF0' }}>
+    <div onClick={onClose} style={outerStyle}>
+      <div onClick={e => e.stopPropagation()} style={innerStyle}>
+        {/* header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 24px', borderBottom: '1px solid #EFEDF0' }}>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: '#040205' }}>{lens.name || lens.package_name || 'Contact Lens'}</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#040205' }}>{lens.name || lens.package_name || 'Contact Lens'}</div>
             <div style={{ fontSize: 12, color: '#71717A' }}>{[lens.brand_name, lens.power_type].filter(Boolean).join(' · ')}</div>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#71717A' }}><X size={20} /></button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#71717A' }}><X size={22} /></button>
         </div>
 
-        <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#040205', marginBottom: 8 }}>Right Eye (OD)</div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <Sel label="SPH (Power)" value={eye.rSph} onChange={v => set('rSph', v)} options={sphOpts} />
-              {isToric && <Sel label="CYL" value={eye.rCyl} onChange={v => set('rCyl', v)} options={CYL} />}
-              {isToric && <Sel label="Axis" value={eye.rAxis} onChange={v => set('rAxis', v)} options={AXIS} />}
-              {isMulti && <Sel label="ADD" value={eye.rAdd} onChange={v => set('rAdd', v)} options={ADD} />}
+        <div style={{ padding: 24, flex: 1 }}>
+          {/* Card */}
+          <div style={{ border: '1px solid #EFEDF0', borderRadius: 16, padding: 22, boxShadow: '0 4px 20px rgba(16,24,40,0.05)' }}>
+            <div style={{ marginBottom: 20 }}>
+              <Radio on={manual} onClick={() => { setMode('manual'); setErr(''); }}>Enter power Manually</Radio>
             </div>
-          </div>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#040205', marginBottom: 8 }}>Left Eye (OS)</div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <Sel label="SPH (Power)" value={eye.lSph} onChange={v => set('lSph', v)} options={sphOpts} />
-              {isToric && <Sel label="CYL" value={eye.lCyl} onChange={v => set('lCyl', v)} options={CYL} />}
-              {isToric && <Sel label="Axis" value={eye.lAxis} onChange={v => set('lAxis', v)} options={AXIS} />}
-              {isMulti && <Sel label="ADD" value={eye.lAdd} onChange={v => set('lAdd', v)} options={ADD} />}
+
+            {/* Eye header */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr 1fr', gap: 14, alignItems: 'center', marginBottom: 16 }}>
+              <span />
+              <EyeCheck label="RIGHT" on={manual && rOn} onToggle={() => manual && setROn(v => !v)} />
+              <EyeCheck label="LEFT" on={manual && lOn} onToggle={() => manual && setLOn(v => !v)} />
             </div>
+
+            <Row title="Spherical" sub="SPH" options={sphOpts} placeholder="Select"
+              right={{ value: f.rSph, set: set('rSph') }} left={{ value: f.lSph, set: set('lSph') }}
+              rDisabled={!manual || !rOn} lDisabled={!manual || !lOn} />
+            <Row title="Cylindrical" sub="CYL" options={CYL} placeholder="Select"
+              right={{ value: f.rCyl, set: set('rCyl') }} left={{ value: f.lCyl, set: set('lCyl') }}
+              rDisabled={!manual || !rOn} lDisabled={!manual || !lOn} />
+            <Row title="Axis" sub="0–180" options={AXIS} placeholder="Select"
+              right={{ value: f.rAxis, set: set('rAxis') }} left={{ value: f.lAxis, set: set('lAxis') }}
+              rDisabled={!manual || !rOn} lDisabled={!manual || !lOn} />
+            <Row title="No. of Boxes" sub={`${perBox} lens/box`} options={BOXES} placeholder="1"
+              right={{ value: f.rBox, set: set('rBox') }} left={{ value: f.lBox, set: set('lBox') }}
+              rDisabled={!manual || !rOn} lDisabled={!manual || !lOn} />
+
+            <div style={{ borderTop: '1px solid #EFEDF0', margin: '8px 0 18px' }} />
+
+            <Radio on={mode === 'later'} onClick={() => { setMode('later'); setErr(''); }}>I will submit power later</Radio>
           </div>
-          <div style={{ display: 'flex', gap: 10 }}>
-            {bcOpts.length > 0 && <Sel label="Base Curve" value={eye.bc} onChange={v => set('bc', v)} options={bcOpts} />}
-            <label style={{ display: 'flex', flexDirection: 'column', gap: 4, width: 110 }}>
-              <span style={{ fontSize: 11, fontWeight: 600, color: '#71717A' }}>Boxes</span>
-              <input type="number" min="1" value={eye.qty} onChange={e => set('qty', e.target.value)}
-                style={{ border: '1px solid #EFEDF0', borderRadius: 8, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit' }} />
-            </label>
-          </div>
-          {err && <div style={{ fontSize: 12, color: '#DC2626' }}>{err}</div>}
+
+          {err && <div style={{ fontSize: 13, color: '#DC2626', marginTop: 12 }}>{err}</div>}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderTop: '1px solid #EFEDF0' }}>
-          <span style={{ fontSize: 18, fontWeight: 800, color: '#040205' }}>₹{(price * (Number(eye.qty) || 1)).toLocaleString('en-IN')}</span>
-          <button onClick={submit} style={{ background: PURPLE, color: '#fff', border: 'none', borderRadius: 10, padding: '11px 24px', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+        {/* footer */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', borderTop: '1px solid #EFEDF0' }}>
+          <div>
+            <div style={{ fontSize: 12, color: '#71717A' }}>{boxes} box{boxes !== 1 ? 'es' : ''}</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: '#040205' }}>₹{total.toLocaleString('en-IN')}</div>
+          </div>
+          <button onClick={submit} style={{ background: PURPLE, color: '#fff', border: 'none', borderRadius: 12, padding: '13px 30px', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
             Add to Cart
           </button>
         </div>

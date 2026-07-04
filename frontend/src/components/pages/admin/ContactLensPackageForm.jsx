@@ -44,8 +44,8 @@ const ContactLensPackageForm = ({
   onClose,
   isEditing,
   brands,
-  targetPowerType,
-  targetLensType,
+  powerTypes = [],
+  lensTypes = [],
 }) => {
   const [newBcValue,    setNewBcValue]    = useState('');
   const [addingBc,      setAddingBc]      = useState(false);
@@ -94,9 +94,40 @@ const ContactLensPackageForm = ({
       {/* ── Body ── */}
       <div className="clpf-body">
 
-        {(targetPowerType || targetLensType) && (
-          <div style={{ background: '#F4EBFF', border: '1px solid #E9D7FE', borderRadius: 8, padding: '10px 12px', marginBottom: 14, fontSize: 13, color: '#6941C6', fontWeight: 600 }}>
-            Adding to: {targetPowerType || '—'} &rsaquo; {targetLensType || '—'}
+        {/* Category (power type) + Timeline (lens type) — change these to move the
+            package to a different node in the left tree on save. */}
+        <div className="clpf-row">
+          <label className="clpf-label">Category (Power Type) <span className="clpf-req">*</span></label>
+          <div className="clpf-select-wrap">
+            <select className="clpf-select" value={formData.power_type_id || ''}
+              onChange={e => { field('power_type_id', e.target.value); field('lens_type_id', ''); }}>
+              <option value="">Select category</option>
+              {powerTypes.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+            </select>
+            <ChevronDown size={16} className="clpf-select-icon" />
+          </div>
+        </div>
+
+        <div className="clpf-row">
+          <label className="clpf-label">Timeline <span className="clpf-req">*</span></label>
+          <div className="clpf-select-wrap">
+            <select className="clpf-select" value={formData.lens_type_id || ''}
+              onChange={e => field('lens_type_id', e.target.value)} disabled={!formData.power_type_id}>
+              <option value="">Select timeline</option>
+              {lensTypes.filter(t => String(t.parent) === String(formData.power_type_id)).map(t => (
+                <option key={t.id} value={t.id}>{t.label}</option>
+              ))}
+              <option value="__new__">+ New timeline…</option>
+            </select>
+            <ChevronDown size={16} className="clpf-select-icon" />
+          </div>
+        </div>
+
+        {formData.lens_type_id === '__new__' && (
+          <div className="clpf-row">
+            <label className="clpf-label">New timeline name <span className="clpf-req">*</span></label>
+            <input className="clpf-input" value={formData.new_lens_type || ''}
+              onChange={e => field('new_lens_type', e.target.value)} placeholder="e.g. Daily" />
           </div>
         )}
 
