@@ -1,13 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Pencil, Trash2, UploadCloud } from 'lucide-react';
+import { Plus, Pencil, Trash2 } from 'lucide-react';
 import apiClient from '../../../services/api';
 
 const PURPLE = '#7F56D9';
 const BORDER = '#D0D5DD';
 const PAGE_SIZE = 5;
 const inputStyle = { width: '100%', boxSizing: 'border-box', border: `1px solid ${BORDER}`, borderRadius: 8, padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', color: '#101828' };
-const blank = () => ({ id: null, title: '', category: '', author: '', excerpt: '', content: '', status: 'draft', published_date: '', is_featured: false, _file: null });
 
 const Toggle = ({ on, onChange, disabled }) => (
     <div onClick={() => !disabled && onChange(!on)} style={{ width: 40, height: 22, borderRadius: 11, background: on ? PURPLE : BORDER, position: 'relative', cursor: disabled ? 'not-allowed' : 'pointer', flexShrink: 0 }}>
@@ -28,9 +27,6 @@ const BlogsManager = () => {
     const [blogs, setBlogs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
-    const [editing, setEditing] = useState(null);
-    const [saving, setSaving] = useState(false);
-    const fileRef = useRef(null);
 
     const load = async () => {
         setLoading(true);
@@ -65,22 +61,6 @@ const BlogsManager = () => {
         try { await apiClient.delete(`/cms/blogs/${b.id}/`); await load(); } catch { /* toast */ }
     };
 
-    const saveBlog = async () => {
-        if (!editing.title.trim()) return;
-        setSaving(true);
-        try {
-            const fd = new FormData();
-            ['title', 'category', 'author', 'excerpt', 'content', 'status'].forEach(f => fd.append(f, editing[f] ?? ''));
-            fd.append('is_featured', !!editing.is_featured);
-            if (editing.published_date) fd.append('published_date', editing.published_date);
-            if (editing._file) fd.append('thumbnail', editing._file);
-            if (editing.id) await apiClient.patch(`/cms/blogs/${editing.id}/`, fd);
-            else await apiClient.post('/cms/blogs/', fd);
-            setEditing(null);
-            await load();
-        } catch { /* toast */ } finally { setSaving(false); }
-    };
-
     const totalPages = Math.max(1, Math.ceil(blogs.length / PAGE_SIZE));
     const paginated = blogs.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
@@ -94,7 +74,7 @@ const BlogsManager = () => {
                     <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: '#101828' }}>Our Blog</h1>
                     <p style={{ margin: '4px 0 0', fontSize: 13, color: '#667085' }}>Manage and publish blog posts for the homepage.</p>
                 </div>
-                <button onClick={() => setEditing(blank())} style={{ display: 'flex', alignItems: 'center', gap: 6, background: PURPLE, color: '#fff', border: 'none', borderRadius: 8, padding: '10px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                <button onClick={() => navigate('/admin/settings/cms/blogs/new')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: PURPLE, color: '#fff', border: 'none', borderRadius: 8, padding: '10px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
                     <Plus size={16} /> Add blog
                 </button>
             </div>
@@ -137,7 +117,8 @@ const BlogsManager = () => {
                         </thead>
                         <tbody>
                             {paginated.map(b => (
-                                <tr key={b.id} style={{ borderBottom: '1px solid #F2F4F7' }}>
+                                // Row click opens the post (edit for now; will point to the preview page once it exists).
+                                <tr key={b.id} onClick={() => navigate(`/admin/settings/cms/blogs/${b.id}/edit`)} style={{ borderBottom: '1px solid #F2F4F7', cursor: 'pointer' }}>
                                     <td style={{ padding: '12px 16px' }}>
                                         <div style={{ width: 48, height: 36, borderRadius: 6, background: '#F2F4F7', overflow: 'hidden' }}>
                                             {b.thumbnail && <img src={b.thumbnail} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
@@ -148,10 +129,10 @@ const BlogsManager = () => {
                                     <td style={{ padding: '12px 16px', fontSize: 13, color: '#475467' }}>{b.author || '—'}</td>
                                     <td style={{ padding: '12px 16px', fontSize: 13, color: '#667085', whiteSpace: 'nowrap' }}>{b.published_date ? new Date(b.published_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</td>
                                     <td style={{ padding: '12px 16px' }}><Badge status={b.status} /></td>
-                                    <td style={{ padding: '12px 16px' }}><Toggle on={b.is_featured} onChange={() => toggleFeatured(b)} /></td>
-                                    <td style={{ padding: '12px 16px' }}>
+                                    <td style={{ padding: '12px 16px' }} onClick={e => e.stopPropagation()}><Toggle on={b.is_featured} onChange={() => toggleFeatured(b)} /></td>
+                                    <td style={{ padding: '12px 16px' }} onClick={e => e.stopPropagation()}>
                                         <div style={{ display: 'flex', gap: 8 }}>
-                                            <button onClick={() => setEditing({ ...blank(), ...b, published_date: b.published_date || '', _file: null })} title="Edit" style={{ width: 30, height: 30, border: `1px solid ${BORDER}`, borderRadius: 7, background: '#fff', cursor: 'pointer', color: '#475467', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Pencil size={14} /></button>
+                                            <button onClick={() => navigate(`/admin/settings/cms/blogs/${b.id}/edit`)} title="Edit" style={{ width: 30, height: 30, border: `1px solid ${BORDER}`, borderRadius: 7, background: '#fff', cursor: 'pointer', color: '#475467', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Pencil size={14} /></button>
                                             <button onClick={() => removeBlog(b)} title="Delete" style={{ width: 30, height: 30, border: '1px solid #FECACA', borderRadius: 7, background: '#FEF2F2', cursor: 'pointer', color: '#DC2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Trash2 size={14} /></button>
                                         </div>
                                     </td>
@@ -178,41 +159,6 @@ const BlogsManager = () => {
                 <button onClick={() => saveSection('published')} style={{ padding: '10px 20px', border: 'none', borderRadius: 8, background: PURPLE, color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Publish Now</button>
             </div>
 
-            {/* Add / edit blog modal */}
-            {editing && (
-                <div onClick={() => setEditing(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(16,24,40,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
-                    <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 12, width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto', padding: 24, fontFamily: 'Roboto, sans-serif' }}>
-                        <h3 style={{ margin: '0 0 20px', fontSize: 18, fontWeight: 700 }}>{editing.id ? 'Edit Blog' : 'Add Blog'}</h3>
-                        <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#344054', marginBottom: 6 }}>Title</label>
-                        <input style={{ ...inputStyle, marginBottom: 14 }} value={editing.title} onChange={e => setEditing({ ...editing, title: e.target.value })} />
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
-                            <div><label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#344054', marginBottom: 6 }}>Category</label><input style={inputStyle} value={editing.category} onChange={e => setEditing({ ...editing, category: e.target.value })} /></div>
-                            <div><label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#344054', marginBottom: 6 }}>Author</label><input style={inputStyle} value={editing.author} onChange={e => setEditing({ ...editing, author: e.target.value })} /></div>
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
-                            <div><label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#344054', marginBottom: 6 }}>Date</label><input type="date" style={inputStyle} value={editing.published_date || ''} onChange={e => setEditing({ ...editing, published_date: e.target.value })} /></div>
-                            <div><label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#344054', marginBottom: 6 }}>Status</label><select style={{ ...inputStyle, background: '#fff' }} value={editing.status} onChange={e => setEditing({ ...editing, status: e.target.value })}><option value="draft">Draft</option><option value="published">Published</option></select></div>
-                        </div>
-                        <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#344054', marginBottom: 6 }}>Excerpt</label>
-                        <textarea rows={2} style={{ ...inputStyle, marginBottom: 14, resize: 'vertical' }} value={editing.excerpt} onChange={e => setEditing({ ...editing, excerpt: e.target.value })} />
-                        <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#344054', marginBottom: 6 }}>Content</label>
-                        <textarea rows={4} style={{ ...inputStyle, marginBottom: 14, resize: 'vertical' }} value={editing.content} onChange={e => setEditing({ ...editing, content: e.target.value })} />
-                        <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#344054', marginBottom: 6 }}>Thumbnail</label>
-                        <div onClick={() => fileRef.current?.click()} style={{ border: `1.5px dashed ${BORDER}`, borderRadius: 10, padding: (editing._file || editing.thumbnail) ? 0 : '22px', textAlign: 'center', cursor: 'pointer', background: '#F9FAFB', overflow: 'hidden', marginBottom: 16 }}>
-                            {(editing._file || editing.thumbnail) ? <img src={editing._file ? URL.createObjectURL(editing._file) : editing.thumbnail} alt="" style={{ maxHeight: 140, maxWidth: '100%', objectFit: 'contain' }} /> : <><UploadCloud size={20} style={{ color: '#475467' }} /><div style={{ fontSize: 13, color: '#475467', marginTop: 6 }}>Drop image, or <span style={{ color: PURPLE, fontWeight: 600 }}>browse</span></div></>}
-                            <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => setEditing({ ...editing, _file: e.target.files?.[0] || null })} />
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-                            <Toggle on={editing.is_featured} onChange={v => setEditing({ ...editing, is_featured: v })} />
-                            <span style={{ fontSize: 13, color: '#344054', fontWeight: 600 }}>Featured</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-                            <button onClick={() => setEditing(null)} style={{ padding: '10px 16px', border: `1px solid ${BORDER}`, borderRadius: 8, background: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
-                            <button onClick={saveBlog} disabled={saving || !editing.title.trim()} style={{ padding: '10px 18px', border: 'none', borderRadius: 8, background: PURPLE, color: '#fff', fontSize: 14, fontWeight: 600, cursor: (saving || !editing.title.trim()) ? 'not-allowed' : 'pointer', opacity: (saving || !editing.title.trim()) ? 0.7 : 1, fontFamily: 'inherit' }}>{saving ? 'Saving…' : 'Save Blog'}</button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

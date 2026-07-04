@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import SimpleRouter
-from .views import HomePageCMSView, SiteSettingsView, HomeSectionViewSet, HeroSlideViewSet, BrandLogoViewSet, FrameRangeCardViewSet, SectionCardViewSet, PromoBannerViewSet, BlogViewSet, FaqViewSet, HomeBundleView
+from .views import HomePageCMSView, SiteSettingsView, HomeSectionViewSet, HeroSlideViewSet, BrandLogoViewSet, FrameRangeCardViewSet, SectionCardViewSet, PromoBannerViewSet, BlogViewSet, FaqViewSet, HomeBundleView, NewsletterSettingsView
 
 router = SimpleRouter()
 router.register(r'home-sections', HomeSectionViewSet, basename='home-section')
@@ -16,5 +16,6 @@ urlpatterns = [
     path('home-bundle/', HomeBundleView.as_view(), name='home-bundle'),
     path('homepage/', HomePageCMSView.as_view(), name='homepage-cms'),
     path('site-settings/', SiteSettingsView.as_view(), name='site-settings'),
+    path('newsletter-settings/', NewsletterSettingsView.as_view(), name='newsletter-settings'),
     path('', include(router.urls)),
 ]

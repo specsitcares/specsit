@@ -30,6 +30,8 @@ import PremiumIntentEditor from './PremiumIntentEditor';
 import PromoBannerEditor from './PromoBannerEditor';
 import BlogsManager from './BlogsManager';
 import FaqManager from './FaqManager';
+import NewsletterEditor from './NewsletterEditor';
+import BlogPostEditor from './BlogPostEditor';
 import StoreSettings from './StoreSettings';
 import PaymentSettings from './PaymentSettings';
 import QueryTable from './QueryTable';
@@ -243,7 +245,10 @@ const AdminDashboard = () => {
               <Route path="settings/cms/promo-banner-1" element={<PromoBannerEditor sectionKey="promo_banner_1" breadcrumb="Promotional Banner Management" pageTitle="Promo Banner 1" />} />
               <Route path="settings/cms/promo-banner-2" element={<PromoBannerEditor sectionKey="promo_banner_2" breadcrumb="Promotional Banner Management" pageTitle="Promo Banner 2" />} />
               <Route path="settings/cms/blogs" element={<BlogsManager />} />
+              <Route path="settings/cms/blogs/new" element={<BlogPostEditor />} />
+              <Route path="settings/cms/blogs/:id/edit" element={<BlogPostEditor />} />
               <Route path="settings/cms/faqs" element={<FaqManager />} />
+              <Route path="settings/cms/newsletter" element={<NewsletterEditor />} />
               <Route path="settings/staff"   element={<EmployeeTable />} />
               <Route path="settings/coupons" element={<CouponTable />} />
 

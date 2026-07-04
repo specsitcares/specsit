@@ -88,7 +88,7 @@ const HomeContent = () => {
       {show('promo_banner_2') && <PromoBanner section="promo_banner_2" />}
       {show('shop_into_better_vision') && <VisitAtelier />}
       {show('faq') && <FAQ />}
-      {show('newsletter') && <Newsletter />}
+      {show('newsletter') && <Newsletter data={home?.newsletter} />}
     </div>
   );
 };
