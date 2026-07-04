@@ -37,6 +37,8 @@ import ReviewPage from './components/pages/account/ReviewPage';
 import OrderReviewPage from './components/pages/account/OrderReviewPage';
 import WriteReviewPage from './components/pages/account/WriteReviewPage';
 import AboutPage from './components/pages/about/AboutPage';
+import BlogListingPage from './components/pages/blog/BlogListingPage';
+import BlogDetailPage from './components/pages/blog/BlogDetailPage';
 import DeliveryTimelinePage from './components/pages/support/DeliveryTimelinePage';
 import ReturnPolicyPage from './components/pages/support/ReturnPolicyPage';
 import WarrantyPage from './components/pages/support/WarrantyPage';
@@ -127,6 +129,8 @@ const App = () => {
                                     <Route path="notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
                                     <Route path="wishlist" element={<ProtectedRoute><WishlistPage /></ProtectedRoute>} />
                                     <Route path="about" element={<AboutPage />} />
+                                    <Route path="blog" element={<BlogListingPage />} />
+                                    <Route path="blog/:slug" element={<BlogDetailPage />} />
                                     <Route path="support/delivery-timeline" element={<DeliveryTimelinePage />} />
                                     <Route path="support/returns" element={<ReturnPolicyPage />} />
                                     <Route path="support/warranty" element={<WarrantyPage />} />

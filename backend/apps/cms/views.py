@@ -244,7 +244,7 @@ class BlogSerializer(serializers.ModelSerializer):
 
 class BlogViewSet(viewsets.ModelViewSet):
     """Blog posts. Public reads see published; admins manage all. Supports
-    ?sort=latest|oldest|featured and ?limit=N."""
+    ?sort=latest|oldest|featured and ?limit=N. Retrieve accepts a pk or a slug."""
     serializer_class = BlogSerializer
     queryset = Blog.objects.all()
 
@@ -252,6 +252,17 @@ class BlogViewSet(viewsets.ModelViewSet):
         if self.action in ('list', 'retrieve'):
             return [AllowAny()]
         return [IsAdminUser()]
+
+    def get_object(self):
+        from django.shortcuts import get_object_or_404
+        lookup = self.kwargs.get('pk', '')
+        qs = self.filter_queryset(self.get_queryset())
+        if str(lookup).isdigit():
+            obj = get_object_or_404(qs, pk=lookup)
+        else:
+            obj = get_object_or_404(qs, slug=lookup)
+        self.check_object_permissions(self.request, obj)
+        return obj
 
     def get_queryset(self):
         qs = Blog.objects.all()

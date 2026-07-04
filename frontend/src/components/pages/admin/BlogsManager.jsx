@@ -117,8 +117,8 @@ const BlogsManager = () => {
                         </thead>
                         <tbody>
                             {paginated.map(b => (
-                                // Row click opens the post (edit for now; will point to the preview page once it exists).
-                                <tr key={b.id} onClick={() => navigate(`/admin/settings/cms/blogs/${b.id}/edit`)} style={{ borderBottom: '1px solid #F2F4F7', cursor: 'pointer' }}>
+                                // Row click previews the post inside the admin dashboard (with an Edit button).
+                                <tr key={b.id} onClick={() => navigate(`/admin/settings/cms/blogs/${b.id}/preview`)} style={{ borderBottom: '1px solid #F2F4F7', cursor: 'pointer' }}>
                                     <td style={{ padding: '12px 16px' }}>
                                         <div style={{ width: 48, height: 36, borderRadius: 6, background: '#F2F4F7', overflow: 'hidden' }}>
                                             {b.thumbnail && <img src={b.thumbnail} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
