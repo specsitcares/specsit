@@ -27,6 +27,23 @@ def _category_is_sunglasses(category):
     parent_name = (getattr(getattr(category, 'parent', None), 'name', '') or '').lower()
     return 'sunglass' in cat_name or 'sunglass' in parent_name
 
+def _frame_constraint_name(product):
+    """The constraint name this frame's type maps to (Half Rim / Rimless…).
+
+    Uses the frame form's `frame_type`; legacy frames that stored the rim style in
+    `frame_style` are honoured only when it names an actual LensConstraint, so shape
+    styles (Aviator, Wayfarer…) never trigger constraint filtering.
+
+    Full Rim frames accept every lens, so they return '' (= no filtering)."""
+    frame_type = (product.frame_type or '').strip()
+    if not frame_type:
+        style = (product.frame_style or '').strip()
+        if style and LensConstraint.objects.filter(name__iexact=style).exists():
+            frame_type = style
+    if frame_type.lower().replace('-', ' ').replace('_', ' ') in ('full rim', 'fullrim'):
+        return ''
+    return frame_type
+
 # --- AI Utility Functions ---
 
 def calculate_pd_from_image(image_file):
@@ -113,6 +130,13 @@ class CategoryViewSet(CachedReadMixin, viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = Category.objects.all() if self.request.user.is_staff else Category.objects.filter(is_active=True)
+        # Optional filters so e.g. frame-lens admin doesn't see contact-lens categories.
+        group = self.request.query_params.get('group')
+        if group:
+            qs = qs.filter(group=group)
+        ctype = self.request.query_params.get('category_type')
+        if ctype:
+            qs = qs.filter(category_type=ctype)
         return qs.order_by('id')
 
     @action(detail=False, methods=['get'], permission_classes=[permissions.AllowAny])
@@ -267,11 +291,14 @@ class ProductViewSet(CachedReadMixin, viewsets.ModelViewSet):
         if lens_type_id:
             lenses = lenses.filter(type_id=lens_type_id)
 
-        # Rimless frames: only show lenses tagged with the Rimless constraint at index 1.59
-        if product.frame_style and product.frame_style.strip().lower() == 'rimless':
+        # Frame-type ↔ lens-constraint wiring: a package applies to this frame only when
+        # one of its constraints matches the frame's type (Full Rim / Half Rim / Rimless…).
+        # Constraint-less packages are universal and show for every frame.
+        frame_type = _frame_constraint_name(product)
+        if frame_type:
+            from django.db.models import Q
             lenses = lenses.filter(
-                constraints__name__iexact='Rimless',
-                index='1.59'
+                Q(constraints__isnull=True) | Q(constraints__name__iexact=frame_type)
             ).distinct()
 
         return LensSerializer(lenses, many=True).data
@@ -299,6 +326,7 @@ class ProductViewSet(CachedReadMixin, viewsets.ModelViewSet):
             return Response([])
 
         is_sunglasses = _category_is_sunglasses(product.category)
+        frame_type = _frame_constraint_name(product)
 
         types = (MetadataItem.objects
                  .filter(group__name__iexact='Lens Type', is_active=True)
@@ -320,7 +348,15 @@ class ProductViewSet(CachedReadMixin, viewsets.ModelViewSet):
             packages = Lens.objects.filter(type_id=t.id, is_active=True)
             if packages.exists():
                 flag = 'is_for_sunglasses' if is_sunglasses else 'is_for_eyeglasses'
-                if packages.filter(**{flag: True}).exists():
+                applicable = packages.filter(**{flag: True})
+                # Same frame-type ↔ constraint rule as recommended_lenses: hide types
+                # whose packages all serve a different frame type.
+                if frame_type:
+                    from django.db.models import Q
+                    applicable = applicable.filter(
+                        Q(constraints__isnull=True) | Q(constraints__name__iexact=frame_type)
+                    )
+                if applicable.exists():
                     result.append(t)
                 continue
 

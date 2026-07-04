@@ -12,8 +12,8 @@ const Toggle = ({ on, onChange }) => (
         <div style={{ position: 'absolute', top: 2, left: on ? 20 : 2, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left .15s', boxShadow: '0 1px 2px rgba(16,24,40,.2)' }} />
     </div>
 );
-const Label = ({ children, req }) => (
-    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#344054', marginBottom: 6 }}>{children}{req && <span style={{ color: '#D92D20' }}> *</span>}</label>
+const Label = ({ children }) => (
+    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#344054', marginBottom: 6 }}>{children}</label>
 );
 const DropZone = ({ preview, onFile, hint }) => {
     const ref = useRef(null);

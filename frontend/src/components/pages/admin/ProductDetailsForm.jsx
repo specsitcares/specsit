@@ -17,13 +17,6 @@ const FRAME_WIDTH_OPTIONS = [
   { value: 'Large (140mm)', label: 'Large (140mm)' },
 ];
 
-const FRAME_TYPE_OPTIONS = [
-  { value: '', label: 'Select frame type' },
-  { value: 'Full Rim', label: 'Full Rim' },
-  { value: 'Half Rim', label: 'Half Rim' },
-  { value: 'Rimless', label: 'Rimless' },
-];
-
 const FRAME_SHAPE_OPTIONS = [
   { value: '', label: 'Select frame shape' },
   { value: 'Pilot / Aviator', label: 'Pilot / Aviator' },

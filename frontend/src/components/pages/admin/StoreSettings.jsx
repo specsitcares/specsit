@@ -147,7 +147,7 @@ const StoreSettings = () => {
         </div>
 
         <div style={{ marginBottom: '13px' }}>
-          <label style={field.label}>Meta Title Template <span style={{ color: '#F04438' }}>*</span></label>
+          <label style={field.label}>Meta Title Template</label>
           <input
             style={field.input}
             value={settings.meta_title_template}
@@ -158,7 +158,7 @@ const StoreSettings = () => {
         </div>
 
         <div>
-          <label style={field.label}>Meta Description Template <span style={{ color: '#F04438' }}>*</span></label>
+          <label style={field.label}>Meta Description Template</label>
           <textarea
             style={field.textarea}
             value={settings.meta_description_template}

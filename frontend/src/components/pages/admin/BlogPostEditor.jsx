@@ -119,11 +119,12 @@ const BlogPostEditor = () => {
     };
 
     const save = async (statusVal) => {
-        if (!b.title.trim()) { window.alert('Please enter a post title.'); return; }
         setSaving(true);
         try {
             const fd = new FormData();
-            ['title', 'category', 'author', 'excerpt', 'tags', 'visibility', 'seo_title', 'seo_description'].forEach(f => fd.append(f, b[f] ?? ''));
+            ['category', 'author', 'excerpt', 'tags', 'visibility', 'seo_title', 'seo_description'].forEach(f => fd.append(f, b[f] ?? ''));
+            fd.append('title', b.title.trim() || 'Untitled post'); // backend needs a non-empty title
+
             fd.append('slug', slugify(b.slug || ''));
             fd.append('content', editorRef.current ? editorRef.current.innerHTML : (b.content || ''));
             fd.append('status', statusVal);

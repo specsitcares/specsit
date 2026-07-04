@@ -93,7 +93,7 @@ const FrameRangeEditor = () => {
                     <h3 style={{ fontSize: 16, fontWeight: 700, color: '#101828', margin: '0 0 16px' }}>Section Configuration</h3>
                     <div style={{ display: 'flex', alignItems: 'flex-end', gap: 24, marginBottom: 28 }}>
                         <div style={{ flex: 1 }}>
-                            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#344054', marginBottom: 6 }}>Section Display Title <span style={{ color: '#D92D20' }}>*</span></label>
+                            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#344054', marginBottom: 6 }}>Section Display Title</label>
                             <input style={inputStyle} value={title} onChange={e => setTitle(e.target.value)} placeholder="Frame lounge" />
                         </div>
                         <div style={{ textAlign: 'right' }}>
