@@ -191,7 +191,11 @@ const BlogPostEditor = () => {
                     <span style={{ color: '#101828', fontWeight: 600 }}>{isEdit ? 'Edit Post' : 'New Post'}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <span title="Preview page coming soon" style={{ fontSize: 14, fontWeight: 600, color: '#98A2B3', textDecoration: 'underline', cursor: 'not-allowed' }}>Preview</span>
+                    {isEdit ? (
+                        <span title="Preview inside the admin" onClick={() => navigate(`/admin/settings/cms/blogs/${id}/preview`)} style={{ fontSize: 14, fontWeight: 600, color: '#767676', textDecoration: 'underline', cursor: 'pointer' }}>Preview</span>
+                    ) : (
+                        <span title="Save the post first to preview it" style={{ fontSize: 14, fontWeight: 600, color: '#98A2B3', textDecoration: 'underline', cursor: 'not-allowed' }}>Preview</span>
+                    )}
                     <button disabled={saving} onClick={() => save('draft')} style={{ height: 40, padding: '0 16px', border: `1px solid ${BORDER}`, borderRadius: 10, background: '#fff', fontSize: 14, fontWeight: 600, color: '#101828', cursor: 'pointer', fontFamily: 'inherit' }}>Save Draft</button>
                     <button disabled={saving} onClick={() => save('published')} style={{ height: 40, padding: '0 16px', border: 'none', borderRadius: 10, background: PURPLE, color: '#fff', fontSize: 14, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1, fontFamily: 'inherit' }}>{saving ? 'Saving…' : 'Publish'}</button>
                 </div>

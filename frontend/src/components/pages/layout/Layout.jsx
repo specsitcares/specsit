@@ -17,16 +17,17 @@ const Layout = () => {
     const isCheckoutPage = pathname.toLowerCase().includes('checkout');
     const isCartPage = pathname.toLowerCase().startsWith('/cart');
     const isWishlistPage = pathname.toLowerCase() === '/wishlist';
+    const isBlogPage = pathname.toLowerCase().startsWith('/blog');
 
-    // Hide header on Auth, Checkout, Cart, and Wishlist pages (PDP now shows the header)
-    const hideHeader = isAuthPage || isCheckoutPage || isCartPage || isWishlistPage;
+    // Hide header on Auth, Checkout, Cart, Wishlist, and Blog pages (PDP now shows the header)
+    const hideHeader = isAuthPage || isCheckoutPage || isCartPage || isWishlistPage || isBlogPage;
     // Hide footer on Auth, Checkout, and Cart pages (Checkout/Cart has its own simple footer)
     const hideFooter = isAuthPage || isCheckoutPage || isCartPage;
 
     return (
         <div className="layout-wrapper">
-            {/* Announcement Bar: scrolling marquee shown on all screens */}
-            <AnnouncementBar />
+            {/* Announcement Bar: scrolling marquee (hidden on blog pages) */}
+            {!isBlogPage && <AnnouncementBar />}
 
             {/* Header: Hidden on Auth pages AND Product Detail pages */}
             {!hideHeader && (
