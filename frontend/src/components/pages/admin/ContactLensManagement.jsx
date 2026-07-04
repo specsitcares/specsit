@@ -49,6 +49,7 @@ const ContactLensManagement = () => {
     package_name: '', description: '', is_active: true, brand: '', selling_price: '',
     min_power: '-6.00', max_power: '+4.00', power_type: '', base_curve: [], replacement: '',
     material: '', water_content: '', dkt: '', colors: [], lenses_per_box: '',
+    power_type_id: '', lens_type_id: '', new_lens_type: '',
   };
   const [editFormData, setEditFormData] = useState({ ...EMPTY_PKG_FORM });
 
@@ -129,23 +130,39 @@ const ContactLensManagement = () => {
   const handleFieldChange = (name, value) => setEditFormData(prev => ({ ...prev, [name]: value }));
   const handleClosePkgForm = () => { setIsCreatingPkg(false); setIsEditingPkg(false); setEditFormData({ ...EMPTY_PKG_FORM }); };
 
-  const fillForm = (pkg) => ({
-    package_name: pkg.package_name || pkg.name || '',
-    description: pkg.description || '',
-    is_active: pkg.is_active,
-    brand: pkg.brand || '',
-    selling_price: pkg.package_selling_price || pkg.price || '',
-    min_power: pkg.min_power ?? '-6.00',
-    max_power: pkg.max_power ?? '+4.00',
-    power_type: pkg.power_type || '',
-    base_curve: pkg.base_curve || [],
-    replacement: pkg.replacement || '',
-    material: pkg.material || '',
-    water_content: pkg.water_content || '',
-    dkt: pkg.dkt || '',
-    colors: pkg.colors || [],
-    lenses_per_box: pkg.lenses_per_box ?? '',
-  });
+  const startCreatePkg = () => {
+    setIsEditingPkg(false);
+    setIsCreatingPkg(true);
+    setEditFormData({
+      ...EMPTY_PKG_FORM,
+      power_type_id: selectedPowerType ? String(selectedPowerType.id) : '',
+      lens_type_id: selectedLensType ? String(selectedLensType.id) : '',
+    });
+  };
+
+  const fillForm = (pkg) => {
+    const lt = lensTypes.find(t => String(t.id) === String(pkg.type));
+    return {
+      package_name: pkg.package_name || pkg.name || '',
+      description: pkg.description || '',
+      is_active: pkg.is_active,
+      brand: pkg.brand || '',
+      selling_price: pkg.package_selling_price || pkg.price || '',
+      min_power: pkg.min_power ?? '-6.00',
+      max_power: pkg.max_power ?? '+4.00',
+      power_type: pkg.power_type || '',
+      base_curve: pkg.base_curve || [],
+      replacement: pkg.replacement || '',
+      material: pkg.material || '',
+      water_content: pkg.water_content || '',
+      dkt: pkg.dkt || '',
+      colors: pkg.colors || [],
+      lenses_per_box: pkg.lenses_per_box ?? '',
+      power_type_id: lt ? String(lt.parent) : '',
+      lens_type_id: lt ? String(lt.id) : '',
+      new_lens_type: '',
+    };
+  };
 
   const openEditForm = (pkg) => {
     setSelectedPkg(pkg);
@@ -162,9 +179,33 @@ const ContactLensManagement = () => {
   };
 
   const handleSave = async () => {
-    if (!selectedLensType) { setError('Select a lens type first.'); return; }
+    // Placement is driven by the form's Category (power type) + Timeline (lens type),
+    // so changing them re-files the package to that node in the left tree.
+    const pt = powerTypes.find(p => String(p.id) === String(editFormData.power_type_id));
+    if (!pt) { setError('Select a category (power type).'); return; }
+
+    let lensType;
+    try {
+      if (editFormData.lens_type_id === '__new__') {
+        const name = (editFormData.new_lens_type || '').trim();
+        if (!name) { setError('Enter a timeline name.'); return; }
+        // Reuse an existing timeline of the same name under this power type if present.
+        lensType = lensTypes.find(t => String(t.parent) === String(pt.id) && t.label.toLowerCase() === name.toLowerCase());
+        if (!lensType) {
+          const g = await ensureGroup(LENS_GROUP);
+          lensType = (await apiClient.post('/core/metadata-items/', {
+            group: g.id, parent: pt.id, label: name,
+            value: `${pt.value}_${name.toLowerCase().replace(/\s+/g, '_')}`, is_active: true,
+          })).data;
+        }
+      } else {
+        lensType = lensTypes.find(t => String(t.id) === String(editFormData.lens_type_id));
+        if (!lensType) { setError('Select a timeline.'); return; }
+      }
+    } catch (err) { console.error(err); setError('Failed to create the timeline.'); return; }
+
     const payload = {
-      type: selectedLensType.id,
+      type: lensType.id,
       price: editFormData.selling_price,
       is_active: editFormData.is_active,
       package_name: editFormData.package_name,
@@ -173,11 +214,11 @@ const ContactLensManagement = () => {
       package_selling_price: editFormData.selling_price,
       min_power: editFormData.min_power,
       max_power: editFormData.max_power,
-      power_type: selectedPowerType?.label || editFormData.power_type || null,
+      power_type: pt.label,
       base_curve: editFormData.base_curve || [],
-      // The lens type (Daily/Weekly/…) IS the replacement schedule — keep them in
-      // sync so the storefront "usage" filter matches the admin grouping.
-      replacement: (selectedLensType?.label || editFormData.replacement || '').toLowerCase() || null,
+      // Timeline IS the replacement schedule — keep them in sync so the storefront
+      // "usage" filter matches the admin grouping.
+      replacement: (lensType.label || '').toLowerCase() || null,
       material: editFormData.material || null,
       water_content: editFormData.water_content || null,
       dkt: editFormData.dkt || null,
@@ -189,6 +230,9 @@ const ContactLensManagement = () => {
       else await apiClient.put(`/catalog/contact-lenses/${selectedPkg.id}/`, { ...selectedPkg, ...payload });
       handleClosePkgForm();
       await fetchData();
+      // Jump the tree to where the package now lives.
+      setSelectedPowerType(pt);
+      setSelectedLensType(lensType);
     } catch (err) { console.error(err); setError('Failed to save package.'); }
   };
 
@@ -360,7 +404,7 @@ const ContactLensManagement = () => {
               {selectedLensType ? `${selectedPowerType?.label || ''} · ${selectedLensType.label} packages` : 'Select a lens type'}
             </span>
             <button className="lm-add-pkg-btn" disabled={!selectedLensType}
-              onClick={() => { setIsEditingPkg(false); setIsCreatingPkg(true); setEditFormData({ ...EMPTY_PKG_FORM }); }}>
+              onClick={startCreatePkg}>
               <Plus size={13} /> Add Package
             </button>
           </div>
@@ -376,7 +420,7 @@ const ContactLensManagement = () => {
                 <Layers size={40} style={{ color: '#D0D5DD', marginBottom: 12 }} />
                 <p style={{ color: '#667085', margin: 0, fontSize: 13 }}>No packages yet for this lens type.</p>
                 <button className="lm-add-pkg-btn" style={{ marginTop: 16 }}
-                  onClick={() => { setIsEditingPkg(false); setIsCreatingPkg(true); setEditFormData({ ...EMPTY_PKG_FORM }); }}>
+                  onClick={startCreatePkg}>
                   <Plus size={13} /> Create First Package
                 </button>
               </div>
@@ -454,8 +498,8 @@ const ContactLensManagement = () => {
               onClose={handleClosePkgForm}
               isEditing={isEditingPkg}
               brands={brands}
-              targetPowerType={selectedPowerType?.label}
-              targetLensType={selectedLensType?.label}
+              powerTypes={powerTypes}
+              lensTypes={lensTypes}
             />
           </div>
         </div>
