@@ -21,6 +21,7 @@ const EDITOR_ROUTES = {
     promo_banner_2: '/admin/settings/cms/promo-banner-2',
     our_blog: '/admin/settings/cms/blogs',
     faq: '/admin/settings/cms/faqs',
+    newsletter: '/admin/settings/cms/newsletter',
 };
 
 const Toggle = ({ on, onChange, disabled }) => (

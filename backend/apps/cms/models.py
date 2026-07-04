@@ -143,6 +143,7 @@ class PromoBanner(models.Model):
 class Blog(models.Model):
     """A blog post for the homepage 'Our Blog' section + the blog listing."""
     STATUS = [('published', 'Published'), ('draft', 'Draft')]
+    VISIBILITY = [('public', 'Public'), ('private', 'Private')]
     title = models.CharField(max_length=200)
     slug = models.SlugField(max_length=220, blank=True)
     thumbnail = models.ImageField(upload_to='cms/blogs/', null=True, blank=True)
@@ -150,6 +151,10 @@ class Blog(models.Model):
     author = models.CharField(max_length=100, blank=True, default='')
     excerpt = models.TextField(blank=True, default='')
     content = models.TextField(blank=True, default='')
+    tags = models.CharField(max_length=255, blank=True, default='', help_text='Comma-separated tags.')
+    visibility = models.CharField(max_length=10, choices=VISIBILITY, default='public')
+    seo_title = models.CharField(max_length=160, blank=True, default='')
+    seo_description = models.TextField(blank=True, default='')
     status = models.CharField(max_length=12, choices=STATUS, default='draft')
     is_featured = models.BooleanField(default=False)
     published_date = models.DateField(null=True, blank=True)
@@ -158,6 +163,17 @@ class Blog(models.Model):
 
     class Meta:
         ordering = ['-published_date', '-created_at']
+
+    def save(self, *args, **kwargs):
+        if not self.slug and self.title:
+            from django.utils.text import slugify
+            base = slugify(self.title)[:200] or 'post'
+            slug, n = base, 2
+            while Blog.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                slug = f"{base}-{n}"
+                n += 1
+            self.slug = slug
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.title

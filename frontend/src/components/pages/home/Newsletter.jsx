@@ -7,7 +7,7 @@ const MailIcon = () => (
   </svg>
 );
 
-const Newsletter = () => {
+const Newsletter = ({ data }) => {
   const [email, setEmail] = useState('');
   const [done, setDone] = useState(false);
 
@@ -16,11 +16,16 @@ const Newsletter = () => {
     if (email) setDone(true);
   };
 
+  // CMS-managed content (admin → Homepage Management → Newsletter), with fallbacks.
+  const heading = data?.headline || 'Subscribe to our Newsletter and get 20% off';
+  const placeholder = data?.email_placeholder || 'Enter your email address';
+  const ctaText = data?.cta_text || 'Subscribe';
+
   return (
-    <section className="newsletter-v2" id="newsletter">
+    <section className="newsletter-v2" id="newsletter" style={data?.bg_color ? { background: data.bg_color } : undefined}>
       <div className="newsletter-v2__inner">
         <div className="newsletter-v2__row">
-          <h2 className="newsletter-v2__heading">Subscribe to our Newsletter and get 20% off</h2>
+          <h2 className="newsletter-v2__heading">{heading}</h2>
           {done ? (
             <p className="newsletter-v2__success">You're in! Watch your inbox for exclusive offers.</p>
           ) : (
@@ -30,13 +35,13 @@ const Newsletter = () => {
                 <input
                   type="email"
                   className="newsletter-v2__input"
-                  placeholder="Enter your email address"
+                  placeholder={placeholder}
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   required
                 />
               </div>
-              <button type="submit" className="newsletter-v2__btn">Subscribe</button>
+              <button type="submit" className="newsletter-v2__btn">{ctaText}</button>
             </form>
           )}
         </div>

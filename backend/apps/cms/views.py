@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, serializers, viewsets
 from rest_framework.permissions import AllowAny, IsAdminUser
-from .models import Announcement, HeroSlide, EditorialSection, Benefit, HomeSectionTitle, SiteSettings, HomeSection, BrandLogo, FrameRangeCard, SectionCard, PromoBanner, Blog, Faq
+from .models import Announcement, HeroSlide, EditorialSection, Benefit, HomeSectionTitle, SiteSettings, HomeSection, BrandLogo, FrameRangeCard, SectionCard, PromoBanner, Blog, Faq, NewsletterSettings
 
 class AnnouncementSerializer(serializers.ModelSerializer):
     class Meta:
@@ -256,7 +256,7 @@ class BlogViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = Blog.objects.all()
         if not (self.request.user and self.request.user.is_staff):
-            qs = qs.filter(status='published')
+            qs = qs.filter(status='published', visibility='public')
         sort = self.request.query_params.get('sort')
         if sort == 'oldest':
             qs = qs.order_by('published_date', 'created_at')
@@ -349,6 +349,48 @@ class SiteSettingsView(APIView):
             return Response(s.data)
         return Response(s.errors, status=status.HTTP_400_BAD_REQUEST)
 
+class NewsletterSettingsSerializer(serializers.ModelSerializer):
+    # Never expose the stored key; the admin UI sends a new one only when changed.
+    api_key = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    api_key_set = serializers.SerializerMethodField()
+
+    class Meta:
+        model = NewsletterSettings
+        fields = ['headline', 'subheadline', 'email_placeholder', 'cta_text', 'bg_color',
+                  'provider', 'api_key', 'api_key_set', 'list_id',
+                  'discount_code', 'discount_value', 'auto_apply']
+
+    def get_api_key_set(self, obj):
+        return bool(obj.api_key)
+
+
+class NewsletterSettingsView(APIView):
+    """Newsletter section settings (singleton). Staff read/update everything;
+    public reads only get the content fields used to render the section."""
+    permission_classes = [AllowAny]
+
+    PUBLIC_FIELDS = ['headline', 'subheadline', 'email_placeholder', 'cta_text', 'bg_color', 'discount_code', 'discount_value']
+
+    def get(self, request):
+        data = NewsletterSettingsSerializer(NewsletterSettings.get()).data
+        if not (request.user and request.user.is_staff):
+            data = {k: data[k] for k in self.PUBLIC_FIELDS}
+        return Response(data)
+
+    def put(self, request):
+        if not request.user.is_staff:
+            return Response({'detail': 'Admin access required.'}, status=status.HTTP_403_FORBIDDEN)
+        payload = request.data.copy()
+        # Blank api_key means "unchanged", not "clear it".
+        if not payload.get('api_key'):
+            payload.pop('api_key', None)
+        s = NewsletterSettingsSerializer(NewsletterSettings.get(), data=payload, partial=True)
+        if s.is_valid():
+            s.save()
+            return Response(s.data)
+        return Response(s.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 class HomePageCMSView(APIView):
     permission_classes = [AllowAny]
 
@@ -396,7 +438,7 @@ class HomeBundleView(APIView):
 
         # Blogs honour the Our Blog section settings
         blog_sec = next((s for s in sections if s.key == 'our_blog'), None)
-        blogs_qs = Blog.objects.filter(status='published')
+        blogs_qs = Blog.objects.filter(status='published', visibility='public')
         sort = (blog_sec.sort if blog_sec else '') or 'latest'
         if sort == 'oldest':
             blogs_qs = blogs_qs.order_by('published_date', 'created_at')
@@ -416,8 +458,16 @@ class HomeBundleView(APIView):
                     .prefetch_related('variants', 'reviews')
                     .order_by('-created_at')[:40])
 
+        ns = NewsletterSettings.get()
+
         return Response({
             'sections': section_map,
+            'newsletter': {
+                'headline': ns.headline, 'subheadline': ns.subheadline,
+                'email_placeholder': ns.email_placeholder, 'cta_text': ns.cta_text,
+                'bg_color': ns.bg_color, 'discount_code': ns.discount_code,
+                'discount_value': ns.discount_value,
+            },
             'hero_slides': HeroSlideAdminSerializer(
                 HeroSlide.objects.filter(is_active=True, status='published').order_by('order', 'id'), many=True, context=ctx).data,
             'brand_logos': BrandLogoSerializer(
