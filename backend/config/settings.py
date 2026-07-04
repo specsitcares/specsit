@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
+    'storages',
     # Local Domain Apps
     'apps.core_utils',   # Idempotency, Shared Utilities
     'apps.catalog',      # Products, Lenses, Prescriptions, Faces
@@ -123,10 +124,53 @@ STATICFILES_DIRS = [
     BASE_DIR / 'staticfiles',
     BASE_DIR / 'staticfiles_dist',
 ]
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# ── Media storage ──────────────────────────────────────────────────────────
+# Static assets (compiled React/JS/CSS) are always served by WhiteNoise.
+# User-uploaded media (product/variant images) must live somewhere durable in
+# production because the host's local disk is ephemeral and wiped on redeploy.
+# In production we store media in Supabase Storage (S3-compatible); locally we
+# fall back to the filesystem (served via urls.py under DEBUG).
+#
+# All config is supplied via SUPABASE_* env vars. The AWS_* names below are just
+# the setting keys the S3 client (django-storages/boto3) reads for ANY
+# S3-compatible provider — they are internal and provider-agnostic, not Amazon.
+STATICFILES_BACKEND = 'whitenoise.storage.CompressedStaticFilesStorage'
+
+# Supabase project's S3 endpoint, e.g. https://<project-ref>.storage.supabase.co/storage/v1/s3
+SUPABASE_S3_ENDPOINT = env('SUPABASE_S3_ENDPOINT', default='').strip()
+# boto3 rejects a scheme-less endpoint ("Invalid endpoint") — normalise it.
+if SUPABASE_S3_ENDPOINT and not SUPABASE_S3_ENDPOINT.startswith(('http://', 'https://')):
+    SUPABASE_S3_ENDPOINT = 'https://' + SUPABASE_S3_ENDPOINT
+# Auto-enable object storage whenever the Supabase endpoint is configured.
+USE_S3 = env.bool('USE_S3', default=bool(SUPABASE_S3_ENDPOINT))
+
+if USE_S3:
+    AWS_S3_ENDPOINT_URL = SUPABASE_S3_ENDPOINT
+    AWS_ACCESS_KEY_ID = env('SUPABASE_S3_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = env('SUPABASE_S3_SECRET_ACCESS_KEY')
+    AWS_STORAGE_BUCKET_NAME = env('SUPABASE_S3_BUCKET', default=env('SUPABASE_BUCKET_NAME', default=''))
+    AWS_S3_REGION_NAME = env('SUPABASE_S3_REGION', default='ap-northeast-1')
+    # Supabase requires path-style addressing and does not support S3 ACLs.
+    AWS_S3_ADDRESSING_STYLE = 'path'
+    AWS_DEFAULT_ACL = None
+    AWS_S3_FILE_OVERWRITE = False
+    # Public bucket → clean, un-signed URLs. Point the public host at
+    # <project-ref>.supabase.co/storage/v1/object/public/<bucket> so image .url()
+    # resolves to the publicly reachable path (the /s3 endpoint itself is auth-only).
+    AWS_QUERYSTRING_AUTH = env.bool('SUPABASE_S3_SIGNED_URLS', default=False)
+    AWS_S3_CUSTOM_DOMAIN = env('SUPABASE_S3_PUBLIC_HOST', default=None)
+    _MEDIA_BACKEND = 'storages.backends.s3.S3Storage'
+else:
+    _MEDIA_BACKEND = 'django.core.files.storage.FileSystemStorage'
+
+STORAGES = {
+    'default': {'BACKEND': _MEDIA_BACKEND},
+    'staticfiles': {'BACKEND': STATICFILES_BACKEND},
+}
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
