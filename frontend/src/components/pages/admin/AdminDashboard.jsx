@@ -33,6 +33,7 @@ import FaqManager from './FaqManager';
 import NewsletterEditor from './NewsletterEditor';
 import BlogPostEditor from './BlogPostEditor';
 import BlogPreview from './BlogPreview';
+import AccessoryForm from './AccessoryForm';
 import StoreSettings from './StoreSettings';
 import PaymentSettings from './PaymentSettings';
 import QueryTable from './QueryTable';
@@ -204,6 +205,8 @@ const AdminDashboard = () => {
               <Route path="products/new/frame"             element={<FrameFormRoute />} />
               <Route path="products/new/eyeglasses"        element={<EyeglassesFormRoute />} />
               <Route path="products/new/sunglasses"        element={<SunglassesFormRoute />} />
+              <Route path="products/new/accessory"         element={<AccessoryForm />} />
+              <Route path="products/edit/accessory/:id"    element={<AccessoryForm />} />
               <Route path="products/edit/lens/:id"         element={<LensManagementRoute />} />
               <Route path="products/edit/frame/:id"        element={<FrameFormRoute />} />
               <Route path="products/edit/eyeglasses/:id"   element={<EyeglassesFormRoute />} />

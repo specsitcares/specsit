@@ -5,15 +5,21 @@ import FormModal from './FormModal';
 import BaseAdminTable from './BaseAdminTable';
 
 const BRAND_TABS = [
-  { key: 'Frame',   label: 'Frames' },
-  { key: 'Lens',    label: 'Lenses for Frames' },
-  { key: 'Contact', label: 'Contact Lenses' },
+  { key: 'Frame',    label: 'Frames' },
+  { key: 'Lens',     label: 'Lenses for Frames' },
+  { key: 'Contact',  label: 'Contact Lenses' },
+  { key: 'Cases',    label: 'Cases' },
+  { key: 'Cloths',   label: 'Cloths' },
+  { key: 'Solution', label: 'Cleaning Solutions' },
 ];
 
 const BRAND_TYPE_OPTIONS = [
-  { value: 'Frame',   label: 'Frame' },
-  { value: 'Lens',    label: 'Lenses for Frames' },
-  { value: 'Contact', label: 'Contact Lenses' },
+  { value: 'Frame',    label: 'Frame' },
+  { value: 'Lens',     label: 'Lenses for Frames' },
+  { value: 'Contact',  label: 'Contact Lenses' },
+  { value: 'Cases',    label: 'Cases' },
+  { value: 'Cloths',   label: 'Cloths' },
+  { value: 'Solution', label: 'Cleaning Solutions' },
 ];
 
 const BrandTable = () => {
