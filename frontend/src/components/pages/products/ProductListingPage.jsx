@@ -109,7 +109,7 @@ const ProductListingPage = () => {
     useEffect(() => {
         const norm = (s) => (s || '').toLowerCase().replace(/[^a-z]/g, '');
         const raw = norm(categorySlug);
-        setProductType(raw.startsWith('contact') ? 'lens' : 'frame');
+        setProductType(raw.startsWith('contact') ? 'lens' : raw.startsWith('accessor') ? 'accessory' : 'frame');
         if (!raw) { setSelectedCategory(''); return; }
         const match = categories.find(c => {
             const n = norm(c.name);

@@ -108,7 +108,9 @@ const VariantRow = ({ v, onEdit, onDelete, productType }) => {
       <td style={{ padding: '14px 24px', fontSize: 13 }}><StockBadge qty={v.stock ?? 0} threshold={5} /></td>
       <td style={{ padding: '14px 24px', color: '#344054', fontWeight: 600, fontSize: 13 }}>{price !== '—' ? formatPrice(price) : '—'}</td>
       <td style={{ padding: '14px 24px', color: '#667085', fontSize: 13 }}>{discount}%</td>
-      <td style={{ padding: '14px 24px', color: '#667085', fontSize: 13 }}>{gender}</td>
+      {productType !== 'accessory' && (
+        <td style={{ padding: '14px 24px', color: '#667085', fontSize: 13 }}>{gender}</td>
+      )}
       <td style={{ padding: '14px 24px' }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
           <ActionBtn onClick={() => onEdit(productType, v.product)}><Edit2 size={16} /></ActionBtn>
@@ -202,20 +204,22 @@ const LensesTab = ({ onAdd, onEdit }) => {
 };
 
 // ─── Category Tab ─────────────────────────────────────────────────────────────
-const CategoryTab = ({ title, categoryName, onAdd, onEdit }) => {
-  const { variants, loading, total, page, setPage, perPage, setPerPage, searchQuery, setSearchQuery, deleteTarget, setDeleteTarget, confirmDelete } = useVariantsTab({ productType: 'frame', category: categoryName });
+const CategoryTab = ({ title, categoryName, onAdd, onEdit, productType = 'frame' }) => {
+  const { variants, loading, total, page, setPage, perPage, setPerPage, searchQuery, setSearchQuery, deleteTarget, setDeleteTarget, confirmDelete } = useVariantsTab({ productType, category: categoryName });
 
   const columns = [
     { label: 'Product / SKU', key: 'name' },
     { label: 'Brand', key: 'brand' },
     { label: 'Category', key: 'category' },
     { label: 'Color', key: 'color' },
-    { label: 'Size', key: 'size' },
-    { label: 'Material', key: 'material' },
+    ...(productType === 'frame' ? [
+      { label: 'Size', key: 'size' },
+      { label: 'Material', key: 'material' },
+    ] : []),
     { label: 'Stock', key: 'stock' },
     { label: 'Price', key: 'price' },
     { label: 'Discount %', key: 'discount' },
-    { label: 'Gender', key: 'gender' },
+    ...(productType === 'accessory' ? [] : [{ label: 'Gender', key: 'gender' }]),
     { label: 'Actions', key: 'actions', align: 'right' },
   ];
 
@@ -233,7 +237,7 @@ const CategoryTab = ({ title, categoryName, onAdd, onEdit }) => {
         data={variants}
         loading={loading}
         renderRow={(v) => (
-          <VariantRow key={v.id} v={v} productType="frame" onEdit={onEdit} onDelete={setDeleteTarget} />
+          <VariantRow key={v.id} v={v} productType={productType} onEdit={onEdit} onDelete={setDeleteTarget} />
         )}
         pagination={{ page, perPage, totalCount: total, onPageChange: setPage, onPerPageChange: (pp) => { setPerPage(pp); setPage(1); } }}
         emptyMessage={`No ${title.toLowerCase()} variants found`}
@@ -302,6 +306,14 @@ const ProductsPage = ({ onAddNew, onEdit }) => {
       {/* Content for the selected category/group */}
       {activeGroup === 'lens' ? (
         <ContactLensManagement />
+      ) : activeGroup === 'accessory' ? (
+        <CategoryTab
+          title={activeCategory || 'Accessories'}
+          categoryName={activeCategory}
+          productType="accessory"
+          onAdd={() => onAddNew(`accessory?category=${encodeURIComponent(activeCategory || '')}`)}
+          onEdit={onEdit}
+        />
       ) : (
         <CategoryTab
           title={activeCategory || 'Category'}

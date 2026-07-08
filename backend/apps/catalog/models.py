@@ -22,7 +22,7 @@ class Category(models.Model):
     def __str__(self): return self.name
 
 class Brand(models.Model):
-    BRAND_TYPE_CHOICES = [('Frame', 'Frame'), ('Lens', 'Lenses for Frames'), ('Contact', 'Contact Lenses')]
+    BRAND_TYPE_CHOICES = [('Frame', 'Frame'), ('Lens', 'Lenses for Frames'), ('Contact', 'Contact Lenses'), ('Cases', 'Cases'), ('Cloths', 'Cloths'), ('Solution', 'Cleaning Solutions')]
     name = models.CharField(max_length=100, unique=True)
     label = models.CharField(max_length=100, blank=True)
     logo = models.ImageField(upload_to='brands/', blank=True, null=True)
@@ -42,7 +42,7 @@ class Product(models.Model):
     """
     Main Product model — supports both lens and frame products.
     """
-    PRODUCT_TYPE_CHOICES = [('lens', 'Lens'), ('frame', 'Frame')]
+    PRODUCT_TYPE_CHOICES = [('lens', 'Lens'), ('frame', 'Frame'), ('accessory', 'Accessory')]
     LENS_TYPE_CHOICES = [
         ('Single Vision', 'Single Vision'),
         ('Bifocal', 'Bifocal'),
@@ -125,6 +125,12 @@ class Variant(models.Model):
     
     # Frame Details (from Figma Node 76:8389)
     frame_material = models.CharField(max_length=100, blank=True, default='')
+
+    # Accessory Details (cloths / cases / cleaning solutions — Figma Node 548:61308)
+    accessory_type = models.CharField(max_length=100, blank=True, default='')
+    compatibility = models.CharField(max_length=100, blank=True, default='')
+    features = models.CharField(max_length=255, blank=True, default='', help_text='Comma-separated feature tags.')
+    warranty_period = models.CharField(max_length=50, blank=True, default='', help_text='Warranty duration for cases, e.g. "1 Year".')
     
     # Per-variant pricing
     base_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True)
