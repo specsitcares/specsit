@@ -44,7 +44,12 @@ class HomeSectionTitleSerializer(serializers.ModelSerializer):
 class SiteSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = SiteSettings
-        fields = ['store_name', 'meta_title_template', 'meta_description_template']
+        fields = [
+            'store_name', 'meta_title_template', 'meta_description_template',
+            'contact_number', 'contact_email', 'social_links', 'frame_sizes',
+            'delivery_charge', 'delivery_min_order_value', 'delivery_max_order_value',
+            'hsn_codes',
+        ]
 
 class HomeSectionSerializer(serializers.ModelSerializer):
     class Meta:
