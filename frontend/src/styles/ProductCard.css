@@ -373,3 +373,35 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* ── Card action buttons (contact-lens listing: Add to Cart / Buy Now) ── */
+.product-card__actions {
+  display: flex;
+  gap: 8px;
+  padding: 0 12px 12px;
+}
+
+.pc-action-btn {
+  flex: 1;
+  border-radius: 10px;
+  padding: 9px 0;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  border: 1.5px solid #68408D;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.pc-action-cart {
+  background: #fff;
+  color: #68408D;
+}
+.pc-action-cart:hover { background: #F4EBFF; }
+
+.pc-action-buy {
+  background: #68408D;
+  color: #fff;
+}
+.pc-action-buy:hover { background: #56306F; }
