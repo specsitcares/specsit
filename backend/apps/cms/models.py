@@ -12,6 +12,24 @@ class SiteSettings(models.Model):
         help_text='Placeholders: {product_name}, {variant_name}, {brand}, {category}, {store_name}'
     )
 
+    # Contact
+    contact_number = models.CharField(max_length=30, blank=True, default='')
+    contact_email = models.CharField(max_length=120, blank=True, default='')
+
+    # Social media — list of {"platform": str, "url": str}
+    social_links = models.JSONField(default=list, blank=True)
+
+    # Frame size chart — list of {"name", "lens_width", "bridge_width", "temple_length"} (values may be ranges e.g. "48-52")
+    frame_sizes = models.JSONField(default=list, blank=True)
+
+    # Delivery cost applicability
+    delivery_charge = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    delivery_min_order_value = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    delivery_max_order_value = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    # HSN codes — list of {"label", "code", "gst"}
+    hsn_codes = models.JSONField(default=list, blank=True)
+
     class Meta:
         verbose_name = 'Site Settings'
 

@@ -1,0 +1,255 @@
+/* Store Settings — matches the Analytics widget look (Figma parity) */
+
+.admin-main-container:has(.ss-page) {
+  background-color: #FEFCFF !important;
+  padding: 0 !important;
+}
+
+.ss-page {
+  font-family: 'Roboto', sans-serif;
+  background: #FEFCFF;
+  min-height: 100vh;
+  color: #040205;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+/* ── top bar ── */
+.ss-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.ss-top h1 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #040205;
+  margin: 0;
+  letter-spacing: -0.2px;
+}
+.ss-top p {
+  font-size: 12px;
+  color: #697177;
+  margin: 4px 0 0;
+}
+
+/* ── grid of cards ── */
+.ss-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 16px;
+  align-items: stretch; /* cards in a row match the tallest one */
+}
+.ss-card {
+  background: #fff;
+  border: 1px solid #E0E0E0;
+  border-radius: 12px;
+  padding: 20px;
+}
+.ss-card.wide { grid-column: 1 / -1; }
+.ss-s2 { grid-column: span 2; } /* 3 cards per row */
+.ss-s3 { grid-column: span 3; } /* 2 cards per row */
+
+/* card head: icon chip + title + subtitle */
+.ss-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.ss-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #EFDFFF;
+  color: #6b46c1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.ss-head-text { display: flex; flex-direction: column; gap: 2px; }
+.ss-title { font-size: 13px; font-weight: 700; color: #040205; }
+.ss-sub   { font-size: 11px; color: #697177; line-height: 1.4; }
+
+/* ── fields ── */
+.ss-field { display: flex; flex-direction: column; }
+.ss-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #344054;
+  margin-bottom: 6px;
+}
+.ss-hint { font-size: 10px; color: #697177; margin-top: 5px; }
+
+.ss-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #E0E0E0;
+  border-radius: 8px;
+  font-size: 12px;
+  font-family: inherit;
+  color: #101828;
+  background: #fff;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.ss-input::placeholder { color: #B0B7C3; }
+.ss-input:focus {
+  border-color: #7F56D9;
+  box-shadow: 0 0 0 3px rgba(127, 86, 217, 0.12);
+}
+textarea.ss-input { resize: vertical; min-height: 76px; line-height: 1.5; }
+
+.ss-two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.ss-three { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+
+/* ── repeater rows ── */
+.ss-rep-head, .ss-rep-row {
+  display: grid;
+  gap: 8px;
+  align-items: center;
+}
+.ss-rep-head { margin: 2px 0 8px; }
+.ss-rep-row { margin-bottom: 8px; }
+.ss-col-label {
+  font-size: 9px;
+  font-weight: 600;
+  color: #9CA3AF;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.ss-empty {
+  font-size: 11px;
+  color: #9CA3AF;
+  padding: 10px 12px;
+  background: #FAFAFB;
+  border: 1px dashed #E0E0E0;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+/* buttons */
+.ss-remove {
+  width: 36px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #FECDCA;
+  background: #FEF3F2;
+  color: #B42318;
+  border-radius: 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.ss-remove:hover { background: #FEE4E2; }
+
+.ss-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #F9F5FF;
+  color: #6941C6;
+  border: 1px solid #E9D7FE;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  margin-top: 4px;
+  transition: background 0.15s;
+}
+.ss-add:hover { background: #F4EBFF; }
+
+/* placeholder pills (SEO) */
+.ss-pills { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 18px; }
+.ss-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #F9F5FF;
+  border: 1px solid #E9D7FE;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 10px;
+  color: #6941C6;
+  font-family: 'Roboto Mono', monospace;
+  cursor: default;
+}
+.ss-pill span { color: #9E77ED; font-family: 'Roboto', sans-serif; }
+
+/* SEO preview (Google SERP mock) */
+.ss-serp {
+  background: #FAFAFB;
+  border: 1px solid #E0E0E0;
+  border-radius: 10px;
+  padding: 16px;
+}
+.ss-serp-eyebrow {
+  font-size: 9px; color: #697177; margin-bottom: 8px;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.ss-serp-title {
+  font-size: 15px; color: #1a0dab; margin-bottom: 3px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ss-serp-url { font-size: 11px; color: #006621; margin-bottom: 4px; }
+.ss-serp-desc {
+  font-size: 11px; color: #545454; line-height: 1.5;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.ss-serp-inputs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px; }
+
+/* alerts */
+.ss-alert {
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 12px;
+  margin-top: 16px;
+}
+.ss-alert.err { background: #FEF3F2; border: 1px solid #FECDCA; color: #B42318; }
+.ss-alert.ok  { background: #ECFDF3; border: 1px solid #ABEFC6; color: #067647; }
+
+/* save bar */
+.ss-savebar { margin-top: 20px; display: flex; align-items: center; gap: 14px; }
+.ss-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #7F56D9;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 11px 22px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.ss-save:hover { background: #6941C6; }
+.ss-save:disabled { background: #D0D5DD; cursor: not-allowed; }
+
+.ss-count { font-size: 10px; }
+
+.spinning { animation: ss-spin 1s linear infinite; }
+@keyframes ss-spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 1100px) {
+  /* 6-col → 2 per row (each spans 3) */
+  .ss-grid { grid-template-columns: repeat(2, 1fr); }
+  .ss-s2, .ss-s3 { grid-column: span 1; }
+  .ss-card.wide { grid-column: 1 / -1; }
+}
+
+@media (max-width: 700px) {
+  .ss-grid { grid-template-columns: 1fr; }
+  .ss-s2, .ss-s3, .ss-card.wide { grid-column: auto; }
+  .ss-serp-inputs { grid-template-columns: 1fr 1fr; }
+}
