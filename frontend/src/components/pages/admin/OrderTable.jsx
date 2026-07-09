@@ -56,6 +56,7 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewWarran
   const [orderAnalytics, setOrderAnalytics] = useState(null);
   const [activeReturnTab, setActiveReturnTab] = useState('window'); // 'window', 'requests', 'refund', 'replacement'
   const [activeWarrantyTab, setActiveWarrantyTab] = useState('window'); // 'window', 'claimed', 'not_claimed'
+  const [activeItemTab, setActiveItemTab] = useState('all'); // default Orders view: 'all' | 'eyewear' | 'accessory' | 'lens'
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [qcLightbox, setQcLightbox] = useState(null);
   const [rxOffcanvasOrder, setRxOffcanvasOrder] = useState(null);
@@ -71,6 +72,7 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewWarran
           date_to: dateFilter.to,
           ...(category === 'returns' ? { return_tab: activeReturnTab } : {}),
           ...(category === 'warranty' ? { warranty_tab: activeWarrantyTab } : {}),
+          ...(activeItemTab !== 'all' ? { item_type: activeItemTab } : {}),
         }
       });
       setOrderAnalytics(res.data);
@@ -83,6 +85,7 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewWarran
     setSearchQuery('');
     setStatusFilter('');
     setDateFilter({ from: '', to: '' });
+    setActiveItemTab('all');
   }, [category]);
 
   useEffect(() => {
@@ -98,7 +101,7 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewWarran
 
   useEffect(() => {
     fetchOrders(); fetchMetadata(); fetchAnalytics();
-  }, [page, perPage, searchQuery, statusFilter, dateFilter.from, dateFilter.to, category, activeWarrantyTab, activeReturnTab]);
+  }, [page, perPage, searchQuery, statusFilter, dateFilter.from, dateFilter.to, category, activeWarrantyTab, activeReturnTab, activeItemTab]);
 
   const fetchMetadata = async () => {
     try {
@@ -123,6 +126,7 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewWarran
           date_to: dateFilter.to,
           ...(category === 'returns' ? { return_tab: activeReturnTab } : {}),
           ...(category === 'warranty' ? { warranty_tab: activeWarrantyTab } : {}),
+          ...(activeItemTab !== 'all' ? { item_type: activeItemTab } : {}),
         }
       });
       const data = res.data;
@@ -326,6 +330,22 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewWarran
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#101828', margin: 0 }}>
                 {category === 'returns' ? 'Returns & Replacements' : category === 'warranty' ? 'Orders (Warranty Window)' : 'Recent Orders'}
               </h3>
+              {!hideKPIs && (
+                <div style={{ display: 'flex', background: '#F9FAFB', border: '1px solid #EAECF0', borderRadius: '6px', padding: '2px', marginLeft: '10px' }}>
+                  {[
+                    { key: 'all', label: 'All' },
+                    { key: 'eyewear', label: 'Eyewear' },
+                    { key: 'accessory', label: 'Accessories' },
+                    { key: 'lens', label: 'Contact Lens' },
+                  ].map(t => (
+                    <button
+                      key={t.key}
+                      onClick={() => { setActiveItemTab(t.key); setPage(1); }}
+                      style={{ padding: '6px 14px', borderRadius: '5px', fontSize: '10px', fontWeight: 600, border: 'none', background: activeItemTab === t.key ? '#fff' : 'transparent', color: activeItemTab === t.key ? '#7F56D9' : '#667085', boxShadow: activeItemTab === t.key ? '0 1px 2px rgba(0,0,0,0.05)' : 'none', cursor: 'pointer' }}
+                    >{t.label}</button>
+                  ))}
+                </div>
+              )}
               {category === 'returns' && (
                 <div style={{ display: 'flex', background: '#F9FAFB', border: '1px solid #EAECF0', borderRadius: '6px', padding: '2px', marginLeft: '10px' }}>
                   <button

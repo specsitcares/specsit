@@ -110,6 +110,17 @@ class OrderViewSet(viewsets.ModelViewSet):
         if date_to and date_to != "":
             qs = qs.filter(created_at__date__lte=date_to)
 
+        # Item-type segregation for the Orders tabs (also used in returns/warranty).
+        # Eyewear = sunglasses + eyeglasses (frame product type); accessory = accessory variants;
+        # contact lens orders link via OrderItem.contact_lens (not a variant/product).
+        item_type = self.request.query_params.get('item_type')
+        if item_type == 'eyewear':
+            qs = qs.filter(items__variant__product__product_type='frame').distinct()
+        elif item_type == 'accessory':
+            qs = qs.filter(items__variant__product__product_type='accessory').distinct()
+        elif item_type == 'lens':
+            qs = qs.filter(items__contact_lens__isnull=False).distinct()
+
         return qs.order_by('-created_at')
     
     @action(detail=False, methods=['get'])
@@ -265,6 +276,15 @@ class OrderViewSet(viewsets.ModelViewSet):
                 qs = qs.filter(status_id=int(status_id))
             except (ValueError, TypeError):
                 pass
+
+        # Item-type segregation (mirrors get_queryset so KPI cards match the active tab)
+        item_type = request.query_params.get('item_type')
+        if item_type == 'eyewear':
+            qs = qs.filter(items__variant__product__product_type='frame').distinct()
+        elif item_type == 'accessory':
+            qs = qs.filter(items__variant__product__product_type='accessory').distinct()
+        elif item_type == 'lens':
+            qs = qs.filter(items__contact_lens__isnull=False).distinct()
 
         # 2. Extract Context-Aware Counts using order_status field
         total_count = qs.count()
