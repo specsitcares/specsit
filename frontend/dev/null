@@ -1,102 +1,432 @@
-import React, { useState, useRef } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { useCart } from "../../../context/CartContext";
-import specsitFullLogo from "../../../assets/specsit_full_logo.svg";
-import "../../../styles/visitor-header.css";
-import "../../../styles/nav-dropdown.css";
-import SunglassesDropdown from "./SunglassesDropdown";
-import ContactLensDropdown from "./ContactLensDropdown";
-const navLinks = [
-  { name: "Eyeglasses", path: "/products?category=eyeglasses", dropdown: null },
-  { name: "Sunglasses", path: "/products?category=sunglasses", dropdown: "sunglasses" },
-  { name: "Contact Lenses", path: "/products?category=contact-lens", dropdown: "contact-lens" },
-  { name: "Accessories", path: "/products?category=accessories", dropdown: null }
-];
-const SearchIcon = () => /* @__PURE__ */ React.createElement("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "#71717A", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ React.createElement("circle", { cx: "11", cy: "11", r: "7" }), /* @__PURE__ */ React.createElement("line", { x1: "21", y1: "21", x2: "16.65", y2: "16.65" }));
-const HeartIcon = () => /* @__PURE__ */ React.createElement("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "#040205", strokeWidth: "1.8", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ React.createElement("path", { d: "M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" }));
-const CartIcon = () => /* @__PURE__ */ React.createElement("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "#040205", strokeWidth: "1.8", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ React.createElement("circle", { cx: "9", cy: "21", r: "1" }), /* @__PURE__ */ React.createElement("circle", { cx: "20", cy: "21", r: "1" }), /* @__PURE__ */ React.createElement("path", { d: "M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" }));
-const VisitorHeader = () => {
-  const { cart } = useCart();
-  const location = useLocation();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [activeDropdown, setActiveDropdown] = useState(null);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const closeTimer = useRef(null);
-  const cartCount = cart?.reduce((acc, item) => acc + item.quantity, 0) || 0;
-  const handleSearch = (e) => {
-    if (e.key === "Enter" && searchQuery.trim()) {
-      window.location.href = `/products?search=${encodeURIComponent(searchQuery)}`;
+import React, { useState, useEffect } from "react";
+import { useSearchParams, Link } from "react-router-dom";
+import apiClient from "../../../services/api";
+import { ProductCard } from "../home/NewArrivals";
+import ContactLensListingPage from "./ContactLensListingPage";
+import VTOModal from "../../VTOModal/VTOModal";
+import "../../../styles/products.css";
+import "../../../styles/ProductCard.css";
+const PRICE_RANGES = {
+  "Under \u20B92000": { min: 0, max: 2e3 },
+  "\u20B92000 - \u20B95000": { min: 2e3, max: 5e3 },
+  "\u20B95000 - \u20B910000": { min: 5e3, max: 1e4 },
+  "Over \u20B910000": { min: 1e4, max: null }
+};
+const FILTER_OPTIONS = {
+  "Frame Shape": ["Square", "Round", "Aviator", "Wayfarer", "Cat Eye", "Rectangle"],
+  "Frame Type": ["Full Rim", "Half Rim", "Rimless"],
+  "Frame Color": [
+    { name: "Black", color: "#000000" },
+    { name: "Brown", color: "#78350F" },
+    { name: "Yellow", color: "#EAB308" },
+    { name: "White", color: "#F1F1F1" },
+    { name: "Navy", color: "#1E3A8A" },
+    { name: "Purple", color: "#68408D" },
+    { name: "Grey", color: "#71717A" }
+  ],
+  "Size / Width": ["Extra Small", "Small", "Medium", "Large", "Extra Large"],
+  "Material": ["Acetate", "Titanium", "Stainless Steel", "TR90", "Wood", "Metal"],
+  "Gender": ["Men", "Women", "Unisex", "Kids"],
+  "Price Range": Object.keys(PRICE_RANGES),
+  "Discount": ["10% or more", "20% or more", "30% or more", "50% or more"],
+  "Lens Type": ["Polarized", "Non-Polarized", "Gradient", "Mirrored", "UV Protection"],
+  "Rating": [
+    { label: "4\u2605 & above", value: 4 },
+    { label: "3\u2605 & above", value: 3 },
+    { label: "2\u2605 & above", value: 2 }
+  ],
+  "Availability": ["In Stock", "Out of Stock", "New Arrivals"]
+};
+const ProductListingPage = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [productType, setProductType] = useState("frame");
+  const [selectedBrand, setSelectedBrand] = useState(searchParams.get("brand_name") || "");
+  const [maxPrice, setMaxPrice] = useState(searchParams.get("max_price") || 5e4);
+  const [sortBy, setSortBy] = useState(searchParams.get("sort") || "newest");
+  const [brands, setBrands] = useState([]);
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const [vtoProduct, setVtoProduct] = useState(null);
+  const [selectedFilters, setSelectedFilters] = useState({});
+  const [expandedGroups, setExpandedGroups] = useState({});
+  const toggleGroup = (name) => {
+    setExpandedGroups((prev) => ({ ...prev, [name]: !prev[name] }));
+  };
+  const toggleFilterOption = (group, option) => {
+    setSelectedFilters((prev) => {
+      const current = prev[group] || [];
+      const updated = current.includes(option) ? current.filter((o) => o !== option) : [...current, option];
+      return { ...prev, [group]: updated };
+    });
+  };
+  const removeFilterOption = (group, option) => {
+    setSelectedFilters((prev) => {
+      const current = prev[group] || [];
+      return { ...prev, [group]: current.filter((o) => o !== option) };
+    });
+  };
+  useEffect(() => {
+    Promise.all([
+      apiClient.get("/catalog/categories/"),
+      apiClient.get("/catalog/brands/")
+    ]).then(([catRes, brandRes]) => {
+      setCategories(catRes.data.results || catRes.data);
+      setBrands(brandRes.data.results || brandRes.data);
+    }).catch((err) => console.error("Error loading filters:", err));
+  }, []);
+  const categorySlug = searchParams.get("category") || "";
+  useEffect(() => {
+    const norm = (s) => (s || "").toLowerCase().replace(/[^a-z]/g, "");
+    const raw = norm(categorySlug);
+    setProductType(raw.startsWith("contact") ? "lens" : raw.startsWith("accessor") ? "accessory" : "frame");
+    if (!raw) {
+      setSelectedCategory("");
+      return;
     }
+    const match = categories.find((c) => {
+      const n = norm(c.name);
+      return n === raw || n.startsWith(raw) || raw.startsWith(n);
+    });
+    setSelectedCategory(match ? String(match.id) : "");
+  }, [categorySlug, categories]);
+  const pageTitle = categorySlug ? categorySlug.replace(/-/g, " ").replace(/\b\w/g, (m) => m.toUpperCase()) : "All Eyewear";
+  const filtersKey = JSON.stringify(selectedFilters);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedCategory, selectedBrand, searchQuery, maxPrice, sortBy, filtersKey]);
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    const params = new URLSearchParams();
+    if (selectedCategory) params.append("category", selectedCategory);
+    if (productType) params.append("product_type", productType);
+    if (selectedBrand) params.append("brand_name", selectedBrand);
+    if (searchQuery) params.append("search", searchQuery);
+    const priceRanges = (selectedFilters["Price Range"] || []).map((l) => PRICE_RANGES[l]).filter(Boolean);
+    if (priceRanges.length > 0) {
+      params.append("min_price", Math.min(...priceRanges.map((r) => r.min)));
+      if (priceRanges.every((r) => r.max != null)) {
+        params.append("max_price", Math.max(...priceRanges.map((r) => r.max)));
+      }
+    }
+    const sortMap = {
+      "newest": "-created_at",
+      "bestsellers": "-created_at",
+      // Will filter on client-side
+      "price-low": "final_price",
+      "price-high": "-final_price",
+      "name": "title"
+    };
+    params.append("sort_by", sortMap[sortBy] || "-created_at");
+    (selectedFilters["Frame Shape"] || []).forEach((s) => params.append("shape", s));
+    (selectedFilters["Frame Style"] || []).forEach((s) => params.append("frame_style", s));
+    (selectedFilters["Material"] || []).forEach((m) => params.append("frame_material", m));
+    (selectedFilters["Gender"] || []).forEach((g) => params.append("gender", g));
+    (selectedFilters["Lens Type"] || []).forEach((lt) => params.append("lens_type", lt));
+    const avail = selectedFilters["Availability"] || [];
+    if (avail.includes("In Stock") && !avail.includes("Out of Stock")) {
+      params.append("stock_status", "in_stock");
+    } else if (avail.includes("Out of Stock") && !avail.includes("In Stock")) {
+      params.append("stock_status", "out_of_stock");
+    }
+    const discountNums = (selectedFilters["Discount"] || []).map((d) => parseInt(d)).filter((n) => !isNaN(n));
+    if (discountNums.length > 0) {
+      params.append("discount_min", Math.min(...discountNums));
+    }
+    params.append("page", currentPage);
+    params.append("page_size", 12);
+    apiClient.get(`/catalog/products/?${params.toString()}`).then((res) => {
+      let data = res.data.results || res.data;
+      const count = res.data.count || data.length;
+      setTotalCount(count);
+      setTotalPages(Math.ceil(count / 12));
+      const colorFilters = selectedFilters["Frame Color"] || [];
+      if (colorFilters.length > 0) {
+        data = data.filter(
+          (p) => colorFilters.some((c) => p.frame_color?.toLowerCase().includes(c.toLowerCase()))
+        );
+      }
+      const sizeFilters = selectedFilters["Size / Width"] || [];
+      if (sizeFilters.length > 0) {
+        data = data.filter(
+          (p) => sizeFilters.some((s) => p.frame_width?.toLowerCase().includes(s.toLowerCase()))
+        );
+      }
+      if (avail.includes("New Arrivals")) {
+        const cutoff = /* @__PURE__ */ new Date();
+        cutoff.setDate(cutoff.getDate() - 30);
+        data = data.filter((p) => new Date(p.created_at) >= cutoff);
+      }
+      if (sortBy === "bestsellers") {
+        data = data.filter((p) => p.is_bestseller);
+      }
+      setProducts(data);
+      setLoading(false);
+    }).catch((err) => {
+      setError(err.message || "Failed to load products");
+      setLoading(false);
+    });
+  }, [selectedCategory, productType, selectedBrand, searchQuery, maxPrice, currentPage, sortBy, filtersKey]);
+  useEffect(() => {
+    const els = document.querySelectorAll(".reveal-on-scroll");
+    if (!els.length) return;
+    const obs = new IntersectionObserver((entries, o) => {
+      entries.forEach((e) => {
+        if (e.isIntersecting) {
+          e.target.classList.add("is-revealed");
+          o.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.08, rootMargin: "0px 0px -40px 0px" });
+    els.forEach((el) => obs.observe(el));
+    return () => obs.disconnect();
+  }, [loading, products]);
+  useEffect(() => {
+    document.body.style.overflow = filterDrawerOpen ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [filterDrawerOpen]);
+  const clearFilters = () => {
+    setSelectedCategory("");
+    setSelectedBrand("");
+    setMaxPrice(5e4);
+    setSortBy("newest");
+    setSearchQuery("");
+    setSelectedFilters({});
+    setSearchParams({});
   };
-  const isActive = (path) => {
-    const params = new URLSearchParams(location.search);
-    const category = params.get("category");
-    const linkParams = new URLSearchParams(path.split("?")[1]);
-    const linkCategory = linkParams.get("category");
-    return location.pathname === path.split("?")[0] && category === linkCategory;
+  const toggleBrand = (brandName) => {
+    setSelectedBrand((prev) => prev === brandName ? "" : brandName);
   };
-  const openDropdown = (name) => {
-    clearTimeout(closeTimer.current);
-    setActiveDropdown(name);
+  const getAppliedPills = () => {
+    const pills = [];
+    if (selectedCategory) {
+      pills.push({
+        label: categories.find((c) => c.id.toString() === selectedCategory)?.name || "Category",
+        onRemove: () => setSelectedCategory("")
+      });
+    }
+    if (selectedBrand) {
+      pills.push({
+        label: selectedBrand,
+        onRemove: () => setSelectedBrand("")
+      });
+    }
+    if (maxPrice < 5e4) {
+      pills.push({
+        label: `\u20B90 - \u20B9${Number(maxPrice).toLocaleString("en-IN")}`,
+        onRemove: () => setMaxPrice(5e4)
+      });
+    }
+    Object.entries(selectedFilters).forEach(([group, options]) => {
+      options.forEach((option) => {
+        pills.push({
+          label: option,
+          onRemove: () => removeFilterOption(group, option)
+        });
+      });
+    });
+    return pills;
   };
-  const scheduleClose = () => {
-    closeTimer.current = setTimeout(() => setActiveDropdown(null), 180);
-  };
-  const cancelClose = () => {
-    clearTimeout(closeTimer.current);
-  };
-  const closeNow = () => {
-    clearTimeout(closeTimer.current);
-    setActiveDropdown(null);
-  };
-  return /* @__PURE__ */ React.createElement(
-    "nav",
+  const appliedPills = getAppliedPills();
+  if (/contact/.test(categorySlug)) {
+    return /* @__PURE__ */ React.createElement(ContactLensListingPage, null);
+  }
+  return /* @__PURE__ */ React.createElement("div", { className: "product-listing-page", "data-name": "Body" }, /* @__PURE__ */ React.createElement("header", { className: "plp-header" }, /* @__PURE__ */ React.createElement("div", { className: "plp-header-left" }, /* @__PURE__ */ React.createElement("nav", { className: "breadcrumbs" }, /* @__PURE__ */ React.createElement(Link, { to: "/", className: "breadcrumb-item" }, "Home"), /* @__PURE__ */ React.createElement("span", { className: "breadcrumb-separator" }, "/"), /* @__PURE__ */ React.createElement(Link, { to: "/products", className: "breadcrumb-item" }, "Eyewear"), /* @__PURE__ */ React.createElement("span", { className: "breadcrumb-separator" }, "/"), /* @__PURE__ */ React.createElement("span", { className: "breadcrumb-item active" }, pageTitle)), /* @__PURE__ */ React.createElement("div", { className: "plp-title-section" }, /* @__PURE__ */ React.createElement("h1", null, pageTitle), /* @__PURE__ */ React.createElement("p", { className: "plp-subtitle" }, "Elevate your vision with our curated atelier collection."))), /* @__PURE__ */ React.createElement("div", { className: "sort-by-section" }, /* @__PURE__ */ React.createElement("span", { className: "sort-label" }, "Sort By"), /* @__PURE__ */ React.createElement("div", { className: "sort-select-wrapper" }, /* @__PURE__ */ React.createElement(
+    "select",
     {
-      className: "visitor-header",
-      onMouseLeave: scheduleClose
+      className: "sort-select",
+      value: sortBy,
+      onChange: (e) => setSortBy(e.target.value)
     },
-    /* @__PURE__ */ React.createElement("div", { className: "visitor-header-left" }, /* @__PURE__ */ React.createElement("div", { className: "visitor-brand" }, /* @__PURE__ */ React.createElement(Link, { to: "/", className: "brand-logo" }, /* @__PURE__ */ React.createElement("img", { src: specsitFullLogo, alt: "SPECSIT", className: "brand-logo-img" }))), /* @__PURE__ */ React.createElement("div", { className: `visitor-nav ${menuOpen ? "visitor-nav--open" : ""}` }, navLinks.map((link) => /* @__PURE__ */ React.createElement(
-      Link,
-      {
-        key: link.name,
-        to: link.path,
-        className: `visitor-nav-link ${isActive(link.path) ? "active" : ""}`,
-        onMouseEnter: () => link.dropdown ? openDropdown(link.dropdown) : scheduleClose(),
-        onClick: () => setMenuOpen(false)
-      },
-      link.name
-    )))),
-    /* @__PURE__ */ React.createElement(
+    /* @__PURE__ */ React.createElement("option", { value: "newest" }, "New Arrivals"),
+    /* @__PURE__ */ React.createElement("option", { value: "bestsellers" }, "Best Sellers"),
+    /* @__PURE__ */ React.createElement("option", { value: "price-low" }, "Price: Low to High"),
+    /* @__PURE__ */ React.createElement("option", { value: "price-high" }, "Price: High to Low"),
+    /* @__PURE__ */ React.createElement("option", { value: "name" }, "Name: A to Z")
+  )))), /* @__PURE__ */ React.createElement("div", { className: "plp-layout" }, /* @__PURE__ */ React.createElement(
+    "div",
+    {
+      className: `filters-backdrop ${filterDrawerOpen ? "is-open" : ""}`,
+      onClick: () => setFilterDrawerOpen(false),
+      "aria-hidden": "true"
+    }
+  ), /* @__PURE__ */ React.createElement(
+    "aside",
+    {
+      className: `filters-sidebar ${filterDrawerOpen ? "filters-sidebar--open" : ""}`,
+      "data-name": "Aside - Updated SideNavBar"
+    },
+    /* @__PURE__ */ React.createElement("div", { className: "filters-sheet-handle", "aria-hidden": "true" }),
+    /* @__PURE__ */ React.createElement("div", { className: "filters-header" }, /* @__PURE__ */ React.createElement("h2", null, "Refine Selection"), /* @__PURE__ */ React.createElement("span", { className: "filters-subtitle" }, "Filters"), /* @__PURE__ */ React.createElement(
       "button",
       {
-        className: "visitor-hamburger",
-        "aria-label": "Toggle menu",
-        "aria-expanded": menuOpen,
-        onClick: () => setMenuOpen((o) => !o)
+        className: "filters-drawer-close",
+        onClick: () => setFilterDrawerOpen(false),
+        "aria-label": "Close filters"
       },
-      /* @__PURE__ */ React.createElement("svg", { width: "22", height: "22", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round" }, menuOpen ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("line", { x1: "6", y1: "6", x2: "18", y2: "18" }), /* @__PURE__ */ React.createElement("line", { x1: "6", y1: "18", x2: "18", y2: "6" })) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("line", { x1: "3", y1: "6", x2: "21", y2: "6" }), /* @__PURE__ */ React.createElement("line", { x1: "3", y1: "12", x2: "21", y2: "12" }), /* @__PURE__ */ React.createElement("line", { x1: "3", y1: "18", x2: "21", y2: "18" })))
-    ),
-    /* @__PURE__ */ React.createElement("div", { className: "visitor-actions", onMouseEnter: scheduleClose }, /* @__PURE__ */ React.createElement("div", { className: "visitor-search" }, /* @__PURE__ */ React.createElement("span", { className: "visitor-search-icon" }, /* @__PURE__ */ React.createElement(SearchIcon, null)), /* @__PURE__ */ React.createElement(
+      /* @__PURE__ */ React.createElement("svg", { width: "22", height: "22", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round" }, /* @__PURE__ */ React.createElement("line", { x1: "6", y1: "6", x2: "18", y2: "18" }), /* @__PURE__ */ React.createElement("line", { x1: "6", y1: "18", x2: "18", y2: "6" }))
+    )),
+    /* @__PURE__ */ React.createElement("div", { className: "filter-groups-container" }, /* @__PURE__ */ React.createElement("div", { className: "filter-groups-list" }, /* @__PURE__ */ React.createElement("div", { className: "filter-group" }, /* @__PURE__ */ React.createElement("div", { className: "filter-group-header", onClick: () => toggleGroup("Frame Shape") }, /* @__PURE__ */ React.createElement("h3", null, "Frame Shape"), /* @__PURE__ */ React.createElement("svg", { className: "toggle-chevron", width: "12", height: "7.4", viewBox: "0 0 12 8", fill: "none", style: { transform: expandedGroups["Frame Shape"] ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" } }, /* @__PURE__ */ React.createElement("path", { d: "M1 1.5L6 6.5L11 1.5", stroke: "#040205", strokeWidth: "1.5", strokeLinecap: "round", strokeLinejoin: "round" }))), expandedGroups["Frame Shape"] && /* @__PURE__ */ React.createElement("div", { className: "filter-options-grid" }, FILTER_OPTIONS["Frame Shape"].map((opt) => /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        key: opt,
+        className: `filter-grid-pill ${selectedFilters["Frame Shape"]?.includes(opt) ? "active" : ""}`,
+        onClick: () => toggleFilterOption("Frame Shape", opt)
+      },
+      opt
+    )))), /* @__PURE__ */ React.createElement("div", { className: "filter-group" }, /* @__PURE__ */ React.createElement("div", { className: "filter-group-header", onClick: () => toggleGroup("Frame Type") }, /* @__PURE__ */ React.createElement("h3", null, "Frame Type"), /* @__PURE__ */ React.createElement("svg", { className: "toggle-chevron", width: "12", height: "7.4", viewBox: "0 0 12 8", fill: "none", style: { transform: expandedGroups["Frame Type"] ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" } }, /* @__PURE__ */ React.createElement("path", { d: "M1 1.5L6 6.5L11 1.5", stroke: "#040205", strokeWidth: "1.5", strokeLinecap: "round", strokeLinejoin: "round" }))), expandedGroups["Frame Type"] && /* @__PURE__ */ React.createElement("div", { className: "filter-options" }, FILTER_OPTIONS["Frame Type"].map((opt) => /* @__PURE__ */ React.createElement("label", { key: opt, className: "filter-checkbox-item" }, /* @__PURE__ */ React.createElement(
       "input",
       {
-        type: "text",
-        placeholder: "What are you looking for?",
-        className: "visitor-search-input",
-        value: searchQuery,
-        onChange: (e) => setSearchQuery(e.target.value),
-        onKeyDown: handleSearch
+        type: "checkbox",
+        checked: (selectedFilters["Frame Type"] || []).includes(opt),
+        onChange: () => toggleFilterOption("Frame Type", opt)
       }
-    )), /* @__PURE__ */ React.createElement("div", { className: "visitor-icon-group" }, /* @__PURE__ */ React.createElement(Link, { to: "/wishlist", className: "visitor-icon-btn", title: "Wishlist" }, /* @__PURE__ */ React.createElement(HeartIcon, null)), /* @__PURE__ */ React.createElement(Link, { to: "/cart", className: "visitor-icon-btn visitor-cart", title: "Cart" }, /* @__PURE__ */ React.createElement(CartIcon, null), cartCount > 0 && /* @__PURE__ */ React.createElement("span", { className: "visitor-cart-badge" }, cartCount)), /* @__PURE__ */ React.createElement(Link, { to: "/login", className: "visitor-login-btn" }, "Login"))),
-    activeDropdown && /* @__PURE__ */ React.createElement(
-      "div",
+    ), /* @__PURE__ */ React.createElement("span", null, opt))))), /* @__PURE__ */ React.createElement("div", { className: "filter-group" }, /* @__PURE__ */ React.createElement("div", { className: "filter-group-header", onClick: () => toggleGroup("Frame Color") }, /* @__PURE__ */ React.createElement("h3", null, "Frame Color"), /* @__PURE__ */ React.createElement("svg", { className: "toggle-chevron", width: "12", height: "7.4", viewBox: "0 0 12 8", fill: "none", style: { transform: expandedGroups["Frame Color"] ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" } }, /* @__PURE__ */ React.createElement("path", { d: "M1 1.5L6 6.5L11 1.5", stroke: "#040205", strokeWidth: "1.5", strokeLinecap: "round", strokeLinejoin: "round" }))), expandedGroups["Frame Color"] && /* @__PURE__ */ React.createElement("div", { className: "filter-swatch-grid" }, FILTER_OPTIONS["Frame Color"].map((opt) => /* @__PURE__ */ React.createElement(
+      "button",
       {
-        className: "nd-wrapper",
-        onMouseEnter: cancelClose,
-        onMouseLeave: scheduleClose
+        key: opt.name,
+        className: `filter-color-swatch ${selectedFilters["Frame Color"]?.includes(opt.name) ? "active" : ""}`,
+        style: { backgroundColor: opt.color },
+        onClick: () => toggleFilterOption("Frame Color", opt.name),
+        title: opt.name
       },
-      activeDropdown === "sunglasses" && /* @__PURE__ */ React.createElement(SunglassesDropdown, { onLinkClick: closeNow }),
-      activeDropdown === "contact-lens" && /* @__PURE__ */ React.createElement(ContactLensDropdown, { onLinkClick: closeNow })
-    )
-  );
+      /* @__PURE__ */ React.createElement("span", { className: "sr-only" }, opt.name)
+    )))), /* @__PURE__ */ React.createElement("div", { className: "filter-group" }, /* @__PURE__ */ React.createElement("div", { className: "filter-group-header", onClick: () => toggleGroup("Size / Width") }, /* @__PURE__ */ React.createElement("h3", null, "Size / Width"), /* @__PURE__ */ React.createElement("svg", { className: "toggle-chevron", width: "12", height: "7.4", viewBox: "0 0 12 8", fill: "none", style: { transform: expandedGroups["Size / Width"] ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" } }, /* @__PURE__ */ React.createElement("path", { d: "M1 1.5L6 6.5L11 1.5", stroke: "#040205", strokeWidth: "1.5", strokeLinecap: "round", strokeLinejoin: "round" }))), expandedGroups["Size / Width"] && /* @__PURE__ */ React.createElement("div", { className: "filter-options-grid" }, FILTER_OPTIONS["Size / Width"].map((opt) => /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        key: opt,
+        className: `filter-grid-pill ${selectedFilters["Size / Width"]?.includes(opt) ? "active" : ""}`,
+        onClick: () => toggleFilterOption("Size / Width", opt)
+      },
+      opt
+    )))), /* @__PURE__ */ React.createElement("div", { className: "filter-group" }, /* @__PURE__ */ React.createElement("div", { className: "filter-group-header", onClick: () => toggleGroup("Material") }, /* @__PURE__ */ React.createElement("h3", null, "Material"), /* @__PURE__ */ React.createElement("svg", { className: "toggle-chevron", width: "12", height: "7.4", viewBox: "0 0 12 8", fill: "none", style: { transform: expandedGroups["Material"] ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" } }, /* @__PURE__ */ React.createElement("path", { d: "M1 1.5L6 6.5L11 1.5", stroke: "#040205", strokeWidth: "1.5", strokeLinecap: "round", strokeLinejoin: "round" }))), expandedGroups["Material"] && /* @__PURE__ */ React.createElement("div", { className: "filter-options" }, FILTER_OPTIONS["Material"].map((opt) => /* @__PURE__ */ React.createElement("label", { key: opt, className: "filter-checkbox-item" }, /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        type: "checkbox",
+        checked: (selectedFilters["Material"] || []).includes(opt),
+        onChange: () => toggleFilterOption("Material", opt)
+      }
+    ), /* @__PURE__ */ React.createElement("span", null, opt))))), /* @__PURE__ */ React.createElement("div", { className: "filter-group" }, /* @__PURE__ */ React.createElement("div", { className: "filter-group-header", onClick: () => toggleGroup("Brand") }, /* @__PURE__ */ React.createElement("h3", null, "Brand"), /* @__PURE__ */ React.createElement("svg", { className: "toggle-chevron", width: "12", height: "7.4", viewBox: "0 0 12 8", fill: "none", style: { transform: expandedGroups["Brand"] ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" } }, /* @__PURE__ */ React.createElement("path", { d: "M1 1.5L6 6.5L11 1.5", stroke: "#040205", strokeWidth: "1.5", strokeLinecap: "round", strokeLinejoin: "round" }))), expandedGroups["Brand"] && /* @__PURE__ */ React.createElement("div", { className: "filter-options" }, brands.map((brand) => /* @__PURE__ */ React.createElement("label", { key: brand.id, className: "filter-checkbox-item" }, /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        type: "checkbox",
+        checked: selectedBrand === brand.name,
+        onChange: () => toggleBrand(brand.name)
+      }
+    ), /* @__PURE__ */ React.createElement("span", null, brand.name))))), /* @__PURE__ */ React.createElement("div", { className: "filter-group" }, /* @__PURE__ */ React.createElement("div", { className: "filter-group-header", onClick: () => toggleGroup("Gender") }, /* @__PURE__ */ React.createElement("h3", null, "Gender"), /* @__PURE__ */ React.createElement("svg", { className: "toggle-chevron", width: "12", height: "7.4", viewBox: "0 0 12 8", fill: "none", style: { transform: expandedGroups["Gender"] ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" } }, /* @__PURE__ */ React.createElement("path", { d: "M1 1.5L6 6.5L11 1.5", stroke: "#040205", strokeWidth: "1.5", strokeLinecap: "round", strokeLinejoin: "round" }))), expandedGroups["Gender"] && /* @__PURE__ */ React.createElement("div", { className: "filter-options" }, FILTER_OPTIONS["Gender"].map((opt) => /* @__PURE__ */ React.createElement("label", { key: opt, className: "filter-checkbox-item" }, /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        type: "checkbox",
+        checked: (selectedFilters["Gender"] || []).includes(opt),
+        onChange: () => toggleFilterOption("Gender", opt)
+      }
+    ), /* @__PURE__ */ React.createElement("span", null, opt))))), /* @__PURE__ */ React.createElement("div", { className: "filter-group" }, /* @__PURE__ */ React.createElement("div", { className: "filter-group-header", onClick: () => toggleGroup("Price Range") }, /* @__PURE__ */ React.createElement("h3", null, "Price Range"), /* @__PURE__ */ React.createElement("svg", { className: "toggle-chevron", width: "12", height: "7.4", viewBox: "0 0 12 8", fill: "none", style: { transform: expandedGroups["Price Range"] ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" } }, /* @__PURE__ */ React.createElement("path", { d: "M1 1.5L6 6.5L11 1.5", stroke: "#040205", strokeWidth: "1.5", strokeLinecap: "round", strokeLinejoin: "round" }))), expandedGroups["Price Range"] && /* @__PURE__ */ React.createElement("div", { className: "filter-options" }, FILTER_OPTIONS["Price Range"].map((opt) => /* @__PURE__ */ React.createElement("label", { key: opt, className: "filter-checkbox-item" }, /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        type: "checkbox",
+        checked: (selectedFilters["Price Range"] || []).includes(opt),
+        onChange: () => toggleFilterOption("Price Range", opt)
+      }
+    ), /* @__PURE__ */ React.createElement("span", null, opt))))), /* @__PURE__ */ React.createElement("div", { className: "filter-group" }, /* @__PURE__ */ React.createElement("div", { className: "filter-group-header", onClick: () => toggleGroup("Discount") }, /* @__PURE__ */ React.createElement("h3", null, "Discount"), /* @__PURE__ */ React.createElement("svg", { className: "toggle-chevron", width: "12", height: "7.4", viewBox: "0 0 12 8", fill: "none", style: { transform: expandedGroups["Discount"] ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" } }, /* @__PURE__ */ React.createElement("path", { d: "M1 1.5L6 6.5L11 1.5", stroke: "#040205", strokeWidth: "1.5", strokeLinecap: "round", strokeLinejoin: "round" }))), expandedGroups["Discount"] && /* @__PURE__ */ React.createElement("div", { className: "filter-options" }, FILTER_OPTIONS["Discount"].map((opt) => /* @__PURE__ */ React.createElement("label", { key: opt, className: "filter-checkbox-item" }, /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        type: "checkbox",
+        checked: (selectedFilters["Discount"] || []).includes(opt),
+        onChange: () => toggleFilterOption("Discount", opt)
+      }
+    ), /* @__PURE__ */ React.createElement("span", null, opt))))), /* @__PURE__ */ React.createElement("div", { className: "filter-group" }, /* @__PURE__ */ React.createElement("div", { className: "filter-group-header", onClick: () => toggleGroup("Lens Type") }, /* @__PURE__ */ React.createElement("h3", null, "Lens Type"), /* @__PURE__ */ React.createElement("svg", { className: "toggle-chevron", width: "12", height: "7.4", viewBox: "0 0 12 8", fill: "none", style: { transform: expandedGroups["Lens Type"] ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" } }, /* @__PURE__ */ React.createElement("path", { d: "M1 1.5L6 6.5L11 1.5", stroke: "#040205", strokeWidth: "1.5", strokeLinecap: "round", strokeLinejoin: "round" }))), expandedGroups["Lens Type"] && /* @__PURE__ */ React.createElement("div", { className: "filter-options" }, FILTER_OPTIONS["Lens Type"].map((opt) => /* @__PURE__ */ React.createElement("label", { key: opt, className: "filter-checkbox-item" }, /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        type: "checkbox",
+        checked: (selectedFilters["Lens Type"] || []).includes(opt),
+        onChange: () => toggleFilterOption("Lens Type", opt)
+      }
+    ), /* @__PURE__ */ React.createElement("span", null, opt))))), /* @__PURE__ */ React.createElement("div", { className: "filter-group" }, /* @__PURE__ */ React.createElement("div", { className: "filter-group-header", onClick: () => toggleGroup("Rating") }, /* @__PURE__ */ React.createElement("h3", null, "Rating"), /* @__PURE__ */ React.createElement("svg", { className: "toggle-chevron", width: "12", height: "7.4", viewBox: "0 0 12 8", fill: "none", style: { transform: expandedGroups["Rating"] ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" } }, /* @__PURE__ */ React.createElement("path", { d: "M1 1.5L6 6.5L11 1.5", stroke: "#040205", strokeWidth: "1.5", strokeLinecap: "round", strokeLinejoin: "round" }))), expandedGroups["Rating"] && /* @__PURE__ */ React.createElement("div", { className: "filter-options" }, FILTER_OPTIONS["Rating"].map((opt) => /* @__PURE__ */ React.createElement("label", { key: opt.value, className: "filter-checkbox-item" }, /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        type: "checkbox",
+        checked: (selectedFilters["Rating"] || []).includes(opt.value),
+        onChange: () => toggleFilterOption("Rating", opt.value)
+      }
+    ), /* @__PURE__ */ React.createElement("div", { className: "rating-filter-label" }, /* @__PURE__ */ React.createElement("div", { className: "rating-stars-row" }, [...Array(5)].map((_, i) => /* @__PURE__ */ React.createElement(
+      "svg",
+      {
+        key: i,
+        width: "14",
+        height: "14",
+        viewBox: "0 0 24 24",
+        fill: i < opt.value ? "#F59E0B" : "none",
+        stroke: i < opt.value ? "#F59E0B" : "#D1D5DB",
+        strokeWidth: "2"
+      },
+      /* @__PURE__ */ React.createElement("path", { d: "M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" })
+    ))), /* @__PURE__ */ React.createElement("span", null, opt.label.split("\u2605")[1])))))), /* @__PURE__ */ React.createElement("div", { className: "filter-group" }, /* @__PURE__ */ React.createElement("div", { className: "filter-group-header", onClick: () => toggleGroup("Availability") }, /* @__PURE__ */ React.createElement("h3", null, "Availability"), /* @__PURE__ */ React.createElement("svg", { className: "toggle-chevron", width: "12", height: "7.4", viewBox: "0 0 12 8", fill: "none", style: { transform: expandedGroups["Availability"] ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" } }, /* @__PURE__ */ React.createElement("path", { d: "M1 1.5L6 6.5L11 1.5", stroke: "#040205", strokeWidth: "1.5", strokeLinecap: "round", strokeLinejoin: "round" }))), expandedGroups["Availability"] && /* @__PURE__ */ React.createElement("div", { className: "filter-options" }, FILTER_OPTIONS["Availability"].map((opt) => /* @__PURE__ */ React.createElement("label", { key: opt, className: "filter-checkbox-item" }, /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        type: "checkbox",
+        checked: (selectedFilters["Availability"] || []).includes(opt),
+        onChange: () => toggleFilterOption("Availability", opt)
+      }
+    ), /* @__PURE__ */ React.createElement("span", null, opt))))))),
+    /* @__PURE__ */ React.createElement("div", { className: "filters-drawer-footer" }, /* @__PURE__ */ React.createElement("button", { className: "filters-drawer-clear", onClick: clearFilters }, "Reset"), /* @__PURE__ */ React.createElement("button", { className: "filters-drawer-apply", onClick: () => setFilterDrawerOpen(false) }, /* @__PURE__ */ React.createElement("svg", { width: "20", height: "20", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.8", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ React.createElement("line", { x1: "4", y1: "21", x2: "4", y2: "14" }), /* @__PURE__ */ React.createElement("line", { x1: "4", y1: "10", x2: "4", y2: "3" }), /* @__PURE__ */ React.createElement("line", { x1: "12", y1: "21", x2: "12", y2: "12" }), /* @__PURE__ */ React.createElement("line", { x1: "12", y1: "8", x2: "12", y2: "3" }), /* @__PURE__ */ React.createElement("line", { x1: "20", y1: "21", x2: "20", y2: "16" }), /* @__PURE__ */ React.createElement("line", { x1: "20", y1: "12", x2: "20", y2: "3" }), /* @__PURE__ */ React.createElement("line", { x1: "1", y1: "14", x2: "7", y2: "14" }), /* @__PURE__ */ React.createElement("line", { x1: "9", y1: "8", x2: "15", y2: "8" }), /* @__PURE__ */ React.createElement("line", { x1: "17", y1: "16", x2: "23", y2: "16" })), /* @__PURE__ */ React.createElement("span", null, "Filter"), appliedPills.length > 0 && /* @__PURE__ */ React.createElement("span", { className: "filters-apply-badge" }, appliedPills.length)))
+  ), /* @__PURE__ */ React.createElement("section", { className: "plp-main-content" }, appliedPills.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "applied-filters-row" }, /* @__PURE__ */ React.createElement("div", { className: "applied-filters-inner" }, /* @__PURE__ */ React.createElement("span", { className: "applied-label" }, "Applied:"), appliedPills.map((pill, i) => /* @__PURE__ */ React.createElement("div", { key: i, className: "filter-pill" }, pill.label, /* @__PURE__ */ React.createElement("button", { onClick: pill.onRemove, className: "remove-btn" }, "\xD7"))), /* @__PURE__ */ React.createElement("button", { onClick: clearFilters, className: "clear-all-link" }, "Clear all"))), error && /* @__PURE__ */ React.createElement("div", { className: "alert alert-error" }, error), loading ? /* @__PURE__ */ React.createElement("div", { className: "loading-state" }, /* @__PURE__ */ React.createElement("p", null, "Discovering premium eyewear...")) : products.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "empty-state" }, /* @__PURE__ */ React.createElement("h2", null, "No products match your selection"), /* @__PURE__ */ React.createElement("p", null, "Try clearing some filters to see more options."), /* @__PURE__ */ React.createElement("button", { onClick: clearFilters, className: "reset-btn" }, "Reset All Filters")) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "plp-product-grid" }, products.map((p) => /* @__PURE__ */ React.createElement("div", { key: p.id, className: "reveal-on-scroll" }, /* @__PURE__ */ React.createElement(ProductCard, { product: p })))), totalPages > 1 && /* @__PURE__ */ React.createElement("div", { className: "pagination" }, /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      onClick: () => setCurrentPage((prev) => Math.max(1, prev - 1)),
+      disabled: currentPage === 1,
+      className: "pagination-btn"
+    },
+    "Prev"
+  ), Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      key: page,
+      onClick: () => setCurrentPage(page),
+      className: `pagination-btn ${page === currentPage ? "active" : ""}`
+    },
+    page
+  )), /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      onClick: () => setCurrentPage((prev) => Math.min(totalPages, prev + 1)),
+      disabled: currentPage === totalPages,
+      className: "pagination-btn"
+    },
+    "Next"
+  ))))), /* @__PURE__ */ React.createElement("div", { className: "plp-mobile-bar" }, /* @__PURE__ */ React.createElement("span", { className: "plp-mobile-count" }, totalCount, " ", totalCount === 1 ? "item" : "items"), /* @__PURE__ */ React.createElement("div", { className: "plp-mobile-actions" }, products.length > 0 && /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      className: "plp-mobile-3d",
+      onClick: () => setVtoProduct(products[0])
+    },
+    /* @__PURE__ */ React.createElement("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.8", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ React.createElement("circle", { cx: "6", cy: "6", r: "2.4" }), /* @__PURE__ */ React.createElement("circle", { cx: "18", cy: "6", r: "2.4" }), /* @__PURE__ */ React.createElement("circle", { cx: "12", cy: "18", r: "2.4" }), /* @__PURE__ */ React.createElement("line", { x1: "8.2", y1: "7.2", x2: "15.8", y2: "7.2" }), /* @__PURE__ */ React.createElement("line", { x1: "7", y1: "8.2", x2: "11", y2: "15.8" }), /* @__PURE__ */ React.createElement("line", { x1: "17", y1: "8.2", x2: "13", y2: "15.8" })),
+    "View 3D"
+  ), /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      className: "plp-mobile-filter",
+      onClick: () => setFilterDrawerOpen(true)
+    },
+    /* @__PURE__ */ React.createElement("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.8", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ React.createElement("line", { x1: "4", y1: "7", x2: "20", y2: "7" }), /* @__PURE__ */ React.createElement("line", { x1: "4", y1: "12", x2: "20", y2: "12" }), /* @__PURE__ */ React.createElement("line", { x1: "4", y1: "17", x2: "20", y2: "17" }), /* @__PURE__ */ React.createElement("circle", { cx: "9", cy: "7", r: "2", fill: "currentColor" }), /* @__PURE__ */ React.createElement("circle", { cx: "15", cy: "12", r: "2", fill: "currentColor" }), /* @__PURE__ */ React.createElement("circle", { cx: "8", cy: "17", r: "2", fill: "currentColor" })),
+    "Filter",
+    appliedPills.length > 0 && /* @__PURE__ */ React.createElement("span", { className: "plp-mobile-filter-badge" }, appliedPills.length)
+  ))), /* @__PURE__ */ React.createElement(
+    VTOModal,
+    {
+      isOpen: !!vtoProduct,
+      onClose: () => setVtoProduct(null),
+      product: vtoProduct
+    }
+  ));
 };
-export default VisitorHeader;
+export default ProductListingPage;
