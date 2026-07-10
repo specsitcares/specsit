@@ -172,6 +172,19 @@
     background: #68408D;
 }
 
+/* Hamburger toggle — hidden on desktop, shown ≤992px */
+.visitor-hamburger {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    color: #040205;
+    flex-shrink: 0;
+}
+
 @media (max-width: 1200px) {
     .visitor-header { padding: 0 32px; }
     .visitor-header-left { gap: 28px; }
@@ -182,17 +195,46 @@
 @media (max-width: 992px) {
     .visitor-header {
         flex-wrap: wrap;
+        align-items: center;
         gap: 12px;
         padding: 12px 16px;
         min-height: 0;
+        position: relative;
     }
-    .visitor-header-left {
-        order: 1;
-        width: 100%;
-        justify-content: space-between;
+    /* Flatten the wrappers so brand, icons, hamburger and search become
+       direct flex items of the header and can be ordered into two rows. */
+    .visitor-header-left,
+    .visitor-actions { display: contents; }
+
+    /* Row 1: brand (left) ........ heart · cart · login · hamburger (right) */
+    .visitor-brand { order: 1; margin-right: auto; }
+    .visitor-icon-group { order: 2; gap: 16px; }
+    .visitor-hamburger { display: flex; order: 3; }
+
+    /* Row 2: full-width search */
+    .visitor-search { order: 4; flex: 1 1 100%; width: 100%; }
+
+    /* Categories collapse into a full-width dropdown toggled by the hamburger */
+    .visitor-nav {
+        order: 5;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+        background: #FEFCFF;
+        border-bottom: 1px solid #E4E4E4;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+        padding: 4px 16px 8px;
+        display: none;
+        z-index: 1001;
     }
-    .visitor-nav { gap: 16px; }
-    .visitor-nav-link { padding: 8px 0; }
-    .visitor-actions { order: 2; width: 100%; }
-    .visitor-search { flex: 1; }
+    .visitor-nav--open { display: flex; }
+    .visitor-nav-link {
+        padding: 14px 2px;
+        border-bottom: 1px solid #F0F0F0;
+    }
+    .visitor-nav-link:last-child { border-bottom: none; }
 }
