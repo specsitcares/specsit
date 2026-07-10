@@ -3,6 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import apiClient from '../../../services/api';
 import { ProductCard } from '../home/NewArrivals';
 import ContactLensListingPage from './ContactLensListingPage';
+import VTOModal from '../../VTOModal/VTOModal';
 import '../../../styles/products.css';
 import '../../../styles/ProductCard.css';
 
@@ -59,6 +60,11 @@ const ProductListingPage = () => {
     const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
+
+    // Mobile: filter drawer + virtual-try-on modal
+    const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+    const [vtoProduct, setVtoProduct] = useState(null);
 
     // Extended filter states
     const [selectedFilters, setSelectedFilters] = useState({});
@@ -200,6 +206,7 @@ const ProductListingPage = () => {
             .then(res => {
                 let data = res.data.results || res.data;
                 const count = res.data.count || data.length;
+                setTotalCount(count);
                 setTotalPages(Math.ceil(count / 12));
 
                 // Client-side post-filters (no backend field support)
@@ -252,6 +259,12 @@ const ProductListingPage = () => {
         els.forEach(el => obs.observe(el));
         return () => obs.disconnect();
     }, [loading, products]);
+
+    // Lock body scroll while the mobile filter drawer is open
+    useEffect(() => {
+        document.body.style.overflow = filterDrawerOpen ? 'hidden' : '';
+        return () => { document.body.style.overflow = ''; };
+    }, [filterDrawerOpen]);
 
     const clearFilters = () => {
         setSelectedCategory('');
@@ -346,12 +359,34 @@ const ProductListingPage = () => {
             {/* Main Container: Sidebar + Content */}
             <div className="plp-layout">
 
-                {/* ── Sidebar Filters (Figma node 401:10766) ── */}
-                <aside className="filters-sidebar" data-name="Aside - Updated SideNavBar">
+                {/* Backdrop behind the mobile filter drawer */}
+                <div
+                    className={`filters-backdrop ${filterDrawerOpen ? 'is-open' : ''}`}
+                    onClick={() => setFilterDrawerOpen(false)}
+                    aria-hidden="true"
+                />
+
+                {/* ── Sidebar Filters (desktop) / Bottom sheet (mobile) ── */}
+                <aside
+                    className={`filters-sidebar ${filterDrawerOpen ? 'filters-sidebar--open' : ''}`}
+                    data-name="Aside - Updated SideNavBar"
+                >
+                    {/* Drag handle (mobile bottom-sheet only) */}
+                    <div className="filters-sheet-handle" aria-hidden="true" />
+
                     {/* Header: "Refine Selection" + "FILTERS" */}
                     <div className="filters-header">
                         <h2>Refine Selection</h2>
                         <span className="filters-subtitle">Filters</span>
+                        <button
+                            className="filters-drawer-close"
+                            onClick={() => setFilterDrawerOpen(false)}
+                            aria-label="Close filters"
+                        >
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                                <line x1="6" y1="6" x2="18" y2="18" /><line x1="6" y1="18" x2="18" y2="6" />
+                            </svg>
+                        </button>
                     </div>
 
                     <div className="filter-groups-container">
@@ -662,6 +697,23 @@ const ProductListingPage = () => {
 
                         </div>
                     </div>
+
+                    {/* Sheet footer (mobile only): Reset + Filter[N] */}
+                    <div className="filters-drawer-footer">
+                        <button className="filters-drawer-clear" onClick={clearFilters}>Reset</button>
+                        <button className="filters-drawer-apply" onClick={() => setFilterDrawerOpen(false)}>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" />
+                                <line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" />
+                                <line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" />
+                                <line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" /><line x1="17" y1="16" x2="23" y2="16" />
+                            </svg>
+                            <span>Filter</span>
+                            {appliedPills.length > 0 && (
+                                <span className="filters-apply-badge">{appliedPills.length}</span>
+                            )}
+                        </button>
+                    </div>
                 </aside>
 
                 {/* ── Right Column: Sort + Grid ── */}
@@ -741,6 +793,45 @@ const ProductListingPage = () => {
                     )}
                 </section>
             </div>
+
+            {/* ── Mobile action bar (items · View 3D · Filter) ── */}
+            <div className="plp-mobile-bar">
+                <span className="plp-mobile-count">{totalCount} {totalCount === 1 ? 'item' : 'items'}</span>
+                <div className="plp-mobile-actions">
+                    {products.length > 0 && (
+                        <button
+                            className="plp-mobile-3d"
+                            onClick={() => setVtoProduct(products[0])}
+                        >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="6" cy="6" r="2.4" /><circle cx="18" cy="6" r="2.4" /><circle cx="12" cy="18" r="2.4" />
+                                <line x1="8.2" y1="7.2" x2="15.8" y2="7.2" /><line x1="7" y1="8.2" x2="11" y2="15.8" /><line x1="17" y1="8.2" x2="13" y2="15.8" />
+                            </svg>
+                            View 3D
+                        </button>
+                    )}
+                    <button
+                        className="plp-mobile-filter"
+                        onClick={() => setFilterDrawerOpen(true)}
+                    >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="4" y1="7" x2="20" y2="7" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="17" x2="20" y2="17" />
+                            <circle cx="9" cy="7" r="2" fill="currentColor" /><circle cx="15" cy="12" r="2" fill="currentColor" /><circle cx="8" cy="17" r="2" fill="currentColor" />
+                        </svg>
+                        Filter
+                        {appliedPills.length > 0 && (
+                            <span className="plp-mobile-filter-badge">{appliedPills.length}</span>
+                        )}
+                    </button>
+                </div>
+            </div>
+
+            {/* Virtual try-on (opened from the "View 3D" action) */}
+            <VTOModal
+                isOpen={!!vtoProduct}
+                onClose={() => setVtoProduct(null)}
+                product={vtoProduct}
+            />
         </div>
     );
 };

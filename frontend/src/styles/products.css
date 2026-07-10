@@ -23,6 +23,19 @@
   margin: 0;
   padding: 0 40px 51px;
   animation: plpFadeIn 0.4s ease;
+  max-width: 100%;
+  /* Reliability backstop: no child may cause page-level horizontal scroll.
+     `clip` leaves the vertical axis untouched (fixed sheet still overlays). */
+  overflow-x: clip;
+}
+
+/* Border-box everywhere on the page so fixed paddings/borders never push
+   an element past the viewport on any device. */
+.product-listing-page,
+.product-listing-page *,
+.product-listing-page *::before,
+.product-listing-page *::after {
+  box-sizing: border-box;
 }
 
 /* ── Breadcrumbs & Header ───────────────────────────────── */
@@ -499,9 +512,18 @@
   width: 100%;
 }
 
-/* Cards fill their grid cell in PLP context */
+/* Cards fill their grid cell in PLP context.
+   min-width:0 lets the 1fr tracks shrink below the cards' nowrap min-content
+   (brand/price/delivery text) instead of blowing the grid past the viewport. */
+.plp-product-grid > * {
+  min-width: 0;
+}
 .plp-product-grid .product-card {
   width: 100%;
+  min-width: 0;
+}
+.plp-product-grid .product-card__delivery-text {
+  min-width: 0;
 }
 
 
@@ -573,6 +595,152 @@
 }
 
 /* ══════════════════════════════════════════════════════════
+   MOBILE FILTER DRAWER + ACTION BAR
+   Hidden on desktop; activated ≤1024px (see responsive section)
+   ══════════════════════════════════════════════════════════ */
+.filters-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 2, 5, 0.45);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease;
+  z-index: 1150;
+}
+.filters-backdrop.is-open { opacity: 1; visibility: visible; }
+
+/* Close (×) button — only rendered visibly inside the drawer */
+.filters-drawer-close {
+  display: none;
+  position: absolute;
+  top: -2px;
+  right: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--plp-text);
+  padding: 2px;
+}
+
+/* Drawer footer (Clear all / Show results) */
+.filters-drawer-footer {
+  display: none;
+  gap: 10px;
+  position: sticky;
+  bottom: 0;
+  background: var(--plp-card-bg);
+  border-top: 1px solid var(--plp-border);
+  padding: 12px 0 14px;
+  margin-top: 8px;
+}
+.filters-drawer-clear {
+  flex: 0 0 auto;
+  background: none;
+  border: 1px solid var(--plp-border);
+  border-radius: 8px;
+  padding: 11px 18px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--plp-text);
+  cursor: pointer;
+}
+.filters-drawer-apply {
+  flex: 1;
+  background: var(--plp-accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 11px 18px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* Floating action bar: items · View 3D · Filter */
+.plp-mobile-bar {
+  display: none;
+  position: sticky;
+  bottom: 12px;
+  z-index: 900;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 24px;
+  /* transparent middle so taps fall through to the grid behind it */
+  pointer-events: none;
+}
+.plp-mobile-count {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1.1;
+  color: var(--plp-text);
+  white-space: nowrap;
+}
+.plp-mobile-actions {
+  display: flex;
+  gap: 12px;
+  pointer-events: auto;
+}
+.plp-mobile-3d,
+.plp-mobile-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 12px;
+  padding: 12px 20px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(4, 2, 5, 0.18);
+}
+.plp-mobile-3d {
+  background: #fff;
+  color: var(--plp-text);
+  border: 1px solid var(--plp-border);
+}
+.plp-mobile-filter {
+  background: var(--plp-text);
+  color: #fff;
+  border: none;
+}
+.plp-mobile-filter-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--plp-accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* Drag handle + apply badge — bottom-sheet only (hidden on desktop) */
+.filters-sheet-handle { display: none; }
+.filters-apply-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* ══════════════════════════════════════════════════════════
    RESPONSIVE
    ══════════════════════════════════════════════════════════ */
 @media (max-width: 1600px) {
@@ -592,16 +760,209 @@
 }
 
 @media (max-width: 1024px) {
-  .plp-layout { flex-direction: column; }
-  .filters-sidebar { display: none; }
-  .filters-sidebar { flex: none; width: 100%; }
+  .plp-layout { flex-direction: column; gap: 0; align-items: stretch; }
+
+  /* Main content flows normally — no inner scroll pane on mobile */
+  .plp-main-content {
+    position: static;
+    top: auto;
+    width: 100%;
+    max-height: none;
+    overflow: visible;
+  }
+
+  /* ── Sidebar becomes a BOTTOM SHEET (Figma 456:2310) ── */
+  .filters-sidebar {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    width: 100%;
+    max-width: 100%;
+    max-height: 86vh;
+    max-height: 86dvh;               /* dynamic vh — accounts for mobile URL bars */
+    flex: none;
+    padding: 0;
+    border-radius: 22px 22px 0 0;
+    box-shadow: 0 -10px 34px rgba(4, 2, 5, 0.22);
+    background: var(--plp-card-bg);
+    z-index: 1200;
+    overflow: hidden;                /* the body scrolls, not the sheet */
+    transform: translateY(100%);
+    transition: transform 0.34s cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+  .filters-sidebar--open { transform: translateY(0); }
+
+  /* Grab handle */
+  .filters-sheet-handle {
+    display: block;
+    flex-shrink: 0;
+    width: 48px;
+    height: 4px;
+    border-radius: 4px;
+    background: #D4D4D8;
+    margin: 12px auto 2px;
+  }
+
+  /* Header: "Filters" title + circular close */
+  .filters-header {
+    position: relative;
+    flex-shrink: 0;
+    flex-direction: row;
+    align-items: center;
+    padding: 8px 24px 14px;
+  }
+  .filters-header h2 { display: none; }
+  .filters-subtitle {
+    font-size: 20px;
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: -0.4px;
+    text-transform: none;
+    color: var(--plp-text);
+  }
+  .filters-drawer-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    top: 6px;
+    right: 18px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #F4F4F5;
+    color: var(--plp-text);
+  }
+
+  /* Scrollable body */
+  .filter-groups-container {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    padding: 0;
+  }
+  .filter-groups-list {
+    gap: 0;
+    padding: 0 0 8px;
+  }
+  .filter-group {
+    padding: 0 24px;
+    border-bottom: 1px solid var(--plp-border);
+  }
+  .filter-group:last-child { border-bottom: none; }
+  .filter-group-header { padding: 20px 0; }
+  .filter-group-header h3 { font-size: 15px; line-height: 1.4; height: auto; }
+  .filter-options { padding: 2px 0 18px; gap: 14px; }
+  .filter-options-grid { padding: 2px 0 18px; gap: 12px; }
+  .filter-swatch-grid { padding: 2px 0 18px; }
+  .filter-checkbox-item { font-size: 14px; }
+  .filter-grid-pill { height: 48px; border-radius: 8px; font-size: 13px; }
+  .filter-color-swatch { width: 32px; height: 32px; }
+
+  /* Footer: Reset + Filter[N] */
+  .filters-drawer-footer {
+    display: flex;
+    position: static;
+    flex-shrink: 0;
+    gap: 12px;
+    margin-top: 0;
+    padding: 12px 24px calc(14px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--plp-border);
+    background: var(--plp-card-bg);
+  }
+  .filters-drawer-clear {
+    flex: 1;
+    border: 1.5px solid var(--plp-border);
+    border-radius: 12px;
+    padding: 14px;
+    font-size: 14px;
+  }
+  .filters-drawer-apply {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: var(--plp-text);
+    border-radius: 12px;
+    padding: 14px;
+    font-size: 14px;
+  }
+
+  /* Solid full-width action bar above the footer.
+     --plp-pad mirrors the page's horizontal padding so the bar can bleed
+     edge-to-edge reliably at every breakpoint. */
+  .product-listing-page { --plp-pad: 32px; }
+  .plp-mobile-bar {
+    display: flex;
+    bottom: 0;
+    margin: 24px calc(-1 * var(--plp-pad, 16px)) 0;
+    padding: 12px var(--plp-pad, 16px) calc(12px + env(safe-area-inset-bottom));
+    background: var(--plp-card-bg);
+    border-top: 1px solid var(--plp-border);
+    box-shadow: 0 -6px 20px rgba(4, 2, 5, 0.08);
+    pointer-events: auto;
+  }
+  /* Buttons sit on the bar now — lighter shadow */
+  .plp-mobile-3d,
+  .plp-mobile-filter { box-shadow: none; }
+
+  /* Two-column product grid (matches Figma). Reset the desktop min-width
+     (from the ≤1600px rule) so the cards can shrink into two columns. */
+  .plp-product-grid { grid-template-columns: repeat(2, 1fr); }
+  .plp-product-grid .product-card { min-width: 0; }
+
+  .product-listing-page { padding-bottom: 84px; }
 }
 
 @media (max-width: 768px) {
-  .product-listing-page { padding: 0 16px 32px; }
-  .plp-title-section h1 { font-size: 29px; letter-spacing: -1px; line-height: 32px; }
-  .plp-product-grid { 
-    grid-template-columns: 1fr;
-    gap: 26px 13px;
+  .product-listing-page { padding: 0 16px 84px; --plp-pad: 16px; }
+
+  /* Breadcrumb on its own row; title (left) + Sort (right) on the next.
+     display:contents flattens plp-header-left so its children can be ordered. */
+  .plp-header {
+    flex-wrap: wrap;
+    align-items: flex-end;
+    padding: 20px 0 16px;
+    margin-bottom: 20px;
   }
+  .plp-header-left { display: contents; }
+  .breadcrumbs { order: 1; flex: 1 1 100%; }
+  .plp-title-section { order: 2; flex: 1 1 auto; min-width: 0; }
+  .sort-by-section {
+    order: 3;
+    flex-shrink: 0;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+  }
+  .plp-title-section h1 { font-size: 26px; letter-spacing: -0.6px; line-height: 30px; }
+  .plp-subtitle { display: none; }
+  .sort-select-wrapper { padding-left: 0; }
+  .plp-product-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 22px 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .plp-product-grid { gap: 18px 10px; }
+  .sort-select { width: 140px; }
+  .plp-mobile-3d,
+  .plp-mobile-filter { padding: 11px 16px; font-size: 13px; }
+}
+
+@media (max-width: 360px) {
+  .product-listing-page { padding-left: 12px; padding-right: 12px; --plp-pad: 12px; }
+  .plp-title-section h1 { font-size: 22px; }
+  .plp-product-grid { gap: 16px 8px; }
+  .plp-mobile-3d,
+  .plp-mobile-filter { padding: 10px 12px; gap: 6px; font-size: 12px; }
+  .plp-mobile-3d svg,
+  .plp-mobile-filter svg { width: 16px; height: 16px; }
 }
