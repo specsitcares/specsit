@@ -42,6 +42,7 @@ const Header = ({ showUserProfile = false, user = null, onLogout = null }) => {
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeDropdown, setActiveDropdown] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const closeTimer = useRef(null);
 
   // Dynamic navigation options from the backend
@@ -106,19 +107,36 @@ const Header = ({ showUserProfile = false, user = null, onLogout = null }) => {
           </Link>
         </div>
 
-        <div className="header-nav-links" data-name="Navigation Links">
+        <div className={`header-nav-links ${menuOpen ? 'header-nav-links--open' : ''}`} data-name="Navigation Links">
           {navLinks.map((link) => (
             <Link
               key={link.name}
               to={link.path}
               className={`nav-link ${isActive(link.path) ? 'nav-link--active' : ''}`}
               onMouseEnter={() => openDropdown(link.category)}
+              onClick={() => setMenuOpen(false)}
             >
               {link.name}
             </Link>
           ))}
         </div>
       </div>
+
+      {/* Hamburger (mobile only) */}
+      <button
+        className="header-hamburger"
+        aria-label="Toggle menu"
+        aria-expanded={menuOpen}
+        onClick={() => setMenuOpen((o) => !o)}
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          {menuOpen ? (
+            <><line x1="6" y1="6" x2="18" y2="18" /><line x1="6" y1="18" x2="18" y2="6" /></>
+          ) : (
+            <><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></>
+          )}
+        </svg>
+      </button>
 
       {/* Trailing Actions (Right) */}
       <div className="header-actions" data-name="Trailing Actions (Right)" onMouseEnter={scheduleClose}>

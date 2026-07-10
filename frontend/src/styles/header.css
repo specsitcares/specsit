@@ -200,6 +200,19 @@
   text-decoration: none;
 }
 
+/* Hamburger toggle — hidden on desktop, shown ≤992px */
+.header-hamburger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: #040205;
+  flex-shrink: 0;
+}
+
 /* Responsive */
 @media (max-width: 1200px) {
   .header { padding: 0 32px; }
@@ -211,21 +224,46 @@
 @media (max-width: 992px) {
   .header {
     flex-wrap: wrap;
+    align-items: center;
     padding: 12px 16px;
     gap: 12px;
     min-height: 0;
+    position: relative;
   }
-  .header-left {
-    order: 1;
-    width: 100%;
-    justify-content: space-between;
-    gap: 16px;
+  /* Flatten the wrappers so brand, icons, hamburger and search become
+     direct flex items of the header and can be ordered into two rows. */
+  .header-left,
+  .header-actions { display: contents; }
+
+  /* Row 1: brand (left) ........ heart · cart · account · hamburger (right) */
+  .header-brand { order: 1; margin-right: auto; }
+  .header-icon-group { order: 2; gap: 16px; }
+  .header-hamburger { display: flex; order: 3; }
+
+  /* Row 2: full-width search */
+  .header-search { order: 4; flex: 1 1 100%; width: 100%; }
+
+  /* Categories collapse into a full-width dropdown toggled by the hamburger */
+  .header-nav-links {
+    order: 5;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    background: #FEFCFF;
+    border-bottom: 1px solid #E4E4E4;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    padding: 4px 16px 8px;
+    display: none;
+    z-index: 1001;
   }
-  .header-nav-links { gap: 16px; }
-  .nav-link { padding: 8px 0; }
-  .header-actions {
-    order: 2;
-    width: 100%;
+  .header-nav-links--open { display: flex; }
+  .nav-link {
+    padding: 14px 2px;
+    border-bottom: 1px solid #F0F0F0;
   }
-  .header-search { flex: 1; }
+  .nav-link:last-child { border-bottom: none; }
 }

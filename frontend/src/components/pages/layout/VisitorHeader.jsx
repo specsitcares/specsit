@@ -35,6 +35,7 @@ const VisitorHeader = () => {
     const location = useLocation();
     const [searchQuery, setSearchQuery] = useState('');
     const [activeDropdown, setActiveDropdown] = useState(null);
+    const [menuOpen, setMenuOpen] = useState(false);
     const closeTimer = useRef(null);
 
     const cartCount = cart?.reduce((acc, item) => acc + item.quantity, 0) || 0;
@@ -84,19 +85,36 @@ const VisitorHeader = () => {
                     </Link>
                 </div>
 
-                <div className="visitor-nav">
+                <div className={`visitor-nav ${menuOpen ? 'visitor-nav--open' : ''}`}>
                     {navLinks.map((link) => (
                         <Link
                             key={link.name}
                             to={link.path}
                             className={`visitor-nav-link ${isActive(link.path) ? 'active' : ''}`}
                             onMouseEnter={() => link.dropdown ? openDropdown(link.dropdown) : scheduleClose()}
+                            onClick={() => setMenuOpen(false)}
                         >
                             {link.name}
                         </Link>
                     ))}
                 </div>
             </div>
+
+            {/* Hamburger (mobile only) */}
+            <button
+                className="visitor-hamburger"
+                aria-label="Toggle menu"
+                aria-expanded={menuOpen}
+                onClick={() => setMenuOpen((o) => !o)}
+            >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    {menuOpen ? (
+                        <><line x1="6" y1="6" x2="18" y2="18" /><line x1="6" y1="18" x2="18" y2="6" /></>
+                    ) : (
+                        <><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></>
+                    )}
+                </svg>
+            </button>
 
             {/* Trailing Actions (Right) */}
             <div className="visitor-actions" onMouseEnter={scheduleClose}>

@@ -34,6 +34,20 @@
   font-family: var(--sp-font);
   margin: 0;
   width: 100%;
+  max-width: 100%;
+  /* Backstop: never let a child cause page-level horizontal scroll.
+     `clip` (unlike `hidden`) does not turn the vertical axis into a
+     scroll container, so the scroll-reveal + sticky logic still works. */
+  overflow-x: clip;
+}
+
+/* Enforce border-box everywhere inside the homepage so fixed paddings/
+   borders never push an element past the viewport on narrow phones. */
+.homepage,
+.homepage *,
+.homepage *::before,
+.homepage *::after {
+  box-sizing: border-box;
 }
 
 /* Every section spans the full viewport width; content keeps a consistent gutter */
@@ -1465,11 +1479,13 @@
     --sp-px: 16px;
     --sp-gap: 40px;
   }
-  .hero-v2 { min-height: 440px; }
-  .hero-v2__heading { font-size: 28px; }
-  .frame-lounge__grid { grid-template-columns: repeat(2, 1fr); }
+  .hero-v2 { min-height: 420px; }
+  .hero-v2__heading { font-size: 30px; }
+  .hero-v2__text { max-width: 100%; }
+  .frame-lounge__grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
   .premium-intent { grid-template-columns: 1fr; }
   .premium-intent__right { display: none; }
+  .premium-intent__left { padding: 32px 20px; }
   .visit-atelier__container { grid-template-columns: 1fr; }
   .testimonials-v2__grid { grid-template-columns: 1fr; }
   .blog-section__grid { grid-template-columns: 1fr; }
@@ -1477,6 +1493,114 @@
   .blog-page__featured-img { height: 220px; }
   .blog-detail__hero-img { height: 220px; }
   .blog-detail__related { padding: 20px; }
-  .shipping-benefits__item { flex: 1 1 100%; }
   .promo-banner__heading { font-size: 24px; }
+  .promo-banner { padding: 36px var(--sp-px); }
+
+  /* Section headers are left-aligned on mobile (matches Figma) */
+  .frame-lounge__title,
+  .product-section__header,
+  .product-section__title,
+  .frame-styles__header,
+  .frame-styles__title,
+  .testimonials-v2__header,
+  .testimonials-v2__title,
+  .blog-section__header,
+  .blog-section__title,
+  .shipping-benefits__title,
+  .faq__title { text-align: left; }
+  .product-section__subtitle,
+  .testimonials-v2__subtitle,
+  .blog-section__subtitle { margin-left: 0; margin-right: 0; }
+
+  /* Explore Frame Styles — compact cards so several peek into view */
+  .frame-styles__shape-card { width: 150px; padding: 16px 12px; gap: 12px; }
+  .frame-styles__shape-img { height: 104px; }
+  .frame-styles__shape-name { font-size: 14px; }
+  .frame-styles__carousel-track { gap: 14px; }
+
+  /* Shipping benefits — horizontal scroll with dividers on mobile */
+  .shipping-benefits { align-items: stretch; gap: 22px; }
+  .shipping-benefits__row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    justify-content: flex-start;
+    gap: 0;
+    scrollbar-width: none;
+  }
+  .shipping-benefits__row::-webkit-scrollbar { display: none; }
+  .shipping-benefits__item { flex: 0 0 80%; }
+  .shipping-benefits__divider { display: block; }
+
+  /* Visit atelier — buttons share the row equally */
+  .visit-atelier__actions { gap: 10px; }
+  .visit-atelier__btn-primary,
+  .visit-atelier__btn-outline { flex: 1; justify-content: center; }
+
+  /* Fluid section titles — scale smoothly across every phone width */
+  .frame-lounge__title,
+  .product-section__title,
+  .frame-styles__title,
+  .testimonials-v2__title,
+  .blog-section__title,
+  .shipping-benefits__title,
+  .faq__title { font-size: clamp(18px, 5.2vw, 22px); }
+
+  /* Testimonial cards must not exceed the viewport on small phones */
+  .tcard { width: min(320px, 82vw); }
+
+  /* Cards align to the gutter and keep breathing room past the last one */
+  .product-section__scroll,
+  .testimonials-v2__track,
+  .frame-styles__carousel-track { scroll-padding-left: var(--sp-px); }
+}
+
+/* =============================================================================
+   RESPONSIVE — 480px (compact phones)
+   ============================================================================= */
+@media (max-width: 480px) {
+  .hero-v2__heading { font-size: 26px; }
+  .promo-banner__heading { font-size: 22px; }
+  .newsletter-v2 { padding: 40px var(--sp-px); }
+  .newsletter-v2__heading { font-size: 24px; }
+  .frame-lounge__card-label { font-size: 14px; }
+  .shipping-benefits__item { flex: 0 0 84%; }
+  /* Product cards fluid so they never overflow narrow screens, with a peek */
+  .product-card { width: min(280px, 78vw); }
+  .frame-styles__shape-card { width: 44vw; max-width: 170px; }
+}
+
+/* =============================================================================
+   RESPONSIVE — 380px (mainstream Android: 360–393px — Redmi, Samsung A/M,
+   Realme, Pixel, iPhone mini/12–15)
+   ============================================================================= */
+@media (max-width: 393px) {
+  :root { --sp-px: 14px; --sp-gap: 36px; }
+  .hero-v2 { min-height: 400px; }
+  .hero-v2__heading { font-size: 24px; }
+  .hero-v2__sub { font-size: 13px; }
+  .frame-lounge__grid { gap: 12px; }
+  .premium-intent__left { padding: 28px 16px; }
+  .promo-banner__heading { font-size: 20px; }
+  .newsletter-v2__heading { font-size: 22px; }
+  .shipping-benefits__item { flex: 0 0 88%; }
+  .visit-atelier__delivery-text { font-size: 11px; }
+}
+
+/* =============================================================================
+   RESPONSIVE — 340px (small / budget phones: 320–360px — Redmi 9A/A-series,
+   older Androids, iPhone SE 1st gen)
+   ============================================================================= */
+@media (max-width: 360px) {
+  :root { --sp-px: 12px; }
+  .hero-v2__heading { font-size: 22px; }
+  .hero-v2__cta { padding: 10px 20px; }
+  .frame-lounge__card-label { font-size: 13px; }
+  .frame-lounge__card-arrow { width: 30px; height: 30px; }
+  .product-card { width: min(280px, 84vw); }
+  .tcard { width: 86vw; padding: 18px; }
+  .frame-styles__shape-card { width: 46vw; }
+  .visit-atelier__actions { flex-direction: column; }
+  .visit-atelier__btn-primary,
+  .visit-atelier__btn-outline { width: 100%; }
+  .promo-banner__heading { font-size: 19px; }
 }
