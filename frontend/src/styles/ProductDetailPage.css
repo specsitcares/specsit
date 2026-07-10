@@ -227,24 +227,34 @@
   line-height: 1.5;
 }
 
+/* Single horizontal row on every device — each dimension is a compact
+   stacked cell (diagram on top, label + value below) separated by a line. */
 .pd-dimensions-row {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: space-between;
-  gap: 8px;
+  gap: 4px;
   padding: 8px 0;
+  width: 100%;
 }
 
 .pd-dim-item {
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 0 8px;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 2px 4px;
+  text-align: center;
 }
 
 .pd-dim-img {
-  width: 96px;
-  height: 52px;
+  width: 100%;
+  max-width: 96px;
+  height: auto;
+  max-height: 54px;
   object-fit: contain;
   flex-shrink: 0;
 }
@@ -252,18 +262,19 @@
 .pd-dim-text {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  gap: 2px;
 }
 
 .pd-dim-label {
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--pd-text);
   line-height: 1.25;
 }
 
 .pd-dim-value {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   color: #434144;
 }
@@ -321,12 +332,12 @@
 }
 
 @media (max-width: 640px) {
-  .pd-dimensions-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
-  }
-  .pd-dim-divider { display: none; }
+  /* Stay a single row — just tighten so all three dimensions + dividers fit. */
+  .pd-dim-item { gap: 6px; padding: 2px; }
+  .pd-dim-img { max-height: 42px; }
+  .pd-dim-label { font-size: 12px; }
+  .pd-dim-value { font-size: 11px; }
+  .pd-dim-divider { min-height: 40px; }
 }
 
 .pd-section-header h2 {
@@ -1447,37 +1458,33 @@
   transform: scale(0.95);
 }
 
+/* Horizontal, side-by-side scroller (not a stacking grid) on every screen. */
 .pd-brand-grid,
 .pd-style-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 19px;
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 6px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
 }
 
 .pd-brand-grid .product-card,
 .pd-style-grid .product-card {
-  width: 100%;
-}
-
-@media (max-width: 1200px) {
-  .pd-brand-grid,
-  .pd-style-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
+  flex: 0 0 auto;
+  width: 240px;
+  scroll-snap-align: start;
 }
 
 @media (max-width: 900px) {
-  .pd-brand-grid,
-  .pd-style-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+  .pd-brand-grid .product-card,
+  .pd-style-grid .product-card { width: 200px; }
 }
 
 @media (max-width: 600px) {
-  .pd-brand-grid,
-  .pd-style-grid {
-    grid-template-columns: 1fr;
-  }
+  .pd-brand-grid .product-card,
+  .pd-style-grid .product-card { width: 170px; }
 }
 
 /* ── Lifestyle Styling Grid ────────────────────────────── */
@@ -1556,15 +1563,35 @@
 }
 
 @media (max-width: 768px) {
-  .pd-breadcrumbs,
+  .pd-breadcrumbs {
+    padding: 12px 13px;
+    width: auto;
+    margin: 0 3px;
+    flex-wrap: wrap;
+    row-gap: 2px;
+  }
+
   .pd-container {
     padding: 0 13px;
     width: auto;
-    margin: 0 16px;
+    margin: 0 3px;
+    gap: 24px;
+  }
+
+  /* Match the buy-box gutter for the full-width sections below it. */
+  .pd-full-width-sections {
+    padding: 0 16px;
   }
 
   .pd-gallery-section {
     flex-direction: column-reverse;
+    height: auto;
+    gap: 12px;
+  }
+
+  .pd-main-view {
+    height: auto;
+    aspect-ratio: 4 / 3;
   }
 
   .pd-thumbnails {
@@ -1575,6 +1602,33 @@
 
   .pd-features-grid {
     grid-template-columns: 1fr;
+  }
+
+  /* Reviews: stack the score/breakdown over the user photos so the
+     fixed 480px column never forces horizontal scroll on phones. */
+  .pd-reviews-container {
+    flex-direction: column;
+    gap: 28px;
+  }
+
+  .pd-rating-overall-col {
+    width: 100%;
+  }
+
+  .pd-user-photo-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .pd-reviews-section,
+  .pd-brand-section,
+  .pd-style-section {
+    padding: 32px 0;
+  }
+}
+
+@media (max-width: 420px) {
+  .pd-user-photo-grid {
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
@@ -1650,6 +1704,10 @@
   line-height: 19px;
   color: #040205;
   margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* ── Price ── */
@@ -2301,4 +2359,161 @@
   font-size: 12px;
   font-weight: 500;
   color: #71717A;
+}
+
+/* ============================================================
+   "See full frame details" link (under Frame Dimensions)
+   ============================================================ */
+.pd-frame-details-link {
+  align-self: center;
+  margin-top: 6px;
+  padding: 6px 4px;
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: #68408D;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.pd-frame-details-link:hover { color: #56336f; }
+
+/* ============================================================
+   WHAT'S EVERYTHING INCLUDED — Figma node 428:5984
+   ============================================================ */
+.pd-included-section {
+  padding: 40px 0;
+  border-top: 1px solid #EBE3F2;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.pd-included-heading {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: var(--pd-text);
+}
+
+.pd-included-card {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 20px;
+  padding: 12px;
+  background: #FBFAFF;
+  border: 1px solid #EBE3F2;
+  border-radius: 14px;
+}
+
+.pd-included-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 12px;
+  border-radius: 10px;
+}
+
+.pd-included-icon {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #F2EEF7;
+  border-radius: 10px;
+  color: #68408D;
+}
+
+.pd-included-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.pd-included-title {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--pd-text);
+}
+
+.pd-included-sub {
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: #52525B;
+}
+
+@media (max-width: 768px) {
+  .pd-included-section { padding: 28px 0; }
+  .pd-included-card { grid-template-columns: 1fr; gap: 2px; }
+}
+
+/* ============================================================
+   MOBILE STICKY ACTION BAR — Figma node 428:5984
+   (View 3D + Select Lenses) — shown ≤768px
+   ============================================================ */
+.pd-mobile-actionbar {
+  display: none;
+  /* Sticky (not fixed) so the bar rides the bottom of the viewport while the
+     product content scrolls, then settles above the footer — keeping the
+     footer clean and distraction-free. */
+  position: sticky;
+  bottom: 0;
+  z-index: 60;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+  background: #FEFCFF;
+  border-top: 1px solid var(--pd-border);
+  box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.07);
+}
+
+.pd-mobile-3d,
+.pd-mobile-lenses {
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.pd-mobile-3d {
+  flex: 0 0 auto;
+  padding: 0 22px;
+  background: #FEFCFF;
+  border: 1px solid #E4E0EA;
+  color: var(--pd-text);
+}
+
+.pd-mobile-lenses {
+  flex: 1 1 auto;
+  padding: 0 20px;
+  background: #14101B;
+  border: none;
+  color: #FEFCFF;
+}
+
+.pd-mobile-lenses:active { background: #040205; }
+.pd-mobile-3d:active { background: #F5F3F6; }
+
+@media (max-width: 768px) {
+  .pd-mobile-actionbar { display: flex; }
+  /* Keep the in-column CTA out on mobile — the sticky bar replaces it. */
+  .pd-cta-group { display: none; }
+  /* The sticky bar occupies its own space in flow, so no extra bottom padding
+     is needed — it rests flush above the footer. */
+  .product-detail-page { padding-bottom: 0; }
 }
