@@ -3,7 +3,8 @@ import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
 import {
     Zap, ShoppingBag, Check, ChevronRight,
     Star, Truck, ShieldCheck, RefreshCw, Box,
-    Layers, Sun, BadgeCheck, ArrowLeft, MapPin, CheckCircle, Heart, X
+    Layers, Sun, BadgeCheck, ArrowLeft, MapPin, CheckCircle, Heart, X,
+    Glasses, SlidersHorizontal
 } from 'lucide-react';
 import apiClient from '../../../services/api';
 import { useCart } from '../../../context/CartContext';
@@ -255,6 +256,15 @@ const ProductDetailPage = () => {
         { label: 'Lens Type', value: product.lens_type },
     ].filter(s => s.value != null && String(s.value).trim() !== '' && String(s.value) !== '—');
 
+    // ── "What's Everything included" — standard inclusions shown to every buyer. ──
+    const includedFeatures = [
+        { icon: Glasses, title: 'Polycarbonate lenses', text: 'The most impact-resistant lens material for glasses' },
+        { icon: Sun, title: 'Scratch-resistant lens coating', text: 'And our lenses block 100% of UV rays' },
+        { icon: Truck, title: 'Free shipping', text: 'On every single order across Hyderabad' },
+        { icon: Box, title: 'Free returns or exchanges', text: 'Within 30 days of purchase' },
+        { icon: RefreshCw, title: 'Free scratched lens replacement', text: 'Guaranteed for prescription lenses within six months of purchase' },
+    ];
+
     // ── Variant-aware pricing — cascading: variant.selling_price → variant.discount_percent → product.selling_price → product.discount_percentage
     const mrp = Math.round(parseFloat(selectedVariantObj?.base_price || product.base_price || 0));
     const variantSelling = parseFloat(selectedVariantObj?.selling_price || 0);
@@ -350,7 +360,7 @@ const ProductDetailPage = () => {
                     </section>
 
                     {/* ── Frame Dimensions ── */}
-                    <section className="pd-dimensions-section reveal-on-scroll">
+                    <section id="pd-frame-dimensions" className="pd-dimensions-section reveal-on-scroll">
                         <h3 className="pd-spec-heading">Frame Dimensions</h3>
                         <div className="pd-dimensions-row">
                             {frameDims.map((d, i) => (
@@ -366,11 +376,21 @@ const ProductDetailPage = () => {
                                 </React.Fragment>
                             ))}
                         </div>
+                        {productSpecs.length > 0 && (
+                            <button
+                                type="button"
+                                className="pd-frame-details-link"
+                                onClick={() => document.getElementById('pd-frame-details')
+                                    ?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                            >
+                                See full frame details
+                            </button>
+                        )}
                     </section>
 
                     {/* ── Product Specifications ── */}
                     {productSpecs.length > 0 && (
-                        <section className="pd-specs-section reveal-on-scroll">
+                        <section id="pd-frame-details" className="pd-specs-section reveal-on-scroll">
                             <h3 className="pd-spec-heading">Product Specifications</h3>
                             <div className="pd-specs-card">
                                 {productSpecs.map(s => (
@@ -406,10 +426,13 @@ const ProductDetailPage = () => {
                             )}
                         </div>
                         <h1 className="pd-title">{product.title}</h1>
-                        {/* Admin-configured variant name (variant.name) shown under the title */}
-                        {selectedVariantObj?.name && (
+                        {/* Short marketing description under the title (Figma 428:5984).
+                            Falls back to the admin-configured variant name when no copy exists. */}
+                        {(product.short_description || product.description) ? (
+                            <p className="pd-subtitle">{product.short_description || product.description}</p>
+                        ) : selectedVariantObj?.name ? (
                             <p className="pd-subtitle">{selectedVariantObj.name}</p>
-                        )}
+                        ) : null}
                     </div>
 
                     {/* ── Price ── */}
@@ -468,6 +491,14 @@ const ProductDetailPage = () => {
                                         );
                                     })}
                                 </div>
+                                <button
+                                    type="button"
+                                    className="pd-size-guide"
+                                    onClick={() => document.getElementById('pd-frame-dimensions')
+                                        ?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                                >
+                                    Size Guide
+                                </button>
                             </div>
                         </div>
                     )}
@@ -508,6 +539,24 @@ const ProductDetailPage = () => {
             </main>
 
             <div className="pd-full-width-sections">
+                {/* ── What's Everything included (Figma 428:5984) ── */}
+                <section className="pd-included-section reveal-on-scroll">
+                    <h2 className="pd-included-heading">What's Everything included</h2>
+                    <div className="pd-included-card">
+                        {includedFeatures.map(({ icon: Icon, title, text }) => (
+                            <div key={title} className="pd-included-row">
+                                <span className="pd-included-icon">
+                                    <Icon size={20} strokeWidth={1.6} />
+                                </span>
+                                <div className="pd-included-text">
+                                    <span className="pd-included-title">{title}</span>
+                                    <span className="pd-included-sub">{text}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+
                 <section className="pd-reviews-section reveal-on-scroll" id="reviews">
                     <div className="pd-section-header">
                         <h2>Rating & Reviews</h2>
@@ -675,6 +724,17 @@ const ProductDetailPage = () => {
                         <p style={{ color: '#9ca3af', fontSize: 14, padding: '8px 0' }}>No other products in this category yet.</p>
                     )}
                 </section>
+            </div>
+
+            {/* ── Mobile sticky action bar (Figma 428:5984) — shown ≤768px ── */}
+            <div className="pd-mobile-actionbar">
+                <button className="pd-mobile-3d" onClick={() => setIsVTOModalOpen(true)}>
+                    <SlidersHorizontal size={16} strokeWidth={2} />
+                    View 3D
+                </button>
+                <button className="pd-mobile-lenses" onClick={() => setIsAsideOpen(true)}>
+                    Select Lenses
+                </button>
             </div>
 
             <VTOModal

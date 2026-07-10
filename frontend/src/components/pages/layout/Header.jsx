@@ -140,18 +140,20 @@ const Header = ({ showUserProfile = false, user = null, onLogout = null }) => {
 
       {/* Trailing Actions (Right) */}
       <div className="header-actions" data-name="Trailing Actions (Right)" onMouseEnter={scheduleClose}>
-        {/* Search Bar */}
-        <div className="header-search">
-          <span className="header-search-icon"><SearchIcon /></span>
-          <input
-            type="text"
-            placeholder="What are you looking for?"
-            className="header-search-input"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={handleSearch}
-          />
-        </div>
+        {/* Search Bar — hidden on the product detail page (all devices) */}
+        {!/^\/product\//.test(location.pathname) && (
+          <div className="header-search">
+            <span className="header-search-icon"><SearchIcon /></span>
+            <input
+              type="text"
+              placeholder="What are you looking for?"
+              className="header-search-input"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={handleSearch}
+            />
+          </div>
+        )}
 
         <div className="header-icon-group">
           {/* Wishlist */}

@@ -118,18 +118,20 @@ const VisitorHeader = () => {
 
             {/* Trailing Actions (Right) */}
             <div className="visitor-actions" onMouseEnter={scheduleClose}>
-                {/* Search Bar */}
-                <div className="visitor-search">
-                    <span className="visitor-search-icon"><SearchIcon /></span>
-                    <input
-                        type="text"
-                        placeholder="What are you looking for?"
-                        className="visitor-search-input"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        onKeyDown={handleSearch}
-                    />
-                </div>
+                {/* Search Bar — hidden on the product detail page (all devices) */}
+                {!/^\/product\//.test(location.pathname) && (
+                    <div className="visitor-search">
+                        <span className="visitor-search-icon"><SearchIcon /></span>
+                        <input
+                            type="text"
+                            placeholder="What are you looking for?"
+                            className="visitor-search-input"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onKeyDown={handleSearch}
+                        />
+                    </div>
+                )}
 
                 <div className="visitor-icon-group">
                     {/* Wishlist */}
