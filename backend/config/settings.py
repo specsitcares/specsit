@@ -176,24 +176,36 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 import dj_database_url
 
-DATABASES = {
-    'default': dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
-        conn_max_age=600,
-        ssl_require=not DEBUG
-    )
-}
-
-# If separate DB variables are defined in env, map them as a fallback
-if not env('DATABASE_URL', default=None) and env('DB_NAME', default=None):
-    DATABASES['default'] = {
-        'ENGINE': env('DB_ENGINE', default='django.db.backends.postgresql'),
-        'NAME': env('DB_NAME'),
-        'USER': env('DB_USER', default=''),
-        'PASSWORD': env('DB_PASSWORD', default=''),
-        'HOST': env('DB_HOST', default=''),
-        'PORT': env('DB_PORT', default=''),
+# Local-dev escape hatch: set USE_SQLITE=True in .env to run entirely against the
+# bundled db.sqlite3 — handy when the remote Supabase host is unreachable
+# (flaky DNS/network, or a paused free-tier project). Defaults to False so
+# staging/production keep using DATABASE_URL unchanged.
+if env.bool('USE_SQLITE', default=False):
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
     }
+else:
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+            conn_max_age=600,
+            ssl_require=not DEBUG
+        )
+    }
+
+    # If separate DB variables are defined in env, map them as a fallback
+    if not env('DATABASE_URL', default=None) and env('DB_NAME', default=None):
+        DATABASES['default'] = {
+            'ENGINE': env('DB_ENGINE', default='django.db.backends.postgresql'),
+            'NAME': env('DB_NAME'),
+            'USER': env('DB_USER', default=''),
+            'PASSWORD': env('DB_PASSWORD', default=''),
+            'HOST': env('DB_HOST', default=''),
+            'PORT': env('DB_PORT', default=''),
+        }
 
 # Cache Configuration — Upstash serverless Redis when REDIS_URL is set
 # (rediss://… TLS URL), else in-memory for local/dev. IGNORE_EXCEPTIONS keeps
