@@ -2735,51 +2735,52 @@
 
 
 /* ============================================================
-   PAYMENT FAILED STATE — FIGMA DESIGN (node 433:9367)
-   Centered card: circle ✕ icon, full-width error box, stacked
-   full-width buttons. Responsive down to the smallest phones.
+   PAYMENT FAILED STATE
+   Desktop (>900px): original design, node 401:17706 — left-aligned
+   card, summary column stays. Phone/tablet (<=900px): mobile design,
+   node 433:9367 — centered card, no summary. Base = desktop; the
+   mobile look lives entirely in the <=900px block below so the
+   desktop screen is never touched by the responsive styling.
    ============================================================ */
 
 .pay-failed {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  align-items: center;
-  text-align: center;
+  gap: 0;
+  align-items: flex-start;
   width: 100%;
-  max-width: 400px;
-  margin: 24px auto;
-  box-sizing: border-box;
 }
 
-/* ── Icon: red ✕ in a soft-red circle ── */
+/* ── Warning icon (desktop shows the ring glyph; mobile swaps to the ✕) ── */
 .pay-failed__icon-wrap {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 80px;
-  height: 80px;
-  background: #FFEFEF;
-  border-radius: 50%;
+  width: 69px;
+  height: 69px;
+  background: rgba(255, 218, 214, 0.3);
+  border-radius: 10px;
+  margin-bottom: 13px;
   flex-shrink: 0;
 }
+
+.pay-failed__icon--mobile { display: none; }
 
 /* ── Title + description ── */
 .pay-failed__body {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
+  gap: 19px;
+  margin-bottom: 13px;
 }
 
 .pay-failed__title {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 26px;
+  font-size: 38px;
   font-weight: 800;
   color: var(--specsit-black);
-  letter-spacing: -0.26px;
-  line-height: 34px;
+  letter-spacing: -0.05em;
+  line-height: 1;
   margin: 0;
 }
 
@@ -2787,89 +2788,185 @@
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 14px;
   font-weight: 400;
-  color: #71717A;
-  line-height: 1.5;
+  color: var(--specsit-black);
+  line-height: 1.625;
   margin: 0;
-  max-width: 360px;
+  max-width: 410px;
 }
 
-/* ── Error code box (full width) ── */
+/* ── Error code badge ── */
 .pay-failed__code-badge {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 5px;
-  width: 100%;
-  padding: 10px 16px;
-  background: #FFEFEF;
-  border: 1px solid #D9CCCC;
-  border-radius: 8px;
-  box-sizing: border-box;
+  gap: 10px;
+  height: 40px;
+  padding: 0 16px;
+  background: var(--specsit-light-grey);
+  border: 1px solid var(--specsit-purple-light);
+  border-radius: 6px;
+  margin-top: 13px;
+  margin-bottom: 13px;
 }
 
-.pay-failed__code-label,
-.pay-failed__code-value {
+.pay-failed__code-label {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 12px;
-  font-weight: 700;
-  color: #D92E2E;
-  letter-spacing: 0;
-  text-transform: none;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--specsit-black);
+  text-transform: uppercase;
+  letter-spacing: 0.35px;
   white-space: nowrap;
 }
 
-/* ── Action buttons: full-width, stacked (20px rhythm, matching Figma) ── */
-.pay-failed__actions {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  width: 100%;
+.pay-failed__code-value {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: #BA1A1A;
+  white-space: nowrap;
 }
 
-.pay-failed__retry-btn,
-.pay-failed__change-btn {
+/* ── Action buttons ── */
+.pay-failed__actions {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  padding: 14px;
-  border-radius: 8px;
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-sizing: border-box;
+  gap: 13px;
+  margin-top: 13px;
+  flex-wrap: wrap;
 }
 
 .pay-failed__retry-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 26px;
   background: var(--specsit-purple-primary);
   color: #fff;
   border: none;
+  border-radius: 6px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .pay-failed__retry-btn:hover {
+  transform: translateY(-1px);
   box-shadow: 0px 6px 16px rgba(79, 40, 116, 0.3);
 }
 
 .pay-failed__retry-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-  box-shadow: none;
+  transform: none;
 }
 
 .pay-failed__change-btn {
-  background: #fff;
-  color: var(--specsit-purple-primary);
-  border: 2px solid var(--specsit-purple-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 27px;
+  background: transparent;
+  color: var(--specsit-black);
+  border: 2px solid var(--specsit-light-grey);
+  border-radius: 6px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .pay-failed__change-btn:hover {
-  background: #F7F3FB;
+  border-color: var(--specsit-purple-primary);
+  color: var(--specsit-purple-primary);
 }
 
-/* Small phones: keep the card comfortably inside the viewport. */
+/* ── Phone & tablet (<=900px): mobile Figma 433:9367 — centered card,
+   circle ✕ icon, full-width error box, stacked buttons, no summary.
+   Scoped here so desktop stays exactly as above. ── */
+@media (max-width: 900px) {
+  .checkout-main-content--failed { grid-template-columns: 1fr; }
+  .checkout-main-content--failed .order-summary-side { display: none; }
+
+  .pay-failed {
+    gap: 20px;
+    align-items: center;
+    text-align: center;
+    max-width: 400px;
+    margin: 24px auto;
+    box-sizing: border-box;
+  }
+
+  .pay-failed__icon-wrap {
+    width: 80px;
+    height: 80px;
+    background: #FFEFEF;
+    border-radius: 50%;
+    margin-bottom: 0;
+  }
+  .pay-failed__icon--desktop { display: none; }
+  .pay-failed__icon--mobile { display: block; }
+
+  .pay-failed__body {
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 0;
+    width: 100%;
+  }
+  .pay-failed__title { font-size: 26px; letter-spacing: -0.26px; line-height: 34px; }
+  .pay-failed__desc { color: #71717A; line-height: 1.5; max-width: 360px; }
+
+  .pay-failed__code-badge {
+    justify-content: center;
+    gap: 5px;
+    width: 100%;
+    height: auto;
+    padding: 10px 16px;
+    background: #FFEFEF;
+    border: 1px solid #D9CCCC;
+    border-radius: 8px;
+    margin: 0;
+    box-sizing: border-box;
+  }
+  .pay-failed__code-label,
+  .pay-failed__code-value {
+    font-size: 12px;
+    font-weight: 700;
+    color: #D92E2E;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  .pay-failed__actions {
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+    margin-top: 0;
+    flex-wrap: nowrap;
+  }
+  .pay-failed__retry-btn,
+  .pay-failed__change-btn {
+    justify-content: center;
+    width: 100%;
+    padding: 14px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .pay-failed__change-btn {
+    background: #fff;
+    color: var(--specsit-purple-primary);
+    border: 2px solid var(--specsit-purple-primary);
+  }
+  .pay-failed__change-btn:hover { background: #F7F3FB; color: var(--specsit-purple-primary); }
+  .pay-failed__change-btn svg { display: none; }   /* Figma change button has no icon */
+}
+
+/* Smallest phones */
 @media (max-width: 380px) {
   .pay-failed { gap: 16px; margin: 16px auto; }
   .pay-failed__actions { gap: 16px; }

@@ -989,9 +989,15 @@ const CheckoutPage = () => {
                     {/* ── Payment Failed state ── */}
                             {paymentFailed ? (
                                 <div className="pay-failed">
-                                    {/* Icon — red ✕ in a soft circle (Figma 433:9659) */}
+                                    {/* Icon — desktop ring glyph (401:17706) / mobile red ✕ (433:9659) */}
                                     <div className="pay-failed__icon-wrap">
-                                        <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <svg className="pay-failed__icon--desktop" width="38" height="38" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <circle cx="19" cy="19" r="19" fill="rgba(255,218,214,0)"/>
+                                            <circle cx="19" cy="19" r="14" stroke="#BA1A1A" strokeWidth="1.5" fill="none"/>
+                                            <path d="M19 12V20" stroke="#BA1A1A" strokeWidth="2" strokeLinecap="round"/>
+                                            <circle cx="19" cy="24.5" r="1.25" fill="#BA1A1A"/>
+                                        </svg>
+                                        <svg className="pay-failed__icon--mobile" width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
                                             <path d="M9 9L25 25M25 9L9 25" stroke="#D92E2E" strokeWidth="3.4" strokeLinecap="round"/>
                                         </svg>
                                     </div>
@@ -1023,6 +1029,11 @@ const CheckoutPage = () => {
                                         </button>
                                         <button className="pay-failed__change-btn"
                                             onClick={handleChangePaymentMethod}>
+                                            <svg width="16" height="13" viewBox="0 0 16 13" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <rect x="0.75" y="0.75" width="14.5" height="11.5" rx="1.25" stroke="#040205" strokeWidth="1.5"/>
+                                                <path d="M0.75 4.5H15.25" stroke="#040205" strokeWidth="1.5"/>
+                                                <path d="M4 8.5H6" stroke="#040205" strokeWidth="1.5" strokeLinecap="round"/>
+                                            </svg>
                                             Change Payment Method
                                         </button>
                                     </div>
@@ -1187,7 +1198,10 @@ const CheckoutPage = () => {
 
                 </div>
 
-                {!paymentFailed && <OrderSummary />}
+                {/* Summary stays on desktop; hidden on phone/tablet when payment
+                    fails via CSS (.checkout-main-content--failed) to match the
+                    mobile Figma without touching the desktop layout. */}
+                <OrderSummary />
             </main>
         </div>
     );
