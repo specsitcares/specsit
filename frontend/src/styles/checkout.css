@@ -5154,6 +5154,64 @@
 .pay-deliver__info span { font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; color:#71717A; line-height:17px; }
 .pay-deliver__badge { flex-shrink:0; display:inline-flex; align-items:center; gap:4px; background:#FFF7DA; color:#9A6B00; font-family:'Plus Jakarta Sans',sans-serif; font-size:11px; font-weight:700; padding:6px 10px; border-radius:8px; white-space:nowrap; }
 
+/* ============================================================
+   PAYMENT SUMMARY (right side) — desktop & tablet only (Figma 87:4443).
+   Mobile (<=600px) is intentionally left untouched.
+   ============================================================ */
+/* Trust row is hidden by default so mobile is unaffected; shown >=601px. */
+.ck-trust-row { display: none; }
+
+@media (min-width: 601px) {
+  /* Delivery card removed on desktop/tablet (kept on mobile) */
+  .order-summary-side .ck-delivery-card { display: none; }
+
+  /* Card container: border + soft shadow + roomier padding */
+  .order-summary-side .ck-summary {
+    padding: 32px;
+    gap: 24px;
+    border-color: #D9D9D9;
+    box-shadow: 0 8px 24px rgba(16, 24, 40, 0.05);
+  }
+  .order-summary-side .ck-summary__title { font-size: 20px; letter-spacing: -0.5px; }
+
+  /* Order rows: grey labels, 16px values (per Figma) */
+  .order-summary-side .ck-order__label { color: #71717A; font-weight: 400; }
+  .order-summary-side .ck-order__val { color: #71717A; font-weight: 500; font-size: 16px; }
+
+  /* Total row */
+  .order-summary-side .ck-total { border-top-color: #EBE3F2; }
+  .order-summary-side .ck-total span:first-child { font-weight: 600; }
+  .order-summary-side .ck-total span:last-child { font-size: 18px; font-weight: 700; }
+
+  /* CTA */
+  .order-summary-side .ck-pay {
+    font-size: 18px;
+    box-shadow: 0 10px 15px -3px rgba(88, 28, 135, 0.1), 0 4px 6px -4px rgba(88, 28, 135, 0.1);
+  }
+
+  /* Trust indicators row: 3 equal columns divided by hairlines */
+  .order-summary-side .ck-trust-row {
+    display: flex;
+    width: 100%;
+    margin-top: 4px;
+  }
+  .order-summary-side .ck-trust-item {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: #71717A;
+    text-align: center;
+  }
+  .order-summary-side .ck-trust-item:not(:last-child) { border-right: 1px solid #DEDEDE; }
+}
+
 /* ── Payment left column (Figma 87:2647) ── */
 .pay2-block { margin-bottom:32px; }
 .pay2-heading { margin:0 0 14px; font-family:'Plus Jakarta Sans',sans-serif; font-size:20px; font-weight:700; color:#040205; }
