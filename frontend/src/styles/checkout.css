@@ -3013,6 +3013,76 @@
   .conf-page { padding: 38px 16px; }
 }
 
+/* ============================================================
+   ORDER CONFIRMATION — mobile & tablet (<=1024px), Figma 436:9863.
+   Desktop (>1024px) keeps its existing layout untouched. Only the
+   standard "Thank You" branch (.conf-page--figma) is affected.
+   ============================================================ */
+.conf-desktop { display: contents; }
+.conf-mobile { display: none; }
+
+@media (max-width: 1024px) {
+  .conf-desktop { display: none; }
+  .conf-page--figma { max-width: 480px; padding: 28px 16px; gap: 0; }
+
+  .conf-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .conf-m-icon {
+    align-self: center;
+    width: 90px; height: 90px;
+    background: #68408D;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .conf-m-head { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; width: 100%; }
+  .conf-m-title { margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 26px; font-weight: 800; color: #040205; letter-spacing: -0.26px; line-height: 1.15; }
+  .conf-m-sub { margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 500; color: #71717A; }
+
+  .conf-m-orderid {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    background: #EBE3F2; border-radius: 10px; padding: 12px 20px; width: 100%;
+    box-sizing: border-box;
+  }
+  .conf-m-orderid__label { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 500; color: #71717A; }
+  .conf-m-orderid__val { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700; color: #68408D; }
+
+  .conf-m-priority {
+    display: flex; flex-direction: column; gap: 12px;
+    background: #fff; border: 1px solid #D9D9D9; border-radius: 14px; padding: 16px; width: 100%;
+    box-sizing: border-box;
+  }
+  .conf-m-priority__top { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; width: 100%; }
+  .conf-m-priority__label { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 700; color: #040205; }
+  .conf-m-priority__banner {
+    display: flex; align-items: center; gap: 6px;
+    background: linear-gradient(to right, rgba(251,238,60,0.2), rgba(255,250,237,0.2));
+    border-radius: 8px; padding: 12px; width: 100%; box-sizing: border-box;
+  }
+  .conf-m-priority__img { width: 53px; height: 40px; object-fit: contain; flex-shrink: 0; }
+  .conf-m-priority__banner-text { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 800; color: #68408D; }
+  .conf-m-priority__desc { margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 400; color: #71717A; line-height: 1.4; }
+  .conf-m-tracking {
+    display: flex; align-items: center; justify-content: center;
+    background: #E5F9EC; border-radius: 6px; padding: 8px 10px; width: 100%;
+    font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 700; color: #0D9B3A;
+    box-sizing: border-box;
+  }
+  .conf-m-track, .conf-m-shop {
+    display: flex; align-items: center; justify-content: center;
+    width: 100%; padding: 15px; border-radius: 8px;
+    font-family: 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 700;
+    text-decoration: none; box-sizing: border-box;
+  }
+  .conf-m-track { background: #68408D; color: #fff; }
+  .conf-m-shop { background: #EBE3F2; color: #68408D; }
+}
+
 /* Header */
 .conf-header {
   display: flex;
