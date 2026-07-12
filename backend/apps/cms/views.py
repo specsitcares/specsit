@@ -474,6 +474,27 @@ class HomeBundleView(APIView):
                     .prefetch_related('variants', 'reviews')
                     .order_by('-created_at')[:40])
 
+        # Best Sellers must be justified by real sales, not just the admin flag.
+        # A product qualifies only if it is admin-flagged AND actually sold units in
+        # the trailing 90 days (cancelled orders excluded); results are ranked by that
+        # volume so the strongest sellers surface first.
+        from django.db.models import Sum, Q
+        from django.utils import timezone
+        from datetime import timedelta
+        sales_window_start = timezone.now() - timedelta(days=90)
+        best_sellers = (
+            Product.objects.filter(is_active=True, is_bestseller=True)
+            .select_related('category', 'brand', 'manufacturer')
+            .prefetch_related('variants', 'reviews')
+            .annotate(units_sold_90d=Sum(
+                'variants__orderitem__quantity',
+                filter=Q(variants__orderitem__order__created_at__gte=sales_window_start)
+                       & ~Q(variants__orderitem__order__order_status='cancelled'),
+            ))
+            .filter(units_sold_90d__gt=0)
+            .order_by('-units_sold_90d', '-created_at')[:12]
+        )
+
         ns = NewsletterSettings.get()
 
         return Response({
@@ -497,4 +518,5 @@ class HomeBundleView(APIView):
             'faqs': FaqSerializer(Faq.objects.filter(is_active=True).order_by('order', 'id'), many=True).data,
             'testimonials': ReviewSerializer(reviews, many=True, context=ctx).data,
             'products': ProductSerializer(products, many=True, context=ctx).data,
+            'best_sellers': ProductSerializer(best_sellers, many=True, context=ctx).data,
         })

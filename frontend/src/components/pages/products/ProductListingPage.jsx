@@ -161,7 +161,7 @@ const ProductListingPage = () => {
         // Server-side sorting
         const sortMap = {
             'newest': '-created_at',
-            'bestsellers': '-created_at',  // Will filter on client-side
+            'bestsellers': 'bestsellers',  // Ranked server-side by real 90-day units sold
             'price-low': 'final_price',
             'price-high': '-final_price',
             'name': 'title',
@@ -232,9 +232,11 @@ const ProductListingPage = () => {
                     data = data.filter(p => new Date(p.created_at) >= cutoff);
                 }
 
-                // Best Sellers: filter products flagged as bestseller
+                // Best Sellers: admin-flagged AND justified by real sales in the last
+                // 90 days (units_sold is annotated server-side). Keeps the section from
+                // showing products that have never actually sold.
                 if (sortBy === 'bestsellers') {
-                    data = data.filter(p => p.is_bestseller);
+                    data = data.filter(p => p.is_bestseller && p.units_sold > 0);
                 }
 
                 setProducts(data);

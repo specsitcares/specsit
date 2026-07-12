@@ -45,7 +45,9 @@ const HomeContent = () => {
     p.category_name?.toLowerCase().includes('sun') || p.frame_style?.toLowerCase().includes('sun')
   );
   const newArrivals = frameProducts.slice(0, 8);
-  const bestSellers = products.filter(p => p.is_bestseller).slice(0, 8);
+  // Best sellers come pre-ranked from the bundle: admin-flagged AND justified by
+  // actual units sold in the last 90 days (see HomeBundleView).
+  const bestSellers = (home?.best_sellers || []).slice(0, 8);
   const sunglasses = sunglassProducts.length > 0 ? sunglassProducts.slice(0, 8) : frameProducts.slice(8, 16);
 
   if (!home) return <div className="homepage" id="homepage" style={{ minHeight: '60vh' }} />;

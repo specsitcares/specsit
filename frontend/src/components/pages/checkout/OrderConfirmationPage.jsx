@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useSearchParams, useNavigate, useParams, Link } from 'react-router-dom';
 import apiClient from '../../../services/api';
+import priorityScooter from '../../../assets/priority-scooter.png';
 import '../../../styles/checkout.css';
 
 /* ─── SPH / CYL option generators ─── */
@@ -269,6 +270,43 @@ const OrderConfirmationPage = () => {
         </div>
     );
 
+    /* ── Mobile & tablet confirmation (<=1024px) — Figma 436:9863.
+       Desktop keeps its own layout; this block is CSS-toggled. ── */
+    const renderMobileConfirmation = () => (
+        <div className="conf-mobile">
+            <div className="conf-m-icon">
+                <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
+                    <path d="M8 17.5L14 23.5L26 10.5" stroke="#fff" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+            </div>
+            <div className="conf-m-head">
+                <h1 className="conf-m-title">Thank You!</h1>
+                <p className="conf-m-sub">Your order has been confirmed.</p>
+            </div>
+            <div className="conf-m-orderid">
+                <span className="conf-m-orderid__label">Order ID</span>
+                <span className="conf-m-orderid__val">#{displayOrderId}</span>
+            </div>
+            <div className="conf-m-priority">
+                <div className="conf-m-priority__top">
+                    <span className="conf-m-priority__label">Priority Fulfillment</span>
+                    <div className="conf-m-priority__banner">
+                        <img src={priorityScooter} alt="" className="conf-m-priority__img" />
+                        <span className="conf-m-priority__banner-text">1-2 hr delivery</span>
+                    </div>
+                    <p className="conf-m-priority__desc">Your order is on priority track and will be delivered within 1-2 hours.</p>
+                </div>
+                <div className="conf-m-tracking">🟢&nbsp;&nbsp;Live Tracking Active</div>
+            </div>
+            {trackingLink ? (
+                <a href={trackingLink} target="_blank" rel="noopener noreferrer" className="conf-m-track">Track My Order</a>
+            ) : (
+                <Link to={`/orders/${order.id || orderId}`} className="conf-m-track">Track My Order</Link>
+            )}
+            <Link to="/products" className="conf-m-shop">Continue Shopping</Link>
+        </div>
+    );
+
     /* ─────────────────────────────────────────────────────────────────────
        NON-DEFERRED flow: regular delivery confirmation (existing UI)
        ───────────────────────────────────────────────────────────────────── */
@@ -278,7 +316,8 @@ const OrderConfirmationPage = () => {
     if (!hasDeferredRx && isCod) {
         return (
             <div className="checkout-redesign">
-                <div className="conf-page">
+                <div className="conf-page conf-page--figma">
+                    <div className="conf-desktop">
                     <div className="conf-header">
                         <div className="conf-check-box">
                             <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
@@ -389,6 +428,8 @@ const OrderConfirmationPage = () => {
                             showAwaitingBadge={false}
                         />
                     </div>
+                    </div>
+                    {renderMobileConfirmation()}
                 </div>
             </div>
         );
@@ -402,7 +443,8 @@ const OrderConfirmationPage = () => {
     if (!hasDeferredRx) {
         return (
             <div className="checkout-redesign">
-                <div className="conf-page">
+                <div className="conf-page conf-page--figma">
+                    <div className="conf-desktop">
                     {renderHeader('Thank You', displayOrderId)}
                     <div className="conf-body">
                         <div className="conf-left">
@@ -471,6 +513,8 @@ const OrderConfirmationPage = () => {
                             showAwaitingBadge={false}
                         />
                     </div>
+                    </div>
+                    {renderMobileConfirmation()}
                 </div>
             </div>
         );

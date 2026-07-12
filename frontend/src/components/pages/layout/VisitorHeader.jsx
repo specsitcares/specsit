@@ -118,8 +118,8 @@ const VisitorHeader = () => {
 
             {/* Trailing Actions (Right) */}
             <div className="visitor-actions" onMouseEnter={scheduleClose}>
-                {/* Search Bar — hidden on the product detail page (all devices) */}
-                {!/^\/product\//.test(location.pathname) && (
+                {/* Search Bar — hidden on the product detail page and order confirmation / thank-you pages */}
+                {!/^\/(product|order-confirmation|order-confirmed|thank-you)\//.test(location.pathname) && (
                     <div className="visitor-search">
                         <span className="visitor-search-icon"><SearchIcon /></span>
                         <input

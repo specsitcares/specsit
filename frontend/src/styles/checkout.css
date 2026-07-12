@@ -34,6 +34,9 @@
   width: 100%;
 }
 
+/* Payment-failed collapses to one centered column only on tablet/phone;
+   the <=1024px block below handles that. Desktop keeps the 2-column grid. */
+
 .checkout-left-col {
   min-width: 0;
 }
@@ -2729,7 +2732,12 @@
 
 
 /* ============================================================
-   PAYMENT FAILED STATE — FIGMA DESIGN (node 401:17706)
+   PAYMENT FAILED STATE
+   Desktop (>900px): original design, node 401:17706 — left-aligned
+   card, summary column stays. Phone/tablet (<=900px): mobile design,
+   node 433:9367 — centered card, no summary. Base = desktop; the
+   mobile look lives entirely in the <=900px block below so the
+   desktop screen is never touched by the responsive styling.
    ============================================================ */
 
 .pay-failed {
@@ -2740,64 +2748,66 @@
   width: 100%;
 }
 
-/* ── Warning icon ── */
+/* ── Warning icon (desktop: ring glyph in soft-red square; mobile: ✕) ── */
 .pay-failed__icon-wrap {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 69px;
-  height: 69px;
+  width: 86px;
+  height: 86px;
   background: rgba(255, 218, 214, 0.3);
-  border-radius: 10px;
-  margin-bottom: 13px;
+  border-radius: 12px;
+  margin-bottom: 16px;
   flex-shrink: 0;
 }
+
+.pay-failed__icon--mobile { display: none; }
 
 /* ── Title + description ── */
 .pay-failed__body {
   display: flex;
   flex-direction: column;
-  gap: 19px;
-  margin-bottom: 13px;
+  gap: 24px;
+  margin-bottom: 16px;
 }
 
 .pay-failed__title {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 38px;
+  font-size: 48px;
   font-weight: 800;
   color: var(--specsit-black);
-  letter-spacing: -0.05em;
-  line-height: 1;
+  letter-spacing: -2.4px;
+  line-height: 48px;
   margin: 0;
 }
 
 .pay-failed__desc {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 400;
   color: var(--specsit-black);
-  line-height: 1.625;
+  line-height: 29.25px;
   margin: 0;
-  max-width: 410px;
+  max-width: 490px;
 }
 
-/* ── Error code badge ── */
+/* ── Error code badge (fits content, not full width on desktop) ── */
 .pay-failed__code-badge {
   display: flex;
   align-items: center;
-  gap: 10px;
-  height: 40px;
-  padding: 0 16px;
+  gap: 8px;
+  height: 50px;
+  padding: 0 20px;
   background: var(--specsit-light-grey);
   border: 1px solid var(--specsit-purple-light);
-  border-radius: 6px;
-  margin-top: 13px;
-  margin-bottom: 13px;
+  border-radius: 8px;
+  margin-top: 16px;
+  margin-bottom: 16px;
 }
 
 .pay-failed__code-label {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--specsit-black);
   text-transform: uppercase;
@@ -2807,7 +2817,7 @@
 
 .pay-failed__code-value {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 700;
   color: #BA1A1A;
   white-space: nowrap;
@@ -2817,22 +2827,22 @@
 .pay-failed__actions {
   display: flex;
   align-items: center;
-  gap: 13px;
-  margin-top: 13px;
+  gap: 16px;
+  margin-top: 16px;
   flex-wrap: wrap;
 }
 
 .pay-failed__retry-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 14px 26px;
+  gap: 8px;
+  padding: 18px 32px;
   background: var(--specsit-purple-primary);
   color: #fff;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -2853,14 +2863,14 @@
 .pay-failed__change-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 14px 27px;
+  gap: 8px;
+  padding: 18px 34px;
   background: transparent;
   color: var(--specsit-black);
   border: 2px solid var(--specsit-light-grey);
-  border-radius: 6px;
+  border-radius: 8px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -2870,6 +2880,104 @@
 .pay-failed__change-btn:hover {
   border-color: var(--specsit-purple-primary);
   color: var(--specsit-purple-primary);
+}
+
+/* ── TABLET (<=1024px): single centered column, summary hidden.
+   Own design derived from desktop 87:3991 — keeps the desktop square
+   (!) icon and side-by-side buttons, scaled down and centered. ── */
+@media (max-width: 1024px) {
+  .checkout-main-content--failed { grid-template-columns: 1fr; }
+  .checkout-main-content--failed .order-summary-side { display: none; }
+
+  .pay-failed {
+    align-items: center;
+    text-align: center;
+    max-width: 620px;
+    margin: 32px auto;
+    box-sizing: border-box;
+  }
+  .pay-failed__body { align-items: center; }
+  .pay-failed__title { font-size: 40px; letter-spacing: -1.6px; line-height: 46px; }
+  .pay-failed__desc { font-size: 17px; line-height: 1.6; max-width: 480px; }
+  .pay-failed__actions { justify-content: center; }
+}
+
+/* ── PHONE (<=600px): mobile Figma 433:9367 — circle ✕ icon, full-width
+   error box, stacked full-width buttons. Overrides the tablet block. ── */
+@media (max-width: 600px) {
+  .pay-failed {
+    gap: 20px;
+    max-width: 400px;
+    margin: 24px auto;
+  }
+
+  .pay-failed__icon-wrap {
+    width: 80px;
+    height: 80px;
+    background: #FFEFEF;
+    border-radius: 50%;
+    margin-bottom: 0;
+  }
+  .pay-failed__icon--desktop { display: none; }
+  .pay-failed__icon--mobile { display: block; }
+
+  .pay-failed__body { gap: 8px; margin-bottom: 0; width: 100%; }
+  .pay-failed__title { font-size: 26px; letter-spacing: -0.26px; line-height: 34px; }
+  .pay-failed__desc { font-size: 14px; color: #71717A; line-height: 1.5; max-width: 360px; }
+
+  .pay-failed__code-badge {
+    justify-content: center;
+    gap: 5px;
+    width: 100%;
+    height: auto;
+    padding: 10px 16px;
+    background: #FFEFEF;
+    border: 1px solid #D9CCCC;
+    border-radius: 8px;
+    margin: 0;
+    box-sizing: border-box;
+  }
+  .pay-failed__code-label,
+  .pay-failed__code-value {
+    font-size: 12px;
+    font-weight: 700;
+    color: #D92E2E;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  .pay-failed__actions {
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+    margin-top: 0;
+    flex-wrap: nowrap;
+  }
+  .pay-failed__retry-btn,
+  .pay-failed__change-btn {
+    justify-content: center;
+    width: 100%;
+    padding: 14px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .pay-failed__change-btn {
+    background: #fff;
+    color: var(--specsit-purple-primary);
+    border: 2px solid var(--specsit-purple-primary);
+  }
+  .pay-failed__change-btn:hover { background: #F7F3FB; color: var(--specsit-purple-primary); }
+  .pay-failed__change-btn svg { display: none; }   /* Figma change button has no icon */
+}
+
+/* Smallest phones */
+@media (max-width: 380px) {
+  .pay-failed { gap: 16px; margin: 16px auto; }
+  .pay-failed__actions { gap: 16px; }
+  .pay-failed__icon-wrap { width: 68px; height: 68px; }
+  .pay-failed__title { font-size: 23px; line-height: 30px; }
+  .pay-failed__code-value { white-space: normal; }
 }
 
 
@@ -2903,6 +3011,76 @@
 
 @media (max-width: 768px) {
   .conf-page { padding: 38px 16px; }
+}
+
+/* ============================================================
+   ORDER CONFIRMATION — mobile & tablet (<=1024px), Figma 436:9863.
+   Desktop (>1024px) keeps its existing layout untouched. Only the
+   standard "Thank You" branch (.conf-page--figma) is affected.
+   ============================================================ */
+.conf-desktop { display: contents; }
+.conf-mobile { display: none; }
+
+@media (max-width: 1024px) {
+  .conf-desktop { display: none; }
+  .conf-page--figma { max-width: 480px; padding: 28px 16px; gap: 0; }
+
+  .conf-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .conf-m-icon {
+    align-self: center;
+    width: 90px; height: 90px;
+    background: #68408D;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .conf-m-head { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; width: 100%; }
+  .conf-m-title { margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 26px; font-weight: 800; color: #040205; letter-spacing: -0.26px; line-height: 1.15; }
+  .conf-m-sub { margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 500; color: #71717A; }
+
+  .conf-m-orderid {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    background: #EBE3F2; border-radius: 10px; padding: 12px 20px; width: 100%;
+    box-sizing: border-box;
+  }
+  .conf-m-orderid__label { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 500; color: #71717A; }
+  .conf-m-orderid__val { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700; color: #68408D; }
+
+  .conf-m-priority {
+    display: flex; flex-direction: column; gap: 12px;
+    background: #fff; border: 1px solid #D9D9D9; border-radius: 14px; padding: 16px; width: 100%;
+    box-sizing: border-box;
+  }
+  .conf-m-priority__top { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; width: 100%; }
+  .conf-m-priority__label { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 700; color: #040205; }
+  .conf-m-priority__banner {
+    display: flex; align-items: center; gap: 6px;
+    background: linear-gradient(to right, rgba(251,238,60,0.2), rgba(255,250,237,0.2));
+    border-radius: 8px; padding: 12px; width: 100%; box-sizing: border-box;
+  }
+  .conf-m-priority__img { width: 53px; height: 40px; object-fit: contain; flex-shrink: 0; }
+  .conf-m-priority__banner-text { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 800; color: #68408D; }
+  .conf-m-priority__desc { margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 400; color: #71717A; line-height: 1.4; }
+  .conf-m-tracking {
+    display: flex; align-items: center; justify-content: center;
+    background: #E5F9EC; border-radius: 6px; padding: 8px 10px; width: 100%;
+    font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 700; color: #0D9B3A;
+    box-sizing: border-box;
+  }
+  .conf-m-track, .conf-m-shop {
+    display: flex; align-items: center; justify-content: center;
+    width: 100%; padding: 15px; border-radius: 8px;
+    font-family: 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 700;
+    text-decoration: none; box-sizing: border-box;
+  }
+  .conf-m-track { background: #68408D; color: #fff; }
+  .conf-m-shop { background: #EBE3F2; color: #68408D; }
 }
 
 /* Header */
@@ -4091,6 +4269,7 @@
   gap: 51px;
   align-items: flex-start;
   width: 100%;
+  min-width: 0; /* never expand past the viewport on narrow screens */
 }
 
 .cart-left-figma {
@@ -4885,19 +5064,27 @@
 .ck-topbar__logo { height:26px; width:auto; display:block; }
 .ck-topbar__phone { display:inline-flex; align-items:center; gap:8px; font-family:'Plus Jakarta Sans',sans-serif; font-size:18px; font-weight:700; color:#040205; text-decoration:none; }
 
-/* ── Cart item card (Figma 55:16421, scaled to the app's standard card vibe) ── */
-.ck-item { display:flex; gap:20px; align-items:flex-start; padding:20px; background:#FEFCFF; border:1px solid #EFEDF0; border-radius:12px; }
-.ck-item__thumb { width:120px; height:120px; flex-shrink:0; display:flex; align-items:center; justify-content:center; padding:10px; background:#FEFCFF; border-radius:8px; box-sizing:border-box; }
+/* ── Cart item card (Figma 407:4524) — header (thumb + titles) stacked over a
+   full-width detail block (Frame/Lens/Final, specs, Rx, actions). ── */
+.ck-item { display:flex; flex-direction:column; min-width:0; gap:clamp(14px,4vw,18px); padding:clamp(14px,4vw,20px); background:#FEFCFF; border:1px solid #EFEDF0; border-radius:12px; }
+.ck-item__head { display:flex; gap:clamp(12px,3.5vw,20px); align-items:center; }
+.ck-item__thumb { width:clamp(84px,24vw,120px); aspect-ratio:1; flex-shrink:0; display:flex; align-items:center; justify-content:center; padding:8px; background:#F5F3F6; border-radius:8px; box-sizing:border-box; }
 .ck-item__thumb img { max-width:100%; max-height:100%; object-fit:contain; }
 .ck-item__thumb svg { width:100%; height:100%; }
 .ck-item__body { flex:1; min-width:0; display:flex; flex-direction:column; gap:12px; }
+.ck-item__detail { display:flex; flex-direction:column; gap:clamp(14px,4vw,18px); }
+
+/* Full-width price rows (Frame / Lens) — evenly spread like Figma 407:4745 */
+.ck-item__pricerow { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:2px 0; }
+.ck-item__pricelabel { font-family:'Plus Jakarta Sans',sans-serif; font-size:14px; font-weight:500; color:#3C3C3C; line-height:20px; }
+.ck-item__priceval { font-family:'Plus Jakarta Sans',sans-serif; font-size:15px; font-weight:700; color:#040205; line-height:20px; white-space:nowrap; }
 
 /* Pricing group (title / lens / final) */
 .ck-item__row { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
 .ck-item__row--top { padding:0 0 10px; }
-.ck-item__titles { display:flex; flex-direction:column; gap:3px; min-width:0; }
+.ck-item__titles { display:flex; flex-direction:column; justify-content:center; gap:3px; min-width:0; }
 .ck-item__brand { font-family:'Plus Jakarta Sans',sans-serif; font-size:11px; font-weight:700; letter-spacing:0.6px; text-transform:uppercase; color:#68408D; line-height:15px; }
-.ck-item__name { margin:0; font-family:'Plus Jakarta Sans',sans-serif; font-size:16px; font-weight:700; letter-spacing:-0.3px; color:#040205; line-height:22px; }
+.ck-item__name { margin:0; font-family:'Plus Jakarta Sans',sans-serif; font-size:17px; font-weight:700; letter-spacing:-0.3px; color:#040205; line-height:23px; }
 .ck-item__sub { font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; font-weight:500; color:#3C3C3C; line-height:18px; }
 .ck-item__price { font-family:'Plus Jakarta Sans',sans-serif; font-size:14px; font-weight:600; color:#040205; line-height:20px; white-space:nowrap; }
 .ck-item__lens { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; font-weight:400; letter-spacing:-0.3px; color:#3C3C3C; line-height:18px; }
@@ -4907,8 +5094,8 @@
 .ck-item__final span:last-child { font-size:14px; font-weight:600; color:#040205; line-height:20px; white-space:nowrap; }
 
 /* Specs (divided from the pricing group) */
-.ck-item__specs { display:grid; grid-template-columns:1fr 1fr; gap:4px 16px; border-top:1px solid #EFEDF0; padding-top:14px; font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; font-weight:600; color:#040205; line-height:16px; }
-.ck-item__specs b { color:#71717A; font-weight:400; }
+.ck-item__specs { display:flex; flex-wrap:wrap; gap:4px 20px; padding-top:2px; font-family:'Plus Jakarta Sans',sans-serif; font-size:12.5px; font-weight:500; color:#71717A; line-height:18px; }
+.ck-item__specs b { color:#040205; font-weight:600; }
 
 /* Prescription table */
 .ck-rx { border:1px solid #EFEDF0; border-radius:8px; padding:12px 14px; background:#FEFCFF; }
@@ -5034,6 +5221,64 @@
 .pay-deliver__info span { font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; color:#71717A; line-height:17px; }
 .pay-deliver__badge { flex-shrink:0; display:inline-flex; align-items:center; gap:4px; background:#FFF7DA; color:#9A6B00; font-family:'Plus Jakarta Sans',sans-serif; font-size:11px; font-weight:700; padding:6px 10px; border-radius:8px; white-space:nowrap; }
 
+/* ============================================================
+   PAYMENT SUMMARY (right side) — desktop & tablet only (Figma 87:4443).
+   Mobile (<=600px) is intentionally left untouched.
+   ============================================================ */
+/* Trust row is hidden by default so mobile is unaffected; shown >=601px. */
+.ck-trust-row { display: none; }
+
+@media (min-width: 601px) {
+  /* Delivery card removed on desktop/tablet (kept on mobile) */
+  .order-summary-side .ck-delivery-card { display: none; }
+
+  /* Card container: border + soft shadow + roomier padding */
+  .order-summary-side .ck-summary {
+    padding: 32px;
+    gap: 24px;
+    border-color: #D9D9D9;
+    box-shadow: 0 8px 24px rgba(16, 24, 40, 0.05);
+  }
+  .order-summary-side .ck-summary__title { font-size: 20px; letter-spacing: -0.5px; }
+
+  /* Order rows: grey labels, 16px values (per Figma) */
+  .order-summary-side .ck-order__label { color: #71717A; font-weight: 400; }
+  .order-summary-side .ck-order__val { color: #71717A; font-weight: 500; font-size: 16px; }
+
+  /* Total row */
+  .order-summary-side .ck-total { border-top-color: #EBE3F2; }
+  .order-summary-side .ck-total span:first-child { font-weight: 600; }
+  .order-summary-side .ck-total span:last-child { font-size: 18px; font-weight: 700; }
+
+  /* CTA */
+  .order-summary-side .ck-pay {
+    font-size: 18px;
+    box-shadow: 0 10px 15px -3px rgba(88, 28, 135, 0.1), 0 4px 6px -4px rgba(88, 28, 135, 0.1);
+  }
+
+  /* Trust indicators row: 3 equal columns divided by hairlines */
+  .order-summary-side .ck-trust-row {
+    display: flex;
+    width: 100%;
+    margin-top: 4px;
+  }
+  .order-summary-side .ck-trust-item {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: #71717A;
+    text-align: center;
+  }
+  .order-summary-side .ck-trust-item:not(:last-child) { border-right: 1px solid #DEDEDE; }
+}
+
 /* ── Payment left column (Figma 87:2647) ── */
 .pay2-block { margin-bottom:32px; }
 .pay2-heading { margin:0 0 14px; font-family:'Plus Jakarta Sans',sans-serif; font-size:20px; font-weight:700; color:#040205; }
@@ -5108,3 +5353,189 @@
 .pay2-wallets__label { font-family:'Plus Jakarta Sans',sans-serif; font-size:11px; font-weight:700; letter-spacing:0.6px; text-transform:uppercase; color:#040205; }
 .pay2-wallets__card { border:1px solid #EFEDF0; border-radius:10px; padding:14px 28px; background:#FEFCFF; }
 .pay2-razorpay { display:inline-flex; align-items:center; gap:6px; font-family:'Plus Jakarta Sans',sans-serif; font-size:18px; font-weight:800; font-style:italic; color:#072654; }
+
+/* ============================================================
+   CART — RESPONSIVE / MOBILE (Figma 409:2147)
+   Sticky "View Details + Pay" bar + payment-summary bottom sheet
+   ============================================================ */
+.ck-mobile-bar { display: none; }
+.ck-sheet-backdrop { display: none; }
+.ck-summary__sheet-head { display: none; }
+
+@media (max-width: 1024px) {
+  /* Single-column: summary becomes a sheet so the item card fills the width.
+     Reserve bottom space for the fixed (two-row) action bar. */
+  .checkout-redesign { padding-bottom: 116px; }
+  .cart-left-figma { width: 100%; }
+
+  /* Item card scales fluidly via clamp() — no per-width overrides needed. */
+  .ck-rx__table th, .ck-rx__table td { font-size: 11px; }
+
+  /* ── Sticky action bar (buttons + trust row) ── */
+  .ck-mobile-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 70;
+    padding: 12px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+    background: #FEFCFF;
+    border-top: 1px solid #EFEDF0;
+    box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.08);
+  }
+  .ck-mobile-bar__btns { display: flex; gap: 12px; align-items: center; }
+  .ck-mobile-bar__trust {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+  }
+  .ck-mobile-bar__trust span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: #71717A;
+  }
+  .ck-mobile-bar__details,
+  .ck-mobile-bar__pay {
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    border-radius: 12px;
+    cursor: pointer;
+  }
+  .ck-mobile-bar__details {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 0 14px;
+    background: #FEFCFF;
+    border: 1px solid #E4E0EA;
+    color: #040205;
+  }
+  .ck-mobile-bar__pay {
+    flex: 1.3 1 0;
+    min-width: 0;
+    padding: 0 14px;
+    background: #14101B;
+    border: none;
+    color: #FEFCFF;
+    white-space: nowrap;
+  }
+  .ck-mobile-bar__pay:active { background: #040205; }
+
+  /* ── Payment summary → bottom sheet ── */
+  .ck-sheet-backdrop--show {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 75;
+    background: rgba(0, 0, 0, 0.45);
+    animation: ckFade 0.2s ease;
+  }
+  @keyframes ckFade { from { opacity: 0; } to { opacity: 1; } }
+
+  .cart-right-figma {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 80;
+    width: 100%;
+    max-height: 88vh;
+    overflow-y: auto;
+    transform: translateY(105%);
+    transition: transform 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
+    -webkit-overflow-scrolling: touch;
+  }
+  .cart-right-figma--open { transform: translateY(0); }
+
+  .cart-right-figma .ck-summary {
+    border: none;
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.18);
+    padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .ck-summary__sheet-head {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    margin: -8px 0 4px;
+  }
+  .ck-summary__grabber {
+    width: 40px;
+    height: 4px;
+    border-radius: 4px;
+    background: #E4E0EA;
+  }
+  .ck-summary__close {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+}
+
+/* ============================================================
+   CART — responsive hardening for every device
+   (mobile Figma 407:4524 fidelity + small-phone / empty-state)
+   ============================================================ */
+
+/* Phones & small tablets: match the mobile Figma title size (~30px) and give
+   the empty state a phone-appropriate scale. */
+@media (max-width: 768px) {
+  .cart-title-figma { font-size: 30px; letter-spacing: -1.6px; }
+
+  .ck-empty__hero { padding: 56px 20px; gap: 30px; }
+  .ck-empty__icon { width: 92px; height: 92px; }
+  .ck-empty__title { font-size: clamp(26px, 8vw, 40px); letter-spacing: -0.8px; }
+  .ck-empty__sub { font-size: 14px; line-height: 22px; }
+  .ck-empty__sub br { display: none; }               /* let the copy reflow naturally */
+  .ck-empty__actions { width: 100%; flex-direction: column; gap: 12px; }
+  .ck-empty__primary,
+  .ck-empty__secondary { width: 100%; }
+}
+
+/* Very small phones (iPhone SE / 320–380px, folded devices): keep the sticky
+   action bar, promo row, and specs from ever overflowing the viewport. */
+@media (max-width: 380px) {
+  .checkout-redesign { padding: 24px 12px; padding-bottom: 116px; }
+  .cart-title-figma { font-size: 27px; letter-spacing: -1.2px; }
+
+  .ck-item { padding: 14px; gap: 14px; }
+  .ck-item__head { gap: 12px; }
+  .ck-item__name { font-size: 16px; line-height: 21px; }
+  .ck-item__specs { gap: 4px 12px; font-size: 12px; }
+
+  .ck-summary { padding: 18px; gap: 16px; }
+  .ck-promo__row { flex-wrap: nowrap; }
+  .ck-promo__input { min-width: 0; }
+
+  /* Action bar: shrink so large totals (e.g. ₹1,25,850) never clip. */
+  .ck-mobile-bar { padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px)); gap: 8px; }
+  .ck-mobile-bar__btns { gap: 8px; }
+  .ck-mobile-bar__details,
+  .ck-mobile-bar__pay { height: 48px; font-size: 14px; padding: 0 10px; border-radius: 10px; }
+  .ck-mobile-bar__pay { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ck-mobile-bar__trust { gap: 14px; }
+  .ck-mobile-bar__trust span { font-size: 11px; }
+
+  /* Prescription table stays inside the card on the narrowest screens. */
+  .ck-rx { padding: 10px 10px; }
+  .ck-rx__table th, .ck-rx__table td { font-size: 10px; }
+}

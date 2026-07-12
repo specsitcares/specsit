@@ -55,6 +55,7 @@ const CartPage = () => {
     const [promoError, setPromoError] = useState('');
     const [promoLoading, setPromoLoading] = useState(false);
     const [orderOpen, setOrderOpen] = useState(true);
+    const [summaryOpen, setSummaryOpen] = useState(false); // mobile payment-summary bottom sheet
 
     useEffect(() => { window.scrollTo(0, 0); }, []);
 
@@ -193,19 +194,22 @@ const CartPage = () => {
                             const summary = powerSummary(item.power);
                             return (
                                 <div key={item.id} className="ck-item">
-                                    <div className="ck-item__thumb">
-                                        {item.image
-                                            ? <img src={item.image} alt={item.name} />
-                                            : <svg width="56" height="56" viewBox="0 0 56 56" fill="none"><rect width="56" height="56" rx="4" fill="#EFEDF0" /><circle cx="28" cy="28" r="14" stroke="#71717A" strokeWidth="2" opacity="0.4" /></svg>}
+                                    <div className="ck-item__head">
+                                        <div className="ck-item__thumb">
+                                            {item.image
+                                                ? <img src={item.image} alt={item.name} />
+                                                : <svg width="56" height="56" viewBox="0 0 56 56" fill="none"><rect width="56" height="56" rx="4" fill="#EFEDF0" /><circle cx="28" cy="28" r="14" stroke="#71717A" strokeWidth="2" opacity="0.4" /></svg>}
+                                        </div>
+                                        <div className="ck-item__titles">
+                                            <span className="ck-item__brand">{item.contactLens?.brand_name || 'Contact Lens'}</span>
+                                            <h3 className="ck-item__name">{item.name}</h3>
+                                            {summary && <span className="ck-item__sub">{summary}</span>}
+                                        </div>
                                     </div>
-                                    <div className="ck-item__body">
-                                        <div className="ck-item__row ck-item__row--top">
-                                            <div className="ck-item__titles">
-                                                <span className="ck-item__brand">{item.contactLens?.brand_name || 'Contact Lens'}</span>
-                                                <h3 className="ck-item__name">{item.name}</h3>
-                                                {summary && <span className="ck-item__sub">{summary}</span>}
-                                            </div>
-                                            <span className="ck-item__price">₹{clPrice.toLocaleString('en-IN')}</span>
+                                    <div className="ck-item__detail">
+                                        <div className="ck-item__pricerow">
+                                            <span className="ck-item__pricelabel">Price</span>
+                                            <span className="ck-item__priceval">₹{clPrice.toLocaleString('en-IN')}</span>
                                         </div>
                                         <div className="ck-item__final">
                                             <span>Final Price</span>
@@ -238,28 +242,31 @@ const CartPage = () => {
 
                         return (
                             <div key={item.id} className="ck-item">
-                                <div className="ck-item__thumb">
-                                    {item.product?.image
-                                        ? <img src={item.product.image} alt={item.product.title} />
-                                        : <svg width="56" height="56" viewBox="0 0 56 56" fill="none"><rect width="56" height="56" rx="4" fill="#EFEDF0" /><path d="M10 38L20 24L28 32L38 20L46 38H10Z" fill="#71717A" opacity="0.35" /></svg>}
+                                <div className="ck-item__head">
+                                    <div className="ck-item__thumb">
+                                        {item.product?.image
+                                            ? <img src={item.product.image} alt={item.product.title} />
+                                            : <svg width="56" height="56" viewBox="0 0 56 56" fill="none"><rect width="56" height="56" rx="4" fill="#EFEDF0" /><path d="M10 38L20 24L28 32L38 20L46 38H10Z" fill="#71717A" opacity="0.35" /></svg>}
+                                    </div>
+                                    <div className="ck-item__titles">
+                                        <span className="ck-item__brand">{brandName}</span>
+                                        <h3 className="ck-item__name">{item.product?.title}</h3>
+                                        {subtitle && <span className="ck-item__sub">{subtitle}</span>}
+                                    </div>
                                 </div>
 
-                                <div className="ck-item__body">
-                                    {/* Title + frame price */}
-                                    <div className="ck-item__row ck-item__row--top">
-                                        <div className="ck-item__titles">
-                                            <span className="ck-item__brand">{brandName}</span>
-                                            <h3 className="ck-item__name">{item.product?.title}</h3>
-                                            {subtitle && <span className="ck-item__sub">{subtitle}</span>}
-                                        </div>
-                                        <span className="ck-item__price">₹{framePrice.toLocaleString('en-IN')}</span>
+                                <div className="ck-item__detail">
+                                    {/* Frame price */}
+                                    <div className="ck-item__pricerow">
+                                        <span className="ck-item__pricelabel">Frame</span>
+                                        <span className="ck-item__priceval">₹{framePrice.toLocaleString('en-IN')}</span>
                                     </div>
 
                                     {/* Lens line */}
                                     {lensLabel && (
-                                        <div className="ck-item__row ck-item__lens">
-                                            <span>{lensLabel}</span>
-                                            <span>₹{lensPrice.toLocaleString('en-IN')}</span>
+                                        <div className="ck-item__pricerow">
+                                            <span className="ck-item__pricelabel">{lensLabel}</span>
+                                            <span className="ck-item__priceval">₹{lensPrice.toLocaleString('en-IN')}</span>
                                         </div>
                                     )}
 
@@ -358,8 +365,14 @@ const CartPage = () => {
                 </div>
 
                 {/* ────────── RIGHT: PAYMENT SUMMARY ────────── */}
-                <div className="cart-right-figma">
+                <div className={`cart-right-figma${summaryOpen ? ' cart-right-figma--open' : ''}`}>
                     <div className="ck-summary">
+                        <div className="ck-summary__sheet-head">
+                            <span className="ck-summary__grabber" />
+                            <button className="ck-summary__close" onClick={() => setSummaryOpen(false)} aria-label="Close">
+                                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="#71717A" strokeWidth="1.5" strokeLinecap="round" /></svg>
+                            </button>
+                        </div>
                         <h2 className="ck-summary__title">Payment Summary</h2>
 
                         {/* Partial payment banner */}
@@ -452,6 +465,34 @@ const CartPage = () => {
                             </span>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            {/* ── Mobile: payment-summary bottom sheet backdrop ── */}
+            <div
+                className={`ck-sheet-backdrop${summaryOpen ? ' ck-sheet-backdrop--show' : ''}`}
+                onClick={() => setSummaryOpen(false)}
+            />
+
+            {/* ── Mobile sticky action bar (Figma 407:4524) ── */}
+            <div className="ck-mobile-bar">
+                <div className="ck-mobile-bar__btns">
+                    <button className="ck-mobile-bar__details" onClick={() => setSummaryOpen(true)}>
+                        View Details
+                    </button>
+                    <button className="ck-mobile-bar__pay" onClick={() => navigate('/checkout')}>
+                        Pay . ₹{orderTotal.toLocaleString('en-IN')}
+                    </button>
+                </div>
+                <div className="ck-mobile-bar__trust">
+                    <span>
+                        <svg width="11" height="13" viewBox="0 0 12 15" fill="none"><path d="M6 0.5L0.5 3.17V7.5C0.5 10.86 2.95 13.98 6 14.5C9.05 13.98 11.5 10.86 11.5 7.5V3.17L6 0.5Z" stroke="#71717A" strokeWidth="1.1" strokeLinejoin="round" /><path d="M3.5 7.5L5.5 9.5L9 6" stroke="#71717A" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                        Secure Checkout
+                    </span>
+                    <span>
+                        <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M2 5H10C12 5 13 6.3 13 8C13 9.7 12 11 10 11H4" stroke="#71717A" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" /><path d="M4 8L2 5L4 2" stroke="#71717A" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                        14-day Returns
+                    </span>
                 </div>
             </div>
 

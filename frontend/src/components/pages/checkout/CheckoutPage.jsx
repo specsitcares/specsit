@@ -563,9 +563,9 @@ const CheckoutPage = () => {
         const addr = savedAddresses.find(a => String(a.id) === String(selectedAddressId)) || null;
         return (
         <aside className="order-summary-side">
-            {/* ── Delivery card ── */}
+            {/* ── Delivery card (hidden on desktop/tablet via CSS; kept on mobile) ── */}
             {addr && (
-                <div className="ck-summary" style={{ marginBottom: 24 }}>
+                <div className="ck-summary ck-delivery-card" style={{ marginBottom: 24 }}>
                     <h2 className="ck-summary__title">Delivery</h2>
                     <div className="pay-deliver">
                         <div className="pay-deliver__info">
@@ -661,6 +661,22 @@ const CheckoutPage = () => {
                     </>
                 )}
 
+                {/* Trust indicators — desktop/tablet only (hidden on mobile via CSS) */}
+                <div className="ck-trust-row">
+                    <span className="ck-trust-item">
+                        <svg width="14" height="15" viewBox="0 0 12 15" fill="none"><path d="M6 0.5L0.5 3.17V7.5C0.5 10.86 2.95 13.98 6 14.5C9.05 13.98 11.5 10.86 11.5 7.5V3.17L6 0.5Z" stroke="#71717A" strokeWidth="1.1" strokeLinejoin="round"/><path d="M3.5 7.5L5.5 9.5L9 6" stroke="#71717A" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                        Secure Checkout
+                    </span>
+                    <span className="ck-trust-item">
+                        <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="3.5" width="14" height="9" rx="1.5" stroke="#71717A" strokeWidth="1.1"/><path d="M1 6.5H15" stroke="#71717A" strokeWidth="1.1"/></svg>
+                        Partial Payment
+                    </span>
+                    <span className="ck-trust-item">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 5H10C12 5 13 6.3 13 8C13 9.7 12 11 10 11H4" stroke="#71717A" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"/><path d="M4 8L2 5L4 2" stroke="#71717A" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                        14-day Returns
+                    </span>
+                </div>
+
             </div>
         </aside>
         );
@@ -700,7 +716,7 @@ const CheckoutPage = () => {
                 })}
             </div>
 
-            <main className="checkout-main-content">
+            <main className={`checkout-main-content${paymentFailed ? ' checkout-main-content--failed' : ''}`}>
                 <div className="checkout-left-col">
 
                     {/* ── STEP 3: SHIPPING ── */}
@@ -989,13 +1005,16 @@ const CheckoutPage = () => {
                     {/* ── Payment Failed state ── */}
                             {paymentFailed ? (
                                 <div className="pay-failed">
-                                    {/* Icon */}
+                                    {/* Icon — desktop ring glyph (401:17706) / mobile red ✕ (433:9659) */}
                                     <div className="pay-failed__icon-wrap">
-                                        <svg width="38" height="38" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <svg className="pay-failed__icon--desktop" width="38" height="38" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
                                             <circle cx="19" cy="19" r="19" fill="rgba(255,218,214,0)"/>
                                             <circle cx="19" cy="19" r="14" stroke="#BA1A1A" strokeWidth="1.5" fill="none"/>
                                             <path d="M19 12V20" stroke="#BA1A1A" strokeWidth="2" strokeLinecap="round"/>
                                             <circle cx="19" cy="24.5" r="1.25" fill="#BA1A1A"/>
+                                        </svg>
+                                        <svg className="pay-failed__icon--mobile" width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M9 9L25 25M25 9L9 25" stroke="#D92E2E" strokeWidth="3.4" strokeLinecap="round"/>
                                         </svg>
                                     </div>
 
@@ -1003,7 +1022,7 @@ const CheckoutPage = () => {
                                     <div className="pay-failed__body">
                                         <h1 className="pay-failed__title">Payment Failed</h1>
                                         <p className="pay-failed__desc">
-                                            {PAYMENT_ERROR_MESSAGES[paymentErrorCode] || (error || 'We encountered an issue while processing your payment. Please try again or choose a different method.')}
+                                            {PAYMENT_ERROR_MESSAGES[paymentErrorCode] || (error || 'We encountered an issue while processing your payment. Please try again or choose a different payment method.')}
                                         </p>
                                     </div>
 
@@ -1195,6 +1214,9 @@ const CheckoutPage = () => {
 
                 </div>
 
+                {/* Summary stays on desktop; hidden on phone/tablet when payment
+                    fails via CSS (.checkout-main-content--failed) to match the
+                    mobile Figma without touching the desktop layout. */}
                 <OrderSummary />
             </main>
         </div>

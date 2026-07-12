@@ -516,11 +516,29 @@ class ProductViewSet(CachedReadMixin, viewsets.ModelViewSet):
             except (ValueError, TypeError):
                 pass
 
+        # Units actually sold in the trailing 90 days (cancelled orders excluded), so
+        # the storefront can justify bestseller status with real sales instead of the
+        # default-True admin flag alone.
+        from django.db.models import Sum, Q, F
+        from django.utils import timezone
+        from datetime import timedelta
+        sales_window_start = timezone.now() - timedelta(days=90)
+        queryset = queryset.annotate(units_sold_90d=Sum(
+            'variants__orderitem__quantity',
+            filter=Q(variants__orderitem__order__created_at__gte=sales_window_start)
+                   & ~Q(variants__orderitem__order__order_status='cancelled'),
+        ))
+
         # Sorting
         sort_by = params.get('sort_by', '-created_at')
         allowed_sorts = ['created_at', '-created_at', 'final_price', '-final_price',
                          'title', '-title', 'stock_quantity', '-stock_quantity']
-        if sort_by in allowed_sorts:
+        if sort_by == 'bestsellers':
+            # A bestseller must be admin-flagged AND justified by real 90-day sales.
+            # Filter server-side so pagination/counts are correct, then rank by volume.
+            queryset = queryset.filter(is_bestseller=True, units_sold_90d__gt=0)
+            queryset = queryset.order_by(F('units_sold_90d').desc(nulls_last=True), '-created_at')
+        elif sort_by in allowed_sorts:
             queryset = queryset.order_by(sort_by)
         else:
             queryset = queryset.order_by('-created_at')
