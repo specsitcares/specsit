@@ -48,7 +48,7 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
             'store_name', 'meta_title_template', 'meta_description_template',
             'contact_number', 'contact_email', 'social_links', 'frame_sizes',
             'delivery_charge', 'delivery_min_order_value', 'delivery_max_order_value',
-            'hsn_codes',
+            'hsn_codes', 'return_window_days',
         ]
 
 class HomeSectionSerializer(serializers.ModelSerializer):

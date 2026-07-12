@@ -60,6 +60,7 @@ const EMPTY_VARIANT = () => ({
   frame_weight: 'Standard',
   is_listed: true,
   is_warranty_eligible: true,
+  is_return_eligible: true,
   // sunglasses-specific
   barcode: '',
   frame_dimensions: '',
@@ -843,6 +844,19 @@ const VariantsPricingForm = forwardRef(({ formData, onFormDataChange, saving, er
                                   type="checkbox"
                                   checked={v.is_warranty_eligible !== false}
                                   onChange={(e) => updateVariant(v.id, 'is_warranty_eligible', e.target.checked)}
+                                />
+                                <span className="toggle-slider" />
+                              </label>
+                            </div>
+                          </div>
+                          <div className="form-field vp-toggle-field">
+                            <div className="vp-toggle-content">
+                              <span className="vp-toggle-label">return eligible</span>
+                              <label className="toggle-switch">
+                                <input
+                                  type="checkbox"
+                                  checked={v.is_return_eligible !== false}
+                                  onChange={(e) => updateVariant(v.id, 'is_return_eligible', e.target.checked)}
                                 />
                                 <span className="toggle-slider" />
                               </label>

@@ -169,6 +169,9 @@ class Variant(models.Model):
     vto_video = models.FileField(upload_to='vto_assets/', blank=True, null=True)
 
     is_warranty_eligible = models.BooleanField(default=False)
+    # Whether this variant can be returned. Return window (days) is set globally in
+    # Store Settings (SiteSettings.return_window_days).
+    is_return_eligible = models.BooleanField(default=True)
 
     def save(self, *args, **kwargs):
         from django.utils import timezone

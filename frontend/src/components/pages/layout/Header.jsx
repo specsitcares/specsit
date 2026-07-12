@@ -56,6 +56,15 @@ const Header = ({ showUserProfile = false, user = null, onLogout = null }) => {
 
   const cartCount = cart?.reduce((acc, item) => acc + item.quantity, 0) || 0;
 
+  // On customer-account pages the account sidebar has its own hamburger, so the
+  // header's mobile hamburger is hidden there to avoid two competing menu toggles.
+  const ACCOUNT_ROUTE_PREFIXES = [
+    '/orders', '/order', '/prescription', '/account-info', '/address-book',
+    '/saved-models', '/notifications', '/wishlist', '/return', '/warranty',
+    '/review', '/write-review', '/track',
+  ];
+  const isAccountPage = ACCOUNT_ROUTE_PREFIXES.some(p => location.pathname.startsWith(p));
+
   const handleLogout = () => {
     if (onLogout) onLogout();
     setShowAccountMenu(false);
@@ -122,21 +131,23 @@ const Header = ({ showUserProfile = false, user = null, onLogout = null }) => {
         </div>
       </div>
 
-      {/* Hamburger (mobile only) */}
-      <button
-        className="header-hamburger"
-        aria-label="Toggle menu"
-        aria-expanded={menuOpen}
-        onClick={() => setMenuOpen((o) => !o)}
-      >
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-          {menuOpen ? (
-            <><line x1="6" y1="6" x2="18" y2="18" /><line x1="6" y1="18" x2="18" y2="6" /></>
-          ) : (
-            <><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></>
-          )}
-        </svg>
-      </button>
+      {/* Hamburger (mobile only) — hidden on account pages (sidebar has its own) */}
+      {!isAccountPage && (
+        <button
+          className="header-hamburger"
+          aria-label="Toggle menu"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((o) => !o)}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            {menuOpen ? (
+              <><line x1="6" y1="6" x2="18" y2="18" /><line x1="6" y1="18" x2="18" y2="6" /></>
+            ) : (
+              <><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></>
+            )}
+          </svg>
+        </button>
+      )}
 
       {/* Trailing Actions (Right) */}
       <div className="header-actions" data-name="Trailing Actions (Right)" onMouseEnter={scheduleClose}>

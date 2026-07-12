@@ -30,6 +30,9 @@ class SiteSettings(models.Model):
     # HSN codes — list of {"label", "code", "gst"}
     hsn_codes = models.JSONField(default=list, blank=True)
 
+    # Returns — global return window in days (per-variant eligibility is on Variant.is_return_eligible)
+    return_window_days = models.PositiveIntegerField(default=7)
+
     class Meta:
         verbose_name = 'Site Settings'
 
