@@ -17,19 +17,6 @@ const FRAME_WIDTH_OPTIONS = [
   { value: 'Large (140mm)', label: 'Large (140mm)' },
 ];
 
-const FRAME_SHAPE_OPTIONS = [
-  { value: '', label: 'Select frame shape' },
-  { value: 'Pilot / Aviator', label: 'Pilot / Aviator' },
-  { value: 'Round', label: 'Round' },
-  { value: 'Rectangle', label: 'Rectangle' },
-  { value: 'Wayfarer', label: 'Wayfarer' },
-  { value: 'Cat Eye', label: 'Cat Eye' },
-  { value: 'Clubmaster', label: 'Clubmaster' },
-  { value: 'Oval', label: 'Oval' },
-  { value: 'Square', label: 'Square' },
-  { value: 'Geometric', label: 'Geometric' },
-];
-
 const DEFAULT_VARIANT = () => ({
   id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
   expanded: true,
