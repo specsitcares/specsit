@@ -34,11 +34,8 @@
   width: 100%;
 }
 
-/* Payment-failed: no summary column — one centered column so the failure
-   card sits alone like the Figma (433:9367). */
-.checkout-main-content--failed {
-  grid-template-columns: 1fr;
-}
+/* Payment-failed collapses to one centered column only on tablet/phone;
+   the <=1024px block below handles that. Desktop keeps the 2-column grid. */
 
 .checkout-left-col {
   min-width: 0;
