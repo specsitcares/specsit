@@ -5254,3 +5254,52 @@
     cursor: pointer;
   }
 }
+
+/* ============================================================
+   CART — responsive hardening for every device
+   (mobile Figma 407:4524 fidelity + small-phone / empty-state)
+   ============================================================ */
+
+/* Phones & small tablets: match the mobile Figma title size (~30px) and give
+   the empty state a phone-appropriate scale. */
+@media (max-width: 768px) {
+  .cart-title-figma { font-size: 30px; letter-spacing: -1.6px; }
+
+  .ck-empty__hero { padding: 56px 20px; gap: 30px; }
+  .ck-empty__icon { width: 92px; height: 92px; }
+  .ck-empty__title { font-size: clamp(26px, 8vw, 40px); letter-spacing: -0.8px; }
+  .ck-empty__sub { font-size: 14px; line-height: 22px; }
+  .ck-empty__sub br { display: none; }               /* let the copy reflow naturally */
+  .ck-empty__actions { width: 100%; flex-direction: column; gap: 12px; }
+  .ck-empty__primary,
+  .ck-empty__secondary { width: 100%; }
+}
+
+/* Very small phones (iPhone SE / 320–380px, folded devices): keep the sticky
+   action bar, promo row, and specs from ever overflowing the viewport. */
+@media (max-width: 380px) {
+  .checkout-redesign { padding: 24px 12px; padding-bottom: 116px; }
+  .cart-title-figma { font-size: 27px; letter-spacing: -1.2px; }
+
+  .ck-item { padding: 14px; gap: 14px; }
+  .ck-item__head { gap: 12px; }
+  .ck-item__name { font-size: 16px; line-height: 21px; }
+  .ck-item__specs { gap: 4px 12px; font-size: 12px; }
+
+  .ck-summary { padding: 18px; gap: 16px; }
+  .ck-promo__row { flex-wrap: nowrap; }
+  .ck-promo__input { min-width: 0; }
+
+  /* Action bar: shrink so large totals (e.g. ₹1,25,850) never clip. */
+  .ck-mobile-bar { padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px)); gap: 8px; }
+  .ck-mobile-bar__btns { gap: 8px; }
+  .ck-mobile-bar__details,
+  .ck-mobile-bar__pay { height: 48px; font-size: 14px; padding: 0 10px; border-radius: 10px; }
+  .ck-mobile-bar__pay { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ck-mobile-bar__trust { gap: 14px; }
+  .ck-mobile-bar__trust span { font-size: 11px; }
+
+  /* Prescription table stays inside the card on the narrowest screens. */
+  .ck-rx { padding: 10px 10px; }
+  .ck-rx__table th, .ck-rx__table td { font-size: 10px; }
+}
