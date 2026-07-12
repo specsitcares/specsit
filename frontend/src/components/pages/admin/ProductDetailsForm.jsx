@@ -17,19 +17,6 @@ const FRAME_WIDTH_OPTIONS = [
   { value: 'Large (140mm)', label: 'Large (140mm)' },
 ];
 
-const FRAME_SHAPE_OPTIONS = [
-  { value: '', label: 'Select frame shape' },
-  { value: 'Pilot / Aviator', label: 'Pilot / Aviator' },
-  { value: 'Round', label: 'Round' },
-  { value: 'Rectangle', label: 'Rectangle' },
-  { value: 'Wayfarer', label: 'Wayfarer' },
-  { value: 'Cat Eye', label: 'Cat Eye' },
-  { value: 'Clubmaster', label: 'Clubmaster' },
-  { value: 'Oval', label: 'Oval' },
-  { value: 'Square', label: 'Square' },
-  { value: 'Geometric', label: 'Geometric' },
-];
-
 const DEFAULT_VARIANT = () => ({
   id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
   expanded: true,
@@ -63,6 +50,7 @@ const DEFAULT_VARIANT = () => ({
   frame_weight: 'Standard',
   is_listed: true,
   is_warranty_eligible: true,
+  is_return_eligible: true,
 });
 
 const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglasses' }) => {
@@ -185,6 +173,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
               frame_weight: v.frame_weight || 'Standard',
               is_listed: v.is_listed !== undefined ? v.is_listed : true,
               is_warranty_eligible: v.is_warranty_eligible !== undefined ? v.is_warranty_eligible : true,
+              is_return_eligible: v.is_return_eligible !== undefined ? v.is_return_eligible : true,
             };
           };
 
@@ -364,6 +353,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
         variantPayload.append('is_bogo', formData.isBogo ? 'true' : 'false');
         variantPayload.append('is_listed', v.is_listed !== false ? 'true' : 'false');
         variantPayload.append('is_warranty_eligible', v.is_warranty_eligible !== false ? 'true' : 'false');
+        variantPayload.append('is_return_eligible', v.is_return_eligible !== false ? 'true' : 'false');
         if (formData.discountStartDate) variantPayload.append('discount_start_date', formData.discountStartDate);
         if (formData.discountEndDate) variantPayload.append('discount_end_date', formData.discountEndDate);
 

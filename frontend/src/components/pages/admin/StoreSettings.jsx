@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Save, RefreshCw, Plus, Trash2, Store, Phone, Share2,
-  Ruler, Truck, FileText, Search, Eye,
+  Ruler, Truck, FileText, Search, Eye, RotateCcw,
 } from 'lucide-react';
 import apiClient from '../../../services/api';
 import '../../../styles/store_settings.css';
@@ -34,6 +34,7 @@ const DEFAULTS = {
   delivery_min_order_value: '',
   delivery_max_order_value: '',
   hsn_codes: [],
+  return_window_days: '',
 };
 
 /* Section card with icon chip + title, matching the analytics widgets.
@@ -79,6 +80,7 @@ const StoreSettings = () => {
           delivery_charge: d.delivery_charge ?? '',
           delivery_min_order_value: d.delivery_min_order_value ?? '',
           delivery_max_order_value: d.delivery_max_order_value ?? '',
+          return_window_days: d.return_window_days ?? '',
         });
         setPreview(p => ({ ...p, store_name: d.store_name || '' }));
       } catch {
@@ -112,6 +114,7 @@ const StoreSettings = () => {
         delivery_charge: num(settings.delivery_charge),
         delivery_min_order_value: num(settings.delivery_min_order_value),
         delivery_max_order_value: num(settings.delivery_max_order_value),
+        return_window_days: num(settings.return_window_days),
         social_links: (settings.social_links || []).filter(s => (s.platform || '').trim() || (s.url || '').trim()),
         frame_sizes:  (settings.frame_sizes  || []).filter(s => (s.name || '').trim() || s.lens_width || s.bridge_width || s.temple_length),
         hsn_codes:    (settings.hsn_codes    || []).filter(h => (h.label || '').trim() || (h.code || '').trim()),
@@ -155,15 +158,24 @@ const StoreSettings = () => {
       </div>
 
       <div className="ss-grid">
-        {/* ── Row 1: Store Identity · Contact · Delivery ── */}
-        <Card span={2} icon={<Store size={17} />} title="Store Identity" sub="Used as the {store_name} placeholder in all templates.">
+        {/* ── Row 1: Store Identity · Returns ── */}
+        <Card span={3} icon={<Store size={17} />} title="Store Identity" sub="Used as the {store_name} placeholder in all templates.">
           <div className="ss-field">
             <label className="ss-label">Store Name</label>
             <input className="ss-input" value={settings.store_name} onChange={e => handleChange('store_name', e.target.value)} placeholder="e.g. SpecsIt" />
           </div>
         </Card>
 
-        <Card span={2} icon={<Phone size={16} />} title="Contact Details" sub="Shown across the storefront (e.g. footer, contact page).">
+        <Card span={3} icon={<RotateCcw size={16} />} title="Returns" sub="Global return window. Per-variant return eligibility is set on each product variant.">
+          <div className="ss-field">
+            <label className="ss-label">Return Window (days)</label>
+            <input type="number" min="0" className="ss-input" value={settings.return_window_days} onChange={e => handleChange('return_window_days', e.target.value)} placeholder="7" />
+            <span className="ss-hint">Number of days after delivery a customer can request a return.</span>
+          </div>
+        </Card>
+
+        {/* ── Row 2: Contact · Delivery ── */}
+        <Card span={3} icon={<Phone size={16} />} title="Contact Details" sub="Shown across the storefront (e.g. footer, contact page).">
           <div className="ss-field" style={{ marginBottom: 12 }}>
             <label className="ss-label">Contact Number</label>
             <input className="ss-input" value={settings.contact_number} onChange={e => handleChange('contact_number', e.target.value)} placeholder="+91 98765 43210" />
@@ -174,7 +186,7 @@ const StoreSettings = () => {
           </div>
         </Card>
 
-        <Card span={2} icon={<Truck size={16} />} title="Delivery Cost" sub="The charge applies to orders whose total falls between min and max.">
+        <Card span={3} icon={<Truck size={16} />} title="Delivery Cost" sub="The charge applies to orders whose total falls between min and max.">
           <div className="ss-three">
             <div className="ss-field">
               <label className="ss-label">Charge (₹)</label>
@@ -192,7 +204,7 @@ const StoreSettings = () => {
           <p className="ss-hint">Charge applies between Min and Max order value; above Max, delivery is free.</p>
         </Card>
 
-        {/* ── Row 2: Frame Sizes · Social Media ── */}
+        {/* ── Row 3: Frame Sizes · Social Media ── */}
         <Card span={3} icon={<Ruler size={16} />} title="Frame Sizes" sub="Your published size chart. Dimensions are in millimetres — values may be ranges (e.g. 48–52).">
           {settings.frame_sizes.length === 0 && <div className="ss-empty">No sizes defined yet — add your first size below.</div>}
           {settings.frame_sizes.length > 0 && (

@@ -12,19 +12,6 @@ import {
 import '../../../styles/variants_pricing.css';
 
 
-const FRAME_SHAPE_OPTIONS = [
-  { value: '', label: 'Select frame shape' },
-  { value: 'Pilot / Aviator', label: 'Pilot / Aviator' },
-  { value: 'Round', label: 'Round' },
-  { value: 'Rectangle', label: 'Rectangle' },
-  { value: 'Wayfarer', label: 'Wayfarer' },
-  { value: 'Cat Eye', label: 'Cat Eye' },
-  { value: 'Clubmaster', label: 'Clubmaster' },
-  { value: 'Oval', label: 'Oval' },
-  { value: 'Square', label: 'Square' },
-  { value: 'Geometric', label: 'Geometric' },
-];
-
 const GENDER_OPTIONS = [
   { value: '', label: 'Select gender' },
   { value: 'Men', label: 'Men' },
@@ -73,6 +60,7 @@ const EMPTY_VARIANT = () => ({
   frame_weight: 'Standard',
   is_listed: true,
   is_warranty_eligible: true,
+  is_return_eligible: true,
   // sunglasses-specific
   barcode: '',
   frame_dimensions: '',
@@ -194,9 +182,9 @@ const VariantsPricingForm = forwardRef(({ formData, onFormDataChange, saving, er
   const [lensMaterialOptions, setLensMaterialOptions] = useState([
     'Polycarbonate', 'CR-39', 'Trivex', 'Glass', 'High-Index Plastic', 'Photochromic',
   ]);
-  const [frameShapeOptions, setFrameShapeOptions] = useState(
-    FRAME_SHAPE_OPTIONS.filter(o => o.value).map(o => o.value)
-  );
+  // Frame shapes come entirely from the CMS ("Homepage → Explore Frame Styles");
+  // no hardcoded fallback. Populated by the effect below.
+  const [frameShapeOptions, setFrameShapeOptions] = useState([]);
   const [frameTypeOptions, setFrameTypeOptions] = useState(['Rimless', 'Half Rim', 'Full Rim']);
 
   // Frame types come from the Lens Constraints so the frame ↔ lens wiring always matches
@@ -206,6 +194,21 @@ const VariantsPricingForm = forwardRef(({ formData, onFormDataChange, saving, er
       .then(res => {
         const names = (res.data.results || res.data || []).map(c => c.name).filter(Boolean);
         if (names.length) setFrameTypeOptions(names);
+      })
+      .catch(() => { /* keep defaults */ });
+  }, []);
+
+  // Frame shapes are managed entirely in the CMS ("Homepage → Explore Frame Styles");
+  // each active card's name is an available shape. There is no hardcoded fallback, so
+  // the dropdown is empty until shapes are added in the CMS.
+  useEffect(() => {
+    apiClient.get('/cms/section-cards/?section=explore_frame_styles', { cache: false })
+      .then(res => {
+        const names = (res.data.results || res.data || [])
+          .filter(c => c.is_active !== false)
+          .map(c => c.name)
+          .filter(Boolean);
+        if (names.length) setFrameShapeOptions(names);
       })
       .catch(() => { /* keep defaults */ });
   }, []);
@@ -841,6 +844,19 @@ const VariantsPricingForm = forwardRef(({ formData, onFormDataChange, saving, er
                                   type="checkbox"
                                   checked={v.is_warranty_eligible !== false}
                                   onChange={(e) => updateVariant(v.id, 'is_warranty_eligible', e.target.checked)}
+                                />
+                                <span className="toggle-slider" />
+                              </label>
+                            </div>
+                          </div>
+                          <div className="form-field vp-toggle-field">
+                            <div className="vp-toggle-content">
+                              <span className="vp-toggle-label">return eligible</span>
+                              <label className="toggle-switch">
+                                <input
+                                  type="checkbox"
+                                  checked={v.is_return_eligible !== false}
+                                  onChange={(e) => updateVariant(v.id, 'is_return_eligible', e.target.checked)}
                                 />
                                 <span className="toggle-slider" />
                               </label>

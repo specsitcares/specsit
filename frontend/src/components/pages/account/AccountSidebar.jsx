@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import '../../../styles/account.css';
@@ -76,10 +76,14 @@ const NAV_ITEMS = [
 const AccountSidebar = ({ active }) => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
+    // Collapsed by default on mobile; toggled by the hamburger (CSS shows it ≤900px).
+    const [open, setOpen] = useState(false);
 
     const displayName = user
         ? (user.first_name ? [user.first_name, user.last_name].filter(Boolean).join(' ') : user.username)
         : '';
+
+    const activeLabel = NAV_ITEMS.find(i => i.key === active)?.label || 'Account Menu';
 
     const handleLogout = () => {
         logout();
@@ -87,12 +91,24 @@ const AccountSidebar = ({ active }) => {
     };
 
     return (
-        <aside className="acct-sidebar">
+        <aside className={`acct-sidebar${open ? ' acct-sidebar--open' : ''}`}>
             {/* User identity block */}
             <div className="acct-sidebar__identity">
                 <span className="acct-sidebar__label">Account</span>
                 <span className="acct-sidebar__name">{displayName}</span>
             </div>
+
+            {/* Mobile hamburger — shows current section + toggles the nav (CSS: visible ≤900px) */}
+            <button
+                type="button"
+                className="acct-sidebar__toggle"
+                onClick={() => setOpen(o => !o)}
+                aria-expanded={open}
+                aria-label="Toggle account menu"
+            >
+                <span className="acct-sidebar__toggle-label">{activeLabel}</span>
+                <span className="acct-sidebar__toggle-icon">{open ? '✕' : '☰'}</span>
+            </button>
 
             {/* Nav */}
             <nav className="acct-sidebar__nav">
@@ -100,6 +116,7 @@ const AccountSidebar = ({ active }) => {
                     <Link
                         key={item.key}
                         to={item.to}
+                        onClick={() => setOpen(false)}
                         className={`acct-sidebar__link${active === item.key ? ' acct-sidebar__link--active' : ''}`}
                     >
                         <span className="acct-sidebar__link-icon">{item.icon}</span>
