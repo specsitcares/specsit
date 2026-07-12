@@ -34,6 +34,12 @@
   width: 100%;
 }
 
+/* Payment-failed: no summary column — one centered column so the failure
+   card sits alone like the Figma (433:9367). */
+.checkout-main-content--failed {
+  grid-template-columns: 1fr;
+}
+
 .checkout-left-col {
   min-width: 0;
 }
@@ -2812,11 +2818,11 @@
   white-space: nowrap;
 }
 
-/* ── Action buttons: full-width, stacked ── */
+/* ── Action buttons: full-width, stacked (20px rhythm, matching Figma) ── */
 .pay-failed__actions {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 20px;
   width: 100%;
 }
 
@@ -2866,6 +2872,7 @@
 /* Small phones: keep the card comfortably inside the viewport. */
 @media (max-width: 380px) {
   .pay-failed { gap: 16px; margin: 16px auto; }
+  .pay-failed__actions { gap: 16px; }
   .pay-failed__icon-wrap { width: 68px; height: 68px; }
   .pay-failed__title { font-size: 23px; line-height: 30px; }
   .pay-failed__code-value { white-space: normal; }

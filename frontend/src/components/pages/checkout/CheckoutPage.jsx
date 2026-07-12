@@ -700,7 +700,7 @@ const CheckoutPage = () => {
                 })}
             </div>
 
-            <main className="checkout-main-content">
+            <main className={`checkout-main-content${paymentFailed ? ' checkout-main-content--failed' : ''}`}>
                 <div className="checkout-left-col">
 
                     {/* ── STEP 3: SHIPPING ── */}
@@ -1187,7 +1187,7 @@ const CheckoutPage = () => {
 
                 </div>
 
-                <OrderSummary />
+                {!paymentFailed && <OrderSummary />}
             </main>
         </div>
     );
