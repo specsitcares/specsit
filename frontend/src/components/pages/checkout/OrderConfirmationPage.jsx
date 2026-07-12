@@ -316,7 +316,8 @@ const OrderConfirmationPage = () => {
     if (!hasDeferredRx && isCod) {
         return (
             <div className="checkout-redesign">
-                <div className="conf-page">
+                <div className="conf-page conf-page--figma">
+                    <div className="conf-desktop">
                     <div className="conf-header">
                         <div className="conf-check-box">
                             <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
@@ -427,6 +428,8 @@ const OrderConfirmationPage = () => {
                             showAwaitingBadge={false}
                         />
                     </div>
+                    </div>
+                    {renderMobileConfirmation()}
                 </div>
             </div>
         );
