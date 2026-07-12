@@ -989,13 +989,10 @@ const CheckoutPage = () => {
                     {/* ── Payment Failed state ── */}
                             {paymentFailed ? (
                                 <div className="pay-failed">
-                                    {/* Icon */}
+                                    {/* Icon — red ✕ in a soft circle (Figma 433:9659) */}
                                     <div className="pay-failed__icon-wrap">
-                                        <svg width="38" height="38" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <circle cx="19" cy="19" r="19" fill="rgba(255,218,214,0)"/>
-                                            <circle cx="19" cy="19" r="14" stroke="#BA1A1A" strokeWidth="1.5" fill="none"/>
-                                            <path d="M19 12V20" stroke="#BA1A1A" strokeWidth="2" strokeLinecap="round"/>
-                                            <circle cx="19" cy="24.5" r="1.25" fill="#BA1A1A"/>
+                                        <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M9 9L25 25M25 9L9 25" stroke="#D92E2E" strokeWidth="3.4" strokeLinecap="round"/>
                                         </svg>
                                     </div>
 
@@ -1003,7 +1000,7 @@ const CheckoutPage = () => {
                                     <div className="pay-failed__body">
                                         <h1 className="pay-failed__title">Payment Failed</h1>
                                         <p className="pay-failed__desc">
-                                            {PAYMENT_ERROR_MESSAGES[paymentErrorCode] || (error || 'We encountered an issue while processing your payment. Please try again or choose a different method.')}
+                                            {PAYMENT_ERROR_MESSAGES[paymentErrorCode] || (error || 'Your payment could not be processed. Please try again or use a different payment method.')}
                                         </p>
                                     </div>
 
@@ -1026,11 +1023,6 @@ const CheckoutPage = () => {
                                         </button>
                                         <button className="pay-failed__change-btn"
                                             onClick={handleChangePaymentMethod}>
-                                            <svg width="16" height="13" viewBox="0 0 16 13" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                <rect x="0.75" y="0.75" width="14.5" height="11.5" rx="1.25" stroke="#040205" strokeWidth="1.5"/>
-                                                <path d="M0.75 4.5H15.25" stroke="#040205" strokeWidth="1.5"/>
-                                                <path d="M4 8.5H6" stroke="#040205" strokeWidth="1.5" strokeLinecap="round"/>
-                                            </svg>
                                             Change Payment Method
                                         </button>
                                     </div>
