@@ -83,7 +83,8 @@ const AccountSidebar = ({ active }) => {
         ? (user.first_name ? [user.first_name, user.last_name].filter(Boolean).join(' ') : user.username)
         : '';
 
-    const activeLabel = NAV_ITEMS.find(i => i.key === active)?.label || 'Account Menu';
+    const initials = (displayName || 'A')
+        .split(' ').filter(Boolean).map(w => w[0]).join('').toUpperCase().slice(0, 2);
 
     const handleLogout = () => {
         logout();
@@ -92,23 +93,31 @@ const AccountSidebar = ({ active }) => {
 
     return (
         <aside className={`acct-sidebar${open ? ' acct-sidebar--open' : ''}`}>
-            {/* User identity block */}
+            {/* User identity block (desktop) */}
             <div className="acct-sidebar__identity">
                 <span className="acct-sidebar__label">Account</span>
                 <span className="acct-sidebar__name">{displayName}</span>
             </div>
 
-            {/* Mobile hamburger — shows current section + toggles the nav (CSS: visible ≤900px) */}
-            <button
-                type="button"
-                className="acct-sidebar__toggle"
-                onClick={() => setOpen(o => !o)}
-                aria-expanded={open}
-                aria-label="Toggle account menu"
-            >
-                <span className="acct-sidebar__toggle-label">{activeLabel}</span>
-                <span className="acct-sidebar__toggle-icon">{open ? '✕' : '☰'}</span>
-            </button>
+            {/* Themed mobile account header — avatar + greeting + hamburger (CSS: visible ≤992px) */}
+            <div className="acct-mhead">
+                <div className="acct-mhead__id">
+                    <span className="acct-mhead__avatar">{initials}</span>
+                    <span className="acct-mhead__text">
+                        <span className="acct-mhead__hi">Welcome back</span>
+                        <span className="acct-mhead__name">{displayName}</span>
+                    </span>
+                </div>
+                <button
+                    type="button"
+                    className={`acct-mhead__burger${open ? ' is-open' : ''}`}
+                    onClick={() => setOpen(o => !o)}
+                    aria-expanded={open}
+                    aria-label="Toggle account menu"
+                >
+                    <span /><span /><span />
+                </button>
+            </div>
 
             {/* Nav */}
             <nav className="acct-sidebar__nav">
@@ -128,6 +137,11 @@ const AccountSidebar = ({ active }) => {
             {/* Divider + Logout */}
             <div className="acct-sidebar__footer">
                 <div className="acct-sidebar__divider" />
+                {/* Mobile-only exit back to the storefront (CSS: visible ≤992px) */}
+                <Link to="/" className="acct-sidebar__shop" onClick={() => setOpen(false)}>
+                    <span className="acct-sidebar__link-icon">{ICONS.overview}</span>
+                    Continue Shopping
+                </Link>
                 <button className="acct-sidebar__logout" onClick={handleLogout}>
                     <span className="acct-sidebar__link-icon">{ICONS.logout}</span>
                     Logout

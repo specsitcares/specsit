@@ -686,34 +686,62 @@
 
 .review-upload-zone:hover { border-color: var(--specsit-purple-primary); }
 
-/* ── Responsive ────────────────────────────────────────────── */
-@media (max-width: 900px) {
-  .orders-page-title { font-size: 26px; letter-spacing: -1.2px; }
-  .orders-page-header { flex-direction: column; gap: 13px; }
-  .orders-page-header__right { width: 100%; }
-  .orders-search { width: 100%; flex: 1; }
+/* ── Responsive (mobile/tablet only — desktop is untouched) ──── */
+@media (max-width: 992px) {
+  /* Compact, decluttered page header — search bar removed on mobile */
+  .orders-page-header { flex-direction: column; align-items: flex-start; gap: 4px; margin-bottom: 18px; }
+  .orders-page-header__right { display: none; }
+  .orders-page-title { font-size: 22px; letter-spacing: -0.8px; line-height: 28px; }
+  .orders-page-subtitle { font-size: 12px; line-height: 18px; }
+
+  /* "Frequently bought" recommendations are hidden on mobile */
+  .reco-section { display: none; }
+
+  .order-history-header { margin-bottom: 12px; }
+
+  /* Order card — moderate compaction for tablets */
+  .omc { border-radius: 14px; margin-bottom: 12px; }
+  .omc__body { gap: 14px; padding: 14px; }
+  .omc__thumb { width: 116px; }
+  .omc__name { font-size: 19px; line-height: 24px; letter-spacing: -0.3px; }
+  .omc__sub { font-size: 14px; line-height: 19px; }
+  .omc__info { padding-bottom: 14px; }
+  .omc__main { gap: 10px; }
+
   .ord-card { padding: 16px; }
   .ord-card__bottom { flex-wrap: wrap; }
   .ord-card__bottom-right { align-items: flex-start; }
-  .reco-card { width: 176px; }
-  .reco-card__img-wrap { height: 120px; }
 }
 
-/* ── Order card (omc) — phone tuning ── */
+/* ── Order card (omc) — compact phone tuning ── */
 @media (max-width: 600px) {
-  .omc__body { gap: 14px; padding: 14px; }
-  .omc__thumb { width: 104px; }
-  .omc__name { font-size: 18px; line-height: 23px; letter-spacing: -0.3px; }
-  .omc__sub { font-size: 14px; line-height: 19px; }
-  .omc__info { padding-bottom: 14px; }
-  .omc__strip { flex-wrap: wrap; }
-  .omc__strip-meta { font-size: 13px; }
-  .omc__footer { flex-wrap: wrap; gap: 10px; }
-  .omc__priceline-price { font-size: 15px; }
+  .omc { border-radius: 13px; margin-bottom: 10px; }
+  .omc__strip { padding: 9px 12px; gap: 8px; }
+  .omc__strip-left { gap: 9px; }
+  .omc__status { font-size: 11px; letter-spacing: 0.4px; }
+  .omc__strip-meta { font-size: 12px; line-height: 16px; }
+  .omc__strip-link, .omc__strip-reason { font-size: 12px; }
+
+  .omc__body { gap: 12px; padding: 12px; }
+  .omc__thumb { width: 84px; border-radius: 7px; }
+  .omc__main { gap: 8px; }
+  .omc__brand { font-size: 10px; letter-spacing: 1px; }
+  .omc__name { font-size: 16px; line-height: 20px; }
+  .omc__sub { font-size: 12px; line-height: 16px; }
+  .omc__info { padding-bottom: 10px; gap: 2px; }
+  .omc__priceline-label { font-size: 12px; }
+  .omc__priceline-price { font-size: 15px; line-height: 20px; }
+
+  .omc__footer { padding: 10px 12px; gap: 10px; }
+  .omc__rate-label { font-size: 11px; }
+  .omc__view, .omc__reorder { font-size: 12px; }
+  .omc__reorder { padding: 8px 16px; }
+  .omc__rate-group { gap: 6px; }
 }
 
-/* Very small / folded: stack the thumbnail above the details */
-@media (max-width: 400px) {
-  .omc__body { flex-direction: column; align-items: stretch; }
-  .omc__thumb { width: 100%; height: 168px; }
+/* Very small / folded: keep the thumbnail inline but tighter (never balloon it) */
+@media (max-width: 380px) {
+  .omc__body { gap: 10px; padding: 11px; }
+  .omc__thumb { width: 72px; }
+  .omc__name { font-size: 15px; }
 }
