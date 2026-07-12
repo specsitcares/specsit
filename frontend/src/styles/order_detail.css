@@ -32,10 +32,13 @@
 .od-card--product { padding: 0; overflow: hidden; }
 .od-product-main {
   padding: 24px;
-  background-image: url('../assets/order-product-bg.png');
-  background-repeat: no-repeat;
-  background-position: right bottom;
-  background-size: cover;
+  /* Translucent white wash over the green glow so it reads as a light, subtle tint */
+  background-image:
+    linear-gradient(rgba(254, 252, 255, 0.72), rgba(254, 252, 255, 0.72)),
+    url('../assets/order-product-bg.png');
+  background-repeat: no-repeat, no-repeat;
+  background-position: center, right bottom;
+  background-size: cover, cover;
 }
 .od-product-footer { padding: 16px 24px; background: #f9fafb; border-top: 1px solid #eef0f3; }
 .od-card-title { font-size: 16px; font-weight: 700; margin: 0 0 4px; }
@@ -157,7 +160,35 @@
   .od-cols { grid-template-columns: 1fr; }
   .od-product { flex-direction: column; }
   .od-product-priceblock { text-align: left; }
-  .od-steps { overflow-x: auto; }
+
+  /* Vertical stepper — fits the width with no horizontal scrollbar */
+  .od-steps { flex-direction: column; align-items: stretch; }
+  .od-step {
+    flex-direction: row;
+    align-items: center;
+    text-align: left;
+    gap: 14px;
+    width: 100%;
+    min-width: 0;
+  }
+  .od-step-dot { flex-shrink: 0; }
+  .od-step-label {
+    margin-top: 0;
+    max-width: none;
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+  }
+  .od-step-date { margin-top: 0; flex-shrink: 0; text-align: right; white-space: nowrap; }
+  /* Connector lines become short vertical segments aligned under each dot */
+  .od-step-line {
+    width: 2px;
+    min-width: 2px;
+    height: 18px;
+    flex: none;
+    margin: 3px 0 3px 18px;
+    align-self: flex-start;
+  }
 }
 
 @media (max-width: 480px) {

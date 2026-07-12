@@ -51,30 +51,10 @@
   top: 80px;
 }
 
-/* Mobile hamburger toggle — hidden on desktop, revealed ≤900px */
-.acct-sidebar__toggle {
-  display: none;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  font-family: inherit;
-  color: var(--specsit-black);
-}
-
-.acct-sidebar__toggle-label {
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: -0.3px;
-}
-
-.acct-sidebar__toggle-icon {
-  font-size: 20px;
-  line-height: 1;
-}
+/* Themed mobile account header + "Continue Shopping" link — hidden on desktop,
+   revealed ≤992px (see media query). Desktop layout is untouched. */
+.acct-mhead { display: none; }
+.acct-sidebar__shop { display: none; }
 
 /* Identity block */
 .acct-sidebar__identity {
@@ -912,41 +892,156 @@
 }
 
 @media (max-width: 992px) {
+  /* Hide the site header + announcement bar on account pages; the themed
+     account header (below) takes over. Desktop is unaffected. */
+  .layout-wrapper.is-account .header,
+  .layout-wrapper.is-account .announcement-bar { display: none !important; }
+
   .account-body {
     flex-direction: column;
-    padding: 32px 19px;
-    gap: 19px;
+    align-items: stretch;   /* full-width content on mobile (fixes odd card width) */
+    padding: 16px 14px 40px;
+    gap: 16px;
   }
 
+  /* On mobile the sidebar becomes a transparent wrapper; the themed header
+     card + collapsible menu do the visual work. */
   .acct-sidebar {
     width: 100%;
     position: static;
     flex-direction: column;
-    padding: 16px 19px;
-    border-radius: 10px;
+    padding: 0;
     gap: 10px;
+    background: transparent;
+    border-radius: 0;
   }
 
-  .acct-sidebar__identity { padding-bottom: 0; width: 100%; }
+  /* Desktop identity is replaced by the themed mobile header */
+  .acct-sidebar__identity { display: none; }
 
-  /* Reveal the hamburger; collapse the nav + footer until opened */
-  .acct-sidebar__toggle {
+  /* ── Themed account header card ── */
+  .acct-mhead {
     display: flex;
-    border-top: 1px solid rgba(4, 2, 5, 0.08);
-    padding-top: 10px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 18px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #68408D 0%, #4A2C66 100%);
+    box-shadow: 0 8px 22px rgba(74, 44, 102, 0.28);
   }
+  .acct-mhead__id { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .acct-mhead__avatar {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.16);
+    border: 1.5px solid rgba(255, 255, 255, 0.4);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .acct-mhead__text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .acct-mhead__hi {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.7);
+  }
+  .acct-mhead__name {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Hamburger → animated to an X when open */
+  .acct-mhead__burger {
+    flex-shrink: 0;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.14);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+  .acct-mhead__burger span {
+    display: block;
+    width: 18px;
+    height: 2px;
+    border-radius: 2px;
+    background: #fff;
+    transition: transform 0.22s ease, opacity 0.22s ease;
+  }
+  .acct-mhead__burger.is-open span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+  .acct-mhead__burger.is-open span:nth-child(2) { opacity: 0; }
+  .acct-mhead__burger.is-open span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+
+  /* ── Collapsible menu (revealed by the hamburger) ── */
   .acct-sidebar__nav,
   .acct-sidebar__footer { display: none; }
   .acct-sidebar--open .acct-sidebar__nav {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 3px;
+    background: var(--specsit-light-grey);
+    border-radius: 14px;
+    padding: 8px;
+    animation: acct-menu-in 0.2s ease;
   }
-  .acct-sidebar--open .acct-sidebar__footer { display: block; margin-top: 4px; }
-
-  .acct-sidebar__link { padding: 10px 12px; font-size: 13px; }
-  .acct-sidebar__link--active { font-size: 13px; }
+  .acct-sidebar--open .acct-sidebar__footer {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    background: var(--specsit-light-grey);
+    border-radius: 14px;
+    padding: 8px;
+    margin-top: -4px;
+    animation: acct-menu-in 0.2s ease;
+  }
+  .acct-sidebar__link {
+    padding: 12px 14px;
+    font-size: 14px;
+    border-radius: 10px;
+  }
+  .acct-sidebar__link--active {
+    font-size: 14px;
+    background: var(--specsit-purple-light);
+    color: var(--specsit-purple-primary);
+  }
   .acct-sidebar__divider { display: none; }
+
+  /* "Continue Shopping" — mobile-only exit back to the storefront */
+  .acct-sidebar__shop {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--specsit-purple-primary);
+    text-decoration: none;
+  }
+  .acct-sidebar__logout {
+    padding: 12px 14px;
+    font-size: 14px;
+    border-radius: 10px;
+  }
 
   .acctinfo-two-col { grid-template-columns: 1fr; }
   .address-grid { grid-template-columns: 1fr; }
@@ -955,11 +1050,16 @@
   .order-card__top { flex-direction: column; gap: 10px; }
 }
 
+@keyframes acct-menu-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 /* Small phones — tighter shell + compact sidebar nav */
 @media (max-width: 480px) {
-  .account-body { padding: 24px 12px; gap: 16px; }
-  .acct-sidebar { padding: 14px; gap: 4px; }
-  .acct-sidebar__nav { gap: 4px; }
-  .acct-sidebar__link { padding: 6px 8px; }
+  .account-body { padding: 14px 12px 36px; gap: 14px; }
+  .acct-mhead { padding: 14px 15px; }
+  .acct-mhead__avatar { width: 40px; height: 40px; font-size: 15px; }
+  .acct-mhead__name { font-size: 16px; }
   .address-form-type-row { width: 100%; }
 }
