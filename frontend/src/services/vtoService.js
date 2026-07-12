@@ -6,6 +6,69 @@
 
 const VTRYON_API_KEY = import.meta.env.VITE_VTRYON_API_KEY || 'placeholder_key';
 
+/* ──────────────────────────────────────────────────────────────────────────
+ * KiksAR RTE (Real-Time Experience / Virtual Try-On) integration.
+ *
+ * Per the KiksAR integration doc, the flow is:
+ *   1. Load kixr_integration.js once on the page.
+ *   2. Call window.invokeKiksarRTE('<product_skuid>') to launch the experience.
+ *
+ * The script path is client-specific (the `xxx` segment in the doc's URL must
+ * be replaced with your KiksAR client id). Set it via VITE_KIKSAR_SCRIPT_URL.
+ * ────────────────────────────────────────────────────────────────────────── */
+const KIKSAR_SCRIPT_URL =
+    import.meta.env.VITE_KIKSAR_SCRIPT_URL ||
+    'https://web-rte-static-files.s3.ap-south-1.amazonaws.com/xxx/kixr_integration.js';
+
+let kiksarScriptPromise = null;
+
+function loadKiksarScript() {
+    if (typeof window.invokeKiksarRTE === 'function') return Promise.resolve();
+    if (kiksarScriptPromise) return kiksarScriptPromise;
+
+    kiksarScriptPromise = new Promise((resolve, reject) => {
+        const existing = document.querySelector('script[data-kiksar-rte]');
+        if (existing) {
+            existing.addEventListener('load', resolve);
+            existing.addEventListener('error', reject);
+            return;
+        }
+        const s = document.createElement('script');
+        s.src = KIKSAR_SCRIPT_URL;
+        s.async = true;
+        s.dataset.kiksarRte = 'true';
+        s.onload = () => resolve();
+        s.onerror = () => { kiksarScriptPromise = null; reject(new Error('Failed to load KiksAR RTE script')); };
+        document.body.appendChild(s);
+    });
+    return kiksarScriptPromise;
+}
+
+/**
+ * Launch the KiksAR virtual try-on for a given product SKU. Loads the
+ * integration script on first use, then invokes the RTE.
+ * @param {string} sku - Product/variant SKU (must be registered with KiksAR).
+ * @returns {Promise<boolean>} true if the experience launched, false otherwise.
+ */
+export async function invokeKiksarVTO(sku) {
+    if (!sku) {
+        console.warn('KiksAR VTO: no SKU provided.');
+        return false;
+    }
+    try {
+        await loadKiksarScript();
+        if (typeof window.invokeKiksarRTE === 'function') {
+            window.invokeKiksarRTE(String(sku));
+            return true;
+        }
+        console.error('KiksAR VTO: invokeKiksarRTE was not defined after the script loaded.');
+        return false;
+    } catch (err) {
+        console.error('KiksAR VTO: failed to launch —', err);
+        return false;
+    }
+}
+
 const vtoService = {
     /**
      * Applies the virtual try-on effect to a face image.

@@ -11,6 +11,7 @@ import { useCart } from '../../../context/CartContext';
 import { useWishlist } from '../../../context/WishlistContext';
 import { useAuth } from '../../../context/AuthContext';
 import VTOModal from '../../VTOModal/VTOModal';
+import { invokeKiksarVTO } from '../../../services/vtoService';
 import LensSelectionAside from './LensSelectionAside';
 import { ProductCard } from '../home/NewArrivals';
 import PincodeDeliveryCheck from './PincodeDeliveryCheck';
@@ -330,8 +331,10 @@ const ProductDetailPage = () => {
                         <div className="pd-main-view">
                             <img src={images[activeImage] || 'https://placehold.co/600x600/efedf0/040205?text=Masterpiece'} alt={product?.title} className="pd-main-image" />
 
-                            {/* Virtual Try-On pill button — top-right (Figma 401:13013) */}
-                            <button className="pd-vto-pill-btn" onClick={() => setIsVTOModalOpen(true)}>
+                            {/* Virtual Try-On pill button — top-right (Figma 401:13013).
+                                Launches the KiksAR RTE for this SKU; falls back to the
+                                built-in VTO modal if the KiksAR script isn't available. */}
+                            <button className="pd-vto-pill-btn" onClick={() => invokeKiksarVTO(selectedVariantObj?.sku || product?.sku).then(ok => { if (!ok) setIsVTOModalOpen(true); })}>
                                 <svg width="14" height="12" viewBox="0 0 14 12" fill="none">
                                     <path d="M5 1H9L10.5 3H13V11H1V3H3.5L5 1Z" stroke="#FEFCFF" strokeWidth="1.3" strokeLinejoin="round" />
                                     <circle cx="7" cy="7" r="2.2" stroke="#FEFCFF" strokeWidth="1.3" />

@@ -10,6 +10,26 @@ const STATUS_PILL = {
 };
 const PURPLE = '#7F56D9';
 
+// Sections hidden from the Homepage Management grid (per admin request).
+const HIDDEN_SECTION_KEYS = new Set([
+    'top_new_arrivals',
+    'explore_sunglasses',
+    'best_sellers',
+    'client_testimonials',
+    'shop_into_better_vision',
+    'footer',
+    'header',
+    'navbar',
+]);
+const HIDDEN_SECTION_TITLES = new Set([
+    'new arrivals', 'top new arrivals', 'explore sunglasses', 'best sellers', 'bestsellers',
+    'client testimonials', 'shop into better vision', 'step in', 'step into better vision',
+    'footer', 'header', 'navbar', 'nav bar',
+]);
+const isHiddenSection = (sec) =>
+    HIDDEN_SECTION_KEYS.has(sec.key) ||
+    HIDDEN_SECTION_TITLES.has((sec.title || '').trim().toLowerCase());
+
 // Sections that have a dedicated editor page (arrow opens it instead of the modal).
 const EDITOR_ROUTES = {
     hero_banner: '/admin/settings/cms/hero-banner',
@@ -113,7 +133,7 @@ const CmsManagement = () => {
                 <div style={{ padding: 60, textAlign: 'center', color: '#667085' }}>Loading sections…</div>
             ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}>
-                    {sections.map(sec => {
+                    {sections.filter(sec => !isHiddenSection(sec)).map(sec => {
                         const pill = STATUS_PILL[sec.status] || STATUS_PILL.draft;
                         return (
                             <div key={sec.id} style={{ background: '#fff', border: '1px solid #EAECF0', borderRadius: 12, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
