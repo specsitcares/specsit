@@ -698,3 +698,22 @@
   .reco-card { width: 176px; }
   .reco-card__img-wrap { height: 120px; }
 }
+
+/* ── Order card (omc) — phone tuning ── */
+@media (max-width: 600px) {
+  .omc__body { gap: 14px; padding: 14px; }
+  .omc__thumb { width: 104px; }
+  .omc__name { font-size: 18px; line-height: 23px; letter-spacing: -0.3px; }
+  .omc__sub { font-size: 14px; line-height: 19px; }
+  .omc__info { padding-bottom: 14px; }
+  .omc__strip { flex-wrap: wrap; }
+  .omc__strip-meta { font-size: 13px; }
+  .omc__footer { flex-wrap: wrap; gap: 10px; }
+  .omc__priceline-price { font-size: 15px; }
+}
+
+/* Very small / folded: stack the thumbnail above the details */
+@media (max-width: 400px) {
+  .omc__body { flex-direction: column; align-items: stretch; }
+  .omc__thumb { width: 100%; height: 168px; }
+}

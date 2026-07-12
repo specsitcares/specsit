@@ -915,3 +915,12 @@
 
   .order-card__top { flex-direction: column; gap: 10px; }
 }
+
+/* Small phones — tighter shell + compact sidebar nav */
+@media (max-width: 480px) {
+  .account-body { padding: 24px 12px; gap: 16px; }
+  .acct-sidebar { padding: 14px; gap: 4px; }
+  .acct-sidebar__nav { gap: 4px; }
+  .acct-sidebar__link { padding: 6px 8px; }
+  .address-form-type-row { width: 100%; }
+}
