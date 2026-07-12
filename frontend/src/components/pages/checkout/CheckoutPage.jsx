@@ -1006,7 +1006,7 @@ const CheckoutPage = () => {
                                     <div className="pay-failed__body">
                                         <h1 className="pay-failed__title">Payment Failed</h1>
                                         <p className="pay-failed__desc">
-                                            {PAYMENT_ERROR_MESSAGES[paymentErrorCode] || (error || 'Your payment could not be processed. Please try again or use a different payment method.')}
+                                            {PAYMENT_ERROR_MESSAGES[paymentErrorCode] || (error || 'We encountered an issue while processing your payment. Please try again or choose a different payment method.')}
                                         </p>
                                     </div>
 
