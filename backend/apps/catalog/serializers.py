@@ -85,6 +85,10 @@ class ProductSerializer(serializers.ModelSerializer):
     computed_final_price = serializers.SerializerMethodField()
     average_rating = serializers.SerializerMethodField()
     review_count = serializers.SerializerMethodField()
+    # Units actually sold in the trailing 90-day window. Populated only when the
+    # queryset is annotated with `units_sold_90d` (storefront listing / home bundle);
+    # defaults to 0 elsewhere. Used to justify bestseller status with real sales data.
+    units_sold = serializers.SerializerMethodField()
 
     def _approved_reviews(self, obj):
         return [r for r in obj.reviews.all() if r.is_approved]
@@ -97,6 +101,9 @@ class ProductSerializer(serializers.ModelSerializer):
 
     def get_review_count(self, obj):
         return len(self._approved_reviews(obj))
+
+    def get_units_sold(self, obj):
+        return getattr(obj, 'units_sold_90d', 0) or 0
 
     def get_stock_status(self, obj):
         if obj.stock_quantity <= 0:
