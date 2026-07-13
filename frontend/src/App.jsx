@@ -51,7 +51,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { useLocation } from 'react-router-dom';
 import apiClient from './services/api';
 
-const GOOGLE_CLIENT_ID = "400833653678-plj7o92fk61bacu3rv4toi774dppu4qa.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID = "1058455221738-v3tc7kb29vntasdf8sgld947kvem0o5p.apps.googleusercontent.com";
 
 const LiveTracker = () => {
     const location = useLocation();

@@ -29,8 +29,30 @@ const STEPS = ['Cart', 'Sign In', 'Shipping', 'Payment'];
 const ADDRESS_TYPES = ['Home', 'Office', 'Friends or family', 'Other'];
 
 const CheckoutPage = () => {
-    const { cart, cartTotal, clearCart, resolveProductPrice, appliedCoupon, applyCoupon, removeCoupon, savings } = useCart();
+    const { cart, cartTotal, clearCart, resolveProductPrice, appliedCoupon, applyCoupon, removeCoupon, savings, addToCart, removeFromCart, updateQuantity } = useCart();
     const navigate = useNavigate();
+
+    // Accessory add-ons (product_type === 'accessory') — toggling adds/removes from cart
+    const [accessories, setAccessories] = useState([]);
+    const accVariant = (a) => a.variants?.[0] || null;
+    const accCartId = (a) => `${a.id}-${accVariant(a)?.id || 'no-var'}-no-lens-no-rx`;
+    const accInCart = (a) => cart.some(it => it.id === accCartId(a));
+    const accQty = (a) => cart.find(it => it.id === accCartId(a))?.quantity || 0;
+    const accImage = (a) => accVariant(a)?.images?.[0]?.image || a.images?.[0]?.image || null;
+    const accPrice = (a) => resolveProductPrice(a, accVariant(a));
+    const toggleAccessory = (a) => {
+        const id = accCartId(a);
+        if (cart.some(it => it.id === id)) removeFromCart(id);
+        else addToCart(a, null, null, null, null, accVariant(a));
+    };
+    const changeAccessoryQty = (a, delta) => {
+        const id = accCartId(a);
+        const qty = accQty(a);
+        if (qty === 0 && delta > 0) { addToCart(a, null, null, null, null, accVariant(a)); return; }
+        const next = qty + delta;
+        if (next < 1) removeFromCart(id);
+        else updateQuantity(id, next);
+    };
 
     // Workflow State
     const [currentStep, setCurrentStep] = useState(3);
@@ -130,6 +152,12 @@ const CheckoutPage = () => {
     const amountDueNow = paymentMethod === 'complete_cod' ? 0
         : paymentMethod === 'partial_payment' ? phase1Amount
         : orderTotal;
+
+    useEffect(() => {
+        apiClient.get('/catalog/products/', { params: { product_type: 'accessory', page_size: 8 } })
+            .then(res => setAccessories(res.data.results || res.data || []))
+            .catch(() => {});
+    }, []);
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -999,6 +1027,50 @@ const CheckoutPage = () => {
                                     {promoError && <p className="pay2-coupon-error">{promoError}</p>}
                                 </div>
                             )}
+                        </section>
+                    )}
+
+                    {/* ── Accessory add-ons ── */}
+                    {!paymentFailed && accessories.length > 0 && (
+                        <section className="pay2-block ck-addons">
+                            <h2 className="pay2-heading">Add Accessories</h2>
+                            <p className="ck-addons__sub">Complete your order with these essentials.</p>
+                            <div className="ck-addons__strip">
+                                {accessories.map(a => {
+                                    const inCart = accInCart(a);
+                                    const qty = accQty(a);
+                                    const img = accImage(a);
+                                    return (
+                                        <div key={a.id} className={`ck-addon-card${inCart ? ' selected' : ''}`}>
+                                            <span className="ck-addon-thumb">
+                                                {img ? <img src={img} alt={a.title} /> : <span className="ck-addon-thumb--empty" />}
+                                                {inCart && (
+                                                    <span className="ck-addon-badge" aria-hidden>
+                                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                                                            <polyline points="20 6 9 17 4 12" />
+                                                        </svg>
+                                                    </span>
+                                                )}
+                                            </span>
+                                            <span className="ck-addon-name" title={a.title}>{a.title}</span>
+                                            <span className="ck-addon-price">₹{accPrice(a).toLocaleString('en-IN')}</span>
+                                            {inCart ? (
+                                                <span className="ck-addon-qty">
+                                                    <button type="button" className="ck-addon-qty__btn" aria-label="Decrease quantity"
+                                                        onClick={() => changeAccessoryQty(a, -1)}>−</button>
+                                                    <span className="ck-addon-qty__val">{qty}</span>
+                                                    <button type="button" className="ck-addon-qty__btn" aria-label="Increase quantity"
+                                                        onClick={() => changeAccessoryQty(a, +1)}>+</button>
+                                                </span>
+                                            ) : (
+                                                <button type="button" className="ck-addon-add" onClick={() => toggleAccessory(a)}>
+                                                    Add
+                                                </button>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </section>
                     )}
 
