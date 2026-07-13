@@ -68,6 +68,11 @@ const ProductDetailPage = () => {
     // Lens Selection Aside
     const [isAsideOpen, setIsAsideOpen] = useState(false);
 
+    // Accessories / add-ons (product_type === 'accessory')
+    const [accessories, setAccessories] = useState([]);
+    const [selectedAddons, setSelectedAddons] = useState(() => new Set());
+    const [addonsAdded, setAddonsAdded] = useState(false);
+
     // Reviews
     const [reviews, setReviews] = useState([]);
 
@@ -141,6 +146,15 @@ const ProductDetailPage = () => {
                         setStyleProducts(catData.filter(x => x.id !== parseInt(id)).slice(0, 4));
                     } catch { /* optional */ }
                 }
+
+                // Accessories shown as optional add-ons on the PDP
+                try {
+                    const accRes = await apiClient.get('/catalog/products/', {
+                        params: { product_type: 'accessory', page_size: 6 },
+                    });
+                    const accData = accRes.data.results || accRes.data || [];
+                    setAccessories(accData.filter(x => x.id !== parseInt(id)).slice(0, 6));
+                } catch { /* optional */ }
             } catch {
                 setError('Product entry not found.');
             } finally {
@@ -176,6 +190,29 @@ const ProductDetailPage = () => {
         addToCart(prod ?? product, lens ?? selectedLens, prescription ?? { type: prescriptionType }, prescriptionPdfUrl, rxMode, selectedVariantObj, prescriptionFile);
         navigate('/cart');
     };
+
+    const toggleAddon = (accId) => {
+        setSelectedAddons(prev => {
+            const next = new Set(prev);
+            next.has(accId) ? next.delete(accId) : next.add(accId);
+            return next;
+        });
+    };
+
+    const addSelectedAddons = () => {
+        const chosen = accessories.filter(a => selectedAddons.has(a.id));
+        if (!chosen.length) return;
+        chosen.forEach(a => addToCart(a, null, null, null, null, a.variants?.[0] || null));
+        setSelectedAddons(new Set());
+        setAddonsAdded(true);
+        setTimeout(() => setAddonsAdded(false), 2500);
+    };
+
+    const accPrice = (a) => {
+        const v = a.variants?.[0];
+        return parseFloat(v?.selling_price ?? v?.price ?? a.selling_price ?? a.base_price ?? 0);
+    };
+    const accImage = (a) => a.variants?.[0]?.images?.[0]?.image || a.images?.[0]?.image || null;
 
     if (loading) return (
         <div className="pd-loading">
@@ -530,6 +567,55 @@ const ProductDetailPage = () => {
                             </div>
                         </div>
                     </div>
+
+                    {/* ── Accessories add-ons ── */}
+                    {accessories.length > 0 && (
+                        <div className="pd-addons-section">
+                            <label className="pd-block-label pd-addons-title">Add Accessories</label>
+                            <div className="pd-addons-list">
+                                {accessories.map(a => {
+                                    const selected = selectedAddons.has(a.id);
+                                    const img = accImage(a);
+                                    return (
+                                        <button
+                                            type="button"
+                                            key={a.id}
+                                            className={`pd-addon-card${selected ? ' selected' : ''}`}
+                                            onClick={() => toggleAddon(a.id)}
+                                            aria-pressed={selected}
+                                        >
+                                            <span className={`pd-addon-check${selected ? ' checked' : ''}`} aria-hidden>
+                                                {selected && (
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                                        <polyline points="20 6 9 17 4 12" />
+                                                    </svg>
+                                                )}
+                                            </span>
+                                            <span className="pd-addon-thumb">
+                                                {img ? <img src={img} alt={a.title} /> : <span className="pd-addon-thumb--empty" />}
+                                            </span>
+                                            <span className="pd-addon-info">
+                                                <span className="pd-addon-name">{a.title}</span>
+                                                <span className="pd-addon-price">₹{accPrice(a).toLocaleString('en-IN')}</span>
+                                            </span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            <button
+                                type="button"
+                                className="pd-addons-btn"
+                                disabled={selectedAddons.size === 0}
+                                onClick={addSelectedAddons}
+                            >
+                                {addonsAdded
+                                    ? '✓ Added to bag'
+                                    : selectedAddons.size > 0
+                                        ? `Add ${selectedAddons.size} to bag`
+                                        : 'Select accessories to add'}
+                            </button>
+                        </div>
+                    )}
 
                     {/* ── CTA ── */}
                     <div className="pd-cta-group">
