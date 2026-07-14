@@ -714,6 +714,26 @@ class OrderViewSet(viewsets.ModelViewSet):
             return Response({'detail': 'A return or exchange request already exists for this order.'},
                             status=status.HTTP_400_BAD_REQUEST)
 
+        # Refund destination. Online-only orders refund to the original instrument.
+        # COD / partial orders were (wholly or partly) paid in cash, so the refund is
+        # paid out to the customer's saved bank account. Snapshot it onto the request
+        # so the admin has it even if the customer later edits their profile.
+        refund_fields = {}
+        if request_type == 'refund' and order.payment_method not in ('complete_online', 'ONLINE'):
+            from apps.accounts.models import UserProfile
+            profile = UserProfile.objects.filter(user=request.user).first()
+            if not profile or not profile.has_bank_account:
+                return Response(
+                    {'detail': 'Please add a bank account in your Account Information before requesting a refund on a Cash on Delivery order.',
+                     'code': 'bank_account_required'},
+                    status=status.HTTP_400_BAD_REQUEST)
+            refund_fields = {
+                'refund_account_name': profile.bank_account_name,
+                'refund_account_number': profile.bank_account_number,
+                'refund_ifsc': profile.bank_ifsc,
+                'refund_bank_name': profile.bank_name,
+            }
+
         rr = ReturnRequest.objects.create(
             order=order,
             request_type=request_type,
@@ -722,6 +742,7 @@ class OrderViewSet(viewsets.ModelViewSet):
             status='pending',
             refund_amount=order.total_amount if request_type == 'refund' else None,
             replacement_sku=(request.data.get('replacement_sku') or '') if request_type == 'replacement' else '',
+            **refund_fields,
         )
 
         # Optional supporting photos (multipart "photos") — up to 5, max 5 MB, images only.

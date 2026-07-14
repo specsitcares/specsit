@@ -19,6 +19,10 @@ const AccountInfoPage = () => {
         birthday: '',
         gender: '',
         username: '',
+        bank_account_name: '',
+        bank_account_number: '',
+        bank_ifsc: '',
+        bank_name: '',
     });
     const [avatarPreview, setAvatarPreview] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -42,6 +46,10 @@ const AccountInfoPage = () => {
                 birthday: d.birthday || '',
                 gender: d.gender || '',
                 username: d.username || '',
+                bank_account_name: d.bank_account_name || '',
+                bank_account_number: d.bank_account_number || '',
+                bank_ifsc: d.bank_ifsc || '',
+                bank_name: d.bank_name || '',
             });
         } catch {
             setError('Failed to load profile.');
@@ -80,6 +88,10 @@ const AccountInfoPage = () => {
                 phone: form.phone,
                 birthday: form.birthday || '',
                 gender: form.gender,
+                bank_account_name: form.bank_account_name,
+                bank_account_number: form.bank_account_number,
+                bank_ifsc: form.bank_ifsc,
+                bank_name: form.bank_name,
             });
 
             // Sync auth context with updated user fields
@@ -100,6 +112,10 @@ const AccountInfoPage = () => {
                 birthday: res.data.birthday || '',
                 gender: res.data.gender || '',
                 username: res.data.username || '',
+                bank_account_name: res.data.bank_account_name || '',
+                bank_account_number: res.data.bank_account_number || '',
+                bank_ifsc: res.data.bank_ifsc || '',
+                bank_name: res.data.bank_name || '',
             });
 
             setSaved(true);
@@ -253,6 +269,56 @@ const AccountInfoPage = () => {
                                             </svg>
                                         </div>
                                     </div>
+                                </div>
+
+                                {/* Bank account for refunds */}
+                                <div className="acctinfo-field">
+                                    <label className="acctinfo-label">Bank Account for Refunds</label>
+                                    <p className="acctinfo-subheading" style={{ margin: '0 0 4px', textAlign: 'left' }}>
+                                        Used to refund Cash on Delivery orders. We only transfer refunds here — never debits.
+                                    </p>
+                                    <input
+                                        className="acctinfo-input"
+                                        type="text"
+                                        placeholder="Account holder name"
+                                        value={form.bank_account_name}
+                                        onChange={e => handleChange('bank_account_name', e.target.value)}
+                                    />
+                                </div>
+                                <div className="acctinfo-two-col">
+                                    <div className="acctinfo-field">
+                                        <label className="acctinfo-label">Account Number</label>
+                                        <input
+                                            className="acctinfo-input"
+                                            type="text"
+                                            inputMode="numeric"
+                                            placeholder="Bank account number"
+                                            value={form.bank_account_number}
+                                            onChange={e => handleChange('bank_account_number', e.target.value.replace(/\D/g, ''))}
+                                        />
+                                    </div>
+                                    <div className="acctinfo-field">
+                                        <label className="acctinfo-label">IFSC Code</label>
+                                        <input
+                                            className="acctinfo-input"
+                                            type="text"
+                                            style={{ textTransform: 'uppercase' }}
+                                            placeholder="e.g. HDFC0001234"
+                                            maxLength={11}
+                                            value={form.bank_ifsc}
+                                            onChange={e => handleChange('bank_ifsc', e.target.value.toUpperCase())}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="acctinfo-field">
+                                    <label className="acctinfo-label">Bank Name <span style={{ color: '#9CA3AF', fontWeight: 400 }}>(optional)</span></label>
+                                    <input
+                                        className="acctinfo-input"
+                                        type="text"
+                                        placeholder="e.g. HDFC Bank"
+                                        value={form.bank_name}
+                                        onChange={e => handleChange('bank_name', e.target.value)}
+                                    />
                                 </div>
 
                                 {/* Submit */}

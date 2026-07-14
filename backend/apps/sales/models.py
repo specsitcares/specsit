@@ -309,6 +309,13 @@ class ReturnRequest(models.Model):
     refund_date = models.DateField(null=True, blank=True)
     replacement_sku = models.CharField(max_length=100, blank=True)
     replacement_tracking_id = models.CharField(max_length=100, blank=True)
+    # Refund destination snapshot — copied from the customer's saved bank account
+    # at request time. COD/partial orders have no original online instrument to
+    # credit back to, so the refund is paid out to this bank account.
+    refund_account_name = models.CharField(max_length=150, blank=True)
+    refund_account_number = models.CharField(max_length=34, blank=True)
+    refund_ifsc = models.CharField(max_length=15, blank=True)
+    refund_bank_name = models.CharField(max_length=120, blank=True)
     admin_notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -36,6 +36,7 @@ const ReturnExchangePage = () => {
   const [pickupDay, setPickupDay] = useState(0);
   const [slot, setSlot] = useState(TIME_SLOTS[0]);
   const [notes, setNotes] = useState('');
+  const [bankInfo, setBankInfo] = useState(null); // saved bank account from /accounts/me/
   const [photos, setPhotos] = useState([]); // File[]
   const [photoErr, setPhotoErr] = useState(null);
   const photoInputRef = React.useRef(null);
@@ -61,6 +62,10 @@ const ReturnExchangePage = () => {
       })
       .catch(() => {})
       .finally(() => { if (alive) setLoading(false); });
+    // Saved bank account — used as the refund destination for COD orders
+    apiClient.get('/accounts/me/')
+      .then(res => { if (alive) setBankInfo(res.data); })
+      .catch(() => {});
     return () => { alive = false; };
   }, [orderId]);
 
@@ -104,6 +109,13 @@ const ReturnExchangePage = () => {
   const addr = order.shipping_address_detail || {};
   const orderLabel = `#LO-${String(order.id).padStart(7, '0')}`;
   const isExchange = type === 'replacement';
+  // COD / partial orders have no original online instrument to credit back to,
+  // so a cash refund is paid out to the customer's saved bank account.
+  const isOnlineOnly = ['complete_online', 'ONLINE'].includes(order.payment_method);
+  const needsRefundDestination = !isExchange && !isOnlineOnly;
+  const hasBankAccount = !!bankInfo?.has_bank_account;
+  const maskedAcct = bankInfo?.bank_account_number
+    ? `•••• ${String(bankInfo.bank_account_number).slice(-4)}` : '';
   // order_status can lag behind actual delivery — trust the authoritative flag plus
   // any other delivered signal (tracking / delivery_date / all items delivered).
   const norm = (s) => (s || '').toLowerCase().replace(/\s+/g, '_');
@@ -161,6 +173,10 @@ const ReturnExchangePage = () => {
 
   const handleSubmit = async () => {
     if (!isDelivered) { setError('Returns & exchanges are available only after delivery.'); return; }
+    if (needsRefundDestination && !hasBankAccount) {
+      setError('Please add a bank account in Account Information before requesting a refund for this Cash on Delivery order.');
+      return;
+    }
     const chosen = REASONS.find(r => r.id === reasonId);
     const day = pickupDays[pickupDay];
     const desc = isExchange
@@ -274,6 +290,30 @@ const ReturnExchangePage = () => {
                     </button>
                   </div>
                 </div>
+
+                {/* Refund destination — COD/partial orders are refunded to the saved bank account */}
+                {needsRefundDestination && (
+                  <div className="rx-card">
+                    <h3 className="rx-card-title">Refund Destination</h3>
+                    <p className="rx-card-sub">This order was paid by Cash on Delivery, so your {inr(order.total_amount)} refund will be transferred to your saved bank account.</p>
+                    {hasBankAccount ? (
+                      <div className="rx-selbanner" style={{ background: '#f6fef9', borderColor: '#a6f4c5' }}>
+                        <div>
+                          <div className="rx-selbanner-title">{bankInfo.bank_account_name}{bankInfo.bank_name ? ` · ${bankInfo.bank_name}` : ''}</div>
+                          <div className="rx-selbanner-text">A/C {maskedAcct} · IFSC {bankInfo.bank_ifsc}</div>
+                        </div>
+                        <Link to="/account-info" className="rx-selbanner-right" style={{ color: '#68408d', fontWeight: 600 }}>Change</Link>
+                      </div>
+                    ) : (
+                      <div className="rx-policy" style={{ background: '#fffaeb', borderColor: '#fedf89' }}>
+                        <p className="rx-policy-title" style={{ color: '#b54708' }}>No bank account on file</p>
+                        <p className="rx-policy-text" style={{ color: '#b54708' }}>
+                          Add a bank account to receive your refund. <Link to="/account-info" style={{ color: '#68408d', fontWeight: 600 }}>Add bank account →</Link>
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Choose new product (exchange only) */}
                 {isExchange && (
@@ -463,7 +503,7 @@ const ReturnExchangePage = () => {
                 {/* Actions */}
                 <div className="rx-actions">
                   {error && <span className="rx-error">{error}</span>}
-                  <button className="rx-btn rx-btn--primary" onClick={handleSubmit} disabled={submitting}>
+                  <button className="rx-btn rx-btn--primary" onClick={handleSubmit} disabled={submitting || (needsRefundDestination && !hasBankAccount)}>
                     {submitting ? 'Submitting…' : `Confirm ${isExchange ? 'Exchange' : 'Return'} Request`}
                   </button>
                   <button className="rx-btn rx-btn--ghost" onClick={() => navigate(`/orders/${orderId}`)}>Cancel</button>
