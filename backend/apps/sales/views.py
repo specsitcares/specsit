@@ -133,10 +133,9 @@ class OrderViewSet(viewsets.ModelViewSet):
         elif item_type == 'lens':
             qs = qs.filter(items__contact_lens__isnull=False).distinct()
 
-        # "Replaced Orders" tab — orders that completed an exchange/replacement.
+        # "Replaced Orders" tab — the fresh orders spawned by an exchange (LO-…-R).
         if self.request.query_params.get('replaced_only') == '1':
-            qs = qs.filter(return_requests__request_type='replacement',
-                           return_requests__status='replaced').distinct()
+            qs = qs.filter(is_replacement=True).distinct()
 
         return qs.order_by('-created_at')
     
@@ -189,13 +188,15 @@ class OrderViewSet(viewsets.ModelViewSet):
 
         SHIPMENT_STATUSES = ['ready_to_dispatch', 'in_transit', 'delivered']
 
-        qs = Order.objects.filter(
-            order_status__in=SHIPMENT_STATUSES
-        ).select_related(
+        base = Order.objects.select_related(
             'user', 'shipping_address', 'tracking', 'shipment'
-        ).prefetch_related(
-            'items__variant__product'
-        ).order_by('-created_at')
+        ).prefetch_related('items__variant__product')
+
+        # "Replacements" tab — every order spawned from an exchange, at any stage.
+        if request.query_params.get('replacements') == '1':
+            qs = base.filter(is_replacement=True).order_by('-created_at')
+        else:
+            qs = base.filter(order_status__in=SHIPMENT_STATUSES).order_by('-created_at')
 
         # Optional filter by status
         status_filter = request.query_params.get('order_status')
@@ -740,10 +741,38 @@ class OrderViewSet(viewsets.ModelViewSet):
             return Response({'detail': 'Please choose a valid reason.'},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        # Block duplicate open requests (anything not rejected is still active)
-        if order.return_requests.exclude(status='rejected').exists():
-            return Response({'detail': 'A return or exchange request already exists for this order.'},
+        # Which line item is being returned/exchanged. Required when the order has more
+        # than one item; defaults to the only item otherwise.
+        order_items = list(order.items.all())
+        order_item = None
+        oi_id = request.data.get('order_item_id')
+        if oi_id:
+            order_item = next((i for i in order_items if str(i.id) == str(oi_id)), None)
+            if not order_item:
+                return Response({'detail': 'That item is not part of this order.'},
+                                status=status.HTTP_400_BAD_REQUEST)
+        elif len(order_items) > 1:
+            return Response({'detail': 'Please select which item you want to return or exchange.'},
                             status=status.HTTP_400_BAD_REQUEST)
+        else:
+            order_item = order_items[0] if order_items else None
+
+        # Block duplicate open requests. Per-item when we know the item, else per-order.
+        active_qs = order.return_requests.exclude(status='rejected')
+        if order_item is not None:
+            active_qs = active_qs.filter(order_item=order_item)
+        if active_qs.exists():
+            return Response({'detail': 'A return or exchange request already exists for this item.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        def _item_total(it):
+            if it is None:
+                return order.total_amount
+            total = getattr(it, 'item_total', 0) or 0
+            if total:
+                return total
+            unit = (getattr(it, 'price_at_purchase', 0) or 0) or (getattr(it, 'unit_price', 0) or 0)
+            return float(unit) * (getattr(it, 'quantity', 1) or 1)
 
         # Browse-catalog replacement: the customer picked a specific new variant.
         # Enforce same-or-higher price and snapshot the choice + price difference.
@@ -755,7 +784,7 @@ class OrderViewSet(viewsets.ModelViewSet):
                 return Response({'detail': 'Selected replacement product was not found.'},
                                 status=status.HTTP_400_BAD_REQUEST)
             new_price = float(rv.selling_price or rv.base_price or 0)
-            orig_item = order.items.first()
+            orig_item = order_item or order.items.first()
             orig_price = float((getattr(orig_item, 'price_at_purchase', 0) or 0)
                                or (getattr(orig_item, 'unit_price', 0) or 0))
             if new_price + 0.01 < orig_price:
@@ -807,11 +836,12 @@ class OrderViewSet(viewsets.ModelViewSet):
 
         rr = ReturnRequest.objects.create(
             order=order,
+            order_item=order_item,
             request_type=request_type,
             reason=reason,
             description=description,
             status='pending',
-            refund_amount=order.total_amount if request_type == 'refund' else None,
+            refund_amount=_item_total(order_item) if request_type == 'refund' else None,
             replacement_sku=(request.data.get('replacement_sku') or '') if request_type == 'replacement' else '',
             **refund_fields,
         )
@@ -1399,14 +1429,23 @@ class ReturnRequestViewSet(viewsets.ModelViewSet):
     def _spawn_replacement_order(self, rr):
         from .models import Order, OrderItem
         from apps.catalog.core.models import MetadataGroup, MetadataItem as MI
-        if rr.replacement_order_id or not rr.replacement_variant_id:
+        if rr.replacement_order_id:
             return
         original = rr.order
         variant = rr.replacement_variant
+        if variant is None:
+            # Same-model / options exchange with no explicit variant — reuse the
+            # returned item's own variant so a real order still enters the pipeline.
+            oi = rr.order_item or original.items.first()
+            variant = getattr(oi, 'variant', None)
+        if variant is None:
+            return
         price = variant.selling_price or variant.base_price or 0
         with transaction.atomic():
             new_order = Order.objects.create(
                 user=original.user,
+                is_replacement=True,
+                replaces_order=original,
                 total_amount=price, paid_amount=price, balance_amount=0, subtotal=price,
                 payment_method=original.payment_method or 'complete_online',
                 payment_status='paid', order_status='confirmed',
@@ -1493,11 +1532,14 @@ class AdminDashboardStatsView(views.APIView):
             payment_method__in=['complete_online', 'partial_payment'],
             payment_status='pending',
         )
+        # Revenue must NOT count exchange-spawned orders: the customer only paid the
+        # price difference, the rest was already counted on the original order.
+        rev_qs = base_qs.exclude(is_replacement=True)
 
         # ===== REAL-TIME METRICS CALCULATIONS =====
         # 1. Total Orders & Revenue
         total_orders = base_qs.count()
-        revenue_agg = base_qs.aggregate(total=Sum('total_amount'))
+        revenue_agg = rev_qs.aggregate(total=Sum('total_amount'))
         total_revenue = float(revenue_agg.get('total') or 0)
 
         # 2. Calculate Trends (Last 30 days vs Previous 30 days)
@@ -1514,10 +1556,10 @@ class AdminDashboardStatsView(views.APIView):
         ) if prev_30_orders > 0 else 0
 
         # Revenue trend calculation
-        curr_30_revenue = base_qs.filter(created_at__date__gte=last_30_start).aggregate(
+        curr_30_revenue = rev_qs.filter(created_at__date__gte=last_30_start).aggregate(
             total=Sum('total_amount')
         ).get('total') or 0
-        prev_30_revenue = base_qs.filter(
+        prev_30_revenue = rev_qs.filter(
             created_at__date__gte=prev_30_start,
             created_at__date__lt=last_30_start
         ).aggregate(total=Sum('total_amount')).get('total') or 0
@@ -1587,7 +1629,7 @@ class AdminDashboardStatsView(views.APIView):
             else:
                 month_end = month_start.replace(month=month_start.month+1)
             
-            monthly_revenue = base_qs.filter(
+            monthly_revenue = rev_qs.filter(
                 created_at__date__gte=month_start,
                 created_at__date__lt=month_end
             ).aggregate(total=Sum('total_amount')).get('total') or 0
@@ -2006,10 +2048,11 @@ class OrdersOverviewView(views.APIView):
         # Conversion rate = orders / carts
         conversion_rate = round((total_orders / max(carts_curr, 1)) * 100, 1)
 
-        # 3. Revenue
-        revenue_agg = curr_qs.aggregate(total=Sum('total_amount'))
+        # 3. Revenue — exclude exchange-spawned orders (only the difference was paid;
+        # the rest was already counted on the original order).
+        revenue_agg = curr_qs.exclude(is_replacement=True).aggregate(total=Sum('total_amount'))
         total_revenue = float(revenue_agg.get('total') or 0)
-        prev_revenue = float(prev_qs.aggregate(total=Sum('total_amount')).get('total') or 0)
+        prev_revenue = float(prev_qs.exclude(is_replacement=True).aggregate(total=Sum('total_amount')).get('total') or 0)
         revenue_trend = safe_trend(total_revenue, prev_revenue)
 
         # Avg order value
@@ -2432,9 +2475,9 @@ class OrdersOverviewView(views.APIView):
             'statusBreakdown': status_breakdown,
         }
 
-        # 12. Product profit: category % of revenue
+        # 12. Product profit: category % of revenue (exclude exchange-spawned orders)
         profit_qs = OrderItem.objects.filter(
-            order__created_at__date__gte=start_date
+            order__created_at__date__gte=start_date, order__is_replacement=False
         ).values('variant__product__category__name').annotate(
             revenue=Sum('item_total', output_field=FloatField())
         ).order_by('-revenue')[:4]

@@ -567,9 +567,12 @@ const OrderDetail = ({ orderId, onBack }) => {
         {/* Header */}
         <div className="order-detail-header-row">
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <h2 className="order-id-title" style={{ margin: 0 }}>
-              #LO-{String(order.id).padStart(7, '0')}
+            <h2 className="order-id-title" style={{ margin: 0, color: order.is_replacement ? '#7F56D9' : undefined }}>
+              #{order.order_number || `LO-${String(order.id).padStart(7, '0')}`}
             </h2>
+            {order.is_replacement && (
+              <span style={{ background: '#F4EBFF', color: '#7F56D9', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 100 }}>REPLACEMENT</span>
+            )}
             <span className={`status-badge ${(order.status_label || '').toLowerCase().replace(/\s+/g, '-')}`}>
               {order.status_label || 'N/A'}
             </span>

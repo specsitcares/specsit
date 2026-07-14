@@ -96,7 +96,7 @@ const ReplacementRequestDetail = () => {
 
     const purple = '#6B3FA8';
     const items = order?.items || [];
-    const first = items[0] || {};
+    const first = items.find(i => i.id === rr.order_item) || items[0] || {};
     const addr = order?.shipping_address_detail || {};
     const newItem = rr.replacement_variant_detail;
     const origPrice = Number(first.unit_price || first.price_at_purchase || 0);
@@ -145,6 +145,12 @@ const ReplacementRequestDetail = () => {
             const res = await apiClient.patch(`/sales/return-requests/${returnId}/`, { ...form, status: STATUS_FOR[modal] });
             setRr(res.data);
             setModal(null);
+            // Shipping the replacement spawns a real order — jump straight to its lifecycle.
+            if (modal === 'replace') {
+                let ro = res.data.replacement_order;
+                if (!ro) { try { const r2 = await apiClient.get(`/sales/return-requests/${returnId}/`); ro = r2.data.replacement_order; } catch { /* ignore */ } }
+                if (ro) { navigate(`/admin/orders/${ro}`); return; }
+            }
         } catch {
             setError('Action failed. Please try again.');
         } finally {
@@ -336,7 +342,7 @@ const ReplacementRequestDetail = () => {
                                 <div style={{ marginTop: 4, background: '#DCFCE7', color: '#16A34A', borderRadius: 8, padding: '10px 14px', fontSize: 13, fontWeight: 500 }}>
                                     ✓ Replacement shipped.
                                     {rr.replacement_order && (
-                                        <span> New order <button onClick={() => navigate(`/admin/orders/${rr.replacement_order}`)} style={{ background: 'none', border: 'none', padding: 0, color: '#15803D', fontWeight: 700, textDecoration: 'underline', cursor: 'pointer' }}>#LO-{String(rr.replacement_order).padStart(7, '0')}</button> is now in the orders pipeline.</span>
+                                        <span> New order <button onClick={() => navigate(`/admin/orders/${rr.replacement_order}`)} style={{ background: 'none', border: 'none', padding: 0, color: '#15803D', fontWeight: 700, textDecoration: 'underline', cursor: 'pointer' }}>#LO-{String(order?.id || '').padStart(7, '0')}-R</button> is now in the orders pipeline.</span>
                                     )}
                                 </div>
                             )}

@@ -675,8 +675,8 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewReplac
                   >
                     <td style={{ padding: '12px 16px', backgroundColor: expandedRows.includes(o.id) ? '#F5F3FF' : 'inherit' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div onClick={(e) => { e.stopPropagation(); o.items?.length > 1 ? toggleRow(o.id) : onViewDetails(o.id); }} style={{ color: '#667085', cursor: 'pointer', width: 14 }}>
-                          {o.items?.length > 1 && (expandedRows.includes(o.id) ? <ChevronDown size={14} strokeWidth={3} /> : <ChevronRight size={14} strokeWidth={3} />)}
+                        <div onClick={(e) => { e.stopPropagation(); (o.items?.length > 1 || activeItemTab === 'replaced') ? toggleRow(o.id) : onViewDetails(o.id); }} style={{ color: '#667085', cursor: 'pointer', width: 14 }}>
+                          {(o.items?.length > 1 || activeItemTab === 'replaced') && (expandedRows.includes(o.id) ? <ChevronDown size={14} strokeWidth={3} /> : <ChevronRight size={14} strokeWidth={3} />)}
                         </div>
                         <input type="checkbox"
                           checked={selectedIds.has(o.id)}
@@ -689,8 +689,9 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewReplac
                     <td style={{ padding: '12px 16px', backgroundColor: expandedRows.includes(o.id) ? '#F5F3FF' : 'inherit' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <div>
-                          <div style={{ fontWeight: 700, color: '#101828', fontSize: '13px' }}>
-                            #LO-{String(o.id).padStart(7, '0')}
+                          <div style={{ fontWeight: 700, color: o.is_replacement ? '#7F56D9' : '#101828', fontSize: '13px' }}>
+                            #{o.order_number || `LO-${String(o.id).padStart(7, '0')}`}
+                            {o.is_replacement && <span style={{ marginLeft: 6, backgroundColor: '#F4EBFF', color: '#7F56D9', fontSize: '9px', padding: '1px 6px', borderRadius: '13px', fontWeight: 700 }}>EXCHANGE</span>}
                             {o.items?.length > 1 && <span style={{ marginLeft: 6, backgroundColor: '#F4EBFF', color: '#7F56D9', fontSize: '9px', padding: '1px 6px', borderRadius: '13px', fontWeight: 700 }}>{o.items.length}</span>}
                           </div>
                         </div>
@@ -792,16 +793,16 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewReplac
                         </>
                       );
                     })() : activeItemTab === 'replaced' ? (() => {
-                      const rr = o.return_requests?.find(r => r.request_type === 'replacement');
-                      const diff = Number(rr?.replacement_price_difference || 0);
+                      const ex = o.exchange_info || {};
+                      const diff = Number(ex.price_difference || 0);
                       const delivery = o.tracking?.delivery_cost ?? o.tracking?.delivery_rate_charged;
                       return (
                         <>
-                          <td style={{ padding: '12px 16px', color: '#667085', fontSize: '12px' }}>{o.items?.[0]?.variant_sku || '—'}</td>
-                          <td style={{ padding: '12px 16px', fontWeight: 600, color: '#7F56D9', fontSize: '12px' }}>{rr?.replacement_sku || '—'}</td>
+                          <td style={{ padding: '12px 16px', color: '#667085', fontSize: '12px' }}>{ex.original_sku || '—'}</td>
+                          <td style={{ padding: '12px 16px', fontWeight: 600, color: '#7F56D9', fontSize: '12px' }}>{o.items?.[0]?.variant_sku || '—'}</td>
                           <td style={{ padding: '12px 16px', fontWeight: 700, color: diff > 0 ? '#B54708' : '#667085', fontSize: '13px', whiteSpace: 'nowrap' }}>{diff > 0 ? `₹${diff.toLocaleString('en-IN')}` : '—'}</td>
                           <td style={{ padding: '12px 16px', color: '#667085', fontSize: '13px', whiteSpace: 'nowrap' }}>{delivery != null ? `₹${Number(delivery).toLocaleString('en-IN')}` : '—'}</td>
-                          <td style={{ padding: '12px 16px', color: '#667085', fontSize: '10px' }}>{rr?.replacement_tracking_id || '—'}</td>
+                          <td style={{ padding: '12px 16px', color: '#667085', fontSize: '10px' }}>{o.tracking?.tracking_number || '—'}</td>
                         </>
                       );
                     })() : (
@@ -873,6 +874,37 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewReplac
                       </div>
                     </td>
                   </tr>
+
+                  {/* Replaced Orders tab: nested row shows the ORIGINAL order being replaced */}
+                  {activeItemTab === 'replaced' && expandedRows.includes(o.id) && (() => {
+                    const ex = o.exchange_info || {};
+                    return (
+                      <tr style={{ background: '#F5F3FF' }}>
+                        <td colSpan={10} style={{ padding: '10px 16px 14px 60px' }}>
+                          <div style={{ background: '#fff', border: '1px solid #DDD6FE', borderRadius: 10, padding: 14, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.5, color: '#7F56D9', textTransform: 'uppercase' }}>Original Order</div>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: '#101828' }}>#{ex.source_order_number || (ex.source_order_id ? `LO-${String(ex.source_order_id).padStart(7, '0')}` : '—')}</span>
+                              <span style={{ fontSize: 11, color: '#667085', textTransform: 'capitalize' }}>{(ex.source_order_status || '').replace(/_/g, ' ') || '—'}</span>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              <span style={{ fontSize: 13, color: '#101828' }}>{ex.original_name || '—'}</span>
+                              <span style={{ fontSize: 11, color: '#667085' }}>SKU {ex.original_sku || '—'}</span>
+                            </div>
+                            <div style={{ fontSize: 12, color: '#667085' }}>
+                              Difference paid: <strong style={{ color: Number(ex.price_difference) > 0 ? '#B54708' : '#12B76A' }}>{Number(ex.price_difference) > 0 ? `₹${Number(ex.price_difference).toLocaleString('en-IN')}` : 'No extra charge'}</strong>
+                            </div>
+                            {ex.source_order_id && (
+                              <button onClick={(e) => { e.stopPropagation(); onViewDetails(ex.source_order_id); }}
+                                style={{ marginLeft: 'auto', padding: '7px 14px', borderRadius: 8, border: '1px solid #E9D7FE', background: '#F9F5FF', color: '#7F56D9', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                                View original order →
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })()}
 
                   {/* Sub-row Expanded detail — only for orders with multiple items */}
                   {o.items?.length > 1 && expandedRows.includes(o.id) && (

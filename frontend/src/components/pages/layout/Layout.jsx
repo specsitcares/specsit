@@ -17,9 +17,11 @@ const ACCOUNT_ROUTES = [
 ];
 
 const Layout = () => {
-    const { pathname } = useLocation();
+    const { pathname, search } = useLocation();
     const { user, logout } = useAuth();
 
+    // Embedded mode (e.g. the catalog shown inside the return page's iframe): no chrome.
+    const isEmbed = new URLSearchParams(search).get('embed') === '1';
     const isAccountPage = !!user && ACCOUNT_ROUTES.some((r) => pathname.toLowerCase().startsWith(r));
     const isAuthPage = AUTH_ROUTES.some((r) => pathname.toLowerCase().startsWith(r.toLowerCase()));
     const isCheckoutPage = pathname.toLowerCase().includes('checkout');
@@ -28,14 +30,14 @@ const Layout = () => {
     const isBlogPage = pathname.toLowerCase().startsWith('/blog');
 
     // Hide header on Auth, Checkout, Cart, Wishlist, and Blog pages (PDP now shows the header)
-    const hideHeader = isAuthPage || isCheckoutPage || isCartPage || isWishlistPage || isBlogPage;
+    const hideHeader = isEmbed || isAuthPage || isCheckoutPage || isCartPage || isWishlistPage || isBlogPage;
     // Hide footer on Auth, Checkout, and Cart pages (Checkout/Cart has its own simple footer)
-    const hideFooter = isAuthPage || isCheckoutPage || isCartPage;
+    const hideFooter = isEmbed || isAuthPage || isCheckoutPage || isCartPage;
 
     return (
         <div className={`layout-wrapper${isAccountPage ? ' is-account' : ''}`}>
             {/* Announcement Bar: scrolling marquee (hidden on blog pages) */}
-            {!isBlogPage && <AnnouncementBar />}
+            {!isBlogPage && !isEmbed && <AnnouncementBar />}
 
             {/* Header: Hidden on Auth pages AND Product Detail pages */}
             {!hideHeader && (

@@ -48,8 +48,10 @@ const ProductListingPage = () => {
     // Replacement (exchange) mode — arrived here from the Return & Exchange flow.
     // Only items priced at/above the original may be chosen, and each card shows a Replace button.
     const replaceOrderId = searchParams.get('replace_order') || '';
+    const replaceOrderItem = searchParams.get('order_item') || '';
     const replaceMinPrice = Number(searchParams.get('min_price') || 0);
     const replaceMode = !!replaceOrderId;
+    const embed = searchParams.get('embed') === '1'; // rendered inside the return page's iframe
     const [replaceModal, setReplaceModal] = useState(null); // { product, variant, price, image }
     const [replaceStage, setReplaceStage] = useState('review'); // review | processing | done
     const [replaceError, setReplaceError] = useState('');
@@ -114,6 +116,7 @@ const ProductListingPage = () => {
             const fd = new FormData();
             fd.append('request_type', 'replacement');
             fd.append('replacement_variant_id', replaceModal.variant.id);
+            if (replaceOrderItem) fd.append('order_item_id', replaceOrderItem);
             if (pay) {
                 fd.append('replacement_payment_ref', pay.payment_id || '');
                 if (pay.order_id) fd.append('replacement_payment_order_id', pay.order_id);
@@ -121,7 +124,12 @@ const ProductListingPage = () => {
             }
             await apiClient.post(`/sales/orders/${replaceOrderId}/request_return/`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
             setReplaceStage('done');
-            setTimeout(() => navigate(`/orders/${replaceOrderId}`), 1500);
+            if (embed && window.parent !== window) {
+                // Hand control back to the return page, which owns the redirect.
+                window.parent.postMessage({ type: 'lo-exchange-done', orderId: replaceOrderId }, window.location.origin);
+            } else {
+                setTimeout(() => navigate(`/orders/${replaceOrderId}`), 1500);
+            }
         } catch (e) {
             setReplaceStage('review');
             setReplaceError(e.response?.data?.detail || e.message || 'Could not complete your exchange. Please try again.');

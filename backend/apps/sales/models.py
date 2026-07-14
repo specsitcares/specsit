@@ -99,6 +99,16 @@ class Order(models.Model):
     payment_method = models.CharField(max_length=50, choices=PAYMENT_METHOD_CHOICES, default='complete_cod')
     order_status = models.CharField(max_length=30, choices=ORDER_STATUS_CHOICES, default='pending')
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='pending')
+    # Orders spawned from an approved exchange. The replacement's number references the
+    # ORIGINAL order it replaces (e.g. LO-0000045-R) so the link is obvious at a glance.
+    is_replacement = models.BooleanField(default=False)
+    replaces_order = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL, related_name='replacement_orders')
+
+    @property
+    def order_number(self):
+        if self.is_replacement and self.replaces_order_id:
+            return f"LO-{str(self.replaces_order_id).zfill(7)}-R"
+        return f"LO-{str(self.id).zfill(7)}"
 
     # Razorpay Specifics
     razorpay_order_id = models.CharField(max_length=255, blank=True, null=True)
@@ -301,6 +311,8 @@ class ReturnRequest(models.Model):
         ('replacement', 'Replacement'),
     ]
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='return_requests')
+    # Which line item is being returned/exchanged (required when the order has >1 item)
+    order_item = models.ForeignKey('OrderItem', null=True, blank=True, on_delete=models.SET_NULL, related_name='return_requests')
     reason = models.CharField(max_length=30, choices=REASON_CHOICES)
     request_type = models.CharField(max_length=15, choices=TYPE_CHOICES)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')

@@ -250,7 +250,35 @@ class OrderSerializer(serializers.ModelSerializer):
     warranty_claims = WarrantyClaimSerializer(many=True, read_only=True)
     customer_name = serializers.ReadOnlyField(source='user.username')
     customer_email = serializers.ReadOnlyField(source='user.email')
+    order_number = serializers.CharField(read_only=True)
+    exchange_info = serializers.SerializerMethodField(read_only=True)
     status_label = serializers.SerializerMethodField(read_only=True)
+
+    def get_exchange_info(self, obj):
+        """For a spawned replacement order (LO-…-R): the exchange context —
+        the original order, the item it replaced, and the difference the customer paid."""
+        if not getattr(obj, 'is_replacement', False):
+            return None
+        src = obj.source_returns.first()  # the ReturnRequest that spawned this order
+        original_item = getattr(src, 'order_item', None) if src else None
+        if original_item is None and obj.replaces_order_id:
+            original_item = obj.replaces_order.items.first()
+        original_sku = None
+        original_name = None
+        if original_item and getattr(original_item, 'variant', None):
+            v = original_item.variant
+            original_sku = getattr(v, 'sku', None)
+            product = getattr(v, 'product', None)
+            colour = getattr(v, 'color', None) or getattr(v, 'frame_color', None)
+            original_name = (getattr(product, 'title', '') or 'Item') + (f" · {colour}" if colour else '')
+        return {
+            'source_order_id': obj.replaces_order_id,
+            'source_order_number': obj.replaces_order.order_number if obj.replaces_order_id else None,
+            'source_order_status': obj.replaces_order.order_status if obj.replaces_order_id else None,
+            'original_sku': original_sku,
+            'original_name': original_name,
+            'price_difference': float(src.replacement_price_difference) if src and src.replacement_price_difference else 0,
+        }
     status = serializers.PrimaryKeyRelatedField(queryset=MetadataItem.objects.all(), required=False)
     tracking = OrderTrackingSerializer(read_only=True)
     payments = PaymentSerializer(many=True, read_only=True)
@@ -358,6 +386,7 @@ class OrderSerializer(serializers.ModelSerializer):
         model = Order
         fields = [
             'id', 'user', 'customer_name', 'customer_email',
+            'order_number', 'is_replacement', 'exchange_info',
             'order_status', 'payment_status', 'payment_method',
             'total_amount', 'subtotal', 'discount_amount', 'tax_amount', 'shipping_cost',
             'paid_amount', 'balance_amount',
@@ -562,6 +591,8 @@ class OrderShipmentSerializer(serializers.ModelSerializer):
     Driven by Order lifecycle — no Shipment row required.
     """
     order_id            = serializers.IntegerField(source='id', read_only=True)
+    order_number        = serializers.CharField(read_only=True)
+    is_replacement      = serializers.BooleanField(read_only=True)
     product_names       = serializers.SerializerMethodField()
     customer_name       = serializers.SerializerMethodField()
     shipping_pincode    = serializers.SerializerMethodField()
@@ -647,7 +678,8 @@ class OrderShipmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = [
-            'order_id', 'order_status', 'order_status_label',
+            'order_id', 'order_number', 'is_replacement',
+            'order_status', 'order_status_label',
             'product_names', 'customer_name',
             'shipping_pincode', 'shipping_city',
             'delivery_date', 'tracking_id', 'carrier',
