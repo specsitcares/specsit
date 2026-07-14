@@ -65,6 +65,11 @@ class MeView(APIView):
             'phone': profile.phone if profile else '',
             'birthday': _serialize_birthday(profile.birthday) if profile else '',
             'gender': profile.gender if profile else '',
+            'bank_account_name': profile.bank_account_name if profile else '',
+            'bank_account_number': profile.bank_account_number if profile else '',
+            'bank_ifsc': profile.bank_ifsc if profile else '',
+            'bank_name': profile.bank_name if profile else '',
+            'has_bank_account': profile.has_bank_account if profile else False,
         }
 
     def get(self, request):
@@ -85,6 +90,14 @@ class MeView(APIView):
             profile.birthday = _parse_birthday(request.data['birthday'])
         if 'gender' in request.data:
             profile.gender = request.data['gender'] or ''
+        if 'bank_account_name' in request.data:
+            profile.bank_account_name = (request.data['bank_account_name'] or '').strip()
+        if 'bank_account_number' in request.data:
+            profile.bank_account_number = (request.data['bank_account_number'] or '').strip()
+        if 'bank_ifsc' in request.data:
+            profile.bank_ifsc = (request.data['bank_ifsc'] or '').strip().upper()
+        if 'bank_name' in request.data:
+            profile.bank_name = (request.data['bank_name'] or '').strip()
         profile.save()
 
         # Re-fetch user from DB to ensure all fields are current

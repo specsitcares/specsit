@@ -16,6 +16,18 @@ class UserProfile(models.Model):
     birthday = models.DateField(null=True, blank=True)
     gender = models.CharField(max_length=50, blank=True, choices=GENDER_CHOICES)
 
+    # Bank account for refunds — required to pay back COD/partial orders, which
+    # have no original online instrument to credit. Entered once in Account
+    # Information and snapshotted onto each refund request.
+    bank_account_name = models.CharField(max_length=150, blank=True)
+    bank_account_number = models.CharField(max_length=34, blank=True)
+    bank_ifsc = models.CharField(max_length=15, blank=True)
+    bank_name = models.CharField(max_length=120, blank=True)
+
+    @property
+    def has_bank_account(self):
+        return bool(self.bank_account_name and self.bank_account_number and self.bank_ifsc)
+
     def __str__(self):
         return f"Profile for {self.user.username}"
 

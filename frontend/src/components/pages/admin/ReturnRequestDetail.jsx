@@ -184,7 +184,7 @@ const ReturnRequestDetail = () => {
                             <Field label="Customer" value={order?.customer_name} />
                             <Field label="Order ID" value={order ? `#LO-${String(order.id).padStart(7, '0')}` : '—'} />
                             <Field label="Request Date" value={rr.created_at ? new Date(rr.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'} />
-                            <Field label="Refund Method" value={(order?.payment_method || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Original Payment'} />
+                            <Field label="Payment Method" value={(order?.payment_method || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || '—'} />
                         </div>
                     </Card>
 
@@ -339,6 +339,18 @@ const ReturnRequestDetail = () => {
                         </div>
                         {order?.customer_email && <div style={{ fontSize: 14, color: '#040205', marginBottom: 6 }}>{order.customer_email}</div>}
                         {addr.phone && <div style={{ fontSize: 14, color: '#040205', marginBottom: 12 }}>{addr.phone}</div>}
+
+                        {isRefund && rr.refund_account_number && (
+                            <div style={{ marginBottom: 14, padding: '12px 14px', background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 8 }}>
+                                <div style={{ fontSize: 11, color: '#9CA3AF', letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 6 }}>Refund Bank Account</div>
+                                <div style={{ fontSize: 14, fontWeight: 500, color: '#040205' }}>
+                                    {rr.refund_account_name || '—'}{rr.refund_bank_name ? ` · ${rr.refund_bank_name}` : ''}
+                                </div>
+                                <div style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>A/C {rr.refund_account_number}</div>
+                                <div style={{ fontSize: 13, color: '#6B7280' }}>IFSC {rr.refund_ifsc || '—'}</div>
+                            </div>
+                        )}
+
                         <button onClick={() => order && navigate(`/admin/orders/${order.id}`)}
                             style={{ background: 'none', border: 'none', padding: 0, color: purple, fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>
                             View Order →
