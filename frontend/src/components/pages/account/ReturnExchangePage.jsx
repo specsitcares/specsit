@@ -26,6 +26,7 @@ const ReturnExchangePage = () => {
   const [order, setOrder] = useState(null);
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [selectedItemId, setSelectedItemId] = useState(null);
 
   const [type, setType] = useState('replacement'); // refund | replacement
   const [tab, setTab] = useState('same');           // same | browse
@@ -44,36 +45,66 @@ const ReturnExchangePage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
+  const [catalogOpen, setCatalogOpen] = useState(false); // inline catalog iframe (browse exchange)
+
+  // The embedded catalog iframe posts back when the exchange is placed — take the
+  // customer to their order from the top window.
+  useEffect(() => {
+    const onMsg = (e) => {
+      if (e.origin !== window.location.origin) return;
+      if (e.data?.type === 'lo-exchange-done') navigate(`/orders/${orderId}`);
+    };
+    window.addEventListener('message', onMsg);
+    return () => window.removeEventListener('message', onMsg);
+  }, [orderId]);
+
+  // The line item being returned/exchanged (defaults to the only/first item).
+  const item = (order?.items || []).find(i => String(i.id) === String(selectedItemId)) || (order?.items || [])[0] || {};
+  const multiItem = (order?.items || []).length > 1;
 
   useEffect(() => {
     let alive = true;
     apiClient.get(`/sales/orders/${orderId}/`)
-      .then(async res => {
+      .then(res => {
         if (!alive) return;
         setOrder(res.data);
-        // Fetch the ordered product so exchange options come from its real variants
-        const pid = (res.data.items || [])[0]?.product_id;
-        if (pid) {
-          try {
-            const pr = await apiClient.get(`/catalog/products/${pid}/`);
-            if (alive) setProduct(pr.data);
-          } catch { /* product may be unavailable */ }
-        }
+        setSelectedItemId(prev => prev ?? (res.data.items || [])[0]?.id ?? null);
       })
       .catch(() => {})
       .finally(() => { if (alive) setLoading(false); });
-    // Saved bank account — used as the refund destination for COD orders
+    // A saved bank account is a prerequisite for any return/exchange — send the
+    // customer to add one first, then bring them right back here.
     apiClient.get('/accounts/me/')
-      .then(res => { if (alive) setBankInfo(res.data); })
+      .then(res => {
+        if (!alive) return;
+        setBankInfo(res.data);
+        if (!res.data.has_bank_account) {
+          navigate(`/account-info?next=${encodeURIComponent(`/orders/${orderId}/return`)}&reason=return`, { replace: true });
+        }
+      })
       .catch(() => {});
     return () => { alive = false; };
   }, [orderId]);
+
+  // Fetch the product for the SELECTED item so exchange options come from its variants.
+  useEffect(() => {
+    let alive = true;
+    const pid = item?.product_id;
+    if (!pid) { setProduct(null); return; }
+    apiClient.get(`/catalog/products/${pid}/`)
+      .then(pr => { if (alive) setProduct(pr.data); })
+      .catch(() => { if (alive) setProduct(null); });
+    return () => { alive = false; };
+  }, [item?.product_id]);
+
+  // Reset the exchange selections whenever the chosen item changes, so they reseed.
+  useEffect(() => { setColour(''); setSize(''); setLens(''); }, [selectedItemId]);
 
   // Seed exchange selections from the originally-ordered variant / first available option
   useEffect(() => {
     if (!product || !order) return;
     const variants = product.variants || [];
-    const it = (order.items || [])[0] || {};
+    const it = item;
     const orig = variants.find(v => String(v.id) === String(it.variant));
     const sizes = new Set();
     variants.forEach(v => Object.keys(v.stock_by_size || {}).forEach(k => sizes.add(k)));
@@ -105,7 +136,6 @@ const ReturnExchangePage = () => {
     );
   }
 
-  const item = (order.items || [])[0] || {};
   const addr = order.shipping_address_detail || {};
   const orderLabel = `#LO-${String(order.id).padStart(7, '0')}`;
   const isExchange = type === 'replacement';
@@ -173,8 +203,8 @@ const ReturnExchangePage = () => {
 
   const handleSubmit = async () => {
     if (!isDelivered) { setError('Returns & exchanges are available only after delivery.'); return; }
-    if (needsRefundDestination && !hasBankAccount) {
-      setError('Please add a bank account in Account Information before requesting a refund for this Cash on Delivery order.');
+    if (!hasBankAccount) {
+      setError('Please add a bank account in your Account Information before requesting a return or exchange.');
       return;
     }
     const chosen = REASONS.find(r => r.id === reasonId);
@@ -188,9 +218,13 @@ const ReturnExchangePage = () => {
     try {
       const fd = new FormData();
       fd.append('request_type', type);
+      if (item.id) fd.append('order_item_id', item.id);
       fd.append('reason', chosen.reason);
       fd.append('description', desc);
-      if (isExchange) fd.append('replacement_sku', `${colour}/${size}/${lens}`);
+      if (isExchange) {
+        fd.append('replacement_sku', `${colour}/${size}/${lens}`);
+        if (priceDiff > 0) fd.append('replacement_price_difference', String(priceDiff));
+      }
       photos.forEach(p => fd.append('photos', p));
       await apiClient.post(`/sales/orders/${orderId}/request_return/`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       setSuccess(true);
@@ -243,6 +277,36 @@ const ReturnExchangePage = () => {
               </div>
             ) : (
               <>
+                {/* Item picker — when the order has more than one item */}
+                {multiItem && (
+                  <div className="rx-card">
+                    <h3 className="rx-card-title">Which item?</h3>
+                    <p className="rx-card-sub">This order has multiple items. Choose the one you'd like to return or exchange.</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {(order.items || []).map(it => {
+                        const active = String(it.id) === String(selectedItemId);
+                        const price = Number(it.unit_price || it.price_at_purchase || 0);
+                        return (
+                          <button key={it.id} type="button" onClick={() => setSelectedItemId(it.id)}
+                            style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', padding: 12, borderRadius: 10, cursor: 'pointer', background: active ? '#f9f5ff' : '#fff', border: `1px solid ${active ? '#68408d' : '#e5e7eb'}` }}>
+                            <span style={{ width: 18, height: 18, borderRadius: 9, flexShrink: 0, border: `2px solid ${active ? '#68408d' : '#d1d5db'}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              {active && <span style={{ width: 9, height: 9, borderRadius: 5, background: '#68408d' }} />}
+                            </span>
+                            <span style={{ width: 46, height: 46, borderRadius: 8, overflow: 'hidden', background: '#f3f4f6', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              {it.variant_image ? <img src={it.variant_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: 20 }}>👓</span>}
+                            </span>
+                            <span style={{ flex: 1, minWidth: 0 }}>
+                              <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#101828' }}>{it.variant_name || it.variant_sku || 'Item'}</span>
+                              <span style={{ display: 'block', fontSize: 12, color: '#667085' }}>{it.variant_sku || ''}{it.quantity > 1 ? ` · Qty ${it.quantity}` : ''}</span>
+                            </span>
+                            <span style={{ fontSize: 14, fontWeight: 700, color: '#101828', whiteSpace: 'nowrap' }}>{inr(price)}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 {/* Product */}
                 <div className="rx-card rx-prod">
                   <div className="rx-prod-inner">
@@ -263,6 +327,16 @@ const ReturnExchangePage = () => {
                     <p className="rx-policy-title" style={{ color: '#42307d' }}>A request already exists for this order</p>
                     <p className="rx-policy-text" style={{ color: '#68408d' }}>
                       {existing.request_type === 'replacement' ? 'Exchange' : 'Return'} · {existing.status}. Submitting again may be rejected.
+                    </p>
+                  </div>
+                )}
+
+                {/* Bank account is required for any return or exchange */}
+                {!hasBankAccount && (
+                  <div className="rx-policy" style={{ background: '#fffaeb', borderColor: '#fedf89' }}>
+                    <p className="rx-policy-title" style={{ color: '#b54708' }}>Add a bank account to continue</p>
+                    <p className="rx-policy-text" style={{ color: '#b54708' }}>
+                      Returns and exchanges require a bank account on your profile — refunds are sent there. <Link to="/account-info" style={{ color: '#68408d', fontWeight: 600 }}>Add bank account →</Link>
                     </p>
                   </div>
                 )}
@@ -292,7 +366,7 @@ const ReturnExchangePage = () => {
                 </div>
 
                 {/* Refund destination — COD/partial orders are refunded to the saved bank account */}
-                {needsRefundDestination && (
+                {needsRefundDestination && hasBankAccount && (
                   <div className="rx-card">
                     <h3 className="rx-card-title">Refund Destination</h3>
                     <p className="rx-card-sub">This order was paid by Cash on Delivery, so your {inr(order.total_amount)} refund will be transferred to your saved bank account.</p>
@@ -326,9 +400,20 @@ const ReturnExchangePage = () => {
                     </div>
 
                     {tab === 'browse' ? (
-                      <p style={{ fontSize: 13, color: '#667085' }}>
-                        Prefer a completely different frame? <Link to="/products" style={{ color: '#68408d', fontWeight: 600 }}>Browse the catalog →</Link> and note your choice below.
-                      </p>
+                      <>
+                        <p style={{ fontSize: 13, color: '#667085', marginBottom: 12 }}>
+                          Prefer a completely different frame? Browse the catalog below — only items priced ₹{Math.round(origPrice).toLocaleString('en-IN')} or above are shown. Pick one, pay any difference, and you're done — all right here.
+                        </p>
+                        {catalogOpen ? (
+                          <iframe
+                            title="Browse catalog"
+                            src={`/products?replace_order=${orderId}&min_price=${Math.round(origPrice)}&order_item=${item.id}&embed=1`}
+                            style={{ width: '100%', height: '72vh', border: '1px solid #e5e7eb', borderRadius: 12, background: '#fff' }}
+                          />
+                        ) : (
+                          <button type="button" className="rx-btn rx-btn--primary" style={{ maxWidth: 240 }} onClick={() => setCatalogOpen(true)}>Browse the catalog →</button>
+                        )}
+                      </>
                     ) : colourOpts.length === 0 && sizeOpts.length === 0 ? (
                       <p style={{ fontSize: 13, color: '#667085' }}>
                         No alternate options are available for this product. Use <strong>Browse Different Products</strong> to pick another frame.
@@ -503,7 +588,7 @@ const ReturnExchangePage = () => {
                 {/* Actions */}
                 <div className="rx-actions">
                   {error && <span className="rx-error">{error}</span>}
-                  <button className="rx-btn rx-btn--primary" onClick={handleSubmit} disabled={submitting || (needsRefundDestination && !hasBankAccount)}>
+                  <button className="rx-btn rx-btn--primary" onClick={handleSubmit} disabled={submitting || !hasBankAccount}>
                     {submitting ? 'Submitting…' : `Confirm ${isExchange ? 'Exchange' : 'Return'} Request`}
                   </button>
                   <button className="rx-btn rx-btn--ghost" onClick={() => navigate(`/orders/${orderId}`)}>Cancel</button>

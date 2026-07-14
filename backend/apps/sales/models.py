@@ -99,6 +99,16 @@ class Order(models.Model):
     payment_method = models.CharField(max_length=50, choices=PAYMENT_METHOD_CHOICES, default='complete_cod')
     order_status = models.CharField(max_length=30, choices=ORDER_STATUS_CHOICES, default='pending')
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='pending')
+    # Orders spawned from an approved exchange. The replacement's number references the
+    # ORIGINAL order it replaces (e.g. LO-0000045-R) so the link is obvious at a glance.
+    is_replacement = models.BooleanField(default=False)
+    replaces_order = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL, related_name='replacement_orders')
+
+    @property
+    def order_number(self):
+        if self.is_replacement and self.replaces_order_id:
+            return f"LO-{str(self.replaces_order_id).zfill(7)}-R"
+        return f"LO-{str(self.id).zfill(7)}"
 
     # Razorpay Specifics
     razorpay_order_id = models.CharField(max_length=255, blank=True, null=True)
@@ -301,6 +311,8 @@ class ReturnRequest(models.Model):
         ('replacement', 'Replacement'),
     ]
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='return_requests')
+    # Which line item is being returned/exchanged (required when the order has >1 item)
+    order_item = models.ForeignKey('OrderItem', null=True, blank=True, on_delete=models.SET_NULL, related_name='return_requests')
     reason = models.CharField(max_length=30, choices=REASON_CHOICES)
     request_type = models.CharField(max_length=15, choices=TYPE_CHOICES)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
@@ -316,6 +328,34 @@ class ReturnRequest(models.Model):
     refund_account_number = models.CharField(max_length=34, blank=True)
     refund_ifsc = models.CharField(max_length=15, blank=True)
     refund_bank_name = models.CharField(max_length=120, blank=True)
+
+    # ── Lifecycle-stage details captured by the admin as the return progresses ──
+    # Approve & schedule pickup
+    pickup_date = models.DateField(null=True, blank=True)
+    pickup_slot = models.CharField(max_length=30, blank=True)
+    pickup_agent_name = models.CharField(max_length=100, blank=True)
+    pickup_agent_phone = models.CharField(max_length=20, blank=True)
+    rejection_reason = models.TextField(blank=True)
+    # Picked up
+    picked_up_date = models.DateField(null=True, blank=True)
+    pickup_tracking_id = models.CharField(max_length=100, blank=True)
+    # Item received & inspected
+    received_date = models.DateField(null=True, blank=True)
+    received_condition = models.CharField(max_length=30, blank=True)  # good / minor / damaged / not_as_described
+    received_notes = models.TextField(blank=True)
+    # Refund payout reference (UTR / transaction id of the transfer)
+    refund_reference = models.CharField(max_length=120, blank=True)
+    # Replacement dispatch
+    replacement_courier = models.CharField(max_length=100, blank=True)
+    # Extra amount the customer paid when exchanging for a pricier item (upgrade)
+    replacement_price_difference = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    # Razorpay payment reference for the difference the customer paid inline at exchange time
+    replacement_payment_ref = models.CharField(max_length=120, blank=True)
+    # The catalog variant the customer chose as the replacement (browse flow)
+    replacement_variant = models.ForeignKey('catalog.Variant', null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
+    # The fresh order spawned when the admin ships the replacement (enters normal lifecycle)
+    replacement_order = models.ForeignKey('Order', null=True, blank=True, on_delete=models.SET_NULL, related_name='source_returns')
+
     admin_notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -326,6 +366,22 @@ class ReturnRequestImage(models.Model):
     return_request = models.ForeignKey(ReturnRequest, on_delete=models.CASCADE, related_name='images')
     image = models.ImageField(upload_to='return_requests/')
     created_at = models.DateTimeField(auto_now_add=True)
+
+class ReturnReceivedImage(models.Model):
+    """Admin-uploaded photos of the item as received back at the warehouse."""
+    return_request = models.ForeignKey(ReturnRequest, on_delete=models.CASCADE, related_name='received_images')
+    image = models.ImageField(upload_to='return_received/')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self): return f"Received image for Return #{self.return_request_id}"
+
+class ReturnPickupImage(models.Model):
+    """Admin-uploaded photos of the item handed over to the pickup driver."""
+    return_request = models.ForeignKey(ReturnRequest, on_delete=models.CASCADE, related_name='pickup_images')
+    image = models.ImageField(upload_to='return_pickup/')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self): return f"Pickup image for Return #{self.return_request_id}"
 
 class ReturnRequestNote(models.Model):
     """Internal team notes on a return request — stored as a running thread (chat)."""
@@ -338,7 +394,6 @@ class ReturnRequestNote(models.Model):
         ordering = ['created_at']
 
     def __str__(self): return f"Note on Return #{self.return_request_id}"
-    def __str__(self): return f"Image for Return #{self.return_request_id}"
 
 class WarrantyClaim(models.Model):
     STATUS_CHOICES = [

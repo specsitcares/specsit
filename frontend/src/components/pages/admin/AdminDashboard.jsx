@@ -41,6 +41,7 @@ import AnalyticsPage from './AnalyticsPage';
 import { useAuth } from '../../../context/AuthContext';
 import OrderDetail from './OrderDetail';
 import ReturnRequestDetail from './ReturnRequestDetail';
+import ReplacementRequestDetail from './ReplacementRequestDetail';
 import WarrantyClaimDetail from './WarrantyClaimDetail';
 import '../../../styles/admin.css';
 
@@ -193,9 +194,10 @@ const AdminDashboard = () => {
 
               {/* Orders */}
               <Route path="orders"          element={<OrderTable category={null}       onViewDetails={id => navigate(`/admin/orders/${id}`)} />} />
-              <Route path="orders/returns"  element={<OrderTable category="returns"    onViewDetails={id => navigate(`/admin/orders/${id}`)} onViewReturn={rid => navigate(`/admin/returns/${rid}`)} />} />
+              <Route path="orders/returns"  element={<OrderTable category="returns"    onViewDetails={id => navigate(`/admin/orders/${id}`)} onViewReturn={rid => navigate(`/admin/returns/${rid}`)} onViewReplacement={rid => navigate(`/admin/replacements/${rid}`)} />} />
               <Route path="orders/warranty" element={<OrderTable category="warranty"   onViewDetails={id => navigate(`/admin/orders/${id}`)} onViewWarranty={cid => navigate(`/admin/warranty/${cid}`)} />} />
               <Route path="returns/:returnId" element={<ReturnRequestDetail />} />
+              <Route path="replacements/:returnId" element={<ReplacementRequestDetail />} />
               <Route path="warranty/:claimId" element={<WarrantyClaimDetail />} />
               <Route path="orders/:orderId" element={<OrderDetailRoute />} />
 

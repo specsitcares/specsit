@@ -35,10 +35,15 @@ const STATUS_BADGE_STYLE = {
 const getStatusClass = (label) =>
   STATUS_CLASS[(label || '').toLowerCase()] || 'badge-neutral';
 
-const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewWarranty, hideKPIs = false }) => {
+const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewReplacement, onViewWarranty, hideKPIs = false }) => {
   const [orders, setOrders] = useState([]);
   const [expandedRows, setExpandedRows] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);        // first paint only
+  const [tableLoading, setTableLoading] = useState(false); // subsequent fetches (tab/filter/page)
+  // Monotonic request ids — only the newest response is allowed to update state, so
+  // rapid tab switches can never render an older tab's data (no stale rows).
+  const ordersReqRef = React.useRef(0);
+  const analyticsReqRef = React.useRef(0);
   const [page, setPage] = useState(1);
   const [totalOrders, setTotalOrders] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
@@ -54,7 +59,8 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewWarran
   const searchInputRef = React.useRef(null);
   const [goToInputVal, setGoToInputVal] = useState('1');
   const [orderAnalytics, setOrderAnalytics] = useState(null);
-  const [activeReturnTab, setActiveReturnTab] = useState('window'); // 'window', 'requests', 'refund', 'replacement'
+  const [activeReturnTab, setActiveReturnTab] = useState('window'); // 'window' | 'requests' | 'processed'
+  const [returnMode, setReturnMode] = useState('returns'); // 'returns' (refunds) | 'replacements'
   const [activeWarrantyTab, setActiveWarrantyTab] = useState('window'); // 'window', 'claimed', 'not_claimed'
   const [activeItemTab, setActiveItemTab] = useState('all'); // default Orders view: 'all' | 'eyewear' | 'accessory' | 'lens'
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -62,6 +68,7 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewWarran
   const [rxOffcanvasOrder, setRxOffcanvasOrder] = useState(null);
 
   const fetchAnalytics = async () => {
+    const myReq = ++analyticsReqRef.current;
     try {
       const res = await apiClient.get('/sales/orders/analytics/', {
         params: {
@@ -70,12 +77,13 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewWarran
           status: statusFilter,
           date_from: dateFilter.from,
           date_to: dateFilter.to,
-          ...(category === 'returns' ? { return_tab: activeReturnTab } : {}),
+          ...(category === 'returns' ? { return_tab: activeReturnTab, request_type: returnMode === 'replacements' ? 'replacement' : 'refund' } : {}),
           ...(category === 'warranty' ? { warranty_tab: activeWarrantyTab } : {}),
-          ...(activeItemTab !== 'all' ? { item_type: activeItemTab } : {}),
+          ...(activeItemTab !== 'all' && activeItemTab !== 'replaced' ? { item_type: activeItemTab } : {}),
+          ...(activeItemTab === 'replaced' ? { replaced_only: 1 } : {}),
         }
       });
-      setOrderAnalytics(res.data);
+      if (myReq === analyticsReqRef.current) setOrderAnalytics(res.data);
     } catch { /* silent */ }
   };
 
@@ -86,6 +94,11 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewWarran
     setStatusFilter('');
     setDateFilter({ from: '', to: '' });
     setActiveItemTab('all');
+    setActiveReturnTab('window');
+    setReturnMode('returns');
+    setActiveWarrantyTab('window');
+    setExpandedRows([]);
+    setSelectedIds(new Set());
   }, [category]);
 
   useEffect(() => {
@@ -101,7 +114,7 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewWarran
 
   useEffect(() => {
     fetchOrders(); fetchMetadata(); fetchAnalytics();
-  }, [page, perPage, searchQuery, statusFilter, dateFilter.from, dateFilter.to, category, activeWarrantyTab, activeReturnTab, activeItemTab]);
+  }, [page, perPage, searchQuery, statusFilter, dateFilter.from, dateFilter.to, category, activeWarrantyTab, activeReturnTab, returnMode, activeItemTab]);
 
   const fetchMetadata = async () => {
     try {
@@ -112,6 +125,8 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewWarran
   };
 
   const fetchOrders = async () => {
+    const myReq = ++ordersReqRef.current;
+    setTableLoading(true);
     try {
       const res = await apiClient.get('/sales/orders/', {
         params: {
@@ -124,11 +139,14 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewWarran
           status: statusFilter,
           date_from: dateFilter.from,
           date_to: dateFilter.to,
-          ...(category === 'returns' ? { return_tab: activeReturnTab } : {}),
+          ...(category === 'returns' ? { return_tab: activeReturnTab, request_type: returnMode === 'replacements' ? 'replacement' : 'refund' } : {}),
           ...(category === 'warranty' ? { warranty_tab: activeWarrantyTab } : {}),
-          ...(activeItemTab !== 'all' ? { item_type: activeItemTab } : {}),
+          ...(activeItemTab !== 'all' && activeItemTab !== 'replaced' ? { item_type: activeItemTab } : {}),
+          ...(activeItemTab === 'replaced' ? { replaced_only: 1 } : {}),
         }
       });
+      // Ignore out-of-order responses — a newer request has superseded this one.
+      if (myReq !== ordersReqRef.current) return;
       const data = res.data;
       const results = data.results || data.data || data;
       if (Array.isArray(results)) {
@@ -139,10 +157,15 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewWarran
         setTotalOrders(0);
       }
     } catch (err) {
+      if (myReq !== ordersReqRef.current) return;
       console.error('Fetch orders failed:', err);
       setOrders([]);
+      setTotalOrders(0);
     } finally {
-      setLoading(false);
+      if (myReq === ordersReqRef.current) {
+        setLoading(false);
+        setTableLoading(false);
+      }
     }
   };
 
@@ -337,6 +360,7 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewWarran
                     { key: 'eyewear', label: 'Eyewear' },
                     { key: 'accessory', label: 'Accessories' },
                     { key: 'lens', label: 'Contact Lens' },
+                    ...(!category ? [{ key: 'replaced', label: 'Replaced Orders' }] : []),
                   ].map(t => (
                     <button
                       key={t.key}
@@ -347,23 +371,31 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewWarran
                 </div>
               )}
               {category === 'returns' && (
-                <div style={{ display: 'flex', background: '#F9FAFB', border: '1px solid #EAECF0', borderRadius: '6px', padding: '2px', marginLeft: '10px' }}>
-                  <button
-                    onClick={() => setActiveReturnTab('window')}
-                    style={{ padding: '6px 14px', borderRadius: '5px', fontSize: '10px', fontWeight: 600, border: 'none', background: activeReturnTab === 'window' ? '#fff' : 'transparent', color: activeReturnTab === 'window' ? '#7F56D9' : '#667085', boxShadow: activeReturnTab === 'window' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none', cursor: 'pointer' }}
-                  >In Window</button>
-                  <button
-                    onClick={() => setActiveReturnTab('requests')}
-                    style={{ padding: '6px 14px', borderRadius: '5px', fontSize: '10px', fontWeight: 600, border: 'none', background: activeReturnTab === 'requests' ? '#fff' : 'transparent', color: activeReturnTab === 'requests' ? '#7F56D9' : '#667085', boxShadow: activeReturnTab === 'requests' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none', cursor: 'pointer' }}
-                  >Requests</button>
-                  <button
-                    onClick={() => setActiveReturnTab('refund')}
-                    style={{ padding: '6px 14px', borderRadius: '5px', fontSize: '10px', fontWeight: 600, border: 'none', background: activeReturnTab === 'refund' ? '#fff' : 'transparent', color: activeReturnTab === 'refund' ? '#7F56D9' : '#667085', boxShadow: activeReturnTab === 'refund' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none', cursor: 'pointer' }}
-                  >Refund</button>
-                  <button
-                    onClick={() => setActiveReturnTab('replacement')}
-                    style={{ padding: '6px 14px', borderRadius: '5px', fontSize: '10px', fontWeight: 600, border: 'none', background: activeReturnTab === 'replacement' ? '#fff' : 'transparent', color: activeReturnTab === 'replacement' ? '#7F56D9' : '#667085', boxShadow: activeReturnTab === 'replacement' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none', cursor: 'pointer' }}
-                  >Replacement</button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginLeft: '10px' }}>
+                  {/* Master toggle: Returns (refunds) vs Replacements — scopes every sub-tab below */}
+                  <div style={{ display: 'flex', background: '#F4EBFF', border: '1px solid #E9D7FE', borderRadius: '6px', padding: '2px' }}>
+                    {[{ key: 'returns', label: 'Returns' }, { key: 'replacements', label: 'Replacements' }].map(m => (
+                      <button
+                        key={m.key}
+                        onClick={() => { setReturnMode(m.key); setActiveReturnTab('window'); setPage(1); }}
+                        style={{ padding: '6px 16px', borderRadius: '5px', fontSize: '10px', fontWeight: 700, border: 'none', background: returnMode === m.key ? '#7F56D9' : 'transparent', color: returnMode === m.key ? '#fff' : '#7F56D9', cursor: 'pointer' }}
+                      >{m.label}</button>
+                    ))}
+                  </div>
+                  {/* Category tabs (scoped by the toggle above) */}
+                  <div style={{ display: 'flex', background: '#F9FAFB', border: '1px solid #EAECF0', borderRadius: '6px', padding: '2px' }}>
+                    {[
+                      { key: 'window', label: 'In Window' },
+                      { key: 'requests', label: 'Requests' },
+                      { key: 'processed', label: returnMode === 'replacements' ? 'Replaced' : 'Refunded' },
+                    ].map(t => (
+                      <button
+                        key={t.key}
+                        onClick={() => { setActiveReturnTab(t.key); setPage(1); }}
+                        style={{ padding: '6px 14px', borderRadius: '5px', fontSize: '10px', fontWeight: 600, border: 'none', background: activeReturnTab === t.key ? '#fff' : 'transparent', color: activeReturnTab === t.key ? '#7F56D9' : '#667085', boxShadow: activeReturnTab === t.key ? '0 1px 2px rgba(0,0,0,0.05)' : 'none', cursor: 'pointer' }}
+                      >{t.label}</button>
+                    ))}
+                  </div>
                 </div>
               )}
               {category === 'warranty' && (
@@ -548,8 +580,8 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewWarran
                   <>
                     {activeReturnTab === 'window' && (
                       <>
-                        <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Refund Status</th>
-                        <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Refund Amount</th>
+                        <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Request Status</th>
+                        <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Order Value</th>
                         <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Return Reason</th>
                       </>
                     )}
@@ -560,14 +592,14 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewWarran
                         <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Wait Time</th>
                       </>
                     )}
-                    {activeReturnTab === 'refund' && (
+                    {activeReturnTab === 'processed' && returnMode === 'returns' && (
                       <>
                         <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Refunded Date</th>
                         <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Amount Refunded</th>
                         <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Refund Status</th>
                       </>
                     )}
-                    {activeReturnTab === 'replacement' && (
+                    {activeReturnTab === 'processed' && returnMode === 'replacements' && (
                       <>
                         <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Repl. Date</th>
                         <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Replaced SKU</th>
@@ -580,6 +612,14 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewWarran
                     <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Warranty Status</th>
                     <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Purchase Amount</th>
                     <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Protection Plan</th>
+                  </>
+                ) : activeItemTab === 'replaced' ? (
+                  <>
+                    <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Original SKU</th>
+                    <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>New SKU</th>
+                    <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Diff. Paid</th>
+                    <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Delivery Cost</th>
+                    <th style={{ padding: '10px 16px', fontSize: '10px', color: '#667085', fontWeight: 600, textAlign: 'left' }}>Tracking</th>
                   </>
                 ) : (
                   <>
@@ -594,7 +634,17 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewWarran
               </tr>
             </thead>
             <tbody style={{ backgroundColor: '#fff' }}>
-              {orders.length === 0 ? (
+              {tableLoading ? (
+                <tr>
+                  <td colSpan={10} style={{ padding: '48px 24px', textAlign: 'center' }}>
+                    <style>{'@keyframes ot-spin{to{transform:rotate(360deg)}}'}</style>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+                      <RefreshCw size={22} color="#7F56D9" style={{ animation: 'ot-spin 0.7s linear infinite' }} />
+                      <div style={{ fontSize: '12px', color: '#667085', fontWeight: 500 }}>Loading…</div>
+                    </div>
+                  </td>
+                </tr>
+              ) : orders.length === 0 ? (
                 <tr>
                   <td colSpan={10} style={{ padding: '48px 24px', textAlign: 'center' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
@@ -611,9 +661,13 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewWarran
                   {/* Main Order Row */}
                   <tr
                     onClick={() => {
-                      const rr = o.return_requests?.[0];
+                      const wantType = returnMode === 'replacements' ? 'replacement' : 'refund';
+                      const rr = o.return_requests?.find(r => r.request_type === wantType) || o.return_requests?.[0];
                       const wc = o.warranty_claims?.[0];
-                      if (category === 'returns' && activeReturnTab === 'requests' && rr && onViewReturn) { onViewReturn(rr.id); return; }
+                      if (category === 'returns' && (activeReturnTab === 'requests' || activeReturnTab === 'processed') && rr) {
+                        if (returnMode === 'replacements' && onViewReplacement) { onViewReplacement(rr.id); return; }
+                        if (onViewReturn) { onViewReturn(rr.id); return; }
+                      }
                       if (category === 'warranty' && wc && onViewWarranty) { onViewWarranty(wc.id); return; }
                       o.items?.length > 1 ? toggleRow(o.id) : onViewDetails(o.id);
                     }}
@@ -621,8 +675,8 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewWarran
                   >
                     <td style={{ padding: '12px 16px', backgroundColor: expandedRows.includes(o.id) ? '#F5F3FF' : 'inherit' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div onClick={(e) => { e.stopPropagation(); o.items?.length > 1 ? toggleRow(o.id) : onViewDetails(o.id); }} style={{ color: '#667085', cursor: 'pointer', width: 14 }}>
-                          {o.items?.length > 1 && (expandedRows.includes(o.id) ? <ChevronDown size={14} strokeWidth={3} /> : <ChevronRight size={14} strokeWidth={3} />)}
+                        <div onClick={(e) => { e.stopPropagation(); (o.items?.length > 1 || activeItemTab === 'replaced') ? toggleRow(o.id) : onViewDetails(o.id); }} style={{ color: '#667085', cursor: 'pointer', width: 14 }}>
+                          {(o.items?.length > 1 || activeItemTab === 'replaced') && (expandedRows.includes(o.id) ? <ChevronDown size={14} strokeWidth={3} /> : <ChevronRight size={14} strokeWidth={3} />)}
                         </div>
                         <input type="checkbox"
                           checked={selectedIds.has(o.id)}
@@ -635,8 +689,9 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewWarran
                     <td style={{ padding: '12px 16px', backgroundColor: expandedRows.includes(o.id) ? '#F5F3FF' : 'inherit' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <div>
-                          <div style={{ fontWeight: 700, color: '#101828', fontSize: '13px' }}>
-                            #LO-{String(o.id).padStart(7, '0')}
+                          <div style={{ fontWeight: 700, color: o.is_replacement ? '#7F56D9' : '#101828', fontSize: '13px' }}>
+                            #{o.order_number || `LO-${String(o.id).padStart(7, '0')}`}
+                            {o.is_replacement && <span style={{ marginLeft: 6, backgroundColor: '#F4EBFF', color: '#7F56D9', fontSize: '9px', padding: '1px 6px', borderRadius: '13px', fontWeight: 700 }}>EXCHANGE</span>}
                             {o.items?.length > 1 && <span style={{ marginLeft: 6, backgroundColor: '#F4EBFF', color: '#7F56D9', fontSize: '9px', padding: '1px 6px', borderRadius: '13px', fontWeight: 700 }}>{o.items.length}</span>}
                           </div>
                         </div>
@@ -693,7 +748,7 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewWarran
                             </>
                           );
                         })()}
-                        {activeReturnTab === 'refund' && (() => {
+                        {activeReturnTab === 'processed' && returnMode === 'returns' && (() => {
                           const rr = o.return_requests?.find(r => r.request_type === 'refund');
                           return (
                             <>
@@ -709,7 +764,7 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewWarran
                             </>
                           );
                         })()}
-                        {activeReturnTab === 'replacement' && (() => {
+                        {activeReturnTab === 'processed' && returnMode === 'replacements' && (() => {
                           const rr = o.return_requests?.find(r => r.request_type === 'replacement');
                           return (
                             <>
@@ -735,6 +790,19 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewWarran
                           </td>
                           <td style={{ padding: '12px 16px', fontWeight: 700, fontSize: '13px', whiteSpace: 'nowrap' }}>₹{Number(o.total_amount).toLocaleString('en-IN')}</td>
                           <td style={{ padding: '12px 16px', color: '#667085' }}>{wc ? wc.issue_description.slice(0, 40) + (wc.issue_description.length > 40 ? '…' : '') : 'No claim raised'}</td>
+                        </>
+                      );
+                    })() : activeItemTab === 'replaced' ? (() => {
+                      const ex = o.exchange_info || {};
+                      const diff = Number(ex.price_difference || 0);
+                      const delivery = o.tracking?.delivery_cost ?? o.tracking?.delivery_rate_charged;
+                      return (
+                        <>
+                          <td style={{ padding: '12px 16px', color: '#667085', fontSize: '12px' }}>{ex.original_sku || '—'}</td>
+                          <td style={{ padding: '12px 16px', fontWeight: 600, color: '#7F56D9', fontSize: '12px' }}>{o.items?.[0]?.variant_sku || '—'}</td>
+                          <td style={{ padding: '12px 16px', fontWeight: 700, color: diff > 0 ? '#B54708' : '#667085', fontSize: '13px', whiteSpace: 'nowrap' }}>{diff > 0 ? `₹${diff.toLocaleString('en-IN')}` : '—'}</td>
+                          <td style={{ padding: '12px 16px', color: '#667085', fontSize: '13px', whiteSpace: 'nowrap' }}>{delivery != null ? `₹${Number(delivery).toLocaleString('en-IN')}` : '—'}</td>
+                          <td style={{ padding: '12px 16px', color: '#667085', fontSize: '10px' }}>{o.tracking?.tracking_number || '—'}</td>
                         </>
                       );
                     })() : (
@@ -806,6 +874,37 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewWarran
                       </div>
                     </td>
                   </tr>
+
+                  {/* Replaced Orders tab: nested row shows the ORIGINAL order being replaced */}
+                  {activeItemTab === 'replaced' && expandedRows.includes(o.id) && (() => {
+                    const ex = o.exchange_info || {};
+                    return (
+                      <tr style={{ background: '#F5F3FF' }}>
+                        <td colSpan={10} style={{ padding: '10px 16px 14px 60px' }}>
+                          <div style={{ background: '#fff', border: '1px solid #DDD6FE', borderRadius: 10, padding: 14, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.5, color: '#7F56D9', textTransform: 'uppercase' }}>Original Order</div>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: '#101828' }}>#{ex.source_order_number || (ex.source_order_id ? `LO-${String(ex.source_order_id).padStart(7, '0')}` : '—')}</span>
+                              <span style={{ fontSize: 11, color: '#667085', textTransform: 'capitalize' }}>{(ex.source_order_status || '').replace(/_/g, ' ') || '—'}</span>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              <span style={{ fontSize: 13, color: '#101828' }}>{ex.original_name || '—'}</span>
+                              <span style={{ fontSize: 11, color: '#667085' }}>SKU {ex.original_sku || '—'}</span>
+                            </div>
+                            <div style={{ fontSize: 12, color: '#667085' }}>
+                              Difference paid: <strong style={{ color: Number(ex.price_difference) > 0 ? '#B54708' : '#12B76A' }}>{Number(ex.price_difference) > 0 ? `₹${Number(ex.price_difference).toLocaleString('en-IN')}` : 'No extra charge'}</strong>
+                            </div>
+                            {ex.source_order_id && (
+                              <button onClick={(e) => { e.stopPropagation(); onViewDetails(ex.source_order_id); }}
+                                style={{ marginLeft: 'auto', padding: '7px 14px', borderRadius: 8, border: '1px solid #E9D7FE', background: '#F9F5FF', color: '#7F56D9', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                                View original order →
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })()}
 
                   {/* Sub-row Expanded detail — only for orders with multiple items */}
                   {o.items?.length > 1 && expandedRows.includes(o.id) && (

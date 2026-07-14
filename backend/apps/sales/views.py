@@ -75,16 +75,28 @@ class OrderViewSet(viewsets.ModelViewSet):
             # delivered orders without a delivery_date still appear.
             window_q = Q(delivery_date__gte=ten_days_ago) | (Q(delivery_date__isnull=True) & Q(created_at__gte=ten_days_ago))
             qs = qs.filter(delivered_q & window_q).distinct()
+            # Master toggle: scope every sub-tab to refund ("returns") or replacement.
+            request_type = self.request.query_params.get('request_type')
+            rt = request_type if request_type in ('refund', 'replacement') else None
             # Sub-tab filtering
             return_tab = self.request.query_params.get('return_tab')
             if return_tab == 'requests':
-                qs = qs.filter(return_requests__isnull=False).distinct()
+                qs = qs.filter(return_requests__isnull=False)
+                if rt:
+                    qs = qs.filter(return_requests__request_type=rt)
+                qs = qs.distinct()
+            elif return_tab == 'processed':
+                terminal = 'replaced' if rt == 'replacement' else 'refunded'
+                qs = qs.filter(return_requests__request_type=(rt or 'refund'),
+                               return_requests__status=terminal).distinct()
             elif return_tab == 'refund':
                 qs = qs.filter(return_requests__request_type='refund').distinct()
             elif return_tab == 'replacement':
                 qs = qs.filter(return_requests__request_type='replacement').distinct()
         elif view_preset == 'warranty':
-            one_year_ago = timezone.now() - timedelta(days=365)
+            from apps.cms.models import SiteSettings
+            warranty_days = SiteSettings.get().warranty_window_days or 365
+            one_year_ago = timezone.now() - timedelta(days=warranty_days)
             window_q = Q(delivery_date__gte=one_year_ago) | (Q(delivery_date__isnull=True) & Q(created_at__gte=one_year_ago))
             qs = qs.filter(delivered_q & window_q).distinct()
             # Sub-tab filtering
@@ -120,6 +132,10 @@ class OrderViewSet(viewsets.ModelViewSet):
             qs = qs.filter(items__variant__product__product_type='accessory').distinct()
         elif item_type == 'lens':
             qs = qs.filter(items__contact_lens__isnull=False).distinct()
+
+        # "Replaced Orders" tab — the fresh orders spawned by an exchange (LO-…-R).
+        if self.request.query_params.get('replaced_only') == '1':
+            qs = qs.filter(is_replacement=True).distinct()
 
         return qs.order_by('-created_at')
     
@@ -172,13 +188,15 @@ class OrderViewSet(viewsets.ModelViewSet):
 
         SHIPMENT_STATUSES = ['ready_to_dispatch', 'in_transit', 'delivered']
 
-        qs = Order.objects.filter(
-            order_status__in=SHIPMENT_STATUSES
-        ).select_related(
+        base = Order.objects.select_related(
             'user', 'shipping_address', 'tracking', 'shipment'
-        ).prefetch_related(
-            'items__variant__product'
-        ).order_by('-created_at')
+        ).prefetch_related('items__variant__product')
+
+        # "Replacements" tab — every order spawned from an exchange, at any stage.
+        if request.query_params.get('replacements') == '1':
+            qs = base.filter(is_replacement=True).order_by('-created_at')
+        else:
+            qs = base.filter(order_status__in=SHIPMENT_STATUSES).order_by('-created_at')
 
         # Optional filter by status
         status_filter = request.query_params.get('order_status')
@@ -257,7 +275,9 @@ class OrderViewSet(viewsets.ModelViewSet):
             ten_days_ago = timezone.now() - timedelta(days=10)
             qs = qs.filter(order_status='delivered', delivery_date__gte=ten_days_ago)
         elif view_preset == 'warranty':
-            one_year_ago = timezone.now() - timedelta(days=365)
+            from apps.cms.models import SiteSettings
+            warranty_days = SiteSettings.get().warranty_window_days or 365
+            one_year_ago = timezone.now() - timedelta(days=warranty_days)
             qs = qs.filter(order_status='delivered', delivery_date__gte=one_year_ago)
             
         # On-page Search
@@ -697,6 +717,16 @@ class OrderViewSet(viewsets.ModelViewSet):
             return Response({'detail': 'Returns can only be requested for delivered orders.'},
                             status=status.HTTP_400_BAD_REQUEST)
 
+        # A saved bank account is required for ANY return or exchange: refunds are paid
+        # to it, and an exchange may still need a refund fallback if the swap is rejected.
+        from apps.accounts.models import UserProfile
+        profile = UserProfile.objects.filter(user=request.user).first()
+        if not profile or not profile.has_bank_account:
+            return Response(
+                {'detail': 'Please add a bank account in your Account Information before requesting a return or exchange.',
+                 'code': 'bank_account_required'},
+                status=status.HTTP_400_BAD_REQUEST)
+
         request_type = request.data.get('request_type')
         reason = request.data.get('reason')
         description = (request.data.get('description') or '').strip()
@@ -705,28 +735,98 @@ class OrderViewSet(viewsets.ModelViewSet):
         if request_type not in ('refund', 'replacement'):
             return Response({'detail': 'request_type must be "refund" or "replacement".'},
                             status=status.HTTP_400_BAD_REQUEST)
-        if reason not in valid_reasons:
+        if request_type == 'replacement' and reason not in valid_reasons:
+            reason = 'other'  # browse-catalog exchange has no reason picker
+        elif reason not in valid_reasons:
             return Response({'detail': 'Please choose a valid reason.'},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        # Block duplicate open requests (anything not rejected is still active)
-        if order.return_requests.exclude(status='rejected').exists():
-            return Response({'detail': 'A return or exchange request already exists for this order.'},
+        # Which line item is being returned/exchanged. Required when the order has more
+        # than one item; defaults to the only item otherwise.
+        order_items = list(order.items.all())
+        order_item = None
+        oi_id = request.data.get('order_item_id')
+        if oi_id:
+            order_item = next((i for i in order_items if str(i.id) == str(oi_id)), None)
+            if not order_item:
+                return Response({'detail': 'That item is not part of this order.'},
+                                status=status.HTTP_400_BAD_REQUEST)
+        elif len(order_items) > 1:
+            return Response({'detail': 'Please select which item you want to return or exchange.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        else:
+            order_item = order_items[0] if order_items else None
+
+        # Block duplicate open requests. Per-item when we know the item, else per-order.
+        active_qs = order.return_requests.exclude(status='rejected')
+        if order_item is not None:
+            active_qs = active_qs.filter(order_item=order_item)
+        if active_qs.exists():
+            return Response({'detail': 'A return or exchange request already exists for this item.'},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        # Refund destination. Online-only orders refund to the original instrument.
-        # COD / partial orders were (wholly or partly) paid in cash, so the refund is
-        # paid out to the customer's saved bank account. Snapshot it onto the request
-        # so the admin has it even if the customer later edits their profile.
+        def _item_total(it):
+            if it is None:
+                return order.total_amount
+            total = getattr(it, 'item_total', 0) or 0
+            if total:
+                return total
+            unit = (getattr(it, 'price_at_purchase', 0) or 0) or (getattr(it, 'unit_price', 0) or 0)
+            return float(unit) * (getattr(it, 'quantity', 1) or 1)
+
+        # Browse-catalog replacement: the customer picked a specific new variant.
+        # Enforce same-or-higher price and snapshot the choice + price difference.
+        replacement_fields = {}
+        if request_type == 'replacement' and request.data.get('replacement_variant_id'):
+            from apps.catalog.models import Variant
+            rv = Variant.objects.filter(id=request.data.get('replacement_variant_id')).first()
+            if not rv:
+                return Response({'detail': 'Selected replacement product was not found.'},
+                                status=status.HTTP_400_BAD_REQUEST)
+            new_price = float(rv.selling_price or rv.base_price or 0)
+            orig_item = order_item or order.items.first()
+            orig_price = float((getattr(orig_item, 'price_at_purchase', 0) or 0)
+                               or (getattr(orig_item, 'unit_price', 0) or 0))
+            if new_price + 0.01 < orig_price:
+                return Response({'detail': 'The replacement item must cost the same as or more than the original item.'},
+                                status=status.HTTP_400_BAD_REQUEST)
+            diff = round(new_price - orig_price, 2)
+            pay_id = (request.data.get('replacement_payment_ref') or '').strip()
+            # An upgrade must be paid for. Verify the Razorpay payment before accepting
+            # so the difference can't be skipped by calling the API directly.
+            if diff > 0.01:
+                from .payment_views import _get_razorpay_client
+                config, is_live = _get_razorpay_client()
+                if not pay_id:
+                    return Response({'detail': 'Please complete the payment for the price difference.'},
+                                    status=status.HTTP_400_BAD_REQUEST)
+                if is_live:
+                    rzp_order = (request.data.get('replacement_payment_order_id') or '').strip()
+                    rzp_sig = (request.data.get('replacement_payment_signature') or '').strip()
+                    if not (rzp_order and rzp_sig):
+                        return Response({'detail': 'Payment could not be verified. Please try again.'},
+                                        status=status.HTTP_400_BAD_REQUEST)
+                    try:
+                        import razorpay
+                        razorpay.Client(auth=(config.key_id, config.key_secret)).utility.verify_payment_signature({
+                            'razorpay_order_id': rzp_order,
+                            'razorpay_payment_id': pay_id,
+                            'razorpay_signature': rzp_sig,
+                        })
+                    except Exception:
+                        return Response({'detail': 'Payment verification failed. Please try again.'},
+                                        status=status.HTTP_400_BAD_REQUEST)
+            replacement_fields = {
+                'replacement_variant': rv,
+                'replacement_sku': getattr(rv, 'sku', '') or '',
+                'replacement_price_difference': max(0, diff),
+                'replacement_payment_ref': pay_id[:120],
+            }
+
+        # Refund destination — snapshot the saved bank account (guaranteed present by
+        # the gate above) for COD/partial orders that have no original online instrument.
         refund_fields = {}
         if request_type == 'refund' and order.payment_method not in ('complete_online', 'ONLINE'):
-            from apps.accounts.models import UserProfile
-            profile = UserProfile.objects.filter(user=request.user).first()
-            if not profile or not profile.has_bank_account:
-                return Response(
-                    {'detail': 'Please add a bank account in your Account Information before requesting a refund on a Cash on Delivery order.',
-                     'code': 'bank_account_required'},
-                    status=status.HTTP_400_BAD_REQUEST)
             refund_fields = {
                 'refund_account_name': profile.bank_account_name,
                 'refund_account_number': profile.bank_account_number,
@@ -736,14 +836,27 @@ class OrderViewSet(viewsets.ModelViewSet):
 
         rr = ReturnRequest.objects.create(
             order=order,
+            order_item=order_item,
             request_type=request_type,
             reason=reason,
             description=description,
             status='pending',
-            refund_amount=order.total_amount if request_type == 'refund' else None,
+            refund_amount=_item_total(order_item) if request_type == 'refund' else None,
             replacement_sku=(request.data.get('replacement_sku') or '') if request_type == 'replacement' else '',
             **refund_fields,
         )
+        if replacement_fields:
+            for k, v in replacement_fields.items():
+                setattr(rr, k, v)
+            rr.save(update_fields=list(replacement_fields.keys()))
+        elif request_type == 'replacement':
+            try:
+                diff = float(request.data.get('replacement_price_difference') or 0)
+                if diff > 0:
+                    rr.replacement_price_difference = diff
+                    rr.save(update_fields=['replacement_price_difference'])
+            except (ValueError, TypeError):
+                pass
 
         # Optional supporting photos (multipart "photos") — up to 5, max 5 MB, images only.
         for ph in request.FILES.getlist('photos')[:5]:
@@ -764,10 +877,13 @@ class OrderViewSet(viewsets.ModelViewSet):
             return Response({'detail': 'Warranty claims can only be raised for delivered orders.'},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        # Warranty window: 1 year from delivery (fall back to order date).
+        # Warranty window (configurable in Store Settings), measured from delivery
+        # (fall back to order date).
+        from apps.cms.models import SiteSettings
+        warranty_days = SiteSettings.get().warranty_window_days or 365
         ref_date = order.delivery_date or order.created_at
-        if ref_date and (timezone.now() - ref_date) > timedelta(days=365):
-            return Response({'detail': 'The 1-year warranty period for this order has expired.'},
+        if ref_date and (timezone.now() - ref_date) > timedelta(days=warranty_days):
+            return Response({'detail': f'The {warranty_days}-day warranty period for this order has expired.'},
                             status=status.HTTP_400_BAD_REQUEST)
 
         issue = (request.data.get('issue_description') or request.data.get('description') or '').strip()
@@ -1301,6 +1417,64 @@ class ReturnRequestViewSet(viewsets.ModelViewSet):
             qs = qs.filter(order_id=order_id)
         return qs.order_by('-created_at')
 
+    def perform_update(self, serializer):
+        old_status = serializer.instance.status
+        rr = serializer.save()
+        # When the admin ships the replacement, spawn a real order that enters the
+        # normal order lifecycle (only once, and only for a browse-catalog exchange
+        # that has a concrete replacement variant).
+        if rr.status == 'replaced' and old_status != 'replaced':
+            self._spawn_replacement_order(rr)
+
+    def _spawn_replacement_order(self, rr):
+        from .models import Order, OrderItem
+        from apps.catalog.core.models import MetadataGroup, MetadataItem as MI
+        if rr.replacement_order_id:
+            return
+        original = rr.order
+        variant = rr.replacement_variant
+        if variant is None:
+            # Same-model / options exchange with no explicit variant — reuse the
+            # returned item's own variant so a real order still enters the pipeline.
+            oi = rr.order_item or original.items.first()
+            variant = getattr(oi, 'variant', None)
+        if variant is None:
+            return
+        price = variant.selling_price or variant.base_price or 0
+        with transaction.atomic():
+            new_order = Order.objects.create(
+                user=original.user,
+                is_replacement=True,
+                replaces_order=original,
+                total_amount=price, paid_amount=price, balance_amount=0, subtotal=price,
+                payment_method=original.payment_method or 'complete_online',
+                payment_status='paid', order_status='confirmed',
+                shipping_address=original.shipping_address,
+                billing_address=original.billing_address,
+                shipping_address_line=original.shipping_address_line,
+                shipping_city=original.shipping_city,
+                shipping_state=original.shipping_state,
+                shipping_postal_code=original.shipping_postal_code,
+            )
+            OrderItem.objects.create(
+                order=new_order, variant=variant, quantity=1,
+                unit_price=price, item_total=price, price_at_purchase=price, status='confirmed',
+            )
+            grp, _ = MetadataGroup.objects.get_or_create(name='Order Status')
+            meta, _ = MI.objects.get_or_create(group=grp, label='Confirmed',
+                                                defaults={'value': 'confirmed', 'is_active': True})
+            new_order.status = meta
+            new_order.save(update_fields=['status'])
+            # Reserve one unit of the replacement variant if stock is tracked.
+            try:
+                if variant.stock is not None:
+                    variant.stock = max(0, variant.stock - 1)
+                    variant.save(update_fields=['stock'])
+            except Exception:
+                pass
+            rr.replacement_order = new_order
+            rr.save(update_fields=['replacement_order'])
+
     @action(detail=True, methods=['post'])
     def add_note(self, request, pk=None):
         """Append an internal note (chat-style) authored by the current admin."""
@@ -1311,6 +1485,26 @@ class ReturnRequestViewSet(viewsets.ModelViewSet):
             return Response({'detail': 'Note text is required.'}, status=status.HTTP_400_BAD_REQUEST)
         ReturnRequestNote.objects.create(return_request=rr, author=request.user, text=text)
         return Response(self.get_serializer(rr).data)
+
+    def _save_stage_images(self, request, model):
+        """Store up to 8 image files (≤10 MB each) from multipart 'photos'."""
+        rr = self.get_object()
+        for ph in request.FILES.getlist('photos')[:8]:
+            if ph.size <= 10 * 1024 * 1024 and (ph.content_type or '').startswith('image/'):
+                model.objects.create(return_request=rr, image=ph)
+        return Response(self.get_serializer(rr, context={'request': request}).data)
+
+    @action(detail=True, methods=['post'], url_path='upload_received_images')
+    def upload_received_images(self, request, pk=None):
+        """Admin photos of the item as received back at the warehouse."""
+        from .models import ReturnReceivedImage
+        return self._save_stage_images(request, ReturnReceivedImage)
+
+    @action(detail=True, methods=['post'], url_path='upload_pickup_images')
+    def upload_pickup_images(self, request, pk=None):
+        """Admin photos of the item handed over to the pickup driver."""
+        from .models import ReturnPickupImage
+        return self._save_stage_images(request, ReturnPickupImage)
 
 class WarrantyClaimViewSet(viewsets.ModelViewSet):
     serializer_class = WarrantyClaimSerializer
@@ -1338,11 +1532,14 @@ class AdminDashboardStatsView(views.APIView):
             payment_method__in=['complete_online', 'partial_payment'],
             payment_status='pending',
         )
+        # Revenue must NOT count exchange-spawned orders: the customer only paid the
+        # price difference, the rest was already counted on the original order.
+        rev_qs = base_qs.exclude(is_replacement=True)
 
         # ===== REAL-TIME METRICS CALCULATIONS =====
         # 1. Total Orders & Revenue
         total_orders = base_qs.count()
-        revenue_agg = base_qs.aggregate(total=Sum('total_amount'))
+        revenue_agg = rev_qs.aggregate(total=Sum('total_amount'))
         total_revenue = float(revenue_agg.get('total') or 0)
 
         # 2. Calculate Trends (Last 30 days vs Previous 30 days)
@@ -1359,10 +1556,10 @@ class AdminDashboardStatsView(views.APIView):
         ) if prev_30_orders > 0 else 0
 
         # Revenue trend calculation
-        curr_30_revenue = base_qs.filter(created_at__date__gte=last_30_start).aggregate(
+        curr_30_revenue = rev_qs.filter(created_at__date__gte=last_30_start).aggregate(
             total=Sum('total_amount')
         ).get('total') or 0
-        prev_30_revenue = base_qs.filter(
+        prev_30_revenue = rev_qs.filter(
             created_at__date__gte=prev_30_start,
             created_at__date__lt=last_30_start
         ).aggregate(total=Sum('total_amount')).get('total') or 0
@@ -1432,7 +1629,7 @@ class AdminDashboardStatsView(views.APIView):
             else:
                 month_end = month_start.replace(month=month_start.month+1)
             
-            monthly_revenue = base_qs.filter(
+            monthly_revenue = rev_qs.filter(
                 created_at__date__gte=month_start,
                 created_at__date__lt=month_end
             ).aggregate(total=Sum('total_amount')).get('total') or 0
@@ -1851,10 +2048,11 @@ class OrdersOverviewView(views.APIView):
         # Conversion rate = orders / carts
         conversion_rate = round((total_orders / max(carts_curr, 1)) * 100, 1)
 
-        # 3. Revenue
-        revenue_agg = curr_qs.aggregate(total=Sum('total_amount'))
+        # 3. Revenue — exclude exchange-spawned orders (only the difference was paid;
+        # the rest was already counted on the original order).
+        revenue_agg = curr_qs.exclude(is_replacement=True).aggregate(total=Sum('total_amount'))
         total_revenue = float(revenue_agg.get('total') or 0)
-        prev_revenue = float(prev_qs.aggregate(total=Sum('total_amount')).get('total') or 0)
+        prev_revenue = float(prev_qs.exclude(is_replacement=True).aggregate(total=Sum('total_amount')).get('total') or 0)
         revenue_trend = safe_trend(total_revenue, prev_revenue)
 
         # Avg order value
@@ -2277,9 +2475,9 @@ class OrdersOverviewView(views.APIView):
             'statusBreakdown': status_breakdown,
         }
 
-        # 12. Product profit: category % of revenue
+        # 12. Product profit: category % of revenue (exclude exchange-spawned orders)
         profit_qs = OrderItem.objects.filter(
-            order__created_at__date__gte=start_date
+            order__created_at__date__gte=start_date, order__is_replacement=False
         ).values('variant__product__category__name').annotate(
             revenue=Sum('item_total', output_field=FloatField())
         ).order_by('-revenue')[:4]

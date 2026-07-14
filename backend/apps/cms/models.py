@@ -33,6 +33,9 @@ class SiteSettings(models.Model):
     # Returns — global return window in days (per-variant eligibility is on Variant.is_return_eligible)
     return_window_days = models.PositiveIntegerField(default=7)
 
+    # Warranty — global warranty window in days from delivery
+    warranty_window_days = models.PositiveIntegerField(default=365)
+
     class Meta:
         verbose_name = 'Site Settings'
 

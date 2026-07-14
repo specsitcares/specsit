@@ -11,12 +11,16 @@ const ShipmentTable = () => {
   const [perPage, setPerPage]     = useState(10);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
+  const [tab, setTab] = useState('all'); // 'all' | 'replacements'
 
-  useEffect(() => { fetchShipments(); }, []);
+  useEffect(() => { fetchShipments(); }, [tab]);
 
   const fetchShipments = async () => {
+    setLoading(true);
     try {
-      const res = await apiClient.get('/sales/orders/shipment_view/', { params: { page_size: 500 } });
+      const res = await apiClient.get('/sales/orders/shipment_view/', {
+        params: { page_size: 500, ...(tab === 'replacements' ? { replacements: 1 } : {}) },
+      });
       setShipments(Array.isArray(res.data) ? res.data : (res.data.results || []));
     } catch (err) {
       console.error('Failed to fetch shipments', err);
@@ -76,8 +80,8 @@ const ShipmentTable = () => {
         {/* Order ID */}
         <td style={{ padding: '16px 24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Package size={14} color="#667085" />
-            <span style={{ fontWeight: 600, color: '#344054', fontSize: 12 }}>#LO-{String(s.order_id).padStart(7, '0')}</span>
+            <Package size={14} color={s.is_replacement ? '#7F56D9' : '#667085'} />
+            <span style={{ fontWeight: 600, color: s.is_replacement ? '#7F56D9' : '#344054', fontSize: 12 }}>#{s.order_number || `LO-${String(s.order_id).padStart(7, '0')}`}</span>
           </div>
         </td>
         {/* Product name */}
@@ -144,8 +148,17 @@ const ShipmentTable = () => {
   };
 
   return (
+    <>
+    <div style={{ display: 'inline-flex', background: '#F9FAFB', border: '1px solid #EAECF0', borderRadius: 8, padding: 3, marginBottom: 16 }}>
+      {[{ key: 'all', label: 'All Shipments' }, { key: 'replacements', label: 'Replacements Processed' }].map(t => (
+        <button key={t.key} onClick={() => { setTab(t.key); setPage(1); setSelectedIds(new Set()); }}
+          style={{ padding: '7px 16px', borderRadius: 6, fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer', background: tab === t.key ? '#fff' : 'transparent', color: tab === t.key ? '#7F56D9' : '#667085', boxShadow: tab === t.key ? '0 1px 2px rgba(0,0,0,0.06)' : 'none' }}>
+          {t.label}
+        </button>
+      ))}
+    </div>
     <BaseAdminTable
-      title="Track Shipments"
+      title={tab === 'replacements' ? 'Replacement Shipments' : 'Track Shipments'}
       count={filtered.length}
       searchQuery={searchQuery}
       onSearchChange={setSearchQuery}
@@ -171,6 +184,7 @@ const ShipmentTable = () => {
         </div>
       }
     />
+    </>
   );
 };
 
