@@ -84,7 +84,9 @@ class OrderViewSet(viewsets.ModelViewSet):
             elif return_tab == 'replacement':
                 qs = qs.filter(return_requests__request_type='replacement').distinct()
         elif view_preset == 'warranty':
-            one_year_ago = timezone.now() - timedelta(days=365)
+            from apps.cms.models import SiteSettings
+            warranty_days = SiteSettings.get().warranty_window_days or 365
+            one_year_ago = timezone.now() - timedelta(days=warranty_days)
             window_q = Q(delivery_date__gte=one_year_ago) | (Q(delivery_date__isnull=True) & Q(created_at__gte=one_year_ago))
             qs = qs.filter(delivered_q & window_q).distinct()
             # Sub-tab filtering
@@ -257,7 +259,9 @@ class OrderViewSet(viewsets.ModelViewSet):
             ten_days_ago = timezone.now() - timedelta(days=10)
             qs = qs.filter(order_status='delivered', delivery_date__gte=ten_days_ago)
         elif view_preset == 'warranty':
-            one_year_ago = timezone.now() - timedelta(days=365)
+            from apps.cms.models import SiteSettings
+            warranty_days = SiteSettings.get().warranty_window_days or 365
+            one_year_ago = timezone.now() - timedelta(days=warranty_days)
             qs = qs.filter(order_status='delivered', delivery_date__gte=one_year_ago)
             
         # On-page Search
@@ -764,10 +768,13 @@ class OrderViewSet(viewsets.ModelViewSet):
             return Response({'detail': 'Warranty claims can only be raised for delivered orders.'},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        # Warranty window: 1 year from delivery (fall back to order date).
+        # Warranty window (configurable in Store Settings), measured from delivery
+        # (fall back to order date).
+        from apps.cms.models import SiteSettings
+        warranty_days = SiteSettings.get().warranty_window_days or 365
         ref_date = order.delivery_date or order.created_at
-        if ref_date and (timezone.now() - ref_date) > timedelta(days=365):
-            return Response({'detail': 'The 1-year warranty period for this order has expired.'},
+        if ref_date and (timezone.now() - ref_date) > timedelta(days=warranty_days):
+            return Response({'detail': f'The {warranty_days}-day warranty period for this order has expired.'},
                             status=status.HTTP_400_BAD_REQUEST)
 
         issue = (request.data.get('issue_description') or request.data.get('description') or '').strip()
@@ -1311,6 +1318,26 @@ class ReturnRequestViewSet(viewsets.ModelViewSet):
             return Response({'detail': 'Note text is required.'}, status=status.HTTP_400_BAD_REQUEST)
         ReturnRequestNote.objects.create(return_request=rr, author=request.user, text=text)
         return Response(self.get_serializer(rr).data)
+
+    def _save_stage_images(self, request, model):
+        """Store up to 8 image files (≤10 MB each) from multipart 'photos'."""
+        rr = self.get_object()
+        for ph in request.FILES.getlist('photos')[:8]:
+            if ph.size <= 10 * 1024 * 1024 and (ph.content_type or '').startswith('image/'):
+                model.objects.create(return_request=rr, image=ph)
+        return Response(self.get_serializer(rr, context={'request': request}).data)
+
+    @action(detail=True, methods=['post'], url_path='upload_received_images')
+    def upload_received_images(self, request, pk=None):
+        """Admin photos of the item as received back at the warehouse."""
+        from .models import ReturnReceivedImage
+        return self._save_stage_images(request, ReturnReceivedImage)
+
+    @action(detail=True, methods=['post'], url_path='upload_pickup_images')
+    def upload_pickup_images(self, request, pk=None):
+        """Admin photos of the item handed over to the pickup driver."""
+        from .models import ReturnPickupImage
+        return self._save_stage_images(request, ReturnPickupImage)
 
 class WarrantyClaimViewSet(viewsets.ModelViewSet):
     serializer_class = WarrantyClaimSerializer

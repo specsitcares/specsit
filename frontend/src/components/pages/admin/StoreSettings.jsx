@@ -35,6 +35,7 @@ const DEFAULTS = {
   delivery_max_order_value: '',
   hsn_codes: [],
   return_window_days: '',
+  warranty_window_days: '',
 };
 
 /* Section card with icon chip + title, matching the analytics widgets.
@@ -81,6 +82,7 @@ const StoreSettings = () => {
           delivery_min_order_value: d.delivery_min_order_value ?? '',
           delivery_max_order_value: d.delivery_max_order_value ?? '',
           return_window_days: d.return_window_days ?? '',
+          warranty_window_days: d.warranty_window_days ?? '',
         });
         setPreview(p => ({ ...p, store_name: d.store_name || '' }));
       } catch {
@@ -115,6 +117,7 @@ const StoreSettings = () => {
         delivery_min_order_value: num(settings.delivery_min_order_value),
         delivery_max_order_value: num(settings.delivery_max_order_value),
         return_window_days: num(settings.return_window_days),
+        warranty_window_days: num(settings.warranty_window_days),
         social_links: (settings.social_links || []).filter(s => (s.platform || '').trim() || (s.url || '').trim()),
         frame_sizes:  (settings.frame_sizes  || []).filter(s => (s.name || '').trim() || s.lens_width || s.bridge_width || s.temple_length),
         hsn_codes:    (settings.hsn_codes    || []).filter(h => (h.label || '').trim() || (h.code || '').trim()),
@@ -166,11 +169,16 @@ const StoreSettings = () => {
           </div>
         </Card>
 
-        <Card span={3} icon={<RotateCcw size={16} />} title="Returns" sub="Global return window. Per-variant return eligibility is set on each product variant.">
+        <Card span={3} icon={<RotateCcw size={16} />} title="Returns & Warranty" sub="Global return and warranty windows. Per-variant return eligibility is set on each product variant.">
           <div className="ss-field">
             <label className="ss-label">Return Window (days)</label>
             <input type="number" min="0" className="ss-input" value={settings.return_window_days} onChange={e => handleChange('return_window_days', e.target.value)} placeholder="7" />
             <span className="ss-hint">Number of days after delivery a customer can request a return.</span>
+          </div>
+          <div className="ss-field">
+            <label className="ss-label">Warranty Window (days)</label>
+            <input type="number" min="0" className="ss-input" value={settings.warranty_window_days} onChange={e => handleChange('warranty_window_days', e.target.value)} placeholder="365" />
+            <span className="ss-hint">Number of days after delivery a customer can raise a warranty claim.</span>
           </div>
         </Card>
 

@@ -48,6 +48,10 @@ const ReturnRequestDetail = () => {
     const [busy, setBusy] = useState(false);
     const [note, setNote] = useState('');
     const [noteSaved, setNoteSaved] = useState(false);
+    const [modal, setModal] = useState(null);        // which stage form is open
+    const [form, setForm] = useState({});            // fields for the open form
+    const [stageFiles, setStageFiles] = useState([]); // received-item photos
+    const [submitting, setSubmitting] = useState(false);
 
     const load = async () => {
         setLoading(true);
@@ -114,30 +118,110 @@ const ReturnRequestDetail = () => {
     const stage = stageMap[rr.status] ?? 1;
     const rejected = rr.status === 'rejected';
     const today = new Date().toISOString().slice(0, 10);
+    const fmtD = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+    const TIME_SLOTS = ['9 AM – 12 PM', '12 PM – 3 PM', '3 PM – 6 PM', '6 PM – 9 PM'];
+    const CONDITIONS = [
+        { value: 'good', label: 'Good — resaleable', desc: 'Unused, original packaging intact' },
+        { value: 'minor', label: 'Minor wear', desc: 'Light signs of use, still acceptable' },
+        { value: 'damaged', label: 'Damaged', desc: 'Broken / not resaleable' },
+        { value: 'not_as_described', label: 'Not as described', desc: 'Different item / mismatch vs claim' },
+    ];
+    const conditionLabel = (v) => (CONDITIONS.find(c => c.value === v) || {}).label || '';
+
+    // Each lifecycle action opens a form; the form's submit PATCHes the captured
+    // fields plus the status that advances the stage.
+    const STATUS_FOR = { approve: 'approved', reject: 'rejected', pickup: 'picked_up', received: 'received', refund: 'refunded', replace: 'replaced' };
+    const openModal = (which) => {
+        const seed = {
+            approve: { pickup_date: rr.pickup_date || today, pickup_slot: rr.pickup_slot || TIME_SLOTS[0], pickup_agent_name: rr.pickup_agent_name || '', pickup_agent_phone: rr.pickup_agent_phone || '' },
+            reject: { rejection_reason: '' },
+            pickup: { picked_up_date: rr.picked_up_date || today, pickup_tracking_id: rr.pickup_tracking_id || '' },
+            received: { received_date: rr.received_date || today, received_condition: rr.received_condition || 'good', received_notes: rr.received_notes || '' },
+            refund: { refund_amount: String(refundAmount), refund_date: today, refund_reference: '' },
+            replace: { replacement_sku: rr.replacement_sku || '', replacement_courier: rr.replacement_courier || '', replacement_tracking_id: rr.replacement_tracking_id || '' },
+        }[which] || {};
+        setForm(seed);
+        setStageFiles([]);
+        setError('');
+        setModal(which);
+    };
+    const submitModal = async () => {
+        setSubmitting(true);
+        setError('');
+        try {
+            if ((modal === 'received' || modal === 'pickup') && stageFiles.length) {
+                const endpoint = modal === 'pickup' ? 'upload_pickup_images' : 'upload_received_images';
+                const fd = new FormData();
+                stageFiles.forEach(f => fd.append('photos', f));
+                await apiClient.post(`/sales/return-requests/${returnId}/${endpoint}/`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+            }
+            const payload = { ...form, status: STATUS_FOR[modal] };
+            if (modal === 'refund') payload.refund_amount = parseFloat(form.refund_amount) || refundAmount;
+            const res = await apiClient.patch(`/sales/return-requests/${returnId}/`, payload);
+            setRr(res.data);
+            setModal(null);
+        } catch {
+            setError('Action failed. Please try again.');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
     /* Sequential lifecycle — the current step carries the action that advances it,
-       mirroring the order-details stepper. */
+       mirroring the order-details stepper. Each action opens a form modal. */
     const lifecycle = [
-        { label: 'Return Requested', sub: `Customer submitted on ${rr.created_at ? new Date(rr.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}` },
+        { label: 'Return Requested', sub: `Customer submitted on ${fmtD(rr.created_at) || '—'}` },
         {
             label: rejected ? 'Rejected' : 'Under Review',
-            sub: rejected ? 'Request was rejected by admin' : 'Admin review in progress',
-            action: { label: '✓ Approve & Schedule Pickup', primary: true, onClick: () => patch({ status: 'approved' }) },
-            secondary: { label: '✕ Reject Request', danger: true, onClick: () => patch({ status: 'rejected' }) },
+            sub: rejected ? (rr.rejection_reason || 'Request was rejected by admin') : 'Admin review in progress',
+            action: { label: '✓ Approve & Schedule Pickup', primary: true, onClick: () => openModal('approve') },
+            secondary: { label: '✕ Reject Request', danger: true, onClick: () => openModal('reject') },
         },
         {
-            label: 'Pickup Scheduled', sub: 'Courier assigned, pickup date set',
-            action: { label: 'Mark as Picked Up', onClick: () => patch({ status: 'picked_up' }) },
+            label: 'Pickup Scheduled',
+            sub: rr.pickup_date
+                ? `Pickup ${fmtD(rr.pickup_date)}${rr.pickup_slot ? `, ${rr.pickup_slot}` : ''}${rr.pickup_agent_name ? ` · ${rr.pickup_agent_name}${rr.pickup_agent_phone ? ` (${rr.pickup_agent_phone})` : ''}` : ''}`
+                : 'Courier assigned, pickup date set',
+            action: { label: 'Mark as Picked Up', onClick: () => openModal('pickup') },
+            extra: (rr.pickup_images && rr.pickup_images.length > 0) ? (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+                    {rr.pickup_images.map((src, k) => (
+                        <a key={k} href={src} target="_blank" rel="noreferrer">
+                            <img src={src} alt={`pickup ${k + 1}`} style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 8, border: '1px solid #E5E7EB' }} />
+                        </a>
+                    ))}
+                </div>
+            ) : null,
         },
         {
-            label: 'Item Received', sub: 'Warehouse confirms item receipt',
-            action: { label: 'Mark as Item Received', onClick: () => patch({ status: 'received' }) },
+            label: 'Item Received',
+            sub: rr.received_date
+                ? `Received ${fmtD(rr.received_date)}${rr.received_condition ? ` · ${conditionLabel(rr.received_condition)}` : ''}`
+                : 'Warehouse confirms item receipt',
+            action: { label: 'Mark as Item Received', onClick: () => openModal('received') },
+            extra: (rr.received_notes || (rr.received_images && rr.received_images.length > 0)) ? (
+                <div style={{ marginTop: 10 }}>
+                    {rr.received_notes && <div style={{ fontSize: 12, color: '#374151', background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 8, padding: '8px 10px', marginBottom: 8, whiteSpace: 'pre-wrap' }}>{rr.received_notes}</div>}
+                    {rr.received_images && rr.received_images.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                            {rr.received_images.map((src, k) => (
+                                <a key={k} href={src} target="_blank" rel="noreferrer">
+                                    <img src={src} alt={`received ${k + 1}`} style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 8, border: '1px solid #E5E7EB' }} />
+                                </a>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            ) : null,
         },
         {
             label: isRefund ? 'Refund Processed' : 'Replacement Shipped',
-            sub: isRefund ? 'Amount credited back to customer' : 'Replacement dispatched to customer',
+            sub: isRefund
+                ? (rr.refund_reference ? `Ref ${rr.refund_reference}` : 'Amount credited back to customer')
+                : (rr.replacement_tracking_id ? `${rr.replacement_courier ? `${rr.replacement_courier} · ` : ''}${rr.replacement_tracking_id}` : 'Replacement dispatched to customer'),
             action: isRefund
-                ? { label: `Process Refund  ₹${refundAmount.toLocaleString('en-IN')}`, primary: true, onClick: () => patch({ status: 'refunded', refund_amount: orderTotal, refund_date: today }) }
-                : { label: 'Mark as Replaced', primary: true, onClick: () => patch({ status: 'replaced' }) },
+                ? { label: `Process Refund  ₹${refundAmount.toLocaleString('en-IN')}`, primary: true, onClick: () => openModal('refund') }
+                : { label: 'Mark as Replaced', primary: true, onClick: () => openModal('replace') },
         },
     ];
 
@@ -277,6 +361,7 @@ const ReturnRequestDetail = () => {
                                                     )}
                                                 </div>
                                             )}
+                                            {step.extra}
                                         </div>
                                     </div>
                                 );
@@ -358,6 +443,148 @@ const ReturnRequestDetail = () => {
                     </Card>
                 </div>
             </div>
+
+            {modal && (() => {
+                const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+                const TITLES = { approve: 'Approve & Schedule Pickup', reject: 'Reject Return Request', pickup: 'Mark as Picked Up', received: 'Mark as Item Received', refund: 'Process Refund', replace: 'Mark as Replaced' };
+                const SUBS = {
+                    approve: 'Confirm the pickup schedule — the agent details are shared with the customer.',
+                    reject: 'Let the team know why this request was declined.',
+                    pickup: 'Record that the courier has collected the item.',
+                    received: 'Log the condition and upload photos of the returned item.',
+                    refund: 'Confirm the payout so the return is marked complete.',
+                    replace: 'Record the replacement shipment details.',
+                };
+                const SUBMIT = { approve: 'Approve & Schedule', reject: 'Reject Request', pickup: 'Confirm Pickup', received: 'Confirm Receipt', refund: 'Mark Refund Processed', replace: 'Mark as Replaced' };
+                const inp = { width: '100%', boxSizing: 'border-box', height: 40, border: '1px solid #E5E7EB', borderRadius: 8, padding: '0 12px', fontFamily: 'Roboto, sans-serif', fontSize: 14, color: '#040205', outline: 'none', background: '#fff' };
+                const lbl = { fontSize: 12, color: '#6B7280', marginBottom: 6, display: 'block', fontWeight: 500 };
+                const fieldWrap = { marginBottom: 14 };
+                const ta = { ...inp, height: 'auto', minHeight: 72, padding: '10px 12px', resize: 'vertical' };
+                const dest = rr.refund_account_number
+                    ? `${rr.refund_account_name}${rr.refund_bank_name ? ` · ${rr.refund_bank_name}` : ''} · A/C ${rr.refund_account_number} · IFSC ${rr.refund_ifsc}`
+                    : 'Original payment method';
+                const canSubmit = modal === 'reject' ? !!(form.rejection_reason || '').trim() : true;
+
+                return (
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}
+                        onClick={(e) => e.target === e.currentTarget && !submitting && setModal(null)}>
+                        <div style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 460, maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: 'Roboto, sans-serif' }}>
+                            <div style={{ padding: '18px 22px', borderBottom: '1px solid #EFEFEF' }}>
+                                <div style={{ fontSize: 16, fontWeight: 700, color: '#040205' }}>{TITLES[modal]}</div>
+                                <div style={{ fontSize: 12.5, color: '#6B7280', marginTop: 3 }}>{SUBS[modal]}</div>
+                            </div>
+
+                            <div style={{ padding: '18px 22px', overflowY: 'auto' }}>
+                                {modal === 'approve' && (<>
+                                    <div style={fieldWrap}><label style={lbl}>Pickup date</label>
+                                        <input type="date" style={inp} value={form.pickup_date || ''} onChange={e => set('pickup_date', e.target.value)} /></div>
+                                    <div style={fieldWrap}><label style={lbl}>Time slot</label>
+                                        <select style={inp} value={form.pickup_slot || ''} onChange={e => set('pickup_slot', e.target.value)}>
+                                            {TIME_SLOTS.map(s => <option key={s} value={s}>{s}</option>)}
+                                        </select></div>
+                                    <div style={fieldWrap}><label style={lbl}>Pickup agent name</label>
+                                        <input style={inp} placeholder="e.g. Rakesh" value={form.pickup_agent_name || ''} onChange={e => set('pickup_agent_name', e.target.value)} /></div>
+                                    <div style={fieldWrap}><label style={lbl}>Agent phone</label>
+                                        <input style={inp} placeholder="+91-9876543210" value={form.pickup_agent_phone || ''} onChange={e => set('pickup_agent_phone', e.target.value)} /></div>
+                                </>)}
+
+                                {modal === 'reject' && (
+                                    <div style={fieldWrap}><label style={lbl}>Reason for rejection</label>
+                                        <textarea style={ta} placeholder="e.g. Outside the return window / signs of misuse" value={form.rejection_reason || ''} onChange={e => set('rejection_reason', e.target.value)} /></div>
+                                )}
+
+                                {modal === 'pickup' && (<>
+                                    <div style={fieldWrap}><label style={lbl}>Picked-up date</label>
+                                        <input type="date" style={inp} value={form.picked_up_date || ''} onChange={e => set('picked_up_date', e.target.value)} /></div>
+                                    <div style={fieldWrap}><label style={lbl}>Return AWB / tracking ID</label>
+                                        <input style={inp} placeholder="e.g. AWB123456789" value={form.pickup_tracking_id || ''} onChange={e => set('pickup_tracking_id', e.target.value)} /></div>
+                                    <div style={fieldWrap}><label style={lbl}>Photo of item handed to driver <span style={{ color: '#9CA3AF', fontWeight: 400 }}>(up to 8)</span></label>
+                                        <input type="file" accept="image/*" multiple onChange={e => setStageFiles(prev => [...prev, ...Array.from(e.target.files)].slice(0, 8))} style={{ fontSize: 13 }} />
+                                        {stageFiles.length > 0 && (
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+                                                {stageFiles.map((f, k) => (
+                                                    <div key={k} style={{ position: 'relative' }}>
+                                                        <img src={URL.createObjectURL(f)} alt={`upload ${k + 1}`} style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 8, border: '1px solid #E5E7EB' }} />
+                                                        <button onClick={() => setStageFiles(files => files.filter((_, i) => i !== k))}
+                                                            style={{ position: 'absolute', top: -6, right: -6, width: 18, height: 18, borderRadius: 9, border: 'none', background: '#DC2626', color: '#fff', fontSize: 11, cursor: 'pointer', lineHeight: 1 }}>✕</button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}</div>
+                                </>)}
+
+                                {modal === 'received' && (<>
+                                    <div style={fieldWrap}><label style={lbl}>Received date</label>
+                                        <input type="date" style={inp} value={form.received_date || ''} onChange={e => set('received_date', e.target.value)} /></div>
+                                    <div style={fieldWrap}><label style={lbl}>Condition on arrival</label>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                            {CONDITIONS.map(c => (
+                                                <div key={c.value} onClick={() => set('received_condition', c.value)}
+                                                    style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '10px 12px', border: `1px solid ${form.received_condition === c.value ? purple : '#E5E7EB'}`, borderRadius: 8, cursor: 'pointer', background: form.received_condition === c.value ? '#F9F5FF' : '#fff' }}>
+                                                    <div style={{ width: 16, height: 16, borderRadius: 8, border: `2px solid ${form.received_condition === c.value ? purple : '#D1D5DB'}`, marginTop: 2, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                        {form.received_condition === c.value && <div style={{ width: 8, height: 8, borderRadius: 4, background: purple }} />}
+                                                    </div>
+                                                    <div>
+                                                        <div style={{ fontSize: 13, fontWeight: 500, color: '#040205' }}>{c.label}</div>
+                                                        <div style={{ fontSize: 12, color: '#6B7280' }}>{c.desc}</div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div></div>
+                                    <div style={fieldWrap}><label style={lbl}>Inspection notes</label>
+                                        <textarea style={ta} placeholder="Any observations about the returned item…" value={form.received_notes || ''} onChange={e => set('received_notes', e.target.value)} /></div>
+                                    <div style={fieldWrap}><label style={lbl}>Photos of received item <span style={{ color: '#9CA3AF', fontWeight: 400 }}>(up to 8)</span></label>
+                                        <input type="file" accept="image/*" multiple onChange={e => setStageFiles(prev => [...prev, ...Array.from(e.target.files)].slice(0, 8))} style={{ fontSize: 13 }} />
+                                        {stageFiles.length > 0 && (
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+                                                {stageFiles.map((f, k) => (
+                                                    <div key={k} style={{ position: 'relative' }}>
+                                                        <img src={URL.createObjectURL(f)} alt={`upload ${k + 1}`} style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 8, border: '1px solid #E5E7EB' }} />
+                                                        <button onClick={() => setStageFiles(files => files.filter((_, i) => i !== k))}
+                                                            style={{ position: 'absolute', top: -6, right: -6, width: 18, height: 18, borderRadius: 9, border: 'none', background: '#DC2626', color: '#fff', fontSize: 11, cursor: 'pointer', lineHeight: 1 }}>✕</button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}</div>
+                                </>)}
+
+                                {modal === 'refund' && (<>
+                                    <div style={{ ...fieldWrap, background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 8, padding: '10px 12px' }}>
+                                        <div style={{ fontSize: 11, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4 }}>Refund To</div>
+                                        <div style={{ fontSize: 13, color: '#040205' }}>{dest}</div>
+                                    </div>
+                                    <div style={fieldWrap}><label style={lbl}>Refund amount (₹)</label>
+                                        <input type="number" min="0" step="0.01" style={inp} value={form.refund_amount || ''} onChange={e => set('refund_amount', e.target.value)} /></div>
+                                    <div style={fieldWrap}><label style={lbl}>Refund date</label>
+                                        <input type="date" style={inp} value={form.refund_date || ''} onChange={e => set('refund_date', e.target.value)} /></div>
+                                    <div style={fieldWrap}><label style={lbl}>Payout reference / UTR</label>
+                                        <input style={inp} placeholder="e.g. UTR / transaction id of the transfer" value={form.refund_reference || ''} onChange={e => set('refund_reference', e.target.value)} /></div>
+                                </>)}
+
+                                {modal === 'replace' && (<>
+                                    <div style={fieldWrap}><label style={lbl}>Replacement SKU</label>
+                                        <input style={inp} placeholder="Variant / SKU being shipped" value={form.replacement_sku || ''} onChange={e => set('replacement_sku', e.target.value)} /></div>
+                                    <div style={fieldWrap}><label style={lbl}>Courier</label>
+                                        <input style={inp} placeholder="e.g. Delhivery, DTDC" value={form.replacement_courier || ''} onChange={e => set('replacement_courier', e.target.value)} /></div>
+                                    <div style={fieldWrap}><label style={lbl}>Tracking ID</label>
+                                        <input style={inp} placeholder="e.g. AWB987654321" value={form.replacement_tracking_id || ''} onChange={e => set('replacement_tracking_id', e.target.value)} /></div>
+                                </>)}
+
+                                {error && <div style={{ fontSize: 13, color: '#B42318', marginTop: 4 }}>{error}</div>}
+                            </div>
+
+                            <div style={{ padding: '14px 22px', borderTop: '1px solid #EFEFEF', display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                                <button onClick={() => !submitting && setModal(null)} style={{ ...ghostBtn, height: 40 }}>Cancel</button>
+                                <button onClick={submitModal} disabled={submitting || !canSubmit}
+                                    style={{ height: 40, padding: '0 20px', borderRadius: 8, border: 'none', background: modal === 'reject' ? '#DC2626' : purple, color: '#fff', fontSize: 14, fontWeight: 600, cursor: (submitting || !canSubmit) ? 'not-allowed' : 'pointer', opacity: (submitting || !canSubmit) ? 0.6 : 1 }}>
+                                    {submitting ? 'Saving…' : SUBMIT[modal]}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
+
         </div>
     );
 };

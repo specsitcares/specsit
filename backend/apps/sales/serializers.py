@@ -172,18 +172,28 @@ class ReturnRequestNoteSerializer(serializers.ModelSerializer):
 
 class ReturnRequestSerializer(serializers.ModelSerializer):
     images = serializers.SerializerMethodField(read_only=True)
+    received_images = serializers.SerializerMethodField(read_only=True)
+    pickup_images = serializers.SerializerMethodField(read_only=True)
     notes = ReturnRequestNoteSerializer(many=True, read_only=True)
 
-    def get_images(self, obj):
-        request = self.context.get('request')
+    def _abs_urls(self, request, queryset):
         urls = []
-        for im in obj.images.all():
+        for im in queryset:
             try:
                 url = im.image.url
                 urls.append(request.build_absolute_uri(url) if request else url)
             except Exception:
                 pass
         return urls
+
+    def get_images(self, obj):
+        return self._abs_urls(self.context.get('request'), obj.images.all())
+
+    def get_received_images(self, obj):
+        return self._abs_urls(self.context.get('request'), obj.received_images.all())
+
+    def get_pickup_images(self, obj):
+        return self._abs_urls(self.context.get('request'), obj.pickup_images.all())
 
     class Meta:
         model = ReturnRequest

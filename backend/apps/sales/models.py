@@ -316,6 +316,26 @@ class ReturnRequest(models.Model):
     refund_account_number = models.CharField(max_length=34, blank=True)
     refund_ifsc = models.CharField(max_length=15, blank=True)
     refund_bank_name = models.CharField(max_length=120, blank=True)
+
+    # ── Lifecycle-stage details captured by the admin as the return progresses ──
+    # Approve & schedule pickup
+    pickup_date = models.DateField(null=True, blank=True)
+    pickup_slot = models.CharField(max_length=30, blank=True)
+    pickup_agent_name = models.CharField(max_length=100, blank=True)
+    pickup_agent_phone = models.CharField(max_length=20, blank=True)
+    rejection_reason = models.TextField(blank=True)
+    # Picked up
+    picked_up_date = models.DateField(null=True, blank=True)
+    pickup_tracking_id = models.CharField(max_length=100, blank=True)
+    # Item received & inspected
+    received_date = models.DateField(null=True, blank=True)
+    received_condition = models.CharField(max_length=30, blank=True)  # good / minor / damaged / not_as_described
+    received_notes = models.TextField(blank=True)
+    # Refund payout reference (UTR / transaction id of the transfer)
+    refund_reference = models.CharField(max_length=120, blank=True)
+    # Replacement dispatch
+    replacement_courier = models.CharField(max_length=100, blank=True)
+
     admin_notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -326,6 +346,22 @@ class ReturnRequestImage(models.Model):
     return_request = models.ForeignKey(ReturnRequest, on_delete=models.CASCADE, related_name='images')
     image = models.ImageField(upload_to='return_requests/')
     created_at = models.DateTimeField(auto_now_add=True)
+
+class ReturnReceivedImage(models.Model):
+    """Admin-uploaded photos of the item as received back at the warehouse."""
+    return_request = models.ForeignKey(ReturnRequest, on_delete=models.CASCADE, related_name='received_images')
+    image = models.ImageField(upload_to='return_received/')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self): return f"Received image for Return #{self.return_request_id}"
+
+class ReturnPickupImage(models.Model):
+    """Admin-uploaded photos of the item handed over to the pickup driver."""
+    return_request = models.ForeignKey(ReturnRequest, on_delete=models.CASCADE, related_name='pickup_images')
+    image = models.ImageField(upload_to='return_pickup/')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self): return f"Pickup image for Return #{self.return_request_id}"
 
 class ReturnRequestNote(models.Model):
     """Internal team notes on a return request — stored as a running thread (chat)."""
@@ -338,7 +374,6 @@ class ReturnRequestNote(models.Model):
         ordering = ['created_at']
 
     def __str__(self): return f"Note on Return #{self.return_request_id}"
-    def __str__(self): return f"Image for Return #{self.return_request_id}"
 
 class WarrantyClaim(models.Model):
     STATUS_CHOICES = [
