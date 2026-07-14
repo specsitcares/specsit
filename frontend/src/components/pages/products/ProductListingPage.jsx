@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import apiClient from '../../../services/api';
 import { ProductCard } from '../home/NewArrivals';
 import ContactLensListingPage from './ContactLensListingPage';
@@ -43,6 +43,90 @@ const FILTER_OPTIONS = {
 
 const ProductListingPage = () => {
     const [searchParams, setSearchParams] = useSearchParams();
+    const navigate = useNavigate();
+
+    // Replacement (exchange) mode — arrived here from the Return & Exchange flow.
+    // Only items priced at/above the original may be chosen, and each card shows a Replace button.
+    const replaceOrderId = searchParams.get('replace_order') || '';
+    const replaceMinPrice = Number(searchParams.get('min_price') || 0);
+    const replaceMode = !!replaceOrderId;
+    const [replaceModal, setReplaceModal] = useState(null); // { product, variant, price, image }
+    const [replaceStage, setReplaceStage] = useState('review'); // review | processing | done
+    const [replaceError, setReplaceError] = useState('');
+    const replaceSubmitting = replaceStage === 'processing';
+
+    // Load Razorpay once — used to collect the exchange price difference inline.
+    useEffect(() => {
+        if (!replaceMode || document.getElementById('rzp-sdk')) return;
+        const s = document.createElement('script');
+        s.id = 'rzp-sdk';
+        s.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        s.async = true;
+        document.body.appendChild(s);
+    }, [replaceMode]);
+
+    const openReplaceModal = (product, variant, price, image) => {
+        setReplaceError('');
+        setReplaceStage('review');
+        setReplaceModal({ product, variant, price: Math.round(price || 0), image });
+    };
+
+    // Saved bank account is a prerequisite for any return/exchange — if it's missing,
+    // send the customer to add one first, then return to this exact page.
+    const [bankInfo, setBankInfo] = useState(null);
+    useEffect(() => {
+        if (!replaceMode) return;
+        apiClient.get('/accounts/me/').then(r => {
+            setBankInfo(r.data);
+            if (!r.data.has_bank_account) {
+                navigate(`/account-info?next=${encodeURIComponent(window.location.pathname + window.location.search)}&reason=exchange`, { replace: true });
+            }
+        }).catch(() => {});
+    }, [replaceMode]);
+    const hasBank = !!bankInfo?.has_bank_account;
+
+    // Collect the price difference via Razorpay (mock-aware). Resolves with the full proof.
+    const payDifference = (amount) => new Promise((resolve, reject) => {
+        apiClient.post('/sales/payments/initiate/', { order_id: replaceOrderId, amount, payment_method: 'complete_online' })
+            .then(res => {
+                if (res.data.is_mock) { setTimeout(() => resolve({ payment_id: 'pay_mock', order_id: res.data.id, signature: 'sig_mock' }), 700); return; }
+                const options = {
+                    key: res.data.key, amount: res.data.amount, currency: res.data.currency,
+                    name: 'Specsit', description: `Exchange difference — ₹${amount.toLocaleString('en-IN')}`,
+                    order_id: res.data.id, theme: { color: '#68408D' },
+                    handler: (resp) => resolve({ payment_id: resp?.razorpay_payment_id, order_id: resp?.razorpay_order_id, signature: resp?.razorpay_signature }),
+                    modal: { ondismiss: () => reject(new Error('Payment was cancelled.')) },
+                };
+                new window.Razorpay(options).open();
+            })
+            .catch(() => reject(new Error('Could not start the payment. Please try again.')));
+    });
+
+    const confirmReplace = async () => {
+        if (!replaceModal) return;
+        if (!hasBank) { setReplaceError('Add a bank account in your profile before exchanging.'); return; }
+        const diff = Math.max(0, replaceModal.price - replaceMinPrice);
+        setReplaceError('');
+        setReplaceStage('processing');
+        try {
+            let pay = null;
+            if (diff > 0) pay = await payDifference(diff);
+            const fd = new FormData();
+            fd.append('request_type', 'replacement');
+            fd.append('replacement_variant_id', replaceModal.variant.id);
+            if (pay) {
+                fd.append('replacement_payment_ref', pay.payment_id || '');
+                if (pay.order_id) fd.append('replacement_payment_order_id', pay.order_id);
+                if (pay.signature) fd.append('replacement_payment_signature', pay.signature);
+            }
+            await apiClient.post(`/sales/orders/${replaceOrderId}/request_return/`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+            setReplaceStage('done');
+            setTimeout(() => navigate(`/orders/${replaceOrderId}`), 1500);
+        } catch (e) {
+            setReplaceStage('review');
+            setReplaceError(e.response?.data?.detail || e.message || 'Could not complete your exchange. Please try again.');
+        }
+    };
 
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -151,7 +235,14 @@ const ProductListingPage = () => {
 
         // Price Range → min_price / max_price (envelope of selected ranges)
         const priceRanges = (selectedFilters['Price Range'] || []).map(l => PRICE_RANGES[l]).filter(Boolean);
-        if (priceRanges.length > 0) {
+        if (replaceMode && replaceMinPrice > 0) {
+            // Exchange rule: replacement must cost the same as or more than the original.
+            const rangeMin = priceRanges.length > 0 ? Math.min(...priceRanges.map(r => r.min)) : 0;
+            params.append('min_price', Math.max(replaceMinPrice, rangeMin));
+            if (priceRanges.length > 0 && priceRanges.every(r => r.max != null)) {
+                params.append('max_price', Math.max(...priceRanges.map(r => r.max)));
+            }
+        } else if (priceRanges.length > 0) {
             params.append('min_price', Math.min(...priceRanges.map(r => r.min)));
             if (priceRanges.every(r => r.max != null)) {
                 params.append('max_price', Math.max(...priceRanges.map(r => r.max)));
@@ -721,6 +812,18 @@ const ProductListingPage = () => {
                 {/* ── Right Column: Sort + Grid ── */}
                 <section className="plp-main-content">
 
+                    {/* Replacement (exchange) mode banner */}
+                    {replaceMode && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', background: '#F4EBFF', border: '1px solid #E9D7FE', borderRadius: 10, padding: '12px 16px', marginBottom: 16 }}>
+                            <span style={{ fontSize: 20 }}>🔁</span>
+                            <div style={{ flex: 1, minWidth: 200 }}>
+                                <div style={{ fontWeight: 700, color: '#42307d', fontSize: 14 }}>Choosing a replacement</div>
+                                <div style={{ color: '#6941C6', fontSize: 12.5 }}>Only items priced ₹{replaceMinPrice.toLocaleString('en-IN')} or above are shown. Pick one and click <strong>Replace</strong>.</div>
+                            </div>
+                            <Link to={`/orders/${replaceOrderId}/return`} style={{ color: '#6941C6', fontWeight: 600, fontSize: 13 }}>← Back to Return</Link>
+                        </div>
+                    )}
+
                     {/* Applied Filters Row */}
                     {appliedPills.length > 0 && (
                         <div className="applied-filters-row">
@@ -758,7 +861,7 @@ const ProductListingPage = () => {
                             <div className="plp-product-grid">
                                 {products.map((p) => (
                                     <div key={p.id} className="reveal-on-scroll">
-                                        <ProductCard product={p} />
+                                        <ProductCard product={p} replaceCtx={replaceMode ? { minPrice: replaceMinPrice, submitting: replaceSubmitting, onReplace: openReplaceModal } : null} />
                                     </div>
                                 ))}
                             </div>
@@ -827,6 +930,102 @@ const ProductListingPage = () => {
                     </button>
                 </div>
             </div>
+
+            {/* ── Inline exchange / pay-the-difference modal ── */}
+            {replaceModal && (() => {
+                const diff = Math.max(0, replaceModal.price - replaceMinPrice);
+                const brand = (replaceModal.product.brand_name || replaceModal.product.brand_display_name || '').toUpperCase();
+                const close = () => { if (!replaceSubmitting) { setReplaceModal(null); setReplaceError(''); } };
+                const money = (v) => `₹${Number(v || 0).toLocaleString('en-IN')}`;
+                return (
+                    <div onClick={(e) => e.target === e.currentTarget && close()}
+                        style={{ position: 'fixed', inset: 0, background: 'rgba(20,12,30,0.55)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, padding: 16, fontFamily: 'Roboto, sans-serif' }}>
+                        <div style={{ background: '#fff', borderRadius: 20, width: '100%', maxWidth: 440, overflow: 'hidden', boxShadow: '0 24px 60px rgba(0,0,0,0.28)' }}>
+                            {replaceStage === 'done' ? (
+                                <div style={{ padding: '44px 28px', textAlign: 'center' }}>
+                                    <div style={{ width: 68, height: 68, borderRadius: 34, background: '#ECFDF3', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px' }}>
+                                        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                                    </div>
+                                    <h3 style={{ margin: '0 0 8px', fontSize: 20, fontWeight: 700, color: '#101828' }}>Exchange confirmed!</h3>
+                                    <p style={{ margin: 0, fontSize: 14, color: '#667085', lineHeight: 1.5 }}>Your replacement request has been sent to our team. Redirecting you to your order…</p>
+                                </div>
+                            ) : (
+                                <>
+                                    {/* Header */}
+                                    <div style={{ padding: '20px 24px 14px', borderBottom: '1px solid #F0EEF4' }}>
+                                        <div style={{ fontSize: 18, fontWeight: 700, color: '#101828' }}>Complete your exchange</div>
+                                        <div style={{ fontSize: 13, color: '#667085', marginTop: 2 }}>Review your new pick{diff > 0 ? ' and pay the small price difference' : ' — this one’s an even swap'}.</div>
+                                    </div>
+
+                                    {/* Body */}
+                                    <div style={{ padding: '18px 24px' }}>
+                                        {/* New item */}
+                                        <div style={{ display: 'flex', gap: 14, alignItems: 'center', padding: 12, border: '1px solid #EAE7F0', borderRadius: 14, background: '#FBFAFE' }}>
+                                            <div style={{ width: 66, height: 66, borderRadius: 12, overflow: 'hidden', background: '#F3F4F6', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                {replaceModal.image ? <img src={replaceModal.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: 26 }}>👓</span>}
+                                            </div>
+                                            <div style={{ minWidth: 0, flex: 1 }}>
+                                                {brand && <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.6, color: '#8A5CD1' }}>{brand}</div>}
+                                                <div style={{ fontSize: 15, fontWeight: 600, color: '#101828', lineHeight: 1.25 }}>{replaceModal.product.title}</div>
+                                                <div style={{ fontSize: 15, fontWeight: 700, color: '#101828', marginTop: 3 }}>{money(replaceModal.price)}</div>
+                                            </div>
+                                        </div>
+
+                                        {/* Price breakdown */}
+                                        <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5, color: '#667085' }}>
+                                                <span>Your current item</span><span>{money(replaceMinPrice)}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5, color: '#667085' }}>
+                                                <span>New item</span><span>{money(replaceModal.price)}</span>
+                                            </div>
+                                            <div style={{ height: 1, background: '#F0EEF4' }} />
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ fontSize: 14, fontWeight: 700, color: '#101828' }}>{diff > 0 ? 'Amount to pay now' : 'Amount to pay now'}</span>
+                                                <span style={{ fontSize: 18, fontWeight: 800, color: diff > 0 ? '#68408D' : '#16A34A' }}>{diff > 0 ? money(diff) : 'Free'}</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Bank account is required for any return/exchange */}
+                                        {!hasBank && (
+                                            <div style={{ marginTop: 16, background: '#FFFAEB', border: '1px solid #FEDF89', borderRadius: 12, padding: '12px 14px' }}>
+                                                <div style={{ fontSize: 13, fontWeight: 700, color: '#B54708' }}>Add a bank account to continue</div>
+                                                <div style={{ fontSize: 12, color: '#B54708', marginTop: 2 }}>Returns &amp; exchanges need a bank account on file (used for refunds). <Link to="/account-info" style={{ color: '#68408D', fontWeight: 700 }}>Add bank account →</Link></div>
+                                            </div>
+                                        )}
+
+                                        {/* Payment method (only when there's a difference) */}
+                                        {hasBank && diff > 0 && (
+                                            <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', border: '2px solid #68408D', borderRadius: 12, background: '#F9F5FF' }}>
+                                                <div style={{ width: 18, height: 18, borderRadius: 9, border: '2px solid #68408D', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                    <div style={{ width: 9, height: 9, borderRadius: 5, background: '#68408D' }} />
+                                                </div>
+                                                <div style={{ flex: 1 }}>
+                                                    <div style={{ fontSize: 13.5, fontWeight: 600, color: '#101828' }}>Pay online (UPI / Card / Netbanking)</div>
+                                                    <div style={{ fontSize: 11.5, color: '#667085' }}>Secured by Razorpay · 100% encrypted</div>
+                                                </div>
+                                                <span style={{ fontSize: 18 }}>🔒</span>
+                                            </div>
+                                        )}
+
+                                        {replaceError && <div style={{ marginTop: 14, background: '#FEF3F2', border: '1px solid #FECDCA', color: '#B42318', borderRadius: 8, padding: '9px 12px', fontSize: 12.5 }}>{replaceError}</div>}
+                                    </div>
+
+                                    {/* Footer */}
+                                    <div style={{ padding: '14px 24px 20px', display: 'flex', gap: 10 }}>
+                                        <button onClick={close} disabled={replaceSubmitting}
+                                            style={{ flex: '0 0 auto', height: 46, padding: '0 18px', borderRadius: 12, border: '1px solid #E5E7EB', background: '#fff', color: '#344054', fontSize: 14, fontWeight: 600, cursor: replaceSubmitting ? 'not-allowed' : 'pointer' }}>Cancel</button>
+                                        <button onClick={confirmReplace} disabled={replaceSubmitting || !hasBank}
+                                            style={{ flex: 1, height: 46, borderRadius: 12, border: 'none', background: (replaceSubmitting || !hasBank) ? '#D6BBFB' : 'linear-gradient(135deg,#68408D,#8A5CD1)', color: '#fff', fontSize: 14.5, fontWeight: 700, cursor: (replaceSubmitting || !hasBank) ? 'not-allowed' : 'pointer', opacity: replaceSubmitting ? 0.75 : 1 }}>
+                                            {replaceSubmitting ? 'Processing…' : diff > 0 ? `Pay ${money(diff)} & Confirm` : 'Confirm Exchange'}
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                );
+            })()}
 
             {/* Virtual try-on (opened from the "View 3D" action) */}
             <VTOModal

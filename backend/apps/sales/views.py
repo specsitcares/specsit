@@ -716,6 +716,16 @@ class OrderViewSet(viewsets.ModelViewSet):
             return Response({'detail': 'Returns can only be requested for delivered orders.'},
                             status=status.HTTP_400_BAD_REQUEST)
 
+        # A saved bank account is required for ANY return or exchange: refunds are paid
+        # to it, and an exchange may still need a refund fallback if the swap is rejected.
+        from apps.accounts.models import UserProfile
+        profile = UserProfile.objects.filter(user=request.user).first()
+        if not profile or not profile.has_bank_account:
+            return Response(
+                {'detail': 'Please add a bank account in your Account Information before requesting a return or exchange.',
+                 'code': 'bank_account_required'},
+                status=status.HTTP_400_BAD_REQUEST)
+
         request_type = request.data.get('request_type')
         reason = request.data.get('reason')
         description = (request.data.get('description') or '').strip()
@@ -724,7 +734,9 @@ class OrderViewSet(viewsets.ModelViewSet):
         if request_type not in ('refund', 'replacement'):
             return Response({'detail': 'request_type must be "refund" or "replacement".'},
                             status=status.HTTP_400_BAD_REQUEST)
-        if reason not in valid_reasons:
+        if request_type == 'replacement' and reason not in valid_reasons:
+            reason = 'other'  # browse-catalog exchange has no reason picker
+        elif reason not in valid_reasons:
             return Response({'detail': 'Please choose a valid reason.'},
                             status=status.HTTP_400_BAD_REQUEST)
 
@@ -733,19 +745,59 @@ class OrderViewSet(viewsets.ModelViewSet):
             return Response({'detail': 'A return or exchange request already exists for this order.'},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        # Refund destination. Online-only orders refund to the original instrument.
-        # COD / partial orders were (wholly or partly) paid in cash, so the refund is
-        # paid out to the customer's saved bank account. Snapshot it onto the request
-        # so the admin has it even if the customer later edits their profile.
+        # Browse-catalog replacement: the customer picked a specific new variant.
+        # Enforce same-or-higher price and snapshot the choice + price difference.
+        replacement_fields = {}
+        if request_type == 'replacement' and request.data.get('replacement_variant_id'):
+            from apps.catalog.models import Variant
+            rv = Variant.objects.filter(id=request.data.get('replacement_variant_id')).first()
+            if not rv:
+                return Response({'detail': 'Selected replacement product was not found.'},
+                                status=status.HTTP_400_BAD_REQUEST)
+            new_price = float(rv.selling_price or rv.base_price or 0)
+            orig_item = order.items.first()
+            orig_price = float((getattr(orig_item, 'price_at_purchase', 0) or 0)
+                               or (getattr(orig_item, 'unit_price', 0) or 0))
+            if new_price + 0.01 < orig_price:
+                return Response({'detail': 'The replacement item must cost the same as or more than the original item.'},
+                                status=status.HTTP_400_BAD_REQUEST)
+            diff = round(new_price - orig_price, 2)
+            pay_id = (request.data.get('replacement_payment_ref') or '').strip()
+            # An upgrade must be paid for. Verify the Razorpay payment before accepting
+            # so the difference can't be skipped by calling the API directly.
+            if diff > 0.01:
+                from .payment_views import _get_razorpay_client
+                config, is_live = _get_razorpay_client()
+                if not pay_id:
+                    return Response({'detail': 'Please complete the payment for the price difference.'},
+                                    status=status.HTTP_400_BAD_REQUEST)
+                if is_live:
+                    rzp_order = (request.data.get('replacement_payment_order_id') or '').strip()
+                    rzp_sig = (request.data.get('replacement_payment_signature') or '').strip()
+                    if not (rzp_order and rzp_sig):
+                        return Response({'detail': 'Payment could not be verified. Please try again.'},
+                                        status=status.HTTP_400_BAD_REQUEST)
+                    try:
+                        import razorpay
+                        razorpay.Client(auth=(config.key_id, config.key_secret)).utility.verify_payment_signature({
+                            'razorpay_order_id': rzp_order,
+                            'razorpay_payment_id': pay_id,
+                            'razorpay_signature': rzp_sig,
+                        })
+                    except Exception:
+                        return Response({'detail': 'Payment verification failed. Please try again.'},
+                                        status=status.HTTP_400_BAD_REQUEST)
+            replacement_fields = {
+                'replacement_variant': rv,
+                'replacement_sku': getattr(rv, 'sku', '') or '',
+                'replacement_price_difference': max(0, diff),
+                'replacement_payment_ref': pay_id[:120],
+            }
+
+        # Refund destination — snapshot the saved bank account (guaranteed present by
+        # the gate above) for COD/partial orders that have no original online instrument.
         refund_fields = {}
         if request_type == 'refund' and order.payment_method not in ('complete_online', 'ONLINE'):
-            from apps.accounts.models import UserProfile
-            profile = UserProfile.objects.filter(user=request.user).first()
-            if not profile or not profile.has_bank_account:
-                return Response(
-                    {'detail': 'Please add a bank account in your Account Information before requesting a refund on a Cash on Delivery order.',
-                     'code': 'bank_account_required'},
-                    status=status.HTTP_400_BAD_REQUEST)
             refund_fields = {
                 'refund_account_name': profile.bank_account_name,
                 'refund_account_number': profile.bank_account_number,
@@ -763,7 +815,11 @@ class OrderViewSet(viewsets.ModelViewSet):
             replacement_sku=(request.data.get('replacement_sku') or '') if request_type == 'replacement' else '',
             **refund_fields,
         )
-        if request_type == 'replacement':
+        if replacement_fields:
+            for k, v in replacement_fields.items():
+                setattr(rr, k, v)
+            rr.save(update_fields=list(replacement_fields.keys()))
+        elif request_type == 'replacement':
             try:
                 diff = float(request.data.get('replacement_price_difference') or 0)
                 if diff > 0:
@@ -1330,6 +1386,55 @@ class ReturnRequestViewSet(viewsets.ModelViewSet):
         if order_id:
             qs = qs.filter(order_id=order_id)
         return qs.order_by('-created_at')
+
+    def perform_update(self, serializer):
+        old_status = serializer.instance.status
+        rr = serializer.save()
+        # When the admin ships the replacement, spawn a real order that enters the
+        # normal order lifecycle (only once, and only for a browse-catalog exchange
+        # that has a concrete replacement variant).
+        if rr.status == 'replaced' and old_status != 'replaced':
+            self._spawn_replacement_order(rr)
+
+    def _spawn_replacement_order(self, rr):
+        from .models import Order, OrderItem
+        from apps.catalog.core.models import MetadataGroup, MetadataItem as MI
+        if rr.replacement_order_id or not rr.replacement_variant_id:
+            return
+        original = rr.order
+        variant = rr.replacement_variant
+        price = variant.selling_price or variant.base_price or 0
+        with transaction.atomic():
+            new_order = Order.objects.create(
+                user=original.user,
+                total_amount=price, paid_amount=price, balance_amount=0, subtotal=price,
+                payment_method=original.payment_method or 'complete_online',
+                payment_status='paid', order_status='confirmed',
+                shipping_address=original.shipping_address,
+                billing_address=original.billing_address,
+                shipping_address_line=original.shipping_address_line,
+                shipping_city=original.shipping_city,
+                shipping_state=original.shipping_state,
+                shipping_postal_code=original.shipping_postal_code,
+            )
+            OrderItem.objects.create(
+                order=new_order, variant=variant, quantity=1,
+                unit_price=price, item_total=price, price_at_purchase=price, status='confirmed',
+            )
+            grp, _ = MetadataGroup.objects.get_or_create(name='Order Status')
+            meta, _ = MI.objects.get_or_create(group=grp, label='Confirmed',
+                                                defaults={'value': 'confirmed', 'is_active': True})
+            new_order.status = meta
+            new_order.save(update_fields=['status'])
+            # Reserve one unit of the replacement variant if stock is tracked.
+            try:
+                if variant.stock is not None:
+                    variant.stock = max(0, variant.stock - 1)
+                    variant.save(update_fields=['stock'])
+            except Exception:
+                pass
+            rr.replacement_order = new_order
+            rr.save(update_fields=['replacement_order'])
 
     @action(detail=True, methods=['post'])
     def add_note(self, request, pk=None):

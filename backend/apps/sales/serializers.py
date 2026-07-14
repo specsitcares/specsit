@@ -174,7 +174,32 @@ class ReturnRequestSerializer(serializers.ModelSerializer):
     images = serializers.SerializerMethodField(read_only=True)
     received_images = serializers.SerializerMethodField(read_only=True)
     pickup_images = serializers.SerializerMethodField(read_only=True)
+    replacement_variant_detail = serializers.SerializerMethodField(read_only=True)
     notes = ReturnRequestNoteSerializer(many=True, read_only=True)
+
+    def get_replacement_variant_detail(self, obj):
+        v = obj.replacement_variant
+        if not v:
+            return None
+        request = self.context.get('request')
+        img = None
+        try:
+            first = v.images.first()
+            if first and first.image:
+                img = request.build_absolute_uri(first.image.url) if request else first.image.url
+        except Exception:
+            pass
+        product = getattr(v, 'product', None)
+        colour = getattr(v, 'color', None) or getattr(v, 'frame_color', None)
+        name = (getattr(product, 'title', '') or 'Product') + (f" · {colour}" if colour else '')
+        return {
+            'id': v.id,
+            'sku': getattr(v, 'sku', '') or '',
+            'name': name,
+            'price': float(v.selling_price or v.base_price or 0),
+            'image': img,
+            'product_id': getattr(product, 'id', None),
+        }
 
     def _abs_urls(self, request, queryset):
         urls = []

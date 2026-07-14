@@ -369,6 +369,9 @@ const ReturnRequestDetail = () => {
                             {(['refunded', 'replaced'].includes(rr.status)) && (
                                 <div style={{ marginTop: 4, background: '#DCFCE7', color: '#16A34A', borderRadius: 8, padding: '10px 14px', fontSize: 13, fontWeight: 500 }}>
                                     ✓ This return is complete — {isRefund ? `refund of ₹${refundAmount.toLocaleString('en-IN')} processed` : 'replacement shipped'}.
+                                    {rr.replacement_order && (
+                                        <span> A new order <button onClick={() => navigate(`/admin/orders/${rr.replacement_order}`)} style={{ background: 'none', border: 'none', padding: 0, color: '#15803D', fontWeight: 700, textDecoration: 'underline', cursor: 'pointer' }}>#LO-{String(rr.replacement_order).padStart(7, '0')}</button> was created and is now in the orders pipeline.</span>
+                                    )}
                                 </div>
                             )}
                             {rejected && (

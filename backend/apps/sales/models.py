@@ -337,6 +337,12 @@ class ReturnRequest(models.Model):
     replacement_courier = models.CharField(max_length=100, blank=True)
     # Extra amount the customer paid when exchanging for a pricier item (upgrade)
     replacement_price_difference = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    # Razorpay payment reference for the difference the customer paid inline at exchange time
+    replacement_payment_ref = models.CharField(max_length=120, blank=True)
+    # The catalog variant the customer chose as the replacement (browse flow)
+    replacement_variant = models.ForeignKey('catalog.Variant', null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
+    # The fresh order spawned when the admin ships the replacement (enters normal lifecycle)
+    replacement_order = models.ForeignKey('Order', null=True, blank=True, on_delete=models.SET_NULL, related_name='source_returns')
 
     admin_notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

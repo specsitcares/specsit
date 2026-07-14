@@ -32,7 +32,7 @@ const HeartIcon = ({ filled }) => (
   </svg>
 );
 
-const ProductCard = ({ product }) => {
+const ProductCard = ({ product, replaceCtx = null }) => {
   if (!product) return null;
 
   const { user } = useAuth();
@@ -224,6 +224,21 @@ const ProductCard = ({ product }) => {
           <span className="product-card__bolt">⚡</span>
           <span className="product-card__delivery-text">Get delivery in 1-2 hours across Hyderabad</span>
         </div>
+
+        {/* Replace button — only in exchange/replacement browse mode */}
+        {replaceCtx && (() => {
+          const canReplace = salePrice >= (replaceCtx.minPrice || 0);
+          return (
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (canReplace && !replaceCtx.submitting) replaceCtx.onReplace(product, selectedVariant, salePrice, images[0] || product.main_image); }}
+              disabled={!canReplace || replaceCtx.submitting}
+              style={{ marginTop: 12, width: '100%', height: 42, borderRadius: 8, border: 'none', background: canReplace ? '#68408D' : '#E5E7EB', color: canReplace ? '#fff' : '#98A2B3', fontWeight: 700, fontSize: 13, cursor: (canReplace && !replaceCtx.submitting) ? 'pointer' : 'not-allowed' }}
+            >
+              {replaceCtx.submitting ? 'Submitting…' : canReplace ? 'Replace with this' : `Needs ₹${(replaceCtx.minPrice || 0).toLocaleString('en-IN')}+`}
+            </button>
+          );
+        })()}
       </div>
     </Link>
   );

@@ -62,9 +62,16 @@ const ReturnExchangePage = () => {
       })
       .catch(() => {})
       .finally(() => { if (alive) setLoading(false); });
-    // Saved bank account — used as the refund destination for COD orders
+    // A saved bank account is a prerequisite for any return/exchange — send the
+    // customer to add one first, then bring them right back here.
     apiClient.get('/accounts/me/')
-      .then(res => { if (alive) setBankInfo(res.data); })
+      .then(res => {
+        if (!alive) return;
+        setBankInfo(res.data);
+        if (!res.data.has_bank_account) {
+          navigate(`/account-info?next=${encodeURIComponent(`/orders/${orderId}/return`)}&reason=return`, { replace: true });
+        }
+      })
       .catch(() => {});
     return () => { alive = false; };
   }, [orderId]);
@@ -173,8 +180,8 @@ const ReturnExchangePage = () => {
 
   const handleSubmit = async () => {
     if (!isDelivered) { setError('Returns & exchanges are available only after delivery.'); return; }
-    if (needsRefundDestination && !hasBankAccount) {
-      setError('Please add a bank account in Account Information before requesting a refund for this Cash on Delivery order.');
+    if (!hasBankAccount) {
+      setError('Please add a bank account in your Account Information before requesting a return or exchange.');
       return;
     }
     const chosen = REASONS.find(r => r.id === reasonId);
@@ -270,6 +277,16 @@ const ReturnExchangePage = () => {
                   </div>
                 )}
 
+                {/* Bank account is required for any return or exchange */}
+                {!hasBankAccount && (
+                  <div className="rx-policy" style={{ background: '#fffaeb', borderColor: '#fedf89' }}>
+                    <p className="rx-policy-title" style={{ color: '#b54708' }}>Add a bank account to continue</p>
+                    <p className="rx-policy-text" style={{ color: '#b54708' }}>
+                      Returns and exchanges require a bank account on your profile — refunds are sent there. <Link to="/account-info" style={{ color: '#68408d', fontWeight: 600 }}>Add bank account →</Link>
+                    </p>
+                  </div>
+                )}
+
                 {/* What would you like to do */}
                 <div className="rx-card">
                   <h3 className="rx-card-title">What would you like to do?</h3>
@@ -295,7 +312,7 @@ const ReturnExchangePage = () => {
                 </div>
 
                 {/* Refund destination — COD/partial orders are refunded to the saved bank account */}
-                {needsRefundDestination && (
+                {needsRefundDestination && hasBankAccount && (
                   <div className="rx-card">
                     <h3 className="rx-card-title">Refund Destination</h3>
                     <p className="rx-card-sub">This order was paid by Cash on Delivery, so your {inr(order.total_amount)} refund will be transferred to your saved bank account.</p>
@@ -330,7 +347,7 @@ const ReturnExchangePage = () => {
 
                     {tab === 'browse' ? (
                       <p style={{ fontSize: 13, color: '#667085' }}>
-                        Prefer a completely different frame? <Link to="/products" style={{ color: '#68408d', fontWeight: 600 }}>Browse the catalog →</Link> and note your choice below.
+                        Prefer a completely different frame? <Link to={`/products?replace_order=${orderId}&min_price=${Math.round(origPrice)}`} style={{ color: '#68408d', fontWeight: 600 }}>Browse the catalog →</Link> Pick any item priced ₹{Math.round(origPrice).toLocaleString('en-IN')} or above and hit <strong>Replace</strong>.
                       </p>
                     ) : colourOpts.length === 0 && sizeOpts.length === 0 ? (
                       <p style={{ fontSize: 13, color: '#667085' }}>
@@ -506,7 +523,7 @@ const ReturnExchangePage = () => {
                 {/* Actions */}
                 <div className="rx-actions">
                   {error && <span className="rx-error">{error}</span>}
-                  <button className="rx-btn rx-btn--primary" onClick={handleSubmit} disabled={submitting || (needsRefundDestination && !hasBankAccount)}>
+                  <button className="rx-btn rx-btn--primary" onClick={handleSubmit} disabled={submitting || !hasBankAccount}>
                     {submitting ? 'Submitting…' : `Confirm ${isExchange ? 'Exchange' : 'Return'} Request`}
                   </button>
                   <button className="rx-btn rx-btn--ghost" onClick={() => navigate(`/orders/${orderId}`)}>Cancel</button>

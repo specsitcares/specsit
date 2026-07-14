@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import apiClient from '../../../services/api';
 import AccountSidebar from './AccountSidebar';
@@ -10,6 +10,9 @@ const GENDER_OPTIONS = ['', 'Male', 'Female', 'Non-binary', 'Prefer not to say']
 const AccountInfoPage = () => {
     const { user, setUser } = useAuth();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const nextUrl = searchParams.get('next') || '';
+    const gateReason = searchParams.get('reason') || ''; // 'return' | 'exchange' — arrived here to add a bank account
     const fileRef = useRef(null);
 
     const [form, setForm] = useState({
@@ -119,6 +122,12 @@ const AccountInfoPage = () => {
             });
 
             setSaved(true);
+
+            // Came here to unblock a return/exchange — go straight back once a bank
+            // account is on file.
+            if (nextUrl && res.data.has_bank_account) {
+                setTimeout(() => navigate(nextUrl), 700);
+            }
         } catch (err) {
             const data = err.response?.data;
             setError(
@@ -180,6 +189,16 @@ const AccountInfoPage = () => {
                                 <h1 className="acctinfo-heading">Edit Profile</h1>
                                 <p className="acctinfo-subheading">Update your personal details for a bespoke experience.</p>
                             </div>
+
+                            {gateReason && (
+                                <div style={{ background: '#F4EBFF', border: '1px solid #E9D7FE', borderRadius: 12, padding: '14px 16px', marginBottom: 20, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                                    <span style={{ fontSize: 20 }}>🏦</span>
+                                    <div>
+                                        <div style={{ fontWeight: 700, color: '#42307d', fontSize: 14 }}>Add your bank account to continue your {gateReason === 'exchange' ? 'exchange' : 'return'}</div>
+                                        <div style={{ fontSize: 12.5, color: '#6941C6', marginTop: 2 }}>Refunds are sent to this account. Fill in the “Bank Account for Refunds” section below and save — we’ll take you right back.</div>
+                                    </div>
+                                </div>
+                            )}
 
                             {error && <div className="account-error" style={{ marginBottom: 24 }}>{error}</div>}
 

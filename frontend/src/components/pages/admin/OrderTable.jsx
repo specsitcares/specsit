@@ -35,10 +35,15 @@ const STATUS_BADGE_STYLE = {
 const getStatusClass = (label) =>
   STATUS_CLASS[(label || '').toLowerCase()] || 'badge-neutral';
 
-const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewWarranty, hideKPIs = false }) => {
+const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewReplacement, onViewWarranty, hideKPIs = false }) => {
   const [orders, setOrders] = useState([]);
   const [expandedRows, setExpandedRows] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);        // first paint only
+  const [tableLoading, setTableLoading] = useState(false); // subsequent fetches (tab/filter/page)
+  // Monotonic request ids — only the newest response is allowed to update state, so
+  // rapid tab switches can never render an older tab's data (no stale rows).
+  const ordersReqRef = React.useRef(0);
+  const analyticsReqRef = React.useRef(0);
   const [page, setPage] = useState(1);
   const [totalOrders, setTotalOrders] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
@@ -63,6 +68,7 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewWarran
   const [rxOffcanvasOrder, setRxOffcanvasOrder] = useState(null);
 
   const fetchAnalytics = async () => {
+    const myReq = ++analyticsReqRef.current;
     try {
       const res = await apiClient.get('/sales/orders/analytics/', {
         params: {
@@ -77,7 +83,7 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewWarran
           ...(activeItemTab === 'replaced' ? { replaced_only: 1 } : {}),
         }
       });
-      setOrderAnalytics(res.data);
+      if (myReq === analyticsReqRef.current) setOrderAnalytics(res.data);
     } catch { /* silent */ }
   };
 
@@ -88,6 +94,11 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewWarran
     setStatusFilter('');
     setDateFilter({ from: '', to: '' });
     setActiveItemTab('all');
+    setActiveReturnTab('window');
+    setReturnMode('returns');
+    setActiveWarrantyTab('window');
+    setExpandedRows([]);
+    setSelectedIds(new Set());
   }, [category]);
 
   useEffect(() => {
@@ -114,6 +125,8 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewWarran
   };
 
   const fetchOrders = async () => {
+    const myReq = ++ordersReqRef.current;
+    setTableLoading(true);
     try {
       const res = await apiClient.get('/sales/orders/', {
         params: {
@@ -132,6 +145,8 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewWarran
           ...(activeItemTab === 'replaced' ? { replaced_only: 1 } : {}),
         }
       });
+      // Ignore out-of-order responses — a newer request has superseded this one.
+      if (myReq !== ordersReqRef.current) return;
       const data = res.data;
       const results = data.results || data.data || data;
       if (Array.isArray(results)) {
@@ -142,10 +157,15 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewWarran
         setTotalOrders(0);
       }
     } catch (err) {
+      if (myReq !== ordersReqRef.current) return;
       console.error('Fetch orders failed:', err);
       setOrders([]);
+      setTotalOrders(0);
     } finally {
-      setLoading(false);
+      if (myReq === ordersReqRef.current) {
+        setLoading(false);
+        setTableLoading(false);
+      }
     }
   };
 
@@ -614,7 +634,17 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewWarran
               </tr>
             </thead>
             <tbody style={{ backgroundColor: '#fff' }}>
-              {orders.length === 0 ? (
+              {tableLoading ? (
+                <tr>
+                  <td colSpan={10} style={{ padding: '48px 24px', textAlign: 'center' }}>
+                    <style>{'@keyframes ot-spin{to{transform:rotate(360deg)}}'}</style>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+                      <RefreshCw size={22} color="#7F56D9" style={{ animation: 'ot-spin 0.7s linear infinite' }} />
+                      <div style={{ fontSize: '12px', color: '#667085', fontWeight: 500 }}>Loading…</div>
+                    </div>
+                  </td>
+                </tr>
+              ) : orders.length === 0 ? (
                 <tr>
                   <td colSpan={10} style={{ padding: '48px 24px', textAlign: 'center' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
@@ -634,7 +664,10 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewWarran
                       const wantType = returnMode === 'replacements' ? 'replacement' : 'refund';
                       const rr = o.return_requests?.find(r => r.request_type === wantType) || o.return_requests?.[0];
                       const wc = o.warranty_claims?.[0];
-                      if (category === 'returns' && (activeReturnTab === 'requests' || activeReturnTab === 'processed') && rr && onViewReturn) { onViewReturn(rr.id); return; }
+                      if (category === 'returns' && (activeReturnTab === 'requests' || activeReturnTab === 'processed') && rr) {
+                        if (returnMode === 'replacements' && onViewReplacement) { onViewReplacement(rr.id); return; }
+                        if (onViewReturn) { onViewReturn(rr.id); return; }
+                      }
                       if (category === 'warranty' && wc && onViewWarranty) { onViewWarranty(wc.id); return; }
                       o.items?.length > 1 ? toggleRow(o.id) : onViewDetails(o.id);
                     }}
