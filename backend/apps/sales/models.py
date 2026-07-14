@@ -335,6 +335,8 @@ class ReturnRequest(models.Model):
     refund_reference = models.CharField(max_length=120, blank=True)
     # Replacement dispatch
     replacement_courier = models.CharField(max_length=100, blank=True)
+    # Extra amount the customer paid when exchanging for a pricier item (upgrade)
+    replacement_price_difference = models.DecimalField(max_digits=12, decimal_places=2, default=0)
 
     admin_notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

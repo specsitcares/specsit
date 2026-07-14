@@ -190,7 +190,10 @@ const ReturnExchangePage = () => {
       fd.append('request_type', type);
       fd.append('reason', chosen.reason);
       fd.append('description', desc);
-      if (isExchange) fd.append('replacement_sku', `${colour}/${size}/${lens}`);
+      if (isExchange) {
+        fd.append('replacement_sku', `${colour}/${size}/${lens}`);
+        if (priceDiff > 0) fd.append('replacement_price_difference', String(priceDiff));
+      }
       photos.forEach(p => fd.append('photos', p));
       await apiClient.post(`/sales/orders/${orderId}/request_return/`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       setSuccess(true);

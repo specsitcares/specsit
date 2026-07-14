@@ -75,10 +75,20 @@ class OrderViewSet(viewsets.ModelViewSet):
             # delivered orders without a delivery_date still appear.
             window_q = Q(delivery_date__gte=ten_days_ago) | (Q(delivery_date__isnull=True) & Q(created_at__gte=ten_days_ago))
             qs = qs.filter(delivered_q & window_q).distinct()
+            # Master toggle: scope every sub-tab to refund ("returns") or replacement.
+            request_type = self.request.query_params.get('request_type')
+            rt = request_type if request_type in ('refund', 'replacement') else None
             # Sub-tab filtering
             return_tab = self.request.query_params.get('return_tab')
             if return_tab == 'requests':
-                qs = qs.filter(return_requests__isnull=False).distinct()
+                qs = qs.filter(return_requests__isnull=False)
+                if rt:
+                    qs = qs.filter(return_requests__request_type=rt)
+                qs = qs.distinct()
+            elif return_tab == 'processed':
+                terminal = 'replaced' if rt == 'replacement' else 'refunded'
+                qs = qs.filter(return_requests__request_type=(rt or 'refund'),
+                               return_requests__status=terminal).distinct()
             elif return_tab == 'refund':
                 qs = qs.filter(return_requests__request_type='refund').distinct()
             elif return_tab == 'replacement':
@@ -122,6 +132,11 @@ class OrderViewSet(viewsets.ModelViewSet):
             qs = qs.filter(items__variant__product__product_type='accessory').distinct()
         elif item_type == 'lens':
             qs = qs.filter(items__contact_lens__isnull=False).distinct()
+
+        # "Replaced Orders" tab — orders that completed an exchange/replacement.
+        if self.request.query_params.get('replaced_only') == '1':
+            qs = qs.filter(return_requests__request_type='replacement',
+                           return_requests__status='replaced').distinct()
 
         return qs.order_by('-created_at')
     
@@ -748,6 +763,14 @@ class OrderViewSet(viewsets.ModelViewSet):
             replacement_sku=(request.data.get('replacement_sku') or '') if request_type == 'replacement' else '',
             **refund_fields,
         )
+        if request_type == 'replacement':
+            try:
+                diff = float(request.data.get('replacement_price_difference') or 0)
+                if diff > 0:
+                    rr.replacement_price_difference = diff
+                    rr.save(update_fields=['replacement_price_difference'])
+            except (ValueError, TypeError):
+                pass
 
         # Optional supporting photos (multipart "photos") — up to 5, max 5 MB, images only.
         for ph in request.FILES.getlist('photos')[:5]:
