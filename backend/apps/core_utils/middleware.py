@@ -75,6 +75,6 @@ class CrossOriginIsolationMiddleware(MiddlewareMixin):
         content_type = response.get('Content-Type', '')
         if 'text/html' in content_type:
             response['Cross-Origin-Opener-Policy'] = 'same-origin-allow-popups'
-            response['Cross-Origin-Embedder-Policy'] = 'require-corp'
+            response['Cross-Origin-Embedder-Policy'] = 'credentialless'
         return response
 
