@@ -66,6 +66,9 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
+    # Sets COEP + COOP headers on HTML responses so the browser enables
+    # Cross-Origin Isolation, which MediaPipe WASM needs for SharedArrayBuffer.
+    'apps.core_utils.middleware.CrossOriginIsolationMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',

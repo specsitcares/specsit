@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import vtoService from '../../services/vtoService';
+import { measurePdFromDataUrl } from '../../services/faceMeasurement';
 import './FaceCapture.css';
 
 const FaceCapture = ({ onCaptureComplete }) => {
@@ -70,37 +71,16 @@ const FaceCapture = ({ onCaptureComplete }) => {
     const handleMeasureWithAI = async () => {
         setAiMeasuring(true);
         setError(null);
-        
+
         try {
-            const blob = dataURLToBlob(capturedImage);
-            const formData = new FormData();
-            formData.append('image', blob, 'face_capture.jpg');
-            
-            const token = localStorage.getItem('token');
-            
-            console.log("🤖 Sending to MediaPipe AI endpoint...");
-            
-            const response = await fetch('/api/measure-pd/', {
-                method: 'POST',
-                headers: {
-                    ...(token && { 'Authorization': `Token ${token}` }),
-                },
-                body: formData,
-            });
-            
-            if (!response.ok) {
-                const errData = await response.json().catch(() => ({}));
-                throw new Error(errData.details || errData.error || 'AI measurement failed');
-            }
-            
-            const data = await response.json();
-            console.log("✅ AI measurement result:", data);
-            
+            console.log('🤖 Measuring PD locally in the browser...');
+            const data = await measurePdFromDataUrl(capturedImage);
+            console.log('✅ AI measurement result:', data);
+
             setAiResult(data);
             setConfirmedPd(data.pd_mm);
-            
         } catch (err) {
-            console.error("❌ AI measurement error:", err);
+            console.error('❌ AI measurement error:', err);
             setError(`AI Measurement: ${err.message}. Please try again.`);
         } finally {
             setAiMeasuring(false);

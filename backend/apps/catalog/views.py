@@ -51,19 +51,38 @@ def calculate_pd_from_image(image_file):
     Core AI logic for PD measurement using MediaPipe Tasks.
     Optimized for O(1) time complexity post-landmark extraction.
     Uses Ratio-Based Calibration (Face-Width/Eye-Distance).
+
+    NOTE: This requires libGLESv2.so.2 (OpenGL-ES) to be available on the
+    host system. On Render's Python runtime this library is absent, so this
+    function will raise an OSError. Use the client-side MediaPipe WASM path
+    (faceMeasurement.js in the frontend) instead — it has no such dependency.
     """
+    # ── Catch missing native GL lib BEFORE importing mediapipe ────────────────
+    # libGLESv2.so.2 is required by MediaPipe's C++ backend. On servers that
+    # don't have this library (e.g. Render's native Python runtime) we return a
+    # 503 with a human-readable message instead of a raw 500.
+    _GLES_MISSING_HINT = (
+        'PD measurement is not available on this server environment '
+        '(missing libGLESv2.so.2). Please use the in-browser measurement '
+        'instead — it works without any server-side dependencies.'
+    )
+
     try:
         import mediapipe as mp
         from mediapipe.tasks import python
         from mediapipe.tasks.python import vision
-    except ImportError:
+    except ImportError as exc:
+        err_str = str(exc)
+        if 'libGLESv2' in err_str or 'libGL' in err_str or 'cannot open shared object' in err_str:
+            logger.error(f'AI PD Calculation Error (missing GL lib): {err_str}')
+            return {'error': 'Server GL library missing', 'details': _GLES_MISSING_HINT}, 503
         return {'error': 'AI measurement unavailable', 'details': 'MediaPipe library not found.'}, 503
 
     try:
         # Load and validate image
         image_data = Image.open(io.BytesIO(image_file.read()))
         image_np = np.array(image_data)
-        
+
         # Initialize Face Landmarker
         model_path = os.path.join(os.path.dirname(__file__), 'face_landmarker.task')
         if not os.path.exists(model_path):
@@ -76,34 +95,34 @@ def calculate_pd_from_image(image_file):
             output_facial_transformation_matrixes=False,
             num_faces=1
         )
-        
+
         with vision.FaceLandmarker.create_from_options(options) as landmarker:
             mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=image_np)
             results = landmarker.detect(mp_image)
-            
+
             if not results.face_landmarks:
                 return {'error': 'No face detected', 'details': 'Ensure your face is clearly visible and well-lit.'}, 400
-            
+
             # O(1) calculations using pre-defined indices
             landmarks = results.face_landmarks[0]
-            
+
             # Eye pupils (standard indices)
             l_pupil = landmarks[468]
             r_pupil = landmarks[473]
-            
+
             # Face boundaries (zygomatic width indices)
             l_face = landmarks[234]
             r_face = landmarks[454]
-            
+
             h, w = image_np.shape[:2]
-            
+
             # Convert to actual coordinates
             pd_px = np.linalg.norm(np.array([r_pupil.x * w, r_pupil.y * h]) - np.array([l_pupil.x * w, l_pupil.y * h]))
             face_px = np.linalg.norm(np.array([r_face.x * w, r_face.y * h]) - np.array([l_face.x * w, l_face.y * h]))
-            
+
             # Calibrate using 140mm average face width
             pd_mm = (pd_px / face_px) * 140.0 if face_px > 0 else 63.0
-            
+
             # Confidence Logic
             if 58 <= pd_mm <= 72:
                 conf, margin = 'high', 1.0
@@ -111,15 +130,26 @@ def calculate_pd_from_image(image_file):
                 conf, margin = 'medium', 2.0
             else:
                 conf, margin = 'low', 3.5
-            
+
             return {
                 'pd_mm': round(pd_mm, 1),
                 'confidence': conf,
                 'range': {'min': round(pd_mm - margin, 1), 'max': round(pd_mm + margin, 1)}
             }, 200
 
+    except OSError as exc:
+        # Catch the runtime linker failure (libGLESv2.so.2 not found) which
+        # surfaces as an OSError after mediapipe was successfully imported but
+        # the native .so could not be dlopen()-ed.
+        err_str = str(exc)
+        if 'libGLESv2' in err_str or 'libGL' in err_str or 'cannot open shared object' in err_str:
+            logger.error(f'AI PD Calculation Error (GL lib missing at runtime): {err_str}')
+            return {'error': 'Server GL library missing', 'details': _GLES_MISSING_HINT}, 503
+        logger.error(f'AI PD Calculation Error: {err_str}')
+        return {'error': 'Measurement failed', 'details': err_str}, 500
+
     except Exception as e:
-        logger.error(f"AI PD Calculation Error: {str(e)}")
+        logger.error(f'AI PD Calculation Error: {str(e)}')
         return {'error': 'Measurement failed', 'details': str(e)}, 500
 
 class CategoryViewSet(CachedReadMixin, viewsets.ModelViewSet):
@@ -1093,18 +1123,63 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
 class MeasurePDView(APIView):
     """
-    Standalone API endpoint for AI-powered PD measurement
+    Standalone API endpoint for AI-powered PD measurement.
     Endpoint: POST /api/measure-pd/
+
+    Two operating modes
+    -------------------
+    1. Client-side (preferred): The browser runs MediaPipe WASM, computes the
+       PD, and POSTs `pd_mm` (+ optionally `confidence` / `range`) here.  The
+       server just echoes the values back — no server-side GL dependency at all.
+
+    2. Server-side (fallback): An `image` file is uploaded and the server runs
+       MediaPipe natively.  This requires libGLESv2.so.2 to be present on the
+       host; if the library is missing a 503 is returned with a clear message
+       instead of an opaque 500.
     """
     permission_classes = [permissions.IsAuthenticated]
-    
+
     def post(self, request):
-        """
-        Standalone standalone PD measurement using consolidated utility.
-        """
+        # ── Mode 1: client already measured PD in the browser ─────────────────
+        pd_mm_raw = request.data.get('pd_mm')
+        if pd_mm_raw is not None:
+            try:
+                pd_mm = round(float(pd_mm_raw), 1)
+            except (ValueError, TypeError):
+                return Response(
+                    {'error': 'Invalid pd_mm value', 'details': 'pd_mm must be a number.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            confidence = request.data.get('confidence', 'client')
+            range_min = request.data.get('range_min')
+            range_max = request.data.get('range_max')
+
+            result = {
+                'pd_mm': pd_mm,
+                'confidence': confidence,
+                'source': 'client',
+            }
+            if range_min is not None and range_max is not None:
+                try:
+                    result['range'] = {
+                        'min': round(float(range_min), 1),
+                        'max': round(float(range_max), 1),
+                    }
+                except (ValueError, TypeError):
+                    pass
+
+            logger.info(f'PD received from client-side measurement: {pd_mm} mm (confidence={confidence})')
+            return Response(result, status=status.HTTP_200_OK)
+
+        # ── Mode 2: server-side MediaPipe (requires libGLESv2) ────────────────
         image_file = request.FILES.get('image')
         if not image_file:
-            return Response({'error': 'No image provided'}, status=status.HTTP_400_BAD_REQUEST)
-            
+            return Response(
+                {'error': 'No input provided',
+                 'details': 'Supply either pd_mm (client-measured) or an image file.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         result, http_status = calculate_pd_from_image(image_file)
         return Response(result, status=http_status)
