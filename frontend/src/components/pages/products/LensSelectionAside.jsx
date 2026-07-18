@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './LensSelectionAside.css';
 import apiClient from '../../../services/api';
+import { measurePdFromDataUrl } from '../../../services/faceMeasurement';
 import rxManualImg from '../../../assets/lens/rx-manual.png';
 import rxUploadImg from '../../../assets/lens/rx-upload.png';
 import rxLaterImg from '../../../assets/lens/rx-later.png';
@@ -443,33 +444,12 @@ const PDMeasureModal = ({ onClose, onPdMeasured }) => {
         stopCamera();
     };
 
-    const dataURLToBlob = (dataURL) => {
-        const [header, data] = dataURL.split(',');
-        const mime = header.match(/:(.*?);/)[1];
-        const bstr = atob(data);
-        const u8arr = new Uint8Array(bstr.length);
-        for (let i = 0; i < bstr.length; i++) u8arr[i] = bstr.charCodeAt(i);
-        return new Blob([u8arr], { type: mime });
-    };
-
     const measurePD = async () => {
         if (!capturedImage) return;
         setMeasuring(true);
         setError(null);
         try {
-            const formData = new FormData();
-            formData.append('image', dataURLToBlob(capturedImage), 'face.jpg');
-            const token = localStorage.getItem('token');
-            const res = await fetch('/api/measure-pd/', {
-                method: 'POST',
-                headers: token ? { Authorization: `Token ${token}` } : {},
-                body: formData,
-            });
-            if (!res.ok) {
-                const err = await res.json().catch(() => ({}));
-                throw new Error(err.details || err.error || `Server error ${res.status}`);
-            }
-            const data = await res.json();
+            const data = await measurePdFromDataUrl(capturedImage);
             setResult(data);
         } catch (err) {
             setError(err.message);
