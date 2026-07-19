@@ -283,13 +283,14 @@ class OrderViewSet(viewsets.ModelViewSet):
         if request.query_params.get('replacements') == '1':
             qs = base.filter(is_replacement=True).order_by('-created_at')
         else:
-            qs = base.filter(order_status__in=SHIPMENT_STATUSES).order_by('-created_at')
+            qs = base.order_by('-created_at')
 
         # Optional filter by status
         status_filter = request.query_params.get('order_status')
-        if status_filter and status_filter in SHIPMENT_STATUSES:
+        if status_filter:
             qs = qs.filter(order_status=status_filter)
 
+        search = request.query_params.get('search', '').strip()
         # Optional search by order id or customer
         if search:
             if search.isdigit():
@@ -1558,6 +1559,21 @@ class ReturnRequestViewSet(viewsets.ModelViewSet):
                                                 defaults={'value': 'confirmed', 'is_active': True})
             new_order.status = meta
             new_order.save(update_fields=['status'])
+
+            # Create shipment for the replacement order
+            from .models import Shipment
+            shipment_grp, _ = MetadataGroup.objects.get_or_create(name='Shipment Status')
+            shipment_status, _ = MI.objects.get_or_create(group=shipment_grp, label='Processing',
+                                                          defaults={'value': 'processing', 'is_active': True})
+            Shipment.objects.get_or_create(
+                order=new_order,
+                defaults={
+                    'carrier': 'Pending',
+                    'method': 'Standard',
+                    'status': shipment_status,
+                }
+            )
+
             # Reserve one unit of the replacement variant if stock is tracked.
             try:
                 if variant.stock is not None:

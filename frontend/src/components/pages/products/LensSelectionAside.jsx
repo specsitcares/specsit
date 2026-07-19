@@ -603,7 +603,32 @@ const PDMeasureModal = ({ onClose, onPdMeasured }) => {
 /* ════════════════════════════════════════════════════════
    MANUAL POWER FORM — Figma 401:16362
    ════════════════════════════════════════════════════════ */
-const ManualPowerForm = ({ rx, onRxChange, rxMeta, onMetaChange, isProgressive, enablePd = true }) => {
+/* Build a stepped list of diopter values between lo and hi at 0.25 increments */
+const buildDiopterOpts = (lo, hi) => {
+    const opts = [];
+    for (let v = lo; v <= hi + 1e-6; v += 0.25) {
+        const r = Math.round(v * 4) / 4;
+        opts.push((r > 0 ? '+' : '') + r.toFixed(2));
+    }
+    return opts;
+};
+
+const ManualPowerForm = ({ rx, onRxChange, rxMeta, onMetaChange, isProgressive, enablePd = true, selectedLens = null }) => {
+    // Derive SPH and CYL option ranges from the selected lens (admin-configured).
+    // Fall back to the wide global constants only when no lens has been chosen yet.
+    const sphValues = React.useMemo(() => {
+        if (selectedLens && selectedLens.min_power != null && selectedLens.max_power != null) {
+            return buildDiopterOpts(Number(selectedLens.min_power), Number(selectedLens.max_power));
+        }
+        return SPH_VALUES;
+    }, [selectedLens]);
+
+    const cylValues = React.useMemo(() => {
+        if (selectedLens && selectedLens.cyl_min != null && selectedLens.cyl_max != null) {
+            return buildDiopterOpts(Number(selectedLens.cyl_min), Number(selectedLens.cyl_max));
+        }
+        return CYL_VALUES;
+    }, [selectedLens]);
     const { samePower, hasCyl, name, phone, pd } = rxMeta;
     const [showPdModal, setShowPdModal] = useState(false);
 
@@ -690,7 +715,7 @@ const ManualPowerForm = ({ rx, onRxChange, rxMeta, onMetaChange, isProgressive, 
                                 onChange={e => handlePowerChange(row.key, 'sph', e.target.value)}
                             >
                                 <option value="">—</option>
-                                {SPH_VALUES.map(v => <option key={v} value={v}>{v}</option>)}
+                                {sphValues.map(v => <option key={v} value={v}>{v}</option>)}
                             </select>
                         </div>
                         {hasCyl && (
@@ -701,7 +726,7 @@ const ManualPowerForm = ({ rx, onRxChange, rxMeta, onMetaChange, isProgressive, 
                                     onChange={e => handlePowerChange(row.key, 'cyl', e.target.value)}
                                 >
                                     <option value="">—</option>
-                                    {CYL_VALUES.map(v => <option key={v} value={v}>{v}</option>)}
+                                    {cylValues.map(v => <option key={v} value={v}>{v}</option>)}
                                 </select>
                             </div>
                         )}
@@ -851,7 +876,7 @@ const RX_OPTIONS = [
     },
 ];
 
-const StepRx = ({ skipRx, skipReason, isProgressive, enablePd, rx, onRxChange, rxMode, setRxMode, onUpload, uploadedFile, rxMeta, onMetaChange }) => {
+const StepRx = ({ skipRx, skipReason, isProgressive, enablePd, rx, onRxChange, rxMode, setRxMode, onUpload, uploadedFile, rxMeta, onMetaChange, selectedLens }) => {
     if (skipRx) {
         return (
             <div className="lsa-body">
@@ -938,6 +963,7 @@ const StepRx = ({ skipRx, skipReason, isProgressive, enablePd, rx, onRxChange, r
                     onMetaChange={onMetaChange}
                     isProgressive={isProgressive}
                     enablePd={enablePd}
+                    selectedLens={selectedLens}
                 />
             )}
 
@@ -1241,6 +1267,7 @@ const LensSelectionAside = ({ isOpen, onClose, product, onAddToCart }) => {
                             uploadedFile={uploadedFile}
                             rxMeta={rxMeta}
                             onMetaChange={handleMetaChange}
+                            selectedLens={allLenses.find(l => l.id === selectedLensId) || null}
                         />
                     )}
                 </div>

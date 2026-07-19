@@ -63,7 +63,7 @@ const VariantTable = () => {
   };
 
   const filtered = variants.filter(v =>
-    [v.product_name, v.sku, v.color, v.size].some(val => val?.toLowerCase().includes(searchQuery.toLowerCase()))
+    [v.product_name, v.sku, v.color, v.barcode].some(val => val?.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const paginated = filtered.slice((page - 1) * perPage, page * perPage);
@@ -73,6 +73,7 @@ const VariantTable = () => {
     { label: 'Category', key: 'category', sortable: true },
     { label: 'Attributes', key: 'attributes' },
     { label: 'SKU Code', key: 'sku', sortable: true },
+    { label: 'Barcode', key: 'barcode' },
     { label: 'Inventory', key: 'inventory', sortable: true },
     { label: 'Price Adj.', key: 'price', sortable: true },
     { label: 'Action', key: 'action', align: 'right' }
@@ -96,13 +97,12 @@ const VariantTable = () => {
       </td>
       <td style={{ padding: '16px 24px' }}>
         <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
-          {v.size && <span style={{ background: '#F2F4F7', color: '#344054', fontSize: '9px', padding: '2px 8px', borderRadius: '3px', fontWeight: 600 }}>{v.size}</span>}
           {v.color && (
              <span style={{ 
                padding: '2px 8px', fontSize: '9px', background: 'white', 
                border: '1px solid #D0D5DD', borderRadius: '3px', display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 600, color: '#344054'
              }}>
-               <div style={{ width: 8, height: 8, borderRadius: '50%', background: v.color.toLowerCase(), border: '1px solid #EAECF0' }} />
+               <div style={{ width: 8, height: 8, borderRadius: '50%', background: (v.color_code || v.color || '').toLowerCase(), border: '1px solid #EAECF0' }} />
                {v.color}
              </span>
           )}
@@ -112,6 +112,9 @@ const VariantTable = () => {
         <code style={{ background: '#F9FAFB', border: '1px solid #EAECF0', padding: '4px 8px', borderRadius: '5px', fontFamily: 'monospace', fontSize: '10px', color: '#344054', fontWeight: 600 }}>
           {v.sku}
         </code>
+      </td>
+      <td style={{ padding: '16px 24px' }}>
+        <span style={{ fontSize: '11px', color: '#344054', fontWeight: 600 }}>{v.barcode || '—'}</span>
       </td>
       <td style={{ padding: '16px 24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -179,11 +182,11 @@ const VariantTable = () => {
 
       <FormModal isOpen={showForm} onClose={() => setShowForm(false)} onSubmit={handleFormSubmit}
         onDelete={handleFormDelete} mode={formMode} title="Variant"
-        fields={[
+        fields=[
           { name: 'product', label: 'Product', type: 'select', options: products.map(p => ({ value: p.id, label: p.title })) },
           { name: 'sku', label: 'SKU Code', type: 'text' },
+          { name: 'barcode', label: 'Barcode', type: 'text' },
           { name: 'color', label: 'Color', type: 'text' },
-          { name: 'size', label: 'Size (e.g. 52mm)', type: 'text' },
           { name: 'stock', label: 'Stock Quantity', type: 'number' },
           { name: 'price_adjustment', label: 'Price Adjustment (₹)', type: 'number' },
           { name: 'image', label: 'Variant Side Image', type: 'file' }

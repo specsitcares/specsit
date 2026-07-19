@@ -27,6 +27,15 @@ def _category_is_sunglasses(category):
     parent_name = (getattr(getattr(category, 'parent', None), 'name', '') or '').lower()
     return 'sunglass' in cat_name or 'sunglass' in parent_name
 
+def _normalize_constraint_name(value):
+    """Normalize frame/rim-style values to the same shape as LensConstraint names."""
+    if not value:
+        return ''
+    normalized = re.sub(r'[_\-]+', ' ', str(value).strip())
+    normalized = re.sub(r'\s+', ' ', normalized).strip()
+    return normalized
+
+
 def _frame_constraint_name(product):
     """The constraint name this frame's type maps to (Half Rim / Rimless…).
 
@@ -40,9 +49,29 @@ def _frame_constraint_name(product):
         style = (product.frame_style or '').strip()
         if style and LensConstraint.objects.filter(name__iexact=style).exists():
             frame_type = style
-    if frame_type.lower().replace('-', ' ').replace('_', ' ') in ('full rim', 'fullrim'):
+
+    normalized = _normalize_constraint_name(frame_type)
+    if not normalized:
         return ''
-    return frame_type
+
+    if normalized.lower() in ('full rim', 'fullrim'):
+        return ''
+
+    if LensConstraint.objects.filter(name__iexact=normalized).exists():
+        return LensConstraint.objects.get(name__iexact=normalized).name
+
+    # Keep compatibility for legacy values that are close to the canonical names.
+    legacy_aliases = {
+        'half rim': 'Half Rim',
+        'half rim frame': 'Half Rim',
+        'rimless': 'Rimless',
+        'rim less': 'Rimless',
+        'rimless frame': 'Rimless',
+    }
+    if normalized.lower() in legacy_aliases:
+        return legacy_aliases[normalized.lower()]
+
+    return normalized
 
 # --- AI Utility Functions ---
 
@@ -756,6 +785,35 @@ class LensConstraintViewSet(viewsets.ModelViewSet):
     queryset = LensConstraint.objects.all()
     serializer_class = LensConstraintSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        if self.request.method == 'GET':
+            existing_names = {name.lower() for name in qs.values_list('name', flat=True)}
+            frame_types = (Product.objects
+                           .filter(frame_type__isnull=False)
+                           .exclude(frame_type__exact='')
+                           .values_list('frame_type', flat=True)
+                           .distinct())
+            to_create = []
+            for raw_type in frame_types:
+                normalized = _normalize_constraint_name(raw_type)
+                if not normalized:
+                    continue
+                if normalized.lower() in ('full rim', 'fullrim'):
+                    normalized = 'Full Rim'
+                elif normalized.lower() in ('half rim', 'halfrim', 'half rim frame'):
+                    normalized = 'Half Rim'
+                elif normalized.lower() in ('rimless', 'rim less', 'rimless frame'):
+                    normalized = 'Rimless'
+                if normalized.lower() in existing_names:
+                    continue
+                to_create.append(LensConstraint(name=normalized))
+                existing_names.add(normalized.lower())
+            if to_create:
+                LensConstraint.objects.bulk_create(to_create)
+                qs = super().get_queryset()
+        return qs
 
 class LensViewSet(CachedReadMixin, viewsets.ModelViewSet):
     cache_namespace = 'catalog_lenses'

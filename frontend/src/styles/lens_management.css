@@ -770,6 +770,39 @@
   line-height: 1;
   padding: 0;
 }
+.lm-input-with-clear {
+  position: relative;
+}
+.lm-input-with-clear .lm-clear-icon {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: #6b7280;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 4px;
+}
+.lm-input-with-clear .lm-clear-icon:hover {
+  color: #111827;
+}
+.lm-chip-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(106, 90, 247, 0.08);
+  color: #6b7280;
+  font-size: 12px;
+  cursor: pointer;
+}
+.lm-chip-close:hover {
+  background: rgba(106, 90, 247, 0.18);
+  color: #4f46e5;
+}
 
 .lm-add-more-btn {
   padding: 8px 14px;

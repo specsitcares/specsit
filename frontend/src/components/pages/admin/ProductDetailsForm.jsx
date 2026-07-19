@@ -51,6 +51,17 @@ const DEFAULT_VARIANT = () => ({
   is_listed: true,
   is_warranty_eligible: true,
   is_return_eligible: true,
+  // sunglasses-specific / extra specs
+  barcode: '',
+  frame_dimensions: '',
+  lens_color_name: '',
+  lens_color_code: '#000000',
+  sg_palette_image: null,
+  weight: '',
+  lens_material: '',
+  uv_protection: '',
+  polarized: '',
+  country_of_origin: '',
 });
 
 const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglasses' }) => {
@@ -174,6 +185,16 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
               is_listed: v.is_listed !== undefined ? v.is_listed : true,
               is_warranty_eligible: v.is_warranty_eligible !== undefined ? v.is_warranty_eligible : true,
               is_return_eligible: v.is_return_eligible !== undefined ? v.is_return_eligible : true,
+              // map new technical spec fields if present on the variant
+              barcode: v.barcode || '',
+              lens_color_name: v.lens_color_name || v.lens_color || '',
+              lens_color_code: v.lens_color_code || v.lens_color_code || '#000000',
+              sg_palette_image: v.sg_palette_image ? { preview: v.sg_palette_image, file: null, name: 'Existing image' } : null,
+              weight: v.weight || '',
+              lens_material: v.lens_material || '',
+              uv_protection: v.uv_protection || '',
+              polarized: v.polarized || '',
+              country_of_origin: v.country_of_origin || '',
             };
           };
 
@@ -343,6 +364,16 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
         variantPayload.append('frame_material', v.frame_material || '');
         variantPayload.append('frame_size', v.frame_size || '');
         variantPayload.append('frame_weight', v.frame_weight || '');
+        // Append new technical-spec fields
+        variantPayload.append('barcode', v.barcode || '');
+        variantPayload.append('lens_color_name', v.lens_color_name || '');
+        variantPayload.append('lens_color_code', v.lens_color_code || '');
+        if (v.sg_palette_image?.file instanceof File) variantPayload.append('sg_palette_image', v.sg_palette_image.file);
+        variantPayload.append('weight', v.weight || '');
+        variantPayload.append('lens_material', v.lens_material || '');
+        variantPayload.append('uv_protection', v.uv_protection || '');
+        variantPayload.append('polarized', v.polarized || '');
+        variantPayload.append('country_of_origin', v.country_of_origin || '');
         variantPayload.append('stock', parseInt(v.quantity) || 0);
         variantPayload.append('stock_by_size', JSON.stringify(v.stock_by_size || {}));
         variantPayload.append('base_price', parseFloat(v.base_price) || 0);

@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '../../../context/CartContext';
 import { Link } from 'react-router-dom';
 import apiClient from '../../../services/api';
 import specsitFullLogo from '../../../assets/specsit_full_logo.svg';
 import '../../../styles/checkout.css';
+import { getCartItemDisplayName, getCartItemDetails, getCartItemLineTotal, getCartItemSummaryDetails, getVariantDisplayName, getLensPackageName } from '../../../utils/cartSummary';
 
 const STORE_PHONE = '9858658566';
 const PhoneIcon = () => (
@@ -31,6 +32,7 @@ const ADDRESS_TYPES = ['Home', 'Office', 'Friends or family', 'Other'];
 const CheckoutPage = () => {
     const { cart, cartTotal, discountedTotal, clearCart, resolveProductPrice, appliedCoupon, applyCoupon, removeCoupon, savings, addToCart, removeFromCart, updateQuantity } = useCart();
     const navigate = useNavigate();
+    const location = useLocation();
 
     // Accessory add-ons (product_type === 'accessory') — toggling adds/removes from cart
     const [accessories, setAccessories] = useState([]);
@@ -118,6 +120,27 @@ const CheckoutPage = () => {
     const [showConfirmation, setShowConfirmation] = useState(false);
     const [pendingOrderId, setPendingOrderId] = useState(null);
     const idempotencyKeyRef = useRef(null); // stable per checkout session
+
+    const parseStepFromSearch = (search) => {
+        const params = new URLSearchParams(search);
+        const queryStep = parseInt(params.get('step'), 10);
+        return Number.isInteger(queryStep) && queryStep >= 2 && queryStep <= 4 ? queryStep : null;
+    };
+
+    useEffect(() => {
+        const requested = parseStepFromSearch(location.search);
+        if (requested) {
+            setCurrentStep(requested);
+        }
+    }, [location.search]);
+
+    const handleNavigateCheckoutStep = (stepNum) => {
+        if (stepNum === 1) {
+            navigate('/cart');
+            return;
+        }
+        navigate(`/checkout?step=${stepNum}`);
+    };
 
     // Shipping rate state
     const [shippingRate, setShippingRate] = useState(null);
@@ -616,6 +639,29 @@ const CheckoutPage = () => {
                         <span className="ck-order__val">₹{cartTotal.toLocaleString('en-IN')}</span>
                     </div>
                     <div className="ck-order__divider" />
+                    {cart.map((item) => {
+                        const productName = getCartItemDisplayName(item);
+                        const lensName = getLensPackageName(item);
+                        const framePrice = item.type === 'contactlens'
+                            ? (parseFloat(item.price) || 0)
+                            : resolveProductPrice(item.product, item.variant);
+                        const lensPrice = item.lens ? parseFloat(item.lens.price || 0) : 0;
+                        return (
+                            <div key={item.id}>
+                                <div className="ck-order__line ck-order__sub">
+                                    <span style={{ fontWeight: 600 }}>{productName}</span>
+                                    <span style={{ fontWeight: 600 }}>₹{framePrice.toLocaleString('en-IN')}</span>
+                                </div>
+                                {lensName && (
+                                    <div className="ck-order__line ck-order__sub">
+                                        <span>{lensName}</span>
+                                        <span>₹{lensPrice.toLocaleString('en-IN')}</span>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                    <div className="ck-order__divider" />
                     {savings > 0 && (
                         <div className="ck-order__line">
                             <span className="ck-order__label">Savings &amp; Discounts</span>
@@ -623,14 +669,14 @@ const CheckoutPage = () => {
                         </div>
                     )}
                     <div className="ck-order__line">
-                        <span className="ck-order__label">Shipping</span>
+                        <span className="ck-order__label">Shipping Cost</span>
                         {shippingLoading
                             ? <span className="ck-order__val">Calculating…</span>
                             : shippingRate > 0
                                 ? <span className="ck-order__val">₹{shippingRate.toLocaleString('en-IN')}</span>
                                 : <span className="ck-order__free">FREE</span>}
                     </div>
-                    {currentStep === 4 && paymentMethod === 'partial_payment' && (
+                    {currentStep === 4 && paymentMethod === 'partial_payment' && partialPaymentEnabled && (
                         <div className="ck-order__line">
                             <span className="ck-order__label">Due before dispatch</span>
                             <span className="ck-order__val">₹{phase2Amount.toLocaleString('en-IN')}</span>
@@ -639,7 +685,7 @@ const CheckoutPage = () => {
                 </div>
 
                 <div className="ck-total">
-                    <span>{currentStep === 4 && paymentMethod === 'partial_payment' ? 'Pay Now' : 'Total Order Value'}</span>
+                    <span>{currentStep === 4 && paymentMethod === 'partial_payment' && partialPaymentEnabled ? 'Pay Now' : 'Total Cost'}</span>
                     <span>₹{(currentStep === 4 ? amountDueNow || orderTotal : orderTotal).toLocaleString('en-IN')}</span>
                 </div>
 
@@ -730,7 +776,18 @@ const CheckoutPage = () => {
                     const isDisabled = currentStep < stepNum;
                     return (
                         <React.Fragment key={label}>
-                            <div className={`step-item-figma${isDisabled ? ' disabled' : ''}`}>
+                            <div
+                                className={`step-item-figma${isDisabled ? ' disabled' : ''}`}
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => handleNavigateCheckoutStep(stepNum)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        handleNavigateCheckoutStep(stepNum);
+                                    }
+                                }}
+                            >
                                 <div className={`step-circle-figma${isActive ? ' active' : ''}`}>{stepNum}</div>
                                 <span className={`step-label-figma${isActive ? ' active' : ''}`}>{label}</span>
                             </div>

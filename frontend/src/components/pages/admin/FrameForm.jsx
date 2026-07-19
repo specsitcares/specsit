@@ -5,6 +5,22 @@ const INPUT_STYLE = {
   width: '100%', border: '1px solid #d1d5db', borderRadius: 8,
   padding: '9px 12px', fontSize: 14, boxSizing: 'border-box', outline: 'none',
 };
+const SELECT_CLEAR_WRAPPER = {
+  position: 'relative',
+};
+const CLEAR_BUTTON_STYLE = {
+  position: 'absolute',
+  right: 10,
+  top: '50%',
+  transform: 'translateY(-50%)',
+  border: 'none',
+  background: 'transparent',
+  color: '#6b7280',
+  cursor: 'pointer',
+  fontSize: 16,
+  lineHeight: 1,
+  padding: 0,
+};
 const LABEL_STYLE = { fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 6 };
 const ERROR_STYLE = { color: '#dc2626', fontSize: 12, marginTop: 4 };
 const FIELD = ({ label, error, children }) => (
@@ -222,10 +238,17 @@ const FrameForm = ({ productId, onBack, onSaved }) => {
             </select>
           </FIELD>
           <FIELD label="Frame Material" error={errors.frame_material}>
-            <select style={INPUT_STYLE} value={form.frame_material} onChange={e => set('frame_material', e.target.value)}>
-              <option value="">Select material...</option>
-              {['Acetate', 'Metal', 'Titanium', 'Plastic', 'Mixed'].map(m => <option key={m} value={m}>{m}</option>)}
-            </select>
+            <div style={SELECT_CLEAR_WRAPPER}>
+              <select style={INPUT_STYLE} value={form.frame_material} onChange={e => set('frame_material', e.target.value)}>
+                <option value="">Select material...</option>
+                {['Acetate', 'Metal', 'Titanium', 'Plastic', 'Mixed'].map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+              {form.frame_material && (
+                <button type="button" style={CLEAR_BUTTON_STYLE} onClick={() => set('frame_material', '')}>
+                  ×
+                </button>
+              )}
+            </div>
           </FIELD>
           <FIELD label="Frame Size" error={errors.frame_size}>
             <select style={INPUT_STYLE} value={form.frame_size} onChange={e => set('frame_size', e.target.value)}>

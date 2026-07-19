@@ -329,6 +329,8 @@ class OrderSerializer(serializers.ModelSerializer):
     }
 
     def get_status_label(self, obj):
+        if obj.is_delivered and obj.order_status != 'cancelled':
+            return self.ORDER_STATUS_LABELS.get('delivered', 'Delivered')
         db_rank = self.STATUS_RANK.get(obj.order_status or '', 0)
         if obj.status:
             meta_mapped = self._label_to_order_status(obj.status.label)
@@ -359,7 +361,10 @@ class OrderSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        if instance.status:
+        if instance.is_delivered and instance.order_status != 'cancelled':
+            data['order_status'] = 'delivered'
+            data['status_label'] = self.ORDER_STATUS_LABELS.get('delivered', 'Delivered')
+        elif instance.status:
             mapped = self._label_to_order_status(instance.status.label)
             db_rank = self.STATUS_RANK.get(instance.order_status or '', 0)
             meta_rank = self.STATUS_RANK.get(mapped or '', 0)
@@ -571,6 +576,8 @@ class ShipmentSerializer(serializers.ModelSerializer):
     order_payment_status  = serializers.ReadOnlyField(source='order.payment_status')
 
     def get_status_label(self, obj):
+        if obj.order and getattr(obj.order, 'is_delivered', False) and obj.order.order_status != 'cancelled':
+            return 'Delivered'
         return obj.status.label if obj.status else None
 
     def get_product_names(self, obj):
@@ -689,7 +696,16 @@ class OrderShipmentSerializer(serializers.ModelSerializer):
             return None
 
     def get_order_status_label(self, obj):
+        if obj.is_delivered and obj.order_status != 'cancelled':
+            return self.ORDER_STATUS_LABELS.get('delivered', 'Delivered')
         return self.ORDER_STATUS_LABELS.get(obj.order_status, obj.order_status or 'Pending')
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if instance.is_delivered and instance.order_status != 'cancelled':
+            data['order_status'] = 'delivered'
+            data['order_status_label'] = self.ORDER_STATUS_LABELS.get('delivered', 'Delivered')
+        return data
 
     class Meta:
         model = Order
@@ -931,4 +947,3 @@ class OrderListSerializer(serializers.ModelSerializer):
             'razorpay_order_id', 'razorpay_payment_id',
             'has_review', 'review_rating', 'is_delivered',
         ]
-

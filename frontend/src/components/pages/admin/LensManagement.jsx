@@ -117,6 +117,7 @@ const LensManagement = ({ editLensId = null }) => {
       if (cats.length > 0) setSelectedCategoryId(prev => prev ?? cats[0].id);
 
       const constraintsList = constraintsRes.data.results || constraintsRes.data || [];
+      // Use existing frame-type constraints for lens package selection.
       setLensConstraints(constraintsList);
 
       const indicesGroup = indicesRes.data.results || indicesRes.data;
@@ -1045,12 +1046,19 @@ const LensManagement = ({ editLensId = null }) => {
                 <div className="lm-form-row-2">
                   <div className="lm-form-group">
                     <label className="lm-form-label">Lens Index</label>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <select className="lm-form-input" value={editFormData.index}
-                        onChange={e => handlePackageFieldChange('index', e.target.value)}
-                        style={{ flex: 1 }}>
-                        {lensIndices.map(v => <option key={v} value={v}>{v}</option>)}
-                      </select>
+                    <div style={{ display: 'flex', gap: 6, position: 'relative', alignItems: 'center' }}>
+                      <div className="lm-input-with-clear" style={{ flex: 1 }}>
+                        <select className="lm-form-input" value={editFormData.index}
+                          onChange={e => handlePackageFieldChange('index', e.target.value)}
+                          style={{ width: '100%' }}>
+                          {lensIndices.map(v => <option key={v} value={v}>{v}</option>)}
+                        </select>
+                        {editFormData.index && (
+                          <span className="lm-clear-icon" onClick={() => handlePackageFieldChange('index', '')}>
+                            ×
+                          </span>
+                        )}
+                      </div>
                       <button type="button" className="lm-add-more-btn"
                         onClick={() => setAddingIndex(v => !v)}
                         title="Add new index value"
@@ -1132,28 +1140,40 @@ const LensManagement = ({ editLensId = null }) => {
                 <div className="lm-oc-section-title">Brand & categories</div>
                 <div className="lm-form-group">
                   <label className="lm-form-label">Brand</label>
-                  <select className="lm-form-input" value={editFormData.brand}
-                    onChange={e => handlePackageFieldChange('brand', e.target.value)}>
-                    <option value="">Select brand</option>
-                    {lensBrands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                  </select>
+                  <div className="lm-input-with-clear">
+                    <select className="lm-form-input" value={editFormData.brand}
+                      onChange={e => handlePackageFieldChange('brand', e.target.value)}>
+                      <option value="">Select brand</option>
+                      {lensBrands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                    </select>
+                    {editFormData.brand && (
+                      <span className="lm-clear-icon" onClick={() => handlePackageFieldChange('brand', '')}>
+                        ×
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="lm-form-group">
                   <label className="lm-form-label">Categories</label>
                   <div className="lm-chip-list">
                     {lensCategories.map(cat => {
                       const sel = editFormData.categories.includes(cat.id);
+                      const next = sel
+                        ? editFormData.categories.filter(id => id !== cat.id)
+                        : [...editFormData.categories, cat.id];
                       return (
                         <button
                           key={cat.id} type="button"
                           className={`lm-chip ${sel ? 'active' : ''}`}
-                          onClick={() => {
-                            const next = sel
-                              ? editFormData.categories.filter(id => id !== cat.id)
-                              : [...editFormData.categories, cat.id];
-                            handlePackageFieldChange('categories', next);
-                          }}
-                        >{cat.name}</button>
+                          onClick={() => handlePackageFieldChange('categories', next)}
+                        >
+                          <span>{cat.name}</span>
+                          {sel && (
+                            <span className="lm-chip-close" onClick={(e) => { e.stopPropagation(); handlePackageFieldChange('categories', next); }}>
+                              ×
+                            </span>
+                          )}
+                        </button>
                       );
                     })}
                   </div>
@@ -1186,6 +1206,9 @@ const LensManagement = ({ editLensId = null }) => {
               {/* Constraints */}
               <div className="lm-oc-section">
                 <div className="lm-oc-section-title">Constraints</div>
+                <div className="lm-form-text" style={{ marginBottom: 10, color: '#475569', fontSize: 13 }}>
+                  Select one or more existing frame-type constraints for this package.
+                </div>
                 <div className="lm-chip-list">
                   {lensConstraints.map(c => {
                     const sel = editFormData.constraints.map(x => typeof x === 'object' ? x.id : x).includes(c.id);
@@ -1193,12 +1216,13 @@ const LensManagement = ({ editLensId = null }) => {
                       <button key={c.id} type="button"
                         className={`lm-chip ${sel ? 'active' : ''}`}
                         onClick={() => toggleConstraintSelection(c.id)}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
                       >
-                        {c.name}
-                        <X size={12} title={`Delete "${c.name}"`}
-                          style={{ flexShrink: 0, opacity: 0.65, cursor: 'pointer' }}
-                          onClick={(e) => { e.stopPropagation(); deleteConstraint(c); }} />
+                        <span>{c.name}</span>
+                        {sel && (
+                          <span className="lm-chip-close" onClick={(e) => { e.stopPropagation(); toggleConstraintSelection(c.id); }}>
+                            ×
+                          </span>
+                        )}
                       </button>
                     );
                   })}

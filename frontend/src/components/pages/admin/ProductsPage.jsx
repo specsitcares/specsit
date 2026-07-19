@@ -99,9 +99,9 @@ const VariantRow = ({ v, onEdit, onDelete, productType }) => {
           <span style={{ color: '#344054' }}>{color}</span>
         </div>
       </td>
-      {productType === 'frame' && (
+      {(productType === 'frame' || productType === 'eyeglasses' || productType === 'sunglasses') && (
         <>
-          <td style={{ padding: '14px 24px', color: '#667085', fontSize: 13 }}>{v.frame_size || '—'}</td>
+          <td style={{ padding: '14px 24px', color: '#667085', fontSize: 13 }}>{v.barcode || '—'}</td>
           <td style={{ padding: '14px 24px', color: '#667085', fontSize: 13 }}>{v.frame_material || '—'}</td>
         </>
       )}
@@ -212,8 +212,8 @@ const CategoryTab = ({ title, categoryName, onAdd, onEdit, productType = 'frame'
     { label: 'Brand', key: 'brand' },
     { label: 'Category', key: 'category' },
     { label: 'Color', key: 'color' },
-    ...(productType === 'frame' ? [
-      { label: 'Size', key: 'size' },
+    ...(productType === 'frame' || productType === 'eyeglasses' || productType === 'sunglasses' ? [
+      { label: 'Barcode', key: 'barcode' },
       { label: 'Material', key: 'material' },
     ] : []),
     { label: 'Stock', key: 'stock' },

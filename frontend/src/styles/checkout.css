@@ -64,6 +64,11 @@
   align-items: center;
   gap: 6px;
   transition: opacity 0.3s ease;
+  cursor: pointer;
+}
+
+.step-item-figma:hover {
+  opacity: 0.9;
 }
 
 .step-item-figma.disabled {
