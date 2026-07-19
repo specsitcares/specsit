@@ -274,54 +274,50 @@ const ReviewSubmit = ({ formData, categories, brands, confirmed, setConfirmed, e
                     {/* TECHNICAL SPECIFICATIONS */}
                     <div>
                       <SubLabel>Technical Specifications</SubLabel>
-                      {isSunglasses ? (
-                        <>
-                          {/* Row 1: Barcode | Frame Dimensions | Lens Color | Weight */}
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '16px', marginBottom: '14px' }}>
-                            <Field label="Barcode"         value={v.barcode} />
-                            <Field label="Frame Dimensions" value={v.frame_dimensions} />
-                            <Field
-                              label="Lens Color"
-                              value={
-                                v.lens_color_name ? (
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <ColorDot code={v.lens_color_code} />
-                                    <span>{v.lens_color_name}</span>
-                                  </div>
-                                ) : null
-                              }
-                            />
-                            <Field label="Weight" value={v.weight} />
-                          </div>
-                          {/* Row 2: Frame Material | Lens Material | Frame Shape | UV Protection */}
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '16px', marginBottom: '14px' }}>
-                            <Field label="Frame Material" value={v.frame_material} />
-                            <Field label="Lens Material"  value={v.lens_material} />
-                            <Field label="Frame Shape"    value={v.frame_shape} />
-                            <Field label="UV Protection"  value={v.uv_protection} />
-                          </div>
-                          {/* Row 3: Polarized | Country of Origin */}
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '16px' }}>
-                            <Field label="Polarized"        value={v.polarized} />
-                            <Field label="Country of Origin" value={v.country_of_origin} />
-                          </div>
-                        </>
-                      ) : (
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '12px', alignItems: 'end' }}>
-                          <Field label="Frame Material" value={v.frame_material} />
-                          <Field label="Frame Type"     value={v.frame_type} />
-                          <Field label="Frame Shape"    value={v.frame_shape} />
-                          <Field label="Gender Target"  value={v.gender} />
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                            <span style={{ fontFamily: "'Roboto', sans-serif", fontSize: '12px', fontWeight: 400, color: '#667085' }}>Frame Only Mode</span>
-                            <ReadOnlyToggle checked={v.frame_only_mode || false} />
-                          </div>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                            <span style={{ fontFamily: "'Roboto', sans-serif", fontSize: '12px', fontWeight: 400, color: '#667085' }}>Warranty</span>
-                            <ReadOnlyToggle checked={v.is_warranty_eligible !== false} />
-                          </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '14px' }}>
+                        <Field label="Barcode" value={v.barcode} />
+                        <Field
+                          label="Lens Color"
+                          value={
+                            v.lens_color_name ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <ColorDot code={v.lens_color_code} />
+                                <span>{v.lens_color_name}</span>
+                              </div>
+                            ) : null
+                          }
+                        />
+                        <Field label="Weight" value={v.weight} />
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '16px', marginBottom: '14px' }}>
+                        <Field label="Frame Material" value={v.frame_material} />
+                        <Field label="Lens Material" value={v.lens_material} />
+                        <Field label="Frame Shape" value={v.frame_shape} />
+                        <Field label="UV Protection" value={v.uv_protection} />
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '16px' }}>
+                        <Field label="Polarized" value={v.polarized} />
+                        <Field label="Country of Origin" value={v.country_of_origin} />
+                        <Field label="Frame Type" value={v.frame_type} />
+                        <Field label="Gender Target" value={v.gender} />
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '12px', marginTop: '12px', alignItems: 'end' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <span style={{ fontFamily: "'Roboto', sans-serif", fontSize: '12px', fontWeight: 400, color: '#667085' }}>Frame Only Mode</span>
+                          <ReadOnlyToggle checked={v.frame_only_mode || false} />
                         </div>
-                      )}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <span style={{ fontFamily: "'Roboto', sans-serif", fontSize: '12px', fontWeight: 400, color: '#667085' }}>Warranty</span>
+                          <ReadOnlyToggle checked={v.is_warranty_eligible !== false} />
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <span style={{ fontFamily: "'Roboto', sans-serif", fontSize: '12px', fontWeight: 400, color: '#667085' }}>Return Eligible</span>
+                          <ReadOnlyToggle checked={v.is_return_eligible !== false} />
+                        </div>
+                      </div>
                     </div>
 
                     {/* PRICING */}

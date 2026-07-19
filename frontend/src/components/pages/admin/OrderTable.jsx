@@ -662,11 +662,11 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewReplac
                   <tr
                     onClick={() => {
                       const wantType = returnMode === 'replacements' ? 'replacement' : 'refund';
-                      const rr = o.return_requests?.find(r => r.request_type === wantType) || o.return_requests?.[0];
+                      const rr = o.return_requests?.find(r => r.request_type === wantType);
                       const wc = o.warranty_claims?.[0];
-                      if (category === 'returns' && (activeReturnTab === 'requests' || activeReturnTab === 'processed') && rr) {
-                        if (returnMode === 'replacements' && onViewReplacement) { onViewReplacement(rr.id); return; }
-                        if (onViewReturn) { onViewReturn(rr.id); return; }
+                      if (category === 'returns' && rr) {
+                        if (rr.request_type === 'replacement' && onViewReplacement) { onViewReplacement(rr.id); return; }
+                        if (rr.request_type === 'refund' && onViewReturn) { onViewReturn(rr.id); return; }
                       }
                       if (category === 'warranty' && wc && onViewWarranty) { onViewWarranty(wc.id); return; }
                       o.items?.length > 1 ? toggleRow(o.id) : onViewDetails(o.id);
@@ -720,7 +720,8 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewReplac
                     {category === 'returns' ? (
                       <>
                         {activeReturnTab === 'window' && (() => {
-                          const rr = o.return_requests?.[0];
+                          const wantType = returnMode === 'replacements' ? 'replacement' : 'refund';
+                          const rr = o.return_requests?.find(r => r.request_type === wantType);
                           return (
                             <>
                               <td style={{ padding: '12px 16px' }}>

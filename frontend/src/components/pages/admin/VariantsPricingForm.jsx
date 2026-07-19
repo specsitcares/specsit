@@ -22,7 +22,7 @@ const GENDER_OPTIONS = [
 
 const SIZE_OPTIONS = ['Small', 'Medium', 'Large'];
 
-const emptySizeEntry = () => ({ lens_width: '', bridge_length: '', temple_length: '', quantity: 0 });
+const emptySizeEntry = () => ({ lens_width: '', bridge_length: '', temple_length: '', hinge_width: '', quantity: 0 });
 
 const normalizeSizeEntry = (entry) => {
   if (typeof entry === 'object' && entry !== null) return entry;
@@ -582,6 +582,16 @@ const VariantsPricingForm = forwardRef(({ formData, onFormDataChange, saving, er
                               />
                             </div>
                             <div className="form-field">
+                              <label className="form-field-label">Hinge Width</label>
+                              <input
+                                type="text"
+                                className="form-field-input"
+                                placeholder="e.g.18mm"
+                                value={entry.hinge_width || ''}
+                                onChange={(e) => updateSizeEntry(v.id, size, 'hinge_width', e.target.value)}
+                              />
+                            </div>
+                            <div className="form-field">
                               <label className="form-field-label">Quantity</label>
                               <input
                                 type="number"
@@ -604,267 +614,218 @@ const VariantsPricingForm = forwardRef(({ formData, onFormDataChange, saving, er
                       <hr className="vp-color-divider" />
                     </div>
 
-                    {productType === 'sunglasses' ? (
-                      <>
-                        {/* Sunglasses tech specs — Row 1: Barcode | Frame dims | Lens color | Palette image */}
-                        <div className="vp-row-4">
-                          <div className="form-field">
-                            <label className="form-field-label">Barcode</label>
+                    <>
+                      <div className="vp-row-4">
+                        <div className="form-field">
+                          <label className="form-field-label">Barcode</label>
+                          <input
+                            type="text"
+                            className="form-field-input"
+                            placeholder="e.g. 1234567890"
+                            value={v.barcode || ''}
+                            onChange={(e) => updateVariant(v.id, 'barcode', e.target.value)}
+                          />
+                        </div>
+
+                        {/* Frame Dimensions input removed per request */}
+
+                        <div className="form-field">
+                          <label className="form-field-label">Frame type</label>
+                          <SelectWithAdd
+                            value={v.frame_type || ''}
+                            onChange={(val) => updateVariant(v.id, 'frame_type', val)}
+                            options={frameTypeOptions}
+                            onAddOption={addFrameTypeOption}
+                            placeholder="Select frame type"
+                          />
+                        </div>
+
+                        <div className="form-field">
+                          <label className="form-field-label">Lens Color</label>
+                          <div className="vp-color-name-field">
+                            <div className="vp-color-swatch-trigger" style={{ backgroundColor: v.lens_color_code || '#000000' }}>
+                              <input
+                                type="color"
+                                value={v.lens_color_code || '#000000'}
+                                onChange={(e) => updateVariantFields(v.id, { lens_color_code: e.target.value })}
+                              />
+                            </div>
                             <input
                               type="text"
                               className="form-field-input"
-                              placeholder="e.g. 1234567890"
-                              value={v.barcode || ''}
-                              onChange={(e) => updateVariant(v.id, 'barcode', e.target.value)}
+                              placeholder="e.g. Grey"
+                              value={v.lens_color_name || ''}
+                              onChange={(e) => {
+                                const name = e.target.value;
+                                const hex = colorNameToHex(name);
+                                updateVariantFields(v.id, { lens_color_name: name, ...(hex ? { lens_color_code: hex } : {}) });
+                              }}
                             />
                           </div>
-                          <div className="form-field">
-                            <label className="form-field-label">Frame type</label>
-                            <SelectWithAdd
-                              value={v.frame_type || ''}
-                              onChange={(val) => updateVariant(v.id, 'frame_type', val)}
-                              options={frameTypeOptions}
-                              onAddOption={addFrameTypeOption}
-                              placeholder="Select frame type"
-                            />
-                          </div>
-                          <div className="form-field">
-                            <label className="form-field-label">Lens color</label>
-                            <div className="vp-color-name-field">
-                              <div className="vp-color-swatch-trigger" style={{ backgroundColor: v.lens_color_code || '#000000' }}>
-                                <input
-                                  type="color"
-                                  value={v.lens_color_code || '#000000'}
-                                  onChange={(e) => updateVariantFields(v.id, { lens_color_code: e.target.value })}
+                        </div>
+                      </div>
+
+                      <div className="vp-row-4" style={{ marginTop: '12px' }}>
+                        <div className="form-field">
+                          <label className="form-field-label">Palette image</label>
+                          <div
+                            className="vp-palette-dropzone"
+                            onClick={() => fileInputRefs.current[`sg-palette-${v.id}`]?.click()}
+                          >
+                            {v.sg_palette_image ? (
+                              <div className="palette-preview">
+                                <img
+                                  src={v.sg_palette_image.preview}
+                                  alt="Palette"
+                                />
+                                <span>{v.sg_palette_image.name}</span>
+                                <X
+                                  size={14}
+                                  style={{ cursor: 'pointer', flexShrink: 0, color: '#667085' }}
+                                  onClick={(e) => { e.stopPropagation(); updateVariant(v.id, 'sg_palette_image', null); }}
                                 />
                               </div>
-                              <input
-                                type="text"
-                                className="form-field-input"
-                                placeholder="e.g. Grey"
-                                value={v.lens_color_name || ''}
-                                onChange={(e) => {
-                                  const name = e.target.value;
-                                  const hex = colorNameToHex(name);
-                                  updateVariantFields(v.id, { lens_color_name: name, ...(hex ? { lens_color_code: hex } : {}) });
-                                }}
-                              />
-                            </div>
-                          </div>
-                          <div className="form-field">
-                            <label className="form-field-label">Palette image</label>
-                            <div
-                              className="vp-palette-dropzone"
-                              onClick={() => fileInputRefs.current[`sg-palette-${v.id}`]?.click()}
-                            >
-                              {v.sg_palette_image ? (
-                                <div className="palette-preview">
-                                  <img
-                                    src={v.sg_palette_image.preview}
-                                    alt="Palette"
-                                  />
-                                  <span>{v.sg_palette_image.name}</span>
-                                  <X
-                                    size={14}
-                                    style={{ cursor: 'pointer', flexShrink: 0, color: '#667085' }}
-                                    onClick={(e) => { e.stopPropagation(); updateVariant(v.id, 'sg_palette_image', null); }}
-                                  />
-                                </div>
-                              ) : (
-                                <div className="vp-palette-empty">
-                                  <Upload size={14} />
-                                  <span>Upload image</span>
-                                </div>
-                              )}
-                              <input
-                                type="file"
-                                ref={el => (fileInputRefs.current[`sg-palette-${v.id}`] = el)}
-                                style={{ display: 'none' }}
-                                accept="image/*"
-                                onChange={(e) => {
-                                  const file = e.target.files[0];
-                                  if (file) updateVariant(v.id, 'sg_palette_image', { preview: URL.createObjectURL(file), file, name: file.name });
-                                  e.target.value = '';
-                                }}
-                              />
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Row 2: Weight | Frame material | Lens material | Frame shape */}
-                        <div className="vp-row-4" style={{ marginTop: '12px' }}>
-                          <div className="form-field">
-                            <label className="form-field-label">Weight</label>
+                            ) : (
+                              <div className="vp-palette-empty">
+                                <Upload size={14} />
+                                <span>Upload image</span>
+                              </div>
+                            )}
                             <input
-                              type="text"
-                              className="form-field-input"
-                              placeholder="e.g. 28g"
-                              value={v.weight || ''}
-                              onChange={(e) => updateVariant(v.id, 'weight', e.target.value)}
-                            />
-                          </div>
-                          <div className="form-field">
-                            <label className="form-field-label">Frame material</label>
-                            <SelectWithAdd
-                              value={v.frame_material || ''}
-                              onChange={(val) => updateVariant(v.id, 'frame_material', val)}
-                              options={frameMaterialOptions}
-                              onAddOption={(opt) => setFrameMaterialOptions(prev => [...prev, opt])}
-                              placeholder="Select frame material"
-                            />
-                          </div>
-                          <div className="form-field">
-                            <label className="form-field-label">Lens material</label>
-                            <SelectWithAdd
-                              value={v.lens_material || ''}
-                              onChange={(val) => updateVariant(v.id, 'lens_material', val)}
-                              options={lensMaterialOptions}
-                              onAddOption={(opt) => setLensMaterialOptions(prev => [...prev, opt])}
-                              placeholder="Select lens material"
-                            />
-                          </div>
-                          <div className="form-field">
-                            <label className="form-field-label">Frame Shape</label>
-                            <SelectWithAdd
-                              value={v.frame_shape || ''}
-                              onChange={(val) => updateVariant(v.id, 'frame_shape', val)}
-                              options={frameShapeOptions}
-                              onAddOption={(opt) => setFrameShapeOptions(prev => [...prev, opt])}
-                              placeholder="Select frame shape"
+                              type="file"
+                              ref={el => (fileInputRefs.current[`sg-palette-${v.id}`] = el)}
+                              style={{ display: 'none' }}
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files[0];
+                                if (file) updateVariant(v.id, 'sg_palette_image', { preview: URL.createObjectURL(file), file, name: file.name });
+                                e.target.value = '';
+                              }}
                             />
                           </div>
                         </div>
 
-                        {/* Row 3: Gender | UV protection | Polarized | Country of origin */}
-                        <div className="vp-row-4" style={{ marginTop: '12px' }}>
-                          <div className="form-field">
-                            <label className="form-field-label">Gender target</label>
-                            <div className="form-field-select-wrapper">
-                              <select value={v.gender || 'Unisex'} onChange={(e) => updateVariant(v.id, 'gender', e.target.value)}>
-                                {GENDER_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                              </select>
-                              <span className="select-chevron"><ChevronDown size={14} /></span>
-                            </div>
-                          </div>
-                          <div className="form-field">
-                            <label className="form-field-label">UV protection</label>
-                            <SelectWithAdd
-                              value={v.uv_protection || ''}
-                              onChange={(val) => updateVariant(v.id, 'uv_protection', val)}
-                              options={uvOptions}
-                              onAddOption={(opt) => setUvOptions(prev => [...prev, opt])}
-                              placeholder="Select UV type"
-                            />
-                          </div>
-                          <div className="form-field">
-                            <label className="form-field-label">Polarized</label>
-                            <SelectWithAdd
-                              value={v.polarized || ''}
-                              onChange={(val) => updateVariant(v.id, 'polarized', val)}
-                              options={polarizedOptions}
-                              onAddOption={(opt) => setPolarizedOptions(prev => [...prev, opt])}
-                              placeholder="Select polarization"
-                            />
-                          </div>
-                          <div className="form-field">
-                            <label className="form-field-label">Country of origin</label>
-                            <SelectWithAdd
-                              value={v.country_of_origin || ''}
-                              onChange={(val) => updateVariant(v.id, 'country_of_origin', val)}
-                              options={countryOptions}
-                              onAddOption={(opt) => setCountryOptions(prev => [...prev, opt])}
-                              placeholder="Select country"
-                            />
+                        <div className="form-field">
+                          <label className="form-field-label">Weight</label>
+                          <input
+                            type="text"
+                            className="form-field-input"
+                            placeholder="e.g. 28g"
+                            value={v.weight || ''}
+                            onChange={(e) => updateVariant(v.id, 'weight', e.target.value)}
+                          />
+                        </div>
+
+                        <div className="form-field">
+                          <label className="form-field-label">Frame material</label>
+                          <SelectWithAdd
+                            value={v.frame_material || ''}
+                            onChange={(val) => updateVariant(v.id, 'frame_material', val)}
+                            options={frameMaterialOptions}
+                            onAddOption={(opt) => setFrameMaterialOptions(prev => [...prev, opt])}
+                            placeholder="Select frame material"
+                          />
+                        </div>
+
+                        <div className="form-field">
+                          <label className="form-field-label">Lens material</label>
+                          <SelectWithAdd
+                            value={v.lens_material || ''}
+                            onChange={(val) => updateVariant(v.id, 'lens_material', val)}
+                            options={lensMaterialOptions}
+                            onAddOption={(opt) => setLensMaterialOptions(prev => [...prev, opt])}
+                            placeholder="Select lens material"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="vp-row-4" style={{ marginTop: '12px' }}>
+                        <div className="form-field">
+                          <label className="form-field-label">Frame Shape</label>
+                          <SelectWithAdd
+                            value={v.frame_shape || ''}
+                            onChange={(val) => updateVariant(v.id, 'frame_shape', val)}
+                            options={frameShapeOptions}
+                            onAddOption={(opt) => setFrameShapeOptions(prev => [...prev, opt])}
+                            placeholder="Select frame shape"
+                          />
+                        </div>
+
+                        <div className="form-field">
+                          <label className="form-field-label">Gender target</label>
+                          <div className="form-field-select-wrapper">
+                            <select value={v.gender || 'Unisex'} onChange={(e) => updateVariant(v.id, 'gender', e.target.value)}>
+                              {GENDER_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                            </select>
+                            <span className="select-chevron"><ChevronDown size={14} /></span>
                           </div>
                         </div>
-                      </>
-                    ) : (
-                      <>
-                        {/* Eyeglasses tech specs */}
-                        <div className="vp-row-4">
-                          <div className="form-field">
-                            <label className="form-field-label">Frame type</label>
-                            <SelectWithAdd
-                              value={v.frame_type || ''}
-                              onChange={(val) => updateVariant(v.id, 'frame_type', val)}
-                              options={frameTypeOptions}
-                              onAddOption={addFrameTypeOption}
-                              placeholder="Select frame type"
-                            />
-                          </div>
-                          <div className="form-field">
-                            <label className="form-field-label">Frame Material</label>
-                            <SelectWithAdd
-                              value={v.frame_material || ''}
-                              onChange={(val) => updateVariant(v.id, 'frame_material', val)}
-                              options={frameMaterialOptions}
-                              onAddOption={(opt) => setFrameMaterialOptions(prev => [...prev, opt])}
-                              placeholder="Select frame material"
-                            />
-                          </div>
-                          <div className="form-field">
-                            <label className="form-field-label">Frame Shape</label>
-                            <SelectWithAdd
-                              value={v.frame_shape || ''}
-                              onChange={(val) => updateVariant(v.id, 'frame_shape', val)}
-                              options={frameShapeOptions}
-                              onAddOption={(opt) => setFrameShapeOptions(prev => [...prev, opt])}
-                              placeholder="Select frame shape"
-                            />
-                          </div>
-                          <div className="form-field">
-                            <label className="form-field-label">Gender target</label>
-                            <div className="form-field-select-wrapper">
-                              <select value={v.gender || 'Unisex'} onChange={(e) => updateVariant(v.id, 'gender', e.target.value)}>
-                                {GENDER_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                              </select>
-                              <span className="select-chevron"><ChevronDown size={14} /></span>
-                            </div>
+
+                        <div className="form-field">
+                          <label className="form-field-label">UV protection</label>
+                          <SelectWithAdd
+                            value={v.uv_protection || ''}
+                            onChange={(val) => updateVariant(v.id, 'uv_protection', val)}
+                            options={uvOptions}
+                            onAddOption={(opt) => setUvOptions(prev => [...prev, opt])}
+                            placeholder="Select UV type"
+                          />
+                        </div>
+
+                        <div className="form-field">
+                          <label className="form-field-label">Polarized</label>
+                          <SelectWithAdd
+                            value={v.polarized || ''}
+                            onChange={(val) => updateVariant(v.id, 'polarized', val)}
+                            options={polarizedOptions}
+                            onAddOption={(opt) => setPolarizedOptions(prev => [...prev, opt])}
+                            placeholder="Select polarization"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="vp-row" style={{ marginTop: '12px' }}>
+                        <div className="form-field vp-toggle-field">
+                          <div className="vp-toggle-content">
+                            <span className="vp-toggle-label">Frame only mode</span>
+                            <label className="toggle-switch">
+                              <input
+                                type="checkbox"
+                                checked={v.frame_only_mode || false}
+                                onChange={(e) => updateVariant(v.id, 'frame_only_mode', e.target.checked)}
+                              />
+                              <span className="toggle-slider" />
+                            </label>
                           </div>
                         </div>
-                        <div className="vp-row" style={{ marginTop: '12px' }}>
-                          <div className="form-field vp-toggle-field">
-                            <div className="vp-toggle-content">
-                              <span className="vp-toggle-label">Frame only mode</span>
-                              <label className="toggle-switch">
-                                <input
-                                  type="checkbox"
-                                  checked={v.frame_only_mode || false}
-                                  onChange={(e) => updateVariant(v.id, 'frame_only_mode', e.target.checked)}
-                                />
-                                <span className="toggle-slider" />
-                              </label>
-                            </div>
-                          </div>
-                          <div className="form-field vp-toggle-field">
-                            <div className="vp-toggle-content">
-                              <span className="vp-toggle-label">warranty</span>
-                              <label className="toggle-switch">
-                                <input
-                                  type="checkbox"
-                                  checked={v.is_warranty_eligible !== false}
-                                  onChange={(e) => updateVariant(v.id, 'is_warranty_eligible', e.target.checked)}
-                                />
-                                <span className="toggle-slider" />
-                              </label>
-                            </div>
-                          </div>
-                          <div className="form-field vp-toggle-field">
-                            <div className="vp-toggle-content">
-                              <span className="vp-toggle-label">return eligible</span>
-                              <label className="toggle-switch">
-                                <input
-                                  type="checkbox"
-                                  checked={v.is_return_eligible !== false}
-                                  onChange={(e) => updateVariant(v.id, 'is_return_eligible', e.target.checked)}
-                                />
-                                <span className="toggle-slider" />
-                              </label>
-                            </div>
+                        <div className="form-field vp-toggle-field">
+                          <div className="vp-toggle-content">
+                            <span className="vp-toggle-label">warranty</span>
+                            <label className="toggle-switch">
+                              <input
+                                type="checkbox"
+                                checked={v.is_warranty_eligible !== false}
+                                onChange={(e) => updateVariant(v.id, 'is_warranty_eligible', e.target.checked)}
+                              />
+                              <span className="toggle-slider" />
+                            </label>
                           </div>
                         </div>
-                      </>
-                    )}
+                        <div className="form-field vp-toggle-field">
+                          <div className="vp-toggle-content">
+                            <span className="vp-toggle-label">return eligible</span>
+                            <label className="toggle-switch">
+                              <input
+                                type="checkbox"
+                                checked={v.is_return_eligible !== false}
+                                onChange={(e) => updateVariant(v.id, 'is_return_eligible', e.target.checked)}
+                              />
+                              <span className="toggle-slider" />
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    </>
                   </div>
 
                   {/* ── Pricing ── */}

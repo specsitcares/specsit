@@ -141,6 +141,16 @@ class Variant(models.Model):
     
     # Frame Details (from Figma Node 76:8389)
     frame_material = models.CharField(max_length=100, blank=True, default='', db_index=True)
+    # Additional technical spec fields for variants (barcode, lens specs, logistics)
+    barcode = models.CharField(max_length=100, blank=True, default='', db_index=True)
+    lens_color_name = models.CharField(max_length=100, blank=True, default='')
+    lens_color_code = models.CharField(max_length=7, blank=True, default='#000000')
+    sg_palette_image = models.ImageField(upload_to='catalog/palettes/sg/', blank=True, null=True)
+    weight = models.CharField(max_length=50, blank=True, default='')
+    lens_material = models.CharField(max_length=100, blank=True, default='')
+    uv_protection = models.CharField(max_length=100, blank=True, default='')
+    polarized = models.CharField(max_length=50, blank=True, default='')
+    country_of_origin = models.CharField(max_length=100, blank=True, default='')
 
     # Accessory Details (cloths / cases / cleaning solutions — Figma Node 548:61308)
     accessory_type = models.CharField(max_length=100, blank=True, default='')

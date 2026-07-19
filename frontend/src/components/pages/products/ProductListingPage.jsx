@@ -187,16 +187,28 @@ const ProductListingPage = () => {
         });
     };
 
-    // Load categories and brands
+    // Load categories once and frame-specific brands when needed.
     useEffect(() => {
-        Promise.all([
-            apiClient.get('/catalog/categories/'),
-            apiClient.get('/catalog/brands/')
-        ]).then(([catRes, brandRes]) => {
-            setCategories(catRes.data.results || catRes.data);
-            setBrands(brandRes.data.results || brandRes.data);
-        }).catch(err => console.error('Error loading filters:', err));
+        apiClient.get('/catalog/categories/')
+            .then(res => setCategories(res.data.results || res.data))
+            .catch(err => console.error('Error loading categories:', err));
     }, []);
+
+    useEffect(() => {
+        const brandUrl = productType === 'frame'
+            ? '/catalog/brands/?brand_type=Frame'
+            : '/catalog/brands/';
+
+        apiClient.get(brandUrl)
+            .then(res => setBrands(res.data.results || res.data))
+            .catch(err => console.error('Error loading brands:', err));
+    }, [productType]);
+
+    useEffect(() => {
+        if (selectedBrand && brands.length > 0 && !brands.some(b => b.name === selectedBrand)) {
+            setSelectedBrand('');
+        }
+    }, [brands, selectedBrand]);
 
     // Navbar category slug from the URL, e.g. "eyeglasses", "sunglasses", "contact-lens".
     const categorySlug = searchParams.get('category') || '';

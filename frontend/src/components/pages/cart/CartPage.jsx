@@ -5,16 +5,17 @@ import apiClient from '../../../services/api';
 import specsitFullLogo from '../../../assets/specsit_full_logo.svg';
 import Footer from '../layout/Footer';
 import '../../../styles/checkout.css';
+import { getCartItemDisplayName, getCartItemLineTotal, getCartItemSummaryDetails, getVariantDisplayName, getLensPackageName } from '../../../utils/cartSummary';
 
 const STORE_PHONE = '9858658566';
 
 /* ── Stepper ── */
-const CheckoutStepper = ({ currentStep }) => {
+const CheckoutStepper = ({ currentStep, onStepClick }) => {
     const steps = [
-        { n: 1, label: 'Cart' },
-        { n: 2, label: 'Sign In' },
-        { n: 3, label: 'Shipping' },
-        { n: 4, label: 'Payment' },
+        { n: 1, label: 'Cart', to: '/cart' },
+        { n: 2, label: 'Sign In', to: '/checkout?step=2' },
+        { n: 3, label: 'Shipping', to: '/checkout?step=3' },
+        { n: 4, label: 'Payment', to: '/checkout?step=4' },
     ];
     return (
         <div className="breadcrumb-stepper-figma">
@@ -23,7 +24,14 @@ const CheckoutStepper = ({ currentStep }) => {
                 const isDone = s.n < currentStep;
                 const isDisabled = s.n > currentStep;
                 return (
-                    <div className={`step-item-figma${isDisabled ? ' disabled' : ''}`} key={s.n}>
+                    <div
+                        className={`step-item-figma${isDisabled ? ' disabled' : ''}`}
+                        key={s.n}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => onStepClick?.(s)}
+                        onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && onStepClick) { e.preventDefault(); onStepClick(s); } }}
+                    >
                         <div className={`step-circle-figma${isActive ? ' active' : isDone ? ' done' : ''}`}>
                             {isDone ? (
                                 <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
@@ -56,8 +64,14 @@ const CartPage = () => {
     const [promoLoading, setPromoLoading] = useState(false);
     const [orderOpen, setOrderOpen] = useState(true);
     const [summaryOpen, setSummaryOpen] = useState(false); // mobile payment-summary bottom sheet
+    const [partialPaymentEnabled, setPartialPaymentEnabled] = useState(true);
 
     useEffect(() => { window.scrollTo(0, 0); }, []);
+    useEffect(() => {
+        apiClient.get('/sales/payments/settings/')
+            .then(res => setPartialPaymentEnabled(res.data.partial_payment_enabled ?? true))
+            .catch(() => {});
+    }, []);
 
     const sanitizePromoCode = (code) => String(code || '').replace(/[^A-Z0-9\-]/g, '').slice(0, 50);
 
@@ -172,7 +186,7 @@ const CartPage = () => {
                 </a>
             </header>
 
-            <CheckoutStepper currentStep={1} />
+            <CheckoutStepper currentStep={1} onStepClick={(step) => step.to && navigate(step.to)} />
 
             {/* ── Page heading ── */}
             <div className="cart-header-figma">
@@ -237,8 +251,9 @@ const CartPage = () => {
                         const brandName = (item.product?.brand?.name || item.product?.brand_name || 'Specsit');
                         const subtitle = [item.variant?.color_name, item.product?.frame_type, item.product?.frame_shape]
                             .filter(Boolean).join(' ') || item.product?.short_description || '';
-                        const lensLabel = item.lens?.name || (item.lens ? `${item.lens.type || 'Power'} Lenses` : null);
+                        const lensLabel = getLensPackageName(item) || (item.lens ? `${item.lens.type || 'Power'} Lenses` : null);
                         const hasRx = item.prescription && (item.prescription.od?.sph || item.prescription.od_sph);
+                        const variantName = getVariantDisplayName(item);
 
                         return (
                             <div key={item.id} className="ck-item">
@@ -256,31 +271,30 @@ const CartPage = () => {
                                 </div>
 
                                 <div className="ck-item__detail">
-                                    {/* Frame price */}
+                                    {/* Variant row */}
                                     <div className="ck-item__pricerow">
-                                        <span className="ck-item__pricelabel">Frame</span>
+                                        <span className="ck-item__pricelabel">Variant: {variantName}</span>
                                         <span className="ck-item__priceval">₹{framePrice.toLocaleString('en-IN')}</span>
                                     </div>
 
-                                    {/* Lens line */}
+                                    {/* Lens package row */}
                                     {lensLabel && (
                                         <div className="ck-item__pricerow">
-                                            <span className="ck-item__pricelabel">{lensLabel}</span>
+                                            <span className="ck-item__pricelabel">Lens Package: {lensLabel}</span>
                                             <span className="ck-item__priceval">₹{lensPrice.toLocaleString('en-IN')}</span>
                                         </div>
                                     )}
 
                                     {/* Final price */}
                                     <div className="ck-item__final">
-                                        <span>Final Price</span>
+                                        <span>Total ({item.quantity} {item.quantity === 1 ? 'item' : 'items'})</span>
                                         <span>₹{finalPrice.toLocaleString('en-IN')}</span>
                                     </div>
 
-                                    {/* Specs */}
+                                    {/* Customer details */}
                                     <div className="ck-item__specs">
-                                        <span>Frame: <b>{item.variant?.color_name || 'Standard'}</b></span>
-                                        <span>Size: <b>{item.variant?.size || 'One Size'}</b></span>
-                                        {item.lens?.type && <span>Lens: <b>{item.lens.type}</b></span>}
+                                        {item.prescription?.name && <span>Name: <b>{item.prescription.name}</b></span>}
+                                        {(item.prescription?.phone || item.prescription?.mobile) && <span>Phone: <b>{item.prescription.phone || item.prescription.mobile}</b></span>}
                                     </div>
 
                                     {/* Prescription table */}
@@ -376,13 +390,15 @@ const CartPage = () => {
                         <h2 className="ck-summary__title">Payment Summary</h2>
 
                         {/* Partial payment banner */}
-                        <div className="ck-partial">
-                            <span className="ck-partial__head">
-                                <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#68408D" strokeWidth="1.3" /><path d="M8 7.2V11" stroke="#68408D" strokeWidth="1.4" strokeLinecap="round" /><circle cx="8" cy="5" r="0.8" fill="#68408D" /></svg>
-                                Partial Payment Model
-                            </span>
-                            <p>Pay a small security deposit now to confirm your order. The remaining balance is collected upon delivery.</p>
-                        </div>
+                        {partialPaymentEnabled && (
+                            <div className="ck-partial">
+                                <span className="ck-partial__head">
+                                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#68408D" strokeWidth="1.3" /><path d="M8 7.2V11" stroke="#68408D" strokeWidth="1.4" strokeLinecap="round" /><circle cx="8" cy="5" r="0.8" fill="#68408D" /></svg>
+                                    Partial Payment Model
+                                </span>
+                                <p>Pay a small security deposit now to confirm your order. The remaining balance is collected upon delivery.</p>
+                            </div>
+                        )}
 
                         {/* Promotions */}
                         <div className="ck-promo">
@@ -426,12 +442,28 @@ const CartPage = () => {
                                 <span className="ck-order__val">₹{cartTotal.toLocaleString('en-IN')}</span>
                             </button>
 
-                            {orderOpen && cart.map((item, i) => (
-                                <div key={item.id} className="ck-order__line ck-order__sub">
-                                    <span>Item {i + 1}</span>
-                                    <span>₹{lineTotal(item).toLocaleString('en-IN')}</span>
-                                </div>
-                            ))}
+                            {orderOpen && cart.map((item) => {
+                                const productName = getCartItemDisplayName(item);
+                                const lensName = getLensPackageName(item);
+                                const productPrice = item.type === 'contactlens'
+                                    ? (parseFloat(item.price) || 0)
+                                    : resolveProductPrice(item.product, item.variant);
+                                const lensPrice = item.lens ? parseFloat(item.lens.price || 0) : 0;
+                                return (
+                                    <div key={item.id}>
+                                        <div className="ck-order__line ck-order__sub">
+                                            <span style={{ fontWeight: 600 }}>{productName}</span>
+                                            <span style={{ fontWeight: 600 }}>₹{productPrice.toLocaleString('en-IN')}</span>
+                                        </div>
+                                        {lensName && (
+                                            <div className="ck-order__line ck-order__sub">
+                                                <span>{lensName}</span>
+                                                <span>₹{lensPrice.toLocaleString('en-IN')}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
 
                             <div className="ck-order__divider" />
 
@@ -441,10 +473,6 @@ const CartPage = () => {
                                     <span className="ck-order__save">-₹{savings.toLocaleString('en-IN')}</span>
                                 </div>
                             )}
-                            <div className="ck-order__line">
-                                <span className="ck-order__label">Shipping</span>
-                                <span className="ck-order__free">FREE</span>
-                            </div>
                         </div>
 
                         <div className="ck-total">
