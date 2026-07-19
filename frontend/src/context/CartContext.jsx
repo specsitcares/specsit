@@ -132,10 +132,11 @@ export const CartProvider = ({ children }) => {
         return acc + Math.round((productPrice + lensPrice) * 100) * item.quantity;
     }, 0)) / 100;
 
-    const savings = Math.min(appliedCoupon?.discount || 0, cartTotal);
+    const savings = Math.min(Number(appliedCoupon?.discount || 0), Math.max(0, cartTotal));
+    const discountedTotal = Math.max(0, cartTotal - savings);
 
     return (
-        <CartContext.Provider value={{ cart, addToCart, addContactLens, removeFromCart, updateQuantity, clearCart, cartTotal, resolveProductPrice, appliedCoupon, applyCoupon, removeCoupon, savings }}>
+        <CartContext.Provider value={{ cart, addToCart, addContactLens, removeFromCart, updateQuantity, clearCart, cartTotal, discountedTotal, resolveProductPrice, appliedCoupon, applyCoupon, removeCoupon, savings }}>
             {children}
         </CartContext.Provider>
     );

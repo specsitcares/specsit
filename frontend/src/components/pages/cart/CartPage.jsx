@@ -48,7 +48,7 @@ const CheckoutStepper = ({ currentStep }) => {
 
 /* ── Cart Page (Figma 87:1582) ── */
 const CartPage = () => {
-    const { cart, removeFromCart, updateQuantity, cartTotal, resolveProductPrice, appliedCoupon, applyCoupon, removeCoupon, savings } = useCart();
+    const { cart, removeFromCart, updateQuantity, cartTotal, discountedTotal, resolveProductPrice, appliedCoupon, applyCoupon, removeCoupon, savings } = useCart();
     const navigate = useNavigate();
 
     const [promoCode, setPromoCode] = useState('');
@@ -122,7 +122,7 @@ const CartPage = () => {
         setOffersOpen(false);
     };
 
-    const orderTotal = cartTotal - savings;
+    const orderTotal = discountedTotal;
 
     const itemUnitPrice = (item) => item.type === 'contactlens'
         ? (parseFloat(item.price) || 0)
