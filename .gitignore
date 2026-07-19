@@ -35,6 +35,8 @@ db.sqlite3
 .env
 backend/media/
 backend/staticfiles/
+backend/staticfiles_dist/
+backend/staticfiles_collect/
 
 # IDE
 .vscode/

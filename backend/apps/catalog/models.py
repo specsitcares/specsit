@@ -49,14 +49,14 @@ class Product(models.Model):
         ('Progressive', 'Progressive'),
     ]
 
-    title = models.CharField(max_length=255)
+    title = models.CharField(max_length=255, db_index=True)
     product_type = models.CharField(max_length=10, choices=PRODUCT_TYPE_CHOICES, default='frame')
     sku = models.CharField(max_length=100, unique=True, null=True, blank=True)
     description = models.TextField(blank=True)
     short_description = models.TextField(blank=True)
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='products')
     brand = models.ForeignKey(Brand, on_delete=models.SET_NULL, null=True, blank=True)
-    brand_name = models.CharField(max_length=100, null=True, blank=True)
+    brand_name = models.CharField(max_length=100, null=True, blank=True, db_index=True)
     manufacturer = models.ForeignKey(Manufacturer, on_delete=models.SET_NULL, null=True, blank=True)
     product_image = models.ImageField(upload_to='products/', null=True, blank=True)
 
@@ -97,6 +97,22 @@ class Product(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     is_bestseller = models.BooleanField(default=True)
 
+    class Meta:
+        indexes = [
+            # Main storefront query: active products by type
+            models.Index(fields=['is_active', 'product_type', '-created_at'], name='prod_act_type_created_idx'),
+            # Brand + active filter (brand page, nav-options)
+            models.Index(fields=['brand', 'is_active'], name='product_brand_active_idx'),
+            # Category + active filter (category page)
+            models.Index(fields=['category', 'is_active'], name='product_category_active_idx'),
+            # Bestseller flag for homepage/sorting
+            models.Index(fields=['is_bestseller', 'is_active'], name='product_bestseller_active_idx'),
+            # Price range filter
+            models.Index(fields=['final_price'], name='product_final_price_idx'),
+            # SKU lookup (admin + order validation)
+            models.Index(fields=['sku'], name='product_sku_idx'),
+        ]
+
     def save(self, *args, **kwargs):
         if self.lens_type == 'Progressive':
             self.requires_pd = True
@@ -114,8 +130,8 @@ class Variant(models.Model):
     
     # Color Differentiation
     lens_color = models.CharField(max_length=100, blank=True, default='')
-    frame_color = models.CharField(max_length=100, blank=True, default='')
-    color = models.CharField(max_length=100, help_text="Common color name for SEO/Display", default='') 
+    frame_color = models.CharField(max_length=100, blank=True, default='', db_index=True)
+    color = models.CharField(max_length=100, help_text="Common color name for SEO/Display", default='', db_index=True) 
     
     # Color Selection from Figma
     COLOR_METHOD_CHOICES = [('code', 'Color Code'), ('palette', 'Palette Image')]
@@ -124,7 +140,7 @@ class Variant(models.Model):
     palette_image = models.ImageField(upload_to='catalog/palettes/', blank=True, null=True)
     
     # Frame Details (from Figma Node 76:8389)
-    frame_material = models.CharField(max_length=100, blank=True, default='')
+    frame_material = models.CharField(max_length=100, blank=True, default='', db_index=True)
 
     # Accessory Details (cloths / cases / cleaning solutions — Figma Node 548:61308)
     accessory_type = models.CharField(max_length=100, blank=True, default='')
@@ -172,6 +188,19 @@ class Variant(models.Model):
     # Whether this variant can be returned. Return window (days) is set globally in
     # Store Settings (SiteSettings.return_window_days).
     is_return_eligible = models.BooleanField(default=True)
+
+    class Meta:
+        indexes = [
+            # THE critical index: powers the Exists() availability subquery on every
+            # product list page — product_id, is_listed, stock must all be in one index.
+            models.Index(fields=['product', 'is_listed', 'stock'], name='var_prod_listed_stock_idx'),
+            # SKU lookup (admin, order creation, search)
+            models.Index(fields=['sku'], name='variant_sku_idx'),
+            # Listed variants only (storefront listing)
+            models.Index(fields=['is_listed', 'stock'], name='variant_listed_stock_idx'),
+            # Bestsellers / sales sort (90-day annotation join)
+            models.Index(fields=['product', '-id'], name='variant_product_id_idx'),
+        ]
 
     def save(self, *args, **kwargs):
         from django.utils import timezone
@@ -370,6 +399,14 @@ class Review(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=['product', 'user'], name='unique_review_per_product_user')
+        ]
+        indexes = [
+            # Product page reviews (approved only, sorted by date)
+            models.Index(fields=['product', 'is_approved', '-created_at'], name='review_product_approved_idx'),
+            # has_review / review_rating check per order (eliminates per-row Review scan)
+            models.Index(fields=['order', 'user'], name='review_order_user_idx'),
+            # Featured reviews for homepage testimonials
+            models.Index(fields=['is_featured', 'is_approved'], name='review_featured_approved_idx'),
         ]
 
     def __str__(self): return f"Review for {self.product.title} by {self.user.username}"

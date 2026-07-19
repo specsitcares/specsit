@@ -47,8 +47,29 @@ const HeroCarousel = ({ slidesData = null }) => {
         <div
           key={i}
           className={`hero-v2__bg${i === current ? ' is-active' : ''}`}
-          style={slide.image ? { backgroundImage: `url(${slide.image})` } : undefined}
-        />
+          // Only use background-image for non-first slides (index > 0)
+          // Slide 0 uses an <img> below so the browser tracks it as LCP
+          style={slide.image && i > 0 ? { backgroundImage: `url(${slide.image})` } : undefined}
+        >
+          {/* First slide: real <img> so the browser can report it as LCP candidate
+              fetchpriority="high" tells the browser to load it before other resources */}
+          {i === 0 && slide.image && (
+            <img
+              src={slide.image}
+              alt={slide.headline || 'Hero banner'}
+              fetchpriority="high"
+              loading="eager"
+              decoding="async"
+              style={{
+                position: 'absolute', inset: 0,
+                width: '100%', height: '100%',
+                objectFit: 'cover',
+                opacity: i === current ? 1 : 0,
+                transition: 'opacity 0.6s ease',
+              }}
+            />
+          )}
+        </div>
       ))}
       <div className="hero-v2__overlay" />
 

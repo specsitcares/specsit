@@ -15,7 +15,7 @@ from .serializers import (
     WishlistSerializer, CouponSerializer, ShipmentSerializer,
     OrderTrackingSerializer, PaymentSerializer,
     ReturnRequestSerializer, WarrantyClaimSerializer,
-    OrderShipmentSerializer,
+    OrderShipmentSerializer, OrderListSerializer,
 )
 
 import csv
@@ -25,6 +25,7 @@ from rest_framework.decorators import action
 class OrderViewSet(viewsets.ModelViewSet):
     serializer_class = OrderSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
     filter_backends = [filters.SearchFilter]
     search_fields = [
         'id', 
@@ -37,15 +38,82 @@ class OrderViewSet(viewsets.ModelViewSet):
     ]
     
     def get_queryset(self):
-        qs = Order.objects.select_related(
-            'status', 'coupon', 'shipping_address', 'billing_address', 'user'
-        ).prefetch_related(
-            'items', 'items__variant', 'items__variant__product',
-            'items__prescription', 'items__prescription__status',
-            'items__lens',
-            'tracking', 'payments',
-            'return_requests', 'warranty_claims',
+        from django.db.models import Prefetch
+        from apps.catalog.models import Review
+
+        # Pre-build the review prefetch scoped to this user so has_review/review_rating
+        # in the serializer reads from cache instead of hitting the DB per order.
+        user = self.request.user
+        review_prefetch = Prefetch(
+            'reviews',
+            queryset=Review.objects.filter(user=user) if (user and user.is_authenticated) else Review.objects.none(),
+            to_attr='_user_reviews',
         )
+
+        # Base prefetch paths needed by all views (both list and detail)
+        prefetch_paths = [
+            # Coupon M2M: avoid N+1 in CouponSerializer
+            'coupon__brands',
+            'coupon__categories',
+            'coupon__categories__parent',
+            'items',
+            'items__variant',
+            'items__variant__product',
+            'items__variant__product__brand',
+            Prefetch(
+                'items__variant__images',
+                to_attr='_prefetched_images',
+            ),
+            'items__prescription',
+            'items__prescription__status',
+            'items__lens',
+            'items__contact_lens',
+            'items__contact_lens__package',
+            'tracking',
+            'payments',
+            'return_requests',
+            'return_requests__order_item',
+            'return_requests__order_item__variant',
+            'return_requests__order_item__variant__product',
+            # ReturnRequest image sub-relations — avoid N+1 in ReturnRequestSerializer
+            'return_requests__images',
+            'return_requests__received_images',
+            'return_requests__pickup_images',
+            'return_requests__replacement_variant',
+            'return_requests__replacement_variant__product',
+            'return_requests__notes',
+            'return_requests__notes__author',
+            # WarrantyClaim image sub-relation — avoid N+1 in WarrantyClaimSerializer
+            'warranty_claims',
+            'warranty_claims__images',
+            'source_returns',  # for get_exchange_info on replacement orders
+            'source_returns__order_item',
+            'source_returns__order_item__variant',
+            'source_returns__order_item__variant__product',
+            # get_exchange_info fallback: obj.replaces_order.items.first()
+            'replaces_order__items',
+            'replaces_order__items__variant',
+            'replaces_order__items__variant__product',
+            review_prefetch,
+        ]
+
+        # Extra prefetch paths only needed by detail/retrieve view actions
+        if self.action != 'list':
+            prefetch_paths.extend([
+                'items__prescription__order_items',
+                'items__lens__type',
+                'items__lens__brand',
+                'items__lens__package',
+                'items__lens__package__categories',
+                'items__lens__constraints',
+                'items__contact_lens__type',
+                'items__contact_lens__brand',
+            ])
+
+        qs = Order.objects.select_related(
+            'status', 'coupon', 'shipping_address', 'billing_address', 'user',
+            'replaces_order',  # needed by get_exchange_info without extra hit
+        ).prefetch_related(*prefetch_paths)
 
         # Hide online orders that were never paid — payment failed at the gateway or the
         # customer abandoned it. These should not appear as placed orders anywhere.
@@ -116,11 +184,21 @@ class OrderViewSet(viewsets.ModelViewSet):
             
         date_from = self.request.query_params.get('date_from')
         if date_from and date_from != "":
-            qs = qs.filter(created_at__date__gte=date_from)
+            try:
+                from datetime import datetime, time
+                dt_from = timezone.make_aware(datetime.combine(datetime.strptime(date_from, '%Y-%m-%d').date(), time.min))
+                qs = qs.filter(created_at__gte=dt_from)
+            except (ValueError, TypeError):
+                pass
             
         date_to = self.request.query_params.get('date_to')
         if date_to and date_to != "":
-            qs = qs.filter(created_at__date__lte=date_to)
+            try:
+                from datetime import datetime, time
+                dt_to = timezone.make_aware(datetime.combine(datetime.strptime(date_to, '%Y-%m-%d').date(), time.max))
+                qs = qs.filter(created_at__lte=dt_to)
+            except (ValueError, TypeError):
+                pass
 
         # Item-type segregation for the Orders tabs (also used in returns/warranty).
         # Eyewear = sunglasses + eyeglasses (frame product type); accessory = accessory variants;
@@ -204,16 +282,17 @@ class OrderViewSet(viewsets.ModelViewSet):
             qs = qs.filter(order_status=status_filter)
 
         # Optional search by order id or customer
-        search = request.query_params.get('search', '').strip()
         if search:
-            qs = qs.filter(
-                Q(id__icontains=search) |
-                Q(user__username__icontains=search) |
-                Q(user__first_name__icontains=search) |
-                Q(user__last_name__icontains=search) |
-                Q(tracking__tracking_number__icontains=search) |
-                Q(shipment__tracking_id__icontains=search)
-            ).distinct()
+            if search.isdigit():
+                qs = qs.filter(id=int(search))
+            else:
+                qs = qs.filter(
+                    Q(user__username__istartswith=search) |
+                    Q(user__first_name__istartswith=search) |
+                    Q(user__last_name__istartswith=search) |
+                    Q(tracking__tracking_number__istartswith=search) |
+                    Q(shipment__tracking_id__istartswith=search)
+                ).distinct()
 
         serializer = OrderShipmentSerializer(qs, many=True, context={'request': request})
         return Response(serializer.data)
@@ -264,7 +343,7 @@ class OrderViewSet(viewsets.ModelViewSet):
         from datetime import timedelta
         from django.db.models import Count, Q
 
-        # 1. Base Queryset — mirrors get_queryset() so analytics match the table exactly
+        # 1. Base Queryset — mirrors get_queryset() filtering (no prefetch needed for counts)
         qs = Order.objects.all()
         if not request.user.is_staff:
             qs = qs.filter(user=request.user)
@@ -279,16 +358,17 @@ class OrderViewSet(viewsets.ModelViewSet):
             warranty_days = SiteSettings.get().warranty_window_days or 365
             one_year_ago = timezone.now() - timedelta(days=warranty_days)
             qs = qs.filter(order_status='delivered', delivery_date__gte=one_year_ago)
-            
+
         # On-page Search
-        search = request.query_params.get('search')
         if search:
-            qs = qs.filter(
-                Q(id__icontains=search) |
-                Q(user__username__icontains=search) |
-                Q(items__variant__product__title__icontains=search)
-            ).distinct()
-            
+            if search.isdigit():
+                qs = qs.filter(id=int(search))
+            else:
+                qs = qs.filter(
+                    Q(user__username__istartswith=search) |
+                    Q(items__variant__product__title__istartswith=search)
+                ).distinct()
+
         # On-page Status Filter
         status_id = request.query_params.get('status')
         if status_id and status_id != "":
@@ -306,55 +386,49 @@ class OrderViewSet(viewsets.ModelViewSet):
         elif item_type == 'lens':
             qs = qs.filter(items__contact_lens__isnull=False).distinct()
 
-        # 2. Extract Context-Aware Counts using order_status field
-        total_count = qs.count()
+        # ── SINGLE-PASS AGGREGATION ─────────────────────────────────────────────
+        # One DB round-trip for all status counts using conditional aggregation
+        # instead of 8 sequential .count() calls.
+        PROCESSING_STATUSES = ['confirmed', 'preparing', 'ready_to_dispatch', 'in_transit']
+        status_counts = qs.aggregate(
+            total=Count('id'),
+            pending=Count('id', filter=Q(order_status='pending')),
+            processing=Count('id', filter=Q(order_status__in=PROCESSING_STATUSES)),
+            shipped=Count('id', filter=Q(order_status='delivered')),
+        )
 
-        # Pending  = lens not yet prepared (order not yet accepted/confirmed)
-        pending_count = qs.filter(order_status='pending').count()
-
-        # Processing = accepted through to in-transit (preparing → QC → ready → dispatched)
-        processing_count = qs.filter(
-            order_status__in=['confirmed', 'preparing', 'ready_to_dispatch', 'in_transit']
-        ).count()
-
-        # Delivered = fully delivered orders
-        shipped_count = qs.filter(order_status='delivered').count()
-
-        # 3. Advanced Multi-Trend Calculation (Context-Aware Trends)
         last_30 = timezone.now() - timedelta(days=30)
         prev_30 = timezone.now() - timedelta(days=60)
 
-        def get_all_metrics(queryset):
-            return {
-                'total':      queryset.count(),
-                'pending':    queryset.filter(order_status='pending').count(),
-                'processing': queryset.filter(order_status__in=['confirmed', 'preparing', 'ready_to_dispatch', 'in_transit']).count(),
-                'shipped':    queryset.filter(order_status='delivered').count(),
-            }
-
-        # Filter the contextual queryset for current and previous periods
-        curr_period_qs = qs.filter(created_at__gte=last_30)
-        prev_period_qs = qs.filter(created_at__lt=last_30, created_at__gte=prev_30)
-
-        curr_metrics = get_all_metrics(curr_period_qs)
-        prev_metrics = get_all_metrics(prev_period_qs)
+        # Two more single-pass aggregations for trend periods (vs 8 before)
+        curr_counts = qs.filter(created_at__gte=last_30).aggregate(
+            total=Count('id'),
+            pending=Count('id', filter=Q(order_status='pending')),
+            processing=Count('id', filter=Q(order_status__in=PROCESSING_STATUSES)),
+            shipped=Count('id', filter=Q(order_status='delivered')),
+        )
+        prev_counts = qs.filter(created_at__lt=last_30, created_at__gte=prev_30).aggregate(
+            total=Count('id'),
+            pending=Count('id', filter=Q(order_status='pending')),
+            processing=Count('id', filter=Q(order_status__in=PROCESSING_STATUSES)),
+            shipped=Count('id', filter=Q(order_status='delivered')),
+        )
 
         def calc_delta(curr, prev):
-            if prev <= 0: return 0 # No more hardcoded fallbacks
+            if prev <= 0:
+                return 0
             return int(((curr - prev) / prev) * 100)
 
         trends = {
-            'total': calc_delta(curr_metrics['total'], prev_metrics['total']),
-            'pending': calc_delta(curr_metrics['pending'], prev_metrics['pending']),
-            'processing': calc_delta(curr_metrics['processing'], prev_metrics['processing']),
-            'shipped': calc_delta(curr_metrics['shipped'], prev_metrics['shipped']),
+            k: calc_delta(curr_counts[k], prev_counts[k])
+            for k in ('total', 'pending', 'processing', 'shipped')
         }
 
         response_data = {
-            'total': total_count,
-            'pending': pending_count,
-            'processing': processing_count,
-            'shipped': shipped_count,
+            'total':      status_counts['total'],
+            'pending':    status_counts['pending'],
+            'processing': status_counts['processing'],
+            'shipped':    status_counts['shipped'],
             'trends': trends,
             'trendPeriod': 'last period',
         }
@@ -362,26 +436,31 @@ class OrderViewSet(viewsets.ModelViewSet):
         if view_preset == 'returns':
             order_ids = list(qs.values_list('id', flat=True))
             return_qs = ReturnRequest.objects.filter(order_id__in=order_ids)
-            refund_qs = return_qs.filter(request_type='refund')
-            replacement_qs = return_qs.filter(request_type='replacement')
-            total_refund = refund_qs.filter(status='refunded').aggregate(
-                total=Sum('refund_amount')
-            )['total'] or 0
+            # Single-pass aggregation for return analytics
+            return_agg = return_qs.aggregate(
+                refund_count=Count('id', filter=Q(request_type='refund'), distinct=True),
+                replacement_count=Count('id', filter=Q(request_type='replacement'), distinct=True),
+                total_refund=Sum('refund_amount', filter=Q(request_type='refund', status='refunded')),
+            )
             response_data.update({
                 'return_requests_count': return_qs.values('order_id').distinct().count(),
-                'refund_count': refund_qs.values('order_id').distinct().count(),
-                'replacement_count': replacement_qs.values('order_id').distinct().count(),
-                'total_refund_amount': float(total_refund),
+                'refund_count': return_agg['refund_count'],
+                'replacement_count': return_agg['replacement_count'],
+                'total_refund_amount': float(return_agg['total_refund'] or 0),
             })
         elif view_preset == 'warranty':
             order_ids = list(qs.values_list('id', flat=True))
             claim_qs = WarrantyClaim.objects.filter(order_id__in=order_ids)
-            claimed_count = claim_qs.values('order_id').distinct().count()
-            in_service_count = claim_qs.filter(status='in_service').count()
+            # Single-pass aggregation for warranty analytics
+            claim_agg = claim_qs.aggregate(
+                claimed_orders=Count('order_id', distinct=True),
+                in_service=Count('id', filter=Q(status='in_service')),
+            )
+            claimed_count = claim_agg['claimed_orders']
             response_data.update({
                 'warranty_claimed_count': claimed_count,
                 'warranty_unclaimed_count': len(order_ids) - claimed_count,
-                'warranty_service_pending_count': in_service_count,
+                'warranty_service_pending_count': claim_agg['in_service'],
             })
 
         return Response(response_data)
@@ -412,6 +491,7 @@ class OrderViewSet(viewsets.ModelViewSet):
         return response
 
     def perform_create(self, serializer):
+        self._invalidate_order_cache()
         from django.db import transaction
         from rest_framework.exceptions import ValidationError
         from apps.catalog.core.models import MetadataItem
@@ -556,6 +636,9 @@ class OrderViewSet(viewsets.ModelViewSet):
         return super().partial_update(request, *args, **kwargs)
 
     def perform_update(self, serializer):
+        self._invalidate_order_cache(
+            user_id=getattr(serializer.instance, 'user_id', None)
+        )
         from apps.catalog.core.models import MetadataItem
         from .models import Shipment
 
@@ -1521,84 +1604,24 @@ class AdminDashboardStatsView(views.APIView):
     permission_classes = [permissions.IsAdminUser]
     
     def get(self, request):
-        today = timezone.now().date()
-        now = timezone.now()
-
-        from django.db.models import Q, F
-
-        # Base queryset — same exclusion as OrderViewSet.get_queryset() so KPI
-        # numbers always match what the admin table shows.
-        base_qs = Order.objects.exclude(
-            payment_method__in=['complete_online', 'partial_payment'],
-            payment_status='pending',
-        )
-        # Revenue must NOT count exchange-spawned orders: the customer only paid the
-        # price difference, the rest was already counted on the original order.
-        rev_qs = base_qs.exclude(is_replacement=True)
-
-        # ===== REAL-TIME METRICS CALCULATIONS =====
-        # 1. Total Orders & Revenue
-        total_orders = base_qs.count()
-        revenue_agg = rev_qs.aggregate(total=Sum('total_amount'))
-        total_revenue = float(revenue_agg.get('total') or 0)
-
-        # 2. Calculate Trends (Last 30 days vs Previous 30 days)
-        last_30_start = today - timedelta(days=30)
-        prev_30_start = today - timedelta(days=60)
-
-        curr_30_orders = base_qs.filter(created_at__date__gte=last_30_start).count()
-        prev_30_orders = base_qs.filter(
-            created_at__date__gte=prev_30_start,
-            created_at__date__lt=last_30_start
-        ).count()
-        order_trend = round(
-            ((curr_30_orders - prev_30_orders) / max(prev_30_orders, 1)) * 100, 1
-        ) if prev_30_orders > 0 else 0
-
-        # Revenue trend calculation
-        curr_30_revenue = rev_qs.filter(created_at__date__gte=last_30_start).aggregate(
-            total=Sum('total_amount')
-        ).get('total') or 0
-        prev_30_revenue = rev_qs.filter(
-            created_at__date__gte=prev_30_start,
-            created_at__date__lt=last_30_start
-        ).aggregate(total=Sum('total_amount')).get('total') or 0
-        revenue_trend = round(
-            ((curr_30_revenue - prev_30_revenue) / max(prev_30_revenue, 1)) * 100, 1
-        ) if prev_30_revenue > 0 else 0
-
-        # 3. Prescriptions needing review — only ones linked to an order (matches PrescriptionTable)
-        pending_pres_count = Prescription.objects.filter(
-            Q(status__isnull=True) | Q(status__label__icontains='Pending')
-        ).filter(order_items__isnull=False).distinct().count()
-
-        # 4. Stock Analysis — consistent with InventoryTable (low = 0 < stock <= 20)
-        low_stock_products = Variant.objects.filter(stock__gt=0, stock__lte=20).count()
-        out_of_stock = Variant.objects.filter(stock__lte=0).count()
-
-        # 5. Today's Orders
-        today_orders = base_qs.filter(created_at__date=today).count()
-
-        # 6. Active Shipments — scoped to visible orders only
-        active_shipments = Shipment.objects.exclude(
-            Q(status__label__icontains='Delivered') |
-            Q(order__order_status='delivered') |
-            Q(order__status__label__icontains='Deliver')
-        ).exclude(
-            order__payment_method__in=['complete_online', 'partial_payment'],
-            order__payment_status='pending',
-        ).count()
-
-        # 7. Order Status Breakdown (Categorized for Dashboard)
-        status_counts = base_qs.values('status__label').annotate(count=Count('id'))
-        def get_inclusive_count(keywords):
-            return sum(s['count'] for s in status_counts if s['status__label'] and any(k.lower() in s['status__label'].lower() for k in keywords))
+        from .models import AnalyticsSnapshot, LiveSession
+        from .analytics_compute import compute_dashboard_stats
+        from django.db.models import Count
         
-        pending_orders_count = get_inclusive_count(['Pending', 'Received'])
-        processing_orders_count = get_inclusive_count(['Processing', 'Preparing', 'Quality', 'Ready', 'Accepted'])
-        
-        # Donut Chart: ACTUAL Live Website Activity (Users per Page)
-        # Count sessions that were active in the last 2 minutes
+        # 1. O(log n) lookup for precomputed dashboard snapshot
+        snapshot = AnalyticsSnapshot.objects.filter(period='dashboard').first()
+        if snapshot and not snapshot.is_stale and snapshot.data:
+            data = snapshot.data.copy()
+        else:
+            # Cache-miss / stale: compute once synchronously, cache result
+            data = compute_dashboard_stats()
+            AnalyticsSnapshot.objects.update_or_create(
+                period='dashboard',
+                defaults={'data': data, 'is_stale': False},
+            )
+            data = data.copy()
+
+        # 2. Add real-time live activity (active users per page) on the fly
         active_threshold = timezone.now() - timedelta(seconds=120)
         active_sessions = LiveSession.objects.filter(last_activity__gte=active_threshold)
         
@@ -1616,120 +1639,12 @@ class AdminDashboardStatsView(views.APIView):
         
         if not donut_data:
             donut_data = [{"name": "No Active Users", "value": 0, "color": "#F2F4F7"}]
+            
+        if "charts" not in data:
+            data["charts"] = {}
+        data["charts"]["donut"] = donut_data
         
-        # Area Chart: Monthly Revenue Trend (Last 12 months)
-        trend_data = []
-        for i in range(11, -1, -1):
-            target_month = today - timedelta(days=30*i)
-            month_start = target_month.replace(day=1)
-            
-            # Get next month start for range query
-            if target_month.month == 12:
-                month_end = month_start.replace(year=month_start.year+1, month=1)
-            else:
-                month_end = month_start.replace(month=month_start.month+1)
-            
-            monthly_revenue = rev_qs.filter(
-                created_at__date__gte=month_start,
-                created_at__date__lt=month_end
-            ).aggregate(total=Sum('total_amount')).get('total') or 0
-            
-            trend_data.append({
-                "name": target_month.strftime('%b'),
-                "value": float(monthly_revenue)
-            })
-        
-        # 7. Calculate specific trends for other metrics
-        prev_pending_pres = Prescription.objects.filter(
-            Q(status__isnull=True) | Q(status__label__icontains='Pending'),
-            created_at__date__lt=last_30_start,
-            created_at__date__gte=prev_30_start,
-        ).filter(order_items__isnull=False).distinct().count()
-        pres_trend = round(((pending_pres_count - prev_pending_pres) / max(prev_pending_pres, 1)) * 100, 1)
-
-        # For stock, "trend" is more of a status, but we'll calculate change in low-stock count
-        prev_low_stock = 0 # Normally would need history, we'll use a relative mock-real calc
-        stock_trend = -2.5 # Mocking a slight improvement in stock management
-
-        # ===== FINAL RESPONSE =====
-        return Response({
-            "stats": [
-                {
-                    "title": "Total Orders",
-                    "value": str(total_orders),
-                    "trend": "up" if order_trend >= 0 else "down",
-                    "trendValue": str(abs(order_trend))
-                },
-                {
-                    "title": "Pending Orders",
-                    "value": str(pending_orders_count),
-                    "trend": "up",
-                    "trendValue": "0"
-                },
-                {
-                    "title": "Processing Orders",
-                    "value": str(processing_orders_count),
-                    "trend": "up",
-                    "trendValue": "0"
-                },
-                {
-                    "title": "Total Revenue",
-                    "value": f"₹{total_revenue:,.0f}",
-                    "trend": "up" if revenue_trend >= 0 else "down",
-                    "trendValue": str(abs(revenue_trend))
-                },
-                {
-                    "title": "Pending Prescriptions",
-                    "value": str(pending_pres_count),
-                    "trend": "up" if pres_trend >= 0 else "down",
-                    "trendValue": str(abs(pres_trend))
-                },
-                {
-                    "title": "Low Stock Products",
-                    "value": str(low_stock_products),
-                    "trend": "down" if low_stock_products > 0 else "up",
-                    "trendValue": "0" 
-                },
-                {
-                    "title": "Today's Orders",
-                    "value": str(today_orders),
-                    "trend": "up" if today_orders > 0 else "down",
-                    "trendValue": "0"
-                },
-                {
-                    "title": "Active Shipments",
-                    "value": str(active_shipments),
-                    "trend": "up" if active_shipments > 0 else "down",
-                    "trendValue": "0"
-                },
-            ],
-            "attention": [
-                {
-                    "label": "Prescriptions need review before fulfillment can continue.",
-                    "count": pending_pres_count,
-                    "icon": "FileText"
-                },
-                {
-                    "label": "Products are running low and should be replenished soon.",
-                    "count": low_stock_products,
-                    "icon": "AlertTriangle"
-                },
-                {
-                    "label": "Items are out of stock and blocking active customer orders.",
-                    "count": out_of_stock,
-                    "icon": "AlertCircle"
-                },
-                {
-                    "label": "Shipments are in transit and require status follow-up.",
-                    "count": active_shipments,
-                    "icon": "Truck"
-                },
-            ],
-            "charts": {
-                "donut": donut_data,
-                "line": trend_data
-            }
-        })
+        return Response(data)
 
 
 class RecentOrdersView(views.APIView):
@@ -1740,14 +1655,15 @@ class RecentOrdersView(views.APIView):
     permission_classes = [permissions.IsAdminUser]
     
     def get(self, request):
-        limit = int(request.query_params.get('limit', 50))
         today = timezone.localdate()
+        from datetime import datetime, time
+        start_of_today = timezone.make_aware(datetime.combine(today, time.min))
         recent_orders = Order.objects.select_related(
             'status', 'user'
         ).prefetch_related(
             'items', 'items__variant', 'items__variant__images', 'items__variant__product',
             'items__prescription', 'items__prescription__status'
-        ).filter(created_at__date=today).order_by('-created_at')[:limit]
+        ).filter(created_at__gte=start_of_today).order_by('-created_at')[:limit]
 
         serializer = OrderSerializer(recent_orders, many=True)
         return Response(serializer.data)
@@ -1991,536 +1907,35 @@ class PrescriptionByOrderView(views.APIView):
 class OrdersOverviewView(views.APIView):
     """
     GET /api/sales/analytics/orders-overview/
-    Returns all data needed for the Analytics > Orders Overview tab.
+
+    Time complexity: O(log n)
+    Reads from AnalyticsSnapshot using a unique-indexed point-lookup on `period`.
+    The heavy aggregation runs in a background daemon thread via signals.
+    On cache-miss: computes synchronously once, caches, returns immediately.
     """
     permission_classes = [permissions.IsAdminUser]
 
     def get(self, request):
-        from django.db.models import Sum, Count, Avg, F, FloatField
-        from django.db.models.functions import TruncDay, TruncWeek, TruncMonth
+        from .models import AnalyticsSnapshot
+        from .analytics_compute import compute_analytics, VALID_PERIODS
 
-        period = request.query_params.get('period', 'last_30')  # last_7, last_30, last_90, this_week
+        period = request.query_params.get('period', 'last_30')
+        if period not in VALID_PERIODS:
+            period = 'last_30'
 
-        today = timezone.now().date()
-        now = timezone.now()
+        # O(log n) -- single indexed point-lookup on unique `period` column
+        snapshot = AnalyticsSnapshot.objects.filter(period=period).first()
 
-        # Determine date window
-        if period == 'last_7':
-            start_date = today - timedelta(days=7)
-            prev_start = today - timedelta(days=14)
-            label_fmt = '%a'  # Mon, Tue...
-            trunc_fn = TruncDay
-        elif period == 'last_90':
-            start_date = today - timedelta(days=90)
-            prev_start = today - timedelta(days=180)
-            label_fmt = '%b'
-            trunc_fn = TruncMonth
-        elif period == 'this_week':
-            start_date = today - timedelta(days=today.weekday())
-            prev_start = start_date - timedelta(days=7)
-            label_fmt = '%a'
-            trunc_fn = TruncDay
-        else:  # last_30 (default)
-            start_date = today - timedelta(days=30)
-            prev_start = today - timedelta(days=60)
-            label_fmt = '%d %b'
-            trunc_fn = TruncWeek
+        if snapshot and not snapshot.is_stale and snapshot.data:
+            return Response(snapshot.data)
 
-        base_qs = Order.objects.all()
-        curr_qs = base_qs.filter(created_at__date__gte=start_date)
-        prev_qs = base_qs.filter(created_at__date__gte=prev_start, created_at__date__lt=start_date)
-
-        def safe_trend(curr, prev):
-            if prev <= 0:
-                return 0
-            return round(((curr - prev) / prev) * 100, 1)
-
-        # 1. Total Orders
-        total_orders = curr_qs.count()
-        prev_total_orders = prev_qs.count()
-        orders_trend = safe_trend(total_orders, prev_total_orders)
-
-        # 2. Carts Created (Cart model uses 'added_at' field)
-        carts_curr = Cart.objects.filter(added_at__date__gte=start_date).count()
-        carts_prev = Cart.objects.filter(added_at__date__gte=prev_start, added_at__date__lt=start_date).count()
-        carts_trend = safe_trend(carts_curr, carts_prev)
-
-        # Conversion rate = orders / carts
-        conversion_rate = round((total_orders / max(carts_curr, 1)) * 100, 1)
-
-        # 3. Revenue — exclude exchange-spawned orders (only the difference was paid;
-        # the rest was already counted on the original order).
-        revenue_agg = curr_qs.exclude(is_replacement=True).aggregate(total=Sum('total_amount'))
-        total_revenue = float(revenue_agg.get('total') or 0)
-        prev_revenue = float(prev_qs.exclude(is_replacement=True).aggregate(total=Sum('total_amount')).get('total') or 0)
-        revenue_trend = safe_trend(total_revenue, prev_revenue)
-
-        # Avg order value
-        avg_order = round(total_revenue / max(total_orders, 1), 2)
-
-        # 4. Products Sold (units)
-        from .models import OrderItem
-        products_curr = OrderItem.objects.filter(order__created_at__date__gte=start_date).aggregate(
-            total=Sum('quantity')
-        ).get('total') or 0
-        products_prev = OrderItem.objects.filter(
-            order__created_at__date__gte=prev_start,
-            order__created_at__date__lt=start_date
-        ).aggregate(total=Sum('quantity')).get('total') or 0
-        products_trend = safe_trend(products_curr, products_prev)
-
-        # Product category breakdown — ALL categories
-        from apps.catalog.models import Category as CatalogCategory
-        CAT_COLORS = ['#A855F7', '#6366F1', '#EC4899', '#F59E0B', '#10B981', '#3B82F6', '#EF4444', '#14B8A6']
-
-        # Sales per category for the period
-        sales_qs = OrderItem.objects.filter(
-            order__created_at__date__gte=start_date
-        ).values('variant__product__category__id', 'variant__product__category__name').annotate(
-            total=Sum('quantity')
+        # Cache-miss / stale: compute synchronously once, cache result
+        data = compute_analytics(period)
+        AnalyticsSnapshot.objects.update_or_create(
+            period=period,
+            defaults={'data': data, 'is_stale': False},
         )
-        sales_map = {
-            row['variant__product__category__id']: {
-                'name': row['variant__product__category__name'] or 'Other',
-                'total': row['total'] or 0,
-            }
-            for row in sales_qs
-        }
-
-        # Only frame categories (Sunglasses + Eyeglasses)
-        all_cats = list(CatalogCategory.objects.filter(is_active=True, group='frame').order_by('name'))
-        cat_totals = [
-            {'name': cat.name, 'total': sales_map.get(cat.id, {}).get('total', 0)}
-            for cat in all_cats
-        ]
-
-        # Sort by sales descending; keep only those with sales if any exist
-        cat_totals.sort(key=lambda x: -x['total'])
-        has_sales = any(c['total'] > 0 for c in cat_totals)
-        if has_sales:
-            cat_totals = [c for c in cat_totals if c['total'] > 0]
-
-        grand_total = sum(c['total'] for c in cat_totals) or len(cat_totals) or 1
-        category_breakdown = []
-        product_category_data = []
-        for i, c in enumerate(cat_totals):
-            pct = round((c['total'] / grand_total) * 100) if has_sales else round(100 / len(cat_totals))
-            color = CAT_COLORS[i % len(CAT_COLORS)]
-            category_breakdown.append({'category': c['name'], 'percent': pct})
-            product_category_data.append({'label': c['name'], 'percent': pct, 'color': color})
-
-        # 5. Orders Over Time chart
-        chart_qs = base_qs.filter(created_at__date__gte=start_date).annotate(
-            period=trunc_fn('created_at')
-        ).values('period').annotate(
-            orders=Count('id'),
-            revenue=Sum('total_amount')
-        ).order_by('period')
-
-        chart_data = [
-            {
-                'date': entry['period'].strftime(label_fmt),
-                'orders': entry['orders'],
-                'revenue': float(entry['revenue'] or 0)
-            }
-            for entry in chart_qs
-        ]
-
-        # 6. Delivery cost analytics — actual vs pincode rate
-        from .models import OrderTracking as OT
-        BAND_COLORS = ['#6366F1', '#A855F7', '#EC4899', '#F59E0B', '#10B981', '#3B82F6', '#94A3B8']
-
-        dispatched = OT.objects.filter(
-            order__in=base_qs.filter(created_at__date__gte=start_date),
-            delivery_cost__isnull=False,
-        )
-        total_carrier_cost = float(dispatched.aggregate(t=Sum('delivery_cost'))['t'] or 0)
-
-        with_rate = dispatched.filter(delivery_rate_charged__isnull=False)
-        total_rate_charged = float(with_rate.aggregate(t=Sum('delivery_rate_charged'))['t'] or 0)
-        pocket_money = round(total_carrier_cost - total_rate_charged, 2)
-
-        band_qs = with_rate.values('delivery_rate_charged').annotate(
-            cnt=Count('id'),
-            total_paid=Sum('delivery_cost'),
-        ).order_by('delivery_rate_charged')
-
-        band_breakdown = []
-        for i, b in enumerate(band_qs):
-            rate_val = float(b['delivery_rate_charged'])
-            paid_val = float(b['total_paid'] or 0)
-            band_breakdown.append({
-                'label': f"₹{int(rate_val)} zone",
-                'count': b['cnt'],
-                'totalCharged': round(rate_val * b['cnt'], 2),
-                'totalPaid': round(paid_val, 2),
-                'color': BAND_COLORS[i % len(BAND_COLORS)],
-            })
-
-        total_paid_all = sum(b['totalPaid'] for b in band_breakdown) or 1
-        segments = [
-            {
-                'label': b['label'],
-                'percent': round((b['totalPaid'] / total_paid_all) * 100),
-                'color': b['color'],
-            }
-            for b in band_breakdown
-        ] or [{'label': 'No data yet', 'percent': 100, 'color': '#E5E7EB'}]
-
-        delivery_cost_data = {
-            'totalRateCharged': total_rate_charged,
-            'totalCarrierCost': total_carrier_cost,
-            'pocketMoney': pocket_money,
-            'ordersWithData': dispatched.count(),
-            'segments': segments,
-            'bandBreakdown': band_breakdown,
-        }
-
-        # 7. Top selling frame lenses and contact lenses
-        frame_lens_qs = OrderItem.objects.filter(
-            order__created_at__date__gte=start_date,
-            lens__isnull=False,
-            lens__replacement__isnull=True,
-        ).values('lens__package__name').annotate(count=Count('id')).order_by('-count')[:6]
-        top_frame_lenses = [
-            {'label': r['lens__package__name'] or 'Unknown', 'value': r['count']}
-            for r in frame_lens_qs
-        ]
-
-        contact_lens_qs = OrderItem.objects.filter(
-            order__created_at__date__gte=start_date,
-            lens__isnull=False,
-            lens__replacement__isnull=False,
-        ).values('lens__package__name').annotate(count=Count('id')).order_by('-count')[:6]
-        top_contact_lenses = [
-            {'label': r['lens__package__name'] or 'Unknown', 'value': r['count']}
-            for r in contact_lens_qs
-        ]
-
-        # 8. Frame materials and accessories
-        mat_qs = OrderItem.objects.filter(
-            order__created_at__date__gte=start_date,
-            variant__isnull=False,
-        ).exclude(variant__frame_material='').exclude(variant__frame_material__isnull=True).values(
-            'variant__frame_material'
-        ).annotate(units=Sum('quantity')).order_by('-units')[:6]
-        frame_materials_data = [
-            {'material': r['variant__frame_material'], 'units': r['units']}
-            for r in mat_qs
-        ]
-
-        acc_qs = OrderItem.objects.filter(
-            order__created_at__date__gte=start_date,
-            variant__product__category__group='accessory',
-        ).values('variant__product__title').annotate(units=Sum('quantity')).order_by('-units')[:6]
-        accessories_data = [
-            {'name': r['variant__product__title'] or 'Unknown', 'units': r['units']}
-            for r in acc_qs
-        ]
-
-        # 9. Abandoned Cart Analytics
-        cart_users_curr = Cart.objects.filter(
-            added_at__date__gte=start_date
-        ).values('user').distinct().count()
-        order_users_curr = curr_qs.values('user').distinct().count()
-
-        abandonment_rate = round(
-            max(0, cart_users_curr - order_users_curr) / max(cart_users_curr, 1) * 100, 1
-        )
-
-        cart_users_prev = Cart.objects.filter(
-            added_at__date__gte=prev_start,
-            added_at__date__lt=start_date
-        ).values('user').distinct().count()
-        order_users_prev = prev_qs.values('user').distinct().count()
-        prev_abandonment_rate = round(
-            max(0, cart_users_prev - order_users_prev) / max(cart_users_prev, 1) * 100, 1
-        )
-        # negative = rate went down = improvement
-        abandonment_trend = round(abandonment_rate - prev_abandonment_rate, 1)
-
-        funnel_placed = curr_qs.exclude(order_status='cancelled').count()
-        funnel_max = max(carts_curr, 1)
-        funnel_data = [
-            {'label': 'Cart Created',     'count': carts_curr,       'pct': 100},
-            {'label': 'Checkout Started', 'count': total_orders,     'pct': min(100, round(total_orders   / funnel_max * 100))},
-            {'label': 'Order Placed',     'count': funnel_placed,    'pct': min(100, round(funnel_placed  / funnel_max * 100))},
-        ]
-
-        from apps.catalog.models import Product as CatalogProduct
-
-        all_products_list = list(
-            CatalogProduct.objects.filter(is_active=True)
-            .values('title')
-            .annotate(
-                cart_count=Count(
-                    'variants__cart',
-                    filter=Q(variants__cart__added_at__date__gte=start_date),
-                )
-            )
-        )
-
-        sold_by_title = {}
-        for row in OrderItem.objects.filter(
-            order__created_at__date__gte=start_date,
-        ).values('variant__product__title').annotate(total=Sum('quantity')):
-            sold_by_title[row['variant__product__title']] = int(row['total'] or 0)
-
-        top_abandoned_data = []
-        for item in all_products_list:
-            name = item['title']
-            c = item['cart_count']
-            sold = sold_by_title.get(name, 0)
-            total_interactions = c + sold
-            rate = round(c / max(total_interactions, 1) * 100) if total_interactions > 0 else 0
-            top_abandoned_data.append({'name': name, 'rate': rate, 'cartCount': c})
-        top_abandoned_data.sort(key=lambda x: (-x['cartCount'], x['name']))
-
-        # 10. Traffic & Clicks — derived from SiteVisit rows
-        from django.db.models import Avg as AvgAgg
-
-        visits_curr = SiteVisit.objects.filter(visited_at__date__gte=start_date)
-        visits_prev = SiteVisit.objects.filter(
-            visited_at__date__gte=prev_start, visited_at__date__lt=start_date
-        )
-
-        # Total Visitors = unique session_ids (logged-in or not, no repeats)
-        tv_curr = visits_curr.values('session_id').distinct().count()
-        tv_prev = visits_prev.values('session_id').distinct().count()
-
-        # Unique Users = distinct logged-in users actively using the site
-        uu_curr = visits_curr.filter(user__isnull=False).values('user').distinct().count()
-        uu_prev = visits_prev.filter(user__isnull=False).values('user').distinct().count()
-
-        # Avg Session = mean of recorded duration_sec values
-        avg_sec_curr = visits_curr.filter(duration_sec__isnull=False).aggregate(a=AvgAgg('duration_sec'))['a'] or 0
-        avg_sec_prev = visits_prev.filter(duration_sec__isnull=False).aggregate(a=AvgAgg('duration_sec'))['a'] or 0
-        avg_session_str = f"{int(avg_sec_curr // 60)}m {int(avg_sec_curr % 60)}s"
-
-        # Bounce Rate = sessions with exactly 1 page view / total sessions
-        sess_views = visits_curr.values('session_id').annotate(pv=Count('id'))
-        total_sess = sess_views.count() or 1
-        bounce_curr = round(sess_views.filter(pv=1).count() / total_sess * 100, 1)
-
-        prev_sess_views  = visits_prev.values('session_id').annotate(pv=Count('id'))
-        prev_total_sess  = prev_sess_views.count() or 1
-        bounce_prev      = round(prev_sess_views.filter(pv=1).count() / prev_total_sess * 100, 1)
-
-        # Device Breakdown — classified from User-Agent at record time
-        device_raw   = list(visits_curr.values('device_type').annotate(cnt=Count('id')))
-        device_total = sum(d['cnt'] for d in device_raw) or 1
-        _device_colors = {'mobile': '#6366f1', 'tablet': '#a855f7', 'desktop': '#ec4899'}
-        device_breakdown = sorted([
-            {
-                'name':  d['device_type'].title(),
-                'value': round(d['cnt'] / device_total * 100),
-                'color': _device_colors.get(d['device_type'], '#cbd5e1'),
-            }
-            for d in device_raw
-        ], key=lambda x: -x['value'])
-
-        # Top Pages by Clicks (page = human-readable label set in App.jsx LiveTracker)
-        top_pages_data = [
-            {'path': p['page'], 'clicks': p['clicks']}
-            for p in visits_curr.values('page').annotate(clicks=Count('id')).order_by('-clicks')[:8]
-        ]
-
-        # Traffic Trend — visitors + CTR per time bucket (reuses trunc_fn & label_fmt)
-        PRODUCT_PAGES = ['Viewing Product', 'Browsing Shop']
-        trend_raw = (
-            visits_curr
-            .annotate(bucket=trunc_fn('visited_at'))
-            .values('bucket')
-            .annotate(
-                visitors=Count('session_id', distinct=True),
-                product_clicks=Count('id', filter=Q(page__in=PRODUCT_PAGES)),
-                total_clicks=Count('id'),
-            )
-            .order_by('bucket')
-        )
-        traffic_trend = [
-            {
-                'month':    t['bucket'].strftime(label_fmt),
-                'visitors': t['visitors'],
-                'ctr':      round(t['product_clicks'] / max(t['total_clicks'], 1) * 100, 2),
-            }
-            for t in trend_raw
-        ]
-
-        traffic_clicks_data = {
-            'kpis': {
-                'totalVisits': {'value': tv_curr,         'trend': safe_trend(tv_curr, tv_prev)},
-                'uniqueUsers': {'value': uu_curr,         'trend': safe_trend(uu_curr, uu_prev)},
-                'avgSession':  {'value': avg_session_str, 'trend': safe_trend(int(avg_sec_curr), int(avg_sec_prev))},
-                'bounceRate':  {'value': bounce_curr,     'trend': round(bounce_curr - bounce_prev, 1)},
-            },
-            'trafficTrend':    traffic_trend,
-            'topPages':        top_pages_data,
-            'deviceBreakdown': device_breakdown,
-        }
-
-        # 11. Returns & Exchanges analytics
-        rr_curr = ReturnRequest.objects.filter(created_at__date__gte=start_date)
-        rr_prev = ReturnRequest.objects.filter(created_at__date__gte=prev_start, created_at__date__lt=start_date)
-
-        refund_curr     = rr_curr.filter(request_type='refund').count()
-        replace_curr    = rr_curr.filter(request_type='replacement').count()
-        refund_prev     = rr_prev.filter(request_type='refund').count()
-        replace_prev    = rr_prev.filter(request_type='replacement').count()
-
-        return_rate_curr = round(refund_curr  / max(total_orders, 1) * 100, 1)
-        return_rate_prev = round(refund_prev  / max(prev_total_orders, 1) * 100, 1)
-        exch_rate_curr   = round(replace_curr / max(total_orders, 1) * 100, 1)
-        exch_rate_prev   = round(replace_prev / max(prev_total_orders, 1) * 100, 1)
-
-        total_refunds_curr = float(
-            rr_curr.filter(status='refunded').aggregate(t=Sum('refund_amount'))['t'] or 0
-        )
-        total_refunds_prev = float(
-            rr_prev.filter(status='refunded').aggregate(t=Sum('refund_amount'))['t'] or 0
-        )
-
-        # Avg process time = avg days from created_at to updated_at for resolved requests
-        resolved_qs = rr_curr.filter(status__in=['refunded', 'replaced', 'rejected'])
-        avg_proc_days = 0.0
-        if resolved_qs.exists():
-            from django.db.models import ExpressionWrapper, DurationField
-            deltas = []
-            for rr in resolved_qs.only('created_at', 'updated_at'):
-                deltas.append((rr.updated_at - rr.created_at).total_seconds() / 86400)
-            avg_proc_days = round(sum(deltas) / len(deltas), 1) if deltas else 0.0
-
-        # Top return reasons
-        _reason_labels = {
-            'defective':       'Defective',
-            'wrong_item':      'Wrong Item',
-            'size_issue':      'Wrong Fit',
-            'not_as_described':'Not as Described',
-            'other':           'Other',
-        }
-        reason_counts = list(rr_curr.values('reason').annotate(cnt=Count('id')).order_by('-cnt'))
-        total_reason  = sum(r['cnt'] for r in reason_counts) or 1
-        top_reasons_data = [
-            {
-                'reason': _reason_labels.get(r['reason'], r['reason']),
-                'count':  r['cnt'],
-                'pct':    round(r['cnt'] / total_reason * 100),
-            }
-            for r in reason_counts
-        ]
-
-        # Most returned products
-        top_returned_qs = (
-            rr_curr
-            .values(pname=F('order__items__variant__product__title'))
-            .annotate(ret=Count('id', distinct=True))
-            .filter(pname__isnull=False)
-            .order_by('-ret')[:5]
-        )
-        _prod_colors = ['#6366f1', '#f59e0b', '#cbd5e1', '#cbd5e1', '#cbd5e1']
-        top_products_data = [
-            {'name': p['pname'], 'returns': p['ret'], 'color': _prod_colors[i]}
-            for i, p in enumerate(top_returned_qs)
-        ]
-
-        # Return status breakdown (donut)
-        _status_colors = {
-            'pending':   '#a855f7', 'approved': '#6366f1',
-            'rejected':  '#ec4899', 'refunded': '#f97316',
-            'picked_up': '#f59e0b', 'received': '#94a3b8',
-            'replaced':  '#22c55e',
-        }
-        _status_labels = {
-            'pending': 'Pending', 'approved': 'Approved', 'rejected': 'Rejected',
-            'refunded': 'Refunded', 'picked_up': 'Picked Up',
-            'received': 'Received', 'replaced': 'Replaced',
-        }
-        status_counts = list(rr_curr.values('status').annotate(cnt=Count('id')))
-        total_status  = sum(s['cnt'] for s in status_counts) or 1
-        status_breakdown = sorted([
-            {
-                'name':  _status_labels.get(s['status'], s['status']),
-                'value': round(s['cnt'] / total_status * 100),
-                'color': _status_colors.get(s['status'], '#94a3b8'),
-            }
-            for s in status_counts
-        ], key=lambda x: -x['value'])[:4]
-
-        # Returns vs Exchanges trend
-        re_trend_raw = (
-            rr_curr
-            .annotate(bucket=trunc_fn('created_at'))
-            .values('bucket')
-            .annotate(
-                returns=Count('id', filter=Q(request_type='refund')),
-                exchanges=Count('id', filter=Q(request_type='replacement')),
-            )
-            .order_by('bucket')
-        )
-        re_trend = [
-            {'month': t['bucket'].strftime(label_fmt), 'returns': t['returns'], 'exchanges': t['exchanges']}
-            for t in re_trend_raw
-        ]
-
-        returns_exchanges_data = {
-            'kpis': {
-                'returnRate':     {'value': return_rate_curr, 'trend': round(return_rate_curr - return_rate_prev, 1)},
-                'totalRefunds':   {'value': total_refunds_curr, 'trend': safe_trend(total_refunds_curr, total_refunds_prev)},
-                'exchangeRate':   {'value': exch_rate_curr,  'trend': round(exch_rate_curr - exch_rate_prev, 1)},
-                'avgProcessTime': {'value': f'{avg_proc_days} days', 'trend': 0},
-            },
-            'trend':           re_trend,
-            'topReasons':      top_reasons_data,
-            'topProducts':     top_products_data,
-            'statusBreakdown': status_breakdown,
-        }
-
-        # 12. Product profit: category % of revenue (exclude exchange-spawned orders)
-        profit_qs = OrderItem.objects.filter(
-            order__created_at__date__gte=start_date, order__is_replacement=False
-        ).values('variant__product__category__name').annotate(
-            revenue=Sum('item_total', output_field=FloatField())
-        ).order_by('-revenue')[:4]
-
-        profit_total = sum(float(p['revenue'] or 0) for p in profit_qs) or 1
-        profit_colors = ['#6366F1', '#A855F7', '#EC4899', '#94A3B8']
-        profit_data = [
-            {
-                'label': (p['variant__product__category__name'] or 'Other'),
-                'percent': round((float(p['revenue'] or 0) / profit_total) * 100),
-                'color': profit_colors[i % len(profit_colors)]
-            }
-            for i, p in enumerate(profit_qs)
-        ] or delivery_cost_data
-
-        return Response({
-            'kpis': {
-                'totalOrders': {'value': total_orders, 'trend': orders_trend, 'label': 'vs last week'},
-                'cartsCreated': {'value': carts_curr, 'trend': carts_trend, 'conversionRate': conversion_rate},
-                'revenue': {'value': total_revenue, 'trend': revenue_trend, 'avgOrder': avg_order, 'label': 'growth'},
-                'productsSold': {
-                    'value': products_curr,
-                    'trend': products_trend,
-                    'label': 'last period',
-                    'categoryBreakdown': category_breakdown,
-                },
-            },
-            'chart': chart_data,
-            'abandonedCarts': {
-                'abandonmentRate': {'value': abandonment_rate, 'trend': abandonment_trend},
-                'funnel': funnel_data,
-                'topAbandoned': top_abandoned_data,
-            },
-            'trafficClicks': traffic_clicks_data,
-            'returnsExchanges': returns_exchanges_data,
-            'deliveryCost': delivery_cost_data,
-            'productProfit': profit_data,
-            'productCategory': product_category_data,
-            'topFrameLenses': top_frame_lenses,
-            'topContactLenses': top_contact_lenses,
-            'frameMaterials': frame_materials_data,
-            'accessories': accessories_data,
-        })
+        return Response(data)
 
 
 class PincodeRateLookupView(views.APIView):
