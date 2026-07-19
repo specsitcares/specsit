@@ -1,49 +1,70 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { Routes, Route, useNavigate, useParams } from 'react-router-dom';
 import apiClient from '../../../services/api';
+import { useAuth } from '../../../context/AuthContext';
+
+// Always-loaded shell components (tiny — sidebar, topbar)
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
-import DashboardHome from './DashboardHome';
-import OrderTable from './OrderTable';
-import CustomerTable from './CustomerTable';
-import PrescriptionTable from './PrescriptionTable';
-import UserFaceTable from './UserFaceTable';
-import ProductsPage from './ProductsPage';
-import LensForm from './LensForm';
-import ProductDetailsForm from './ProductDetailsForm';
-import InventoryTable from './InventoryTable';
-import ShipmentTable from './ShipmentTable';
-import ReviewTable from './ReviewTable';
-import EmployeeTable from './EmployeeTable';
-import CouponTable from './CouponTable';
-import CategoryTable from './CategoryTable';
-import BrandTable from './BrandTable';
-import CollectionTable from './CollectionTable';
-import VariantTable from './VariantTable';
-import LensManagement from './LensManagement';
-import CmsManagement from './CmsManagement';
-import HeroBannerEditor from './HeroBannerEditor';
-import BrandLogosManager from './BrandLogosManager';
-import FrameRangeEditor from './FrameRangeEditor';
-import ExploreFrameStylesEditor from './ExploreFrameStylesEditor';
-import PremiumIntentEditor from './PremiumIntentEditor';
-import PromoBannerEditor from './PromoBannerEditor';
-import BlogsManager from './BlogsManager';
-import FaqManager from './FaqManager';
-import NewsletterEditor from './NewsletterEditor';
-import BlogPostEditor from './BlogPostEditor';
-import BlogPreview from './BlogPreview';
-import AccessoryForm from './AccessoryForm';
-import StoreSettings from './StoreSettings';
-import PaymentSettings from './PaymentSettings';
-import QueryTable from './QueryTable';
-import AnalyticsPage from './AnalyticsPage';
-import { useAuth } from '../../../context/AuthContext';
-import OrderDetail from './OrderDetail';
-import ReturnRequestDetail from './ReturnRequestDetail';
-import ReplacementRequestDetail from './ReplacementRequestDetail';
-import WarrantyClaimDetail from './WarrantyClaimDetail';
 import '../../../styles/admin.css';
+
+// Lazy-loaded page components — only parsed when the route is visited
+const DashboardHome          = lazy(() => import('./DashboardHome'));
+const OrderTable             = lazy(() => import('./OrderTable'));
+const OrderDetail            = lazy(() => import('./OrderDetail'));
+const ReturnRequestDetail    = lazy(() => import('./ReturnRequestDetail'));
+const ReplacementRequestDetail = lazy(() => import('./ReplacementRequestDetail'));
+const WarrantyClaimDetail    = lazy(() => import('./WarrantyClaimDetail'));
+const CustomerTable          = lazy(() => import('./CustomerTable'));
+const PrescriptionTable      = lazy(() => import('./PrescriptionTable'));
+const UserFaceTable          = lazy(() => import('./UserFaceTable'));
+const ProductsPage           = lazy(() => import('./ProductsPage'));
+const LensForm               = lazy(() => import('./LensForm'));
+const ProductDetailsForm     = lazy(() => import('./ProductDetailsForm'));
+const InventoryTable         = lazy(() => import('./InventoryTable'));
+const ShipmentTable          = lazy(() => import('./ShipmentTable'));
+const ReviewTable            = lazy(() => import('./ReviewTable'));
+const EmployeeTable          = lazy(() => import('./EmployeeTable'));
+const CouponTable            = lazy(() => import('./CouponTable'));
+const CategoryTable          = lazy(() => import('./CategoryTable'));
+const BrandTable             = lazy(() => import('./BrandTable'));
+const CollectionTable        = lazy(() => import('./CollectionTable'));
+const VariantTable           = lazy(() => import('./VariantTable'));
+const LensManagement         = lazy(() => import('./LensManagement'));
+const CmsManagement          = lazy(() => import('./CmsManagement'));
+const HeroBannerEditor       = lazy(() => import('./HeroBannerEditor'));
+const BrandLogosManager      = lazy(() => import('./BrandLogosManager'));
+const FrameRangeEditor       = lazy(() => import('./FrameRangeEditor'));
+const ExploreFrameStylesEditor = lazy(() => import('./ExploreFrameStylesEditor'));
+const PremiumIntentEditor    = lazy(() => import('./PremiumIntentEditor'));
+const PromoBannerEditor      = lazy(() => import('./PromoBannerEditor'));
+const BlogsManager           = lazy(() => import('./BlogsManager'));
+const FaqManager             = lazy(() => import('./FaqManager'));
+const NewsletterEditor       = lazy(() => import('./NewsletterEditor'));
+const BlogPostEditor         = lazy(() => import('./BlogPostEditor'));
+const BlogPreview            = lazy(() => import('./BlogPreview'));
+const AccessoryForm          = lazy(() => import('./AccessoryForm'));
+const StoreSettings          = lazy(() => import('./StoreSettings'));
+const PaymentSettings        = lazy(() => import('./PaymentSettings'));
+const QueryTable             = lazy(() => import('./QueryTable'));
+const AnalyticsPage          = lazy(() => import('./AnalyticsPage'));
+
+// Thin skeleton shown while a lazy admin page chunk downloads
+const AdminPageSkeleton = () => (
+  <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+    {[1,2,3,4,5].map(i => (
+      <div key={i} style={{
+        height: i === 1 ? 48 : 36,
+        borderRadius: 8,
+        background: 'linear-gradient(90deg, var(--bg-secondary,#1e1e2e) 25%, var(--bg-tertiary,#2a2a3e) 50%, var(--bg-secondary,#1e1e2e) 75%)',
+        backgroundSize: '200% 100%',
+        animation: 'shimmer 1.4s infinite',
+        opacity: 1 - i * 0.12,
+      }} />
+    ))}
+    <style>{`@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }`}</style>
+  </div>
+);
 
 /* ── Route wrappers that pull params from the URL ─────────── */
 
@@ -182,6 +203,7 @@ const AdminDashboard = () => {
             />
           )}
           <main className="admin-content-scroller">
+            <Suspense fallback={<AdminPageSkeleton />}>
             <Routes>
               {/* Dashboard */}
               <Route index element={
@@ -268,6 +290,7 @@ const AdminDashboard = () => {
                 />
               } />
             </Routes>
+            </Suspense>
           </main>
         </div>
       </div>

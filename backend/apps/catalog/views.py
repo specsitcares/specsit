@@ -463,7 +463,7 @@ class ProductViewSet(CachedReadMixin, viewsets.ModelViewSet):
         if brand_name:
             from django.db.models import Q
             queryset = queryset.filter(
-                Q(brand_name__icontains=brand_name) | Q(brand__name__icontains=brand_name)
+                Q(brand_name__istartswith=brand_name) | Q(brand__name__istartswith=brand_name)
             )
 
         # Price range on final_price
@@ -502,9 +502,9 @@ class ProductViewSet(CachedReadMixin, viewsets.ModelViewSet):
         if search:
             from django.db.models import Q
             queryset = queryset.filter(
-                Q(title__icontains=search) |
-                Q(sku__icontains=search) |
-                Q(brand_name__icontains=search)
+                Q(title__istartswith=search) |
+                Q(sku__istartswith=search) |
+                Q(brand_name__istartswith=search)
             )
 
         # Frame filters
@@ -665,12 +665,12 @@ class VariantViewSet(viewsets.ModelViewSet):
         search = params.get('search')
         if search:
             qs = qs.filter(
-                Q(sku__icontains=search) |
-                Q(product__title__icontains=search) |
-                Q(color__icontains=search) |
-                Q(frame_color__icontains=search) |
-                Q(frame_size__icontains=search) |
-                Q(frame_material__icontains=search)
+                Q(sku__istartswith=search) |
+                Q(product__title__istartswith=search) |
+                Q(color__istartswith=search) |
+                Q(frame_color__istartswith=search) |
+                Q(product__frame_size__istartswith=search) |
+                Q(frame_material__istartswith=search)
             )
         return qs.order_by('-id')
 
@@ -829,9 +829,9 @@ class PrescriptionViewSet(viewsets.ModelViewSet):
                 from django.db.models import Q
                 status_lower = status_filter.lower()
                 if status_lower == 'pending':
-                    qs = qs.filter(Q(status__isnull=True) | Q(status__label__icontains='pending'))
+                    qs = qs.filter(Q(status__isnull=True) | Q(status__label__istartswith='pending'))
                 else:
-                    qs = qs.filter(status__label__icontains=status_lower)
+                    qs = qs.filter(status__label__istartswith=status_lower)
             return qs.order_by('-created_at')
         return Prescription.objects.filter(user=self.request.user).select_related('status')
 
@@ -1015,11 +1015,23 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
         date_from = params.get('date_from')
         if date_from:
-            qs = qs.filter(created_at__date__gte=date_from)
+            try:
+                from datetime import datetime, time
+                from django.utils import timezone
+                dt_from = timezone.make_aware(datetime.combine(datetime.strptime(date_from, '%Y-%m-%d').date(), time.min))
+                qs = qs.filter(created_at__gte=dt_from)
+            except (ValueError, TypeError):
+                pass
 
         date_to = params.get('date_to')
         if date_to:
-            qs = qs.filter(created_at__date__lte=date_to)
+            try:
+                from datetime import datetime, time
+                from django.utils import timezone
+                dt_to = timezone.make_aware(datetime.combine(datetime.strptime(date_to, '%Y-%m-%d').date(), time.max))
+                qs = qs.filter(created_at__lte=dt_to)
+            except (ValueError, TypeError):
+                pass
 
         return qs.order_by('-created_at')
 

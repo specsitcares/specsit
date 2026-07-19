@@ -150,6 +150,26 @@ class Order(models.Model):
         help_text="Idempotency key used to create this order"
     )
 
+    class Meta:
+        indexes = [
+            # Per-user order list (most common customer query)
+            models.Index(fields=['user', '-created_at'], name='order_user_created_idx'),
+            # Admin status tab + date sort (most common staff query)
+            models.Index(fields=['order_status', '-created_at'], name='order_status_created_idx'),
+            # Failed-online-payment exclusion: payment_method + payment_status
+            models.Index(fields=['payment_method', 'payment_status'], name='order_method_pstatus_idx'),
+            # Payment status alone (refund/warranty analytics)
+            models.Index(fields=['payment_status'], name='order_payment_status_idx'),
+            # Delivery date for returns/warranty window queries
+            models.Index(fields=['delivery_date'], name='order_delivery_date_idx'),
+            # Replacement orders tab
+            models.Index(fields=['is_replacement', '-created_at'], name='order_replacement_created_idx'),
+            # Date-range admin filters
+            models.Index(fields=['-created_at'], name='order_created_at_idx'),
+            # Updated-at for live dashboard polling
+            models.Index(fields=['-updated_at'], name='order_updated_at_idx'),
+        ]
+
     def __str__(self): return f"Order #{self.id}"
 
     @property
@@ -187,6 +207,19 @@ class OrderItem(models.Model):
     lens_pd = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     status = models.CharField(max_length=30, choices=ORDER_STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True, null=True)
+
+    class Meta:
+        indexes = [
+            # Primary join path: Order → items
+            models.Index(fields=['order'], name='orderitem_order_idx'),
+            # Reverse join: Variant → order items (sales analytics)
+            models.Index(fields=['variant'], name='orderitem_variant_idx'),
+            # Contact lens order filter
+            models.Index(fields=['contact_lens'], name='orderitem_contact_lens_idx'),
+            # Item status filter (admin pipeline)
+            models.Index(fields=['status'], name='orderitem_status_idx'),
+        ]
+
     def __str__(self): return f"Item for Order #{self.order.id}"
 
 class Cart(models.Model):
@@ -195,10 +228,26 @@ class Cart(models.Model):
     quantity = models.IntegerField(default=1)
     added_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        indexes = [
+            # Per-user cart fetch (the only access pattern)
+            models.Index(fields=['user'], name='cart_user_idx'),
+            # Variant lookup for stock/price sync
+            models.Index(fields=['variant'], name='cart_variant_idx'),
+            # Date-range analytics queries (added for O(log N) cart counts)
+            models.Index(fields=['-added_at'], name='cart_added_at_idx'),
+        ]
+
 class Wishlist(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='wishlist_items')
     variant = models.ForeignKey(Variant, on_delete=models.CASCADE)
     added_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            # Per-user wishlist fetch
+            models.Index(fields=['user'], name='wishlist_user_idx'),
+        ]
 
 class Shipment(models.Model):
     order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name='shipment')
@@ -263,6 +312,15 @@ class Payment(models.Model):
     payment_date = models.DateTimeField(auto_now_add=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            # Per-order payment lookup
+            models.Index(fields=['order', 'payment_status'], name='payment_order_status_idx'),
+            # transaction_id is already unique=True (implicit index), add status for completeness
+            models.Index(fields=['payment_status'], name='payment_status_idx'),
+        ]
+
     def __str__(self): return f"Payment #{self.id} for Order #{self.order.id}"
 
 class LiveSession(models.Model):
@@ -359,6 +417,17 @@ class ReturnRequest(models.Model):
     admin_notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            # Order → return requests (used in every returns tab query)
+            models.Index(fields=['order', 'status'], name='returnreq_order_status_idx'),
+            # Type segregation (refund vs replacement)
+            models.Index(fields=['request_type', 'status'], name='returnreq_type_status_idx'),
+            # Date sort for admin
+            models.Index(fields=['-created_at'], name='returnreq_created_idx'),
+        ]
+
     def __str__(self): return f"Return #{self.id} for Order #{self.order_id}"
 
 class ReturnRequestImage(models.Model):
@@ -412,6 +481,15 @@ class WarrantyClaim(models.Model):
     preferred_fix = models.CharField(max_length=20, blank=True)  # repair / replace / refund
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            # Order → warranty claims
+            models.Index(fields=['order', 'status'], name='warrantyclaim_order_status_idx'),
+            # In-service count for analytics
+            models.Index(fields=['status'], name='warrantyclaim_status_idx'),
+        ]
+
     def __str__(self): return f"Warranty #{self.id} for Order #{self.order_id}"
 
 class WarrantyClaimImage(models.Model):
@@ -434,3 +512,34 @@ class PincodeDeliveryRate(models.Model):
         ordering = ['distance_km', 'pincode']
 
     def __str__(self): return f"{self.pincode} – {self.location} (₹{self.cost})"
+
+
+class AnalyticsSnapshot(models.Model):
+    """
+    Precomputed analytics payload per time-period.
+
+    Read path  → O(log n): single WHERE period = '...' on the unique index.
+    Write path → O(n log n): compute_analytics() runs in a daemon thread
+                              triggered by Django signals — never blocks HTTP.
+    """
+    PERIOD_CHOICES = [
+        ('last_7',    'Last 7 Days'),
+        ('last_30',   'Last 30 Days'),
+        ('last_90',   'Last 90 Days'),
+        ('this_week', 'This Week'),
+    ]
+    # ── unique indexed column → O(log n) point-lookup ──────────────────────
+    period      = models.CharField(
+        max_length=20, unique=True, db_index=True, choices=PERIOD_CHOICES
+    )
+    data        = models.JSONField(default=dict)
+    computed_at = models.DateTimeField(auto_now=True)
+    is_stale    = models.BooleanField(default=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['period'], name='analytics_snapshot_period_idx'),
+        ]
+
+    def __str__(self):
+        return f"AnalyticsSnapshot({self.period}, stale={self.is_stale})"

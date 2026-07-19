@@ -24,25 +24,19 @@ class CouponSerializer(serializers.ModelSerializer):
         }
 
     def get_brand_names(self, obj):
-        """Get names of applicable brands"""
-        brands = obj.brands.all()
-        if not brands.exists():
-            return []
+        """Get names of applicable brands — uses cached M2M set to avoid double-query."""
+        brands = list(obj.brands.all())
         return [b.name for b in brands]
 
     def get_category_names(self, obj):
-        """Get names of applicable categories"""
-        categories = obj.categories.all()
-        if not categories.exists():
-            return []
+        """Get names of applicable categories — uses cached M2M set."""
+        categories = list(obj.categories.all())
         return [c.name for c in categories]
 
     def get_brand_details(self, obj):
-        brands = obj.brands.all()
-        return [{'id': b.id, 'name': b.name} for b in brands]
+        return [{'id': b.id, 'name': b.name} for b in obj.brands.all()]
 
     def get_category_details(self, obj):
-        categories = obj.categories.all()
         return [
             {
                 'id': c.id,
@@ -50,7 +44,7 @@ class CouponSerializer(serializers.ModelSerializer):
                 'parent_id': c.parent_id,
                 'parent_name': c.parent.name if c.parent else None,
             }
-            for c in categories
+            for c in obj.categories.all()
         ]
 
     def validate(self, data):
@@ -85,7 +79,13 @@ class OrderItemSerializer(serializers.ModelSerializer):
     def get_variant_image(self, obj):
         if not obj.variant:
             return None
-        first_img = obj.variant.images.first()
+        # Use prefetched images cache (populated by `_prefetched_images` in get_queryset)
+        # to avoid an extra DB hit per order-item.
+        prefetched = getattr(obj.variant, '_prefetched_images', None)
+        if prefetched is not None:
+            first_img = prefetched[0] if prefetched else None
+        else:
+            first_img = obj.variant.images.first()
         if first_img:
             request = self.context.get('request')
             if request:
@@ -184,7 +184,9 @@ class ReturnRequestSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         img = None
         try:
-            first = v.images.first()
+            # Avoid .first() database hit by using the prefetched image list
+            images = list(v.images.all())
+            first = images[0] if images else None
             if first and first.image:
                 img = request.build_absolute_uri(first.image.url) if request else first.image.url
         except Exception:
@@ -259,10 +261,13 @@ class OrderSerializer(serializers.ModelSerializer):
         the original order, the item it replaced, and the difference the customer paid."""
         if not getattr(obj, 'is_replacement', False):
             return None
-        src = obj.source_returns.first()  # the ReturnRequest that spawned this order
+        # Avoid .first() DB hit by using the prefetch cache list
+        source_returns = list(obj.source_returns.all())
+        src = source_returns[0] if source_returns else None
         original_item = getattr(src, 'order_item', None) if src else None
         if original_item is None and obj.replaces_order_id:
-            original_item = obj.replaces_order.items.first()
+            replaces_items = list(obj.replaces_order.items.all()) if obj.replaces_order else []
+            original_item = replaces_items[0] if replaces_items else None
         original_sku = None
         original_name = None
         if original_item and getattr(original_item, 'variant', None):
@@ -289,12 +294,23 @@ class OrderSerializer(serializers.ModelSerializer):
     is_delivered = serializers.ReadOnlyField()
 
     def get_has_review(self, obj):
+        # Use the prefetched `_user_reviews` cache populated in OrderViewSet.get_queryset()
+        # to avoid 1 extra DB round-trip per order.
+        cached = getattr(obj, '_user_reviews', None)
+        if cached is not None:
+            return len(cached) > 0
+        # Fallback for contexts without prefetch (e.g. retrieve)
         from apps.catalog.models import Review
         if not obj.user:
             return False
         return Review.objects.filter(order=obj, user=obj.user).exists()
 
     def get_review_rating(self, obj):
+        # Same prefetch cache as get_has_review
+        cached = getattr(obj, '_user_reviews', None)
+        if cached is not None:
+            return cached[0].rating if cached else None
+        # Fallback
         from apps.catalog.models import Review
         if not obj.user:
             return None
@@ -686,3 +702,233 @@ class OrderShipmentSerializer(serializers.ModelSerializer):
             'payment_status', 'total_amount',
             'order_date', 'created_at',
         ]
+
+
+class OrderItemListSerializer(serializers.ModelSerializer):
+    variant_name = serializers.SerializerMethodField()
+    variant_image = serializers.SerializerMethodField()
+    variant_sku = serializers.SerializerMethodField()
+    brand_name = serializers.SerializerMethodField()
+    prescription_status = serializers.SerializerMethodField()
+    price = serializers.ReadOnlyField(source='price_at_purchase')
+    product_id = serializers.SerializerMethodField()
+    contact_lens_name = serializers.SerializerMethodField()
+    contact_lens_image = serializers.SerializerMethodField()
+
+    def get_brand_name(self, obj):
+        if obj.variant and obj.variant.product:
+            p = obj.variant.product
+            return p.brand.name if p.brand else p.brand_name
+        return None
+
+    def get_variant_name(self, obj):
+        return obj.variant.product.title if obj.variant else None
+
+    def get_variant_image(self, obj):
+        if not obj.variant:
+            return None
+        prefetched = getattr(obj.variant, '_prefetched_images', None)
+        first_img = prefetched[0] if prefetched else None
+        if first_img:
+            request = self.context.get('request')
+            return request.build_absolute_uri(first_img.image.url) if request else first_img.image.url
+        return None
+
+    def get_variant_sku(self, obj):
+        return obj.variant.sku if obj.variant else None
+
+    def get_product_id(self, obj):
+        return obj.variant.product_id if obj.variant else None
+
+    def get_prescription_status(self, obj):
+        if obj.prescription:
+            return obj.prescription.status.label if obj.prescription.status else 'Pending Review'
+        if obj.lens:
+            return 'Not Submitted'
+        return 'Frame Only'
+
+    def get_contact_lens_name(self, obj):
+        if obj.contact_lens:
+            return obj.contact_lens.name or (obj.contact_lens.package.name if obj.contact_lens.package else 'Contact Lens')
+        return None
+
+    def get_contact_lens_image(self, obj):
+        if obj.contact_lens and obj.contact_lens.image:
+            request = self.context.get('request')
+            url = obj.contact_lens.image.url
+            return request.build_absolute_uri(url) if request else url
+        return None
+
+    class Meta:
+        model = OrderItem
+        fields = [
+            'id', 'variant', 'variant_name', 'variant_image', 'variant_sku', 'brand_name', 'product_id',
+            'quantity', 'unit_price', 'item_total', 'price_at_purchase', 'price',
+            'lens_prescription_text', 'lens_pd',
+            'contact_lens', 'contact_lens_name', 'contact_lens_image', 'contact_lens_power',
+            'prescription_status', 'patient_name', 'status',
+            'created_at',
+        ]
+
+
+class OrderListSerializer(serializers.ModelSerializer):
+    items = OrderItemListSerializer(many=True, read_only=True)
+    return_requests = ReturnRequestSerializer(many=True, read_only=True)
+    warranty_claims = WarrantyClaimSerializer(many=True, read_only=True)
+    customer_name = serializers.ReadOnlyField(source='user.username')
+    customer_email = serializers.ReadOnlyField(source='user.email')
+    order_number = serializers.CharField(read_only=True)
+    exchange_info = serializers.SerializerMethodField(read_only=True)
+    status_label = serializers.SerializerMethodField(read_only=True)
+    status = serializers.PrimaryKeyRelatedField(queryset=MetadataItem.objects.all(), required=False)
+    tracking = OrderTrackingSerializer(read_only=True)
+    payments = PaymentSerializer(many=True, read_only=True)
+    shipping_address_detail = serializers.SerializerMethodField(read_only=True)
+    billing_address_detail = serializers.SerializerMethodField(read_only=True)
+    has_review = serializers.SerializerMethodField(read_only=True)
+    review_rating = serializers.SerializerMethodField(read_only=True)
+    is_delivered = serializers.ReadOnlyField()
+
+    def get_exchange_info(self, obj):
+        if not getattr(obj, 'is_replacement', False):
+            return None
+        source_returns = list(obj.source_returns.all())
+        src = source_returns[0] if source_returns else None
+        original_item = getattr(src, 'order_item', None) if src else None
+        if original_item is None and obj.replaces_order_id:
+            replaces_items = list(obj.replaces_order.items.all()) if obj.replaces_order else []
+            original_item = replaces_items[0] if replaces_items else None
+        original_sku = None
+        original_name = None
+        if original_item and getattr(original_item, 'variant', None):
+            v = original_item.variant
+            original_sku = getattr(v, 'sku', None)
+            product = getattr(v, 'product', None)
+            colour = getattr(v, 'color', None) or getattr(v, 'frame_color', None)
+            original_name = (getattr(product, 'title', '') or 'Item') + (f" · {colour}" if colour else '')
+        return {
+            'source_order_id': obj.replaces_order_id,
+            'source_order_number': obj.replaces_order.order_number if obj.replaces_order_id else None,
+            'source_order_status': obj.replaces_order.order_status if obj.replaces_order_id else None,
+            'original_sku': original_sku,
+            'original_name': original_name,
+            'price_difference': float(src.replacement_price_difference) if src and src.replacement_price_difference else 0,
+        }
+
+    def get_has_review(self, obj):
+        cached = getattr(obj, '_user_reviews', None)
+        if cached is not None:
+            return len(cached) > 0
+        if not obj.user:
+            return False
+        from apps.catalog.models import Review
+        return Review.objects.filter(order=obj, user=obj.user).exists()
+
+    def get_review_rating(self, obj):
+        cached = getattr(obj, '_user_reviews', None)
+        if cached is not None:
+            return cached[0].rating if cached else None
+        if not obj.user:
+            return None
+        from apps.catalog.models import Review
+        review = Review.objects.filter(order=obj, user=obj.user).first()
+        return review.rating if review else None
+
+    ORDER_STATUS_LABELS = {
+        'pending': 'Pending', 'confirmed': 'Confirmed', 'preparing': 'Preparing',
+        'ready_to_dispatch': 'Ready for Dispatch', 'in_transit': 'In Transit',
+        'delivered': 'Delivered', 'cancelled': 'Cancelled',
+    }
+    STATUS_RANK = {
+        'pending': 0, 'confirmed': 1, 'preparing': 2,
+        'ready_to_dispatch': 3, 'in_transit': 4,
+        'delivered': 5, 'cancelled': 5,
+    }
+
+    def get_status_label(self, obj):
+        db_rank = self.STATUS_RANK.get(obj.order_status or '', 0)
+        if obj.status:
+            meta_mapped = self._label_to_order_status(obj.status.label)
+            meta_rank = self.STATUS_RANK.get(meta_mapped or '', 0)
+            if db_rank > meta_rank:
+                return self.ORDER_STATUS_LABELS.get(obj.order_status, obj.order_status or 'Pending')
+            return obj.status.label
+        return self.ORDER_STATUS_LABELS.get(obj.order_status, obj.order_status or 'Pending')
+
+    @staticmethod
+    def _label_to_order_status(label):
+        label = label.lower()
+        if any(k in label for k in ['deliver', 'complet']):
+            return 'delivered'
+        if any(k in label for k in ['transit', 'ship']):
+            return 'in_transit'
+        if any(k in label for k in ['ready', 'pack', 'dispatch']):
+            return 'ready_to_dispatch'
+        if any(k in label for k in ['prepar', 'quality']):
+            return 'preparing'
+        if any(k in label for k in ['confirm', 'accept', 'process']):
+            return 'confirmed'
+        if any(k in label for k in ['cancel', 'reject']):
+            return 'cancelled'
+        if 'pending' in label or 'receiv' in label:
+            return 'pending'
+        return None
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if instance.status:
+            mapped = self._label_to_order_status(instance.status.label)
+            db_rank = self.STATUS_RANK.get(instance.order_status or '', 0)
+            meta_rank = self.STATUS_RANK.get(mapped or '', 0)
+            if mapped and meta_rank > db_rank:
+                data['order_status'] = mapped
+        return data
+
+    def get_shipping_address_detail(self, obj):
+        if obj.shipping_address:
+            return {
+                'street': obj.shipping_address.street_address,
+                'city': obj.shipping_address.city,
+                'state': obj.shipping_address.state,
+                'pin_code': obj.shipping_address.pin_code,
+                'country': obj.shipping_address.country,
+                'phone': obj.shipping_address.phone,
+                'full_name': obj.shipping_address.full_name_contact,
+            }
+        if obj.shipping_address_line:
+            return {
+                'street': obj.shipping_address_line,
+                'city': obj.shipping_city,
+                'state': obj.shipping_state,
+                'pin_code': obj.shipping_postal_code,
+            }
+        return None
+
+    def get_billing_address_detail(self, obj):
+        if obj.billing_address:
+            return {
+                'street': obj.billing_address.street_address,
+                'city': obj.billing_address.city,
+                'state': obj.billing_address.state,
+                'pin_code': obj.billing_address.pin_code,
+                'country': obj.billing_address.country,
+            }
+        return None
+
+    class Meta:
+        model = Order
+        fields = [
+            'id', 'user', 'customer_name', 'customer_email',
+            'order_number', 'is_replacement', 'exchange_info',
+            'order_status', 'payment_status', 'payment_method',
+            'total_amount', 'subtotal', 'discount_amount', 'tax_amount', 'shipping_cost',
+            'paid_amount', 'balance_amount',
+            'status', 'status_label',
+            'order_date', 'delivery_date', 'created_at', 'updated_at',
+            'shipping_address_detail', 'billing_address_detail',
+            'items', 'tracking', 'payments',
+            'return_requests', 'warranty_claims',
+            'razorpay_order_id', 'razorpay_payment_id',
+            'has_review', 'review_rating', 'is_delivered',
+        ]
+

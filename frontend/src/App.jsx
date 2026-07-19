@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
@@ -6,46 +6,48 @@ import { ThemeProvider } from './context/ThemeContext';
 import { WishlistProvider } from './context/WishlistContext';
 import ProtectedRoute from './components/pages/auth/ProtectedRoute';
 import Layout from './components/pages/layout/Layout';
+// Critical path — eagerly loaded (home, auth)
 import HomePage from './components/pages/home/HomePage';
-import ProductListingPage from './components/pages/products/ProductListingPage';
-import ContactLensDetailPage from './components/pages/products/ContactLensDetailPage';
-import ProductDetailPage from './components/pages/products/ProductDetailPage';
-import CartPage from './components/pages/cart/CartPage';
-import CheckoutPage from './components/pages/checkout/CheckoutPage';
 import LoginPage from './components/pages/auth/LoginPage';
 import RegisterPage from './components/pages/auth/RegisterPage';
-import OrderConfirmationPage from './components/pages/checkout/OrderConfirmationPage';
-import ConfirmationErrorBoundary from './components/pages/checkout/ConfirmationErrorBoundary';
-import AdminDashboard from './components/pages/admin/AdminDashboard';
-import FaceCapture from './components/FaceCapture/FaceCapture';
-import AuthCallbackPage from './components/pages/auth/AuthCallbackPage';
-import MyOrdersPage from './components/pages/account/MyOrdersPage';
-import AddressBookPage from './components/pages/account/AddressBookPage';
-import AccountInfoPage from './components/pages/account/AccountInfoPage';
-import PrescriptionPage from './components/pages/account/PrescriptionPage';
-import SavedModelsPage from './components/pages/account/SavedModelsPage';
-import NotificationsPage from './components/pages/account/NotificationsPage';
-import WishlistPage from './components/pages/account/WishlistPage';
-import CustomerOrderDetailPage from './components/pages/account/CustomerOrderDetailPage';
-import ReturnExchangePage from './components/pages/account/ReturnExchangePage';
-import WarrantyClaimPage from './components/pages/account/WarrantyClaimPage';
-import ThankYouPage from './components/pages/checkout/ThankYouPage';
-import OrderConfirmedPage from './components/pages/checkout/OrderConfirmedPage';
-import OrderTrackingPage from './components/pages/account/OrderTrackingPage';
-import ReviewCreatePage from './components/pages/account/ReviewCreatePage';
-import ReviewPage from './components/pages/account/ReviewPage';
-import OrderReviewPage from './components/pages/account/OrderReviewPage';
-import WriteReviewPage from './components/pages/account/WriteReviewPage';
-import AboutPage from './components/pages/about/AboutPage';
-import BlogListingPage from './components/pages/blog/BlogListingPage';
-import BlogDetailPage from './components/pages/blog/BlogDetailPage';
-import DeliveryTimelinePage from './components/pages/support/DeliveryTimelinePage';
-import ReturnPolicyPage from './components/pages/support/ReturnPolicyPage';
-import WarrantyPage from './components/pages/support/WarrantyPage';
-import FAQPage from './components/pages/support/FAQPage';
-import ContactPage from './components/pages/support/ContactPage';
-import TermsPage from './components/pages/support/TermsPage';
-import PrivacyPolicyPage from './components/pages/support/PrivacyPolicyPage';
+// Non-critical — code-split into separate async chunks
+const ProductListingPage       = lazy(() => import('./components/pages/products/ProductListingPage'));
+const ContactLensDetailPage    = lazy(() => import('./components/pages/products/ContactLensDetailPage'));
+const ProductDetailPage        = lazy(() => import('./components/pages/products/ProductDetailPage'));
+const CartPage                 = lazy(() => import('./components/pages/cart/CartPage'));
+const CheckoutPage             = lazy(() => import('./components/pages/checkout/CheckoutPage'));
+const OrderConfirmationPage    = lazy(() => import('./components/pages/checkout/OrderConfirmationPage'));
+const ConfirmationErrorBoundary= lazy(() => import('./components/pages/checkout/ConfirmationErrorBoundary'));
+const AdminDashboard           = lazy(() => import('./components/pages/admin/AdminDashboard'));
+const FaceCapture              = lazy(() => import('./components/FaceCapture/FaceCapture'));
+const AuthCallbackPage         = lazy(() => import('./components/pages/auth/AuthCallbackPage'));
+const MyOrdersPage             = lazy(() => import('./components/pages/account/MyOrdersPage'));
+const AddressBookPage          = lazy(() => import('./components/pages/account/AddressBookPage'));
+const AccountInfoPage          = lazy(() => import('./components/pages/account/AccountInfoPage'));
+const PrescriptionPage         = lazy(() => import('./components/pages/account/PrescriptionPage'));
+const SavedModelsPage          = lazy(() => import('./components/pages/account/SavedModelsPage'));
+const NotificationsPage        = lazy(() => import('./components/pages/account/NotificationsPage'));
+const WishlistPage             = lazy(() => import('./components/pages/account/WishlistPage'));
+const CustomerOrderDetailPage  = lazy(() => import('./components/pages/account/CustomerOrderDetailPage'));
+const ReturnExchangePage       = lazy(() => import('./components/pages/account/ReturnExchangePage'));
+const WarrantyClaimPage        = lazy(() => import('./components/pages/account/WarrantyClaimPage'));
+const ThankYouPage             = lazy(() => import('./components/pages/checkout/ThankYouPage'));
+const OrderConfirmedPage       = lazy(() => import('./components/pages/checkout/OrderConfirmedPage'));
+const OrderTrackingPage        = lazy(() => import('./components/pages/account/OrderTrackingPage'));
+const ReviewCreatePage         = lazy(() => import('./components/pages/account/ReviewCreatePage'));
+const ReviewPage               = lazy(() => import('./components/pages/account/ReviewPage'));
+const OrderReviewPage          = lazy(() => import('./components/pages/account/OrderReviewPage'));
+const WriteReviewPage          = lazy(() => import('./components/pages/account/WriteReviewPage'));
+const AboutPage                = lazy(() => import('./components/pages/about/AboutPage'));
+const BlogListingPage          = lazy(() => import('./components/pages/blog/BlogListingPage'));
+const BlogDetailPage           = lazy(() => import('./components/pages/blog/BlogDetailPage'));
+const DeliveryTimelinePage     = lazy(() => import('./components/pages/support/DeliveryTimelinePage'));
+const ReturnPolicyPage         = lazy(() => import('./components/pages/support/ReturnPolicyPage'));
+const WarrantyPage             = lazy(() => import('./components/pages/support/WarrantyPage'));
+const FAQPage                  = lazy(() => import('./components/pages/support/FAQPage'));
+const ContactPage              = lazy(() => import('./components/pages/support/ContactPage'));
+const TermsPage                = lazy(() => import('./components/pages/support/TermsPage'));
+const PrivacyPolicyPage        = lazy(() => import('./components/pages/support/PrivacyPolicyPage'));
 import { GoogleOAuthProvider } from '@react-oauth/google';
 
 import { useLocation } from 'react-router-dom';
@@ -57,6 +59,9 @@ const LiveTracker = () => {
     const location = useLocation();
     
     React.useEffect(() => {
+        // Don't track admin sessions — saves an API round-trip on every route change
+        if (location.pathname.startsWith('/admin')) return;
+
         let sid = localStorage.getItem('site_session_id');
         if (!sid) {
             sid = 'sess_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
@@ -72,7 +77,6 @@ const LiveTracker = () => {
                 else if (path === '/cart') page = 'In Cart';
                 else if (path === '/checkout') page = 'Checking Out';
                 else if (path === '/products') page = 'Browsing Shop';
-                else if (path === '/admin') page = 'Managing Admin';
                 else if (path === '/login' || path === '/register') page = 'On Auth Page';
 
                 await apiClient.post('/sales/live/report-activity/', {
@@ -88,15 +92,33 @@ const LiveTracker = () => {
     return null;
 };
 
+// Minimal spinner shown while lazy chunks load
+const PageSpinner = () => (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+        <div style={{ width: 32, height: 32, border: '3px solid #F4EBFF', borderTopColor: '#7F56D9', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+        <style>{'@keyframes spin{to{transform:rotate(360deg)}}'}</style>
+    </div>
+);
+
+// Wishlist is only needed on the storefront, not in the admin.
+// Conditional wrapper keeps WishlistContext off admin routes so the
+// /sales/wishlist/ API call is never made for admin sessions.
+const StorefrontProviders = ({ children }) => {
+    const location = useLocation();
+    if (location.pathname.startsWith('/admin')) return children;
+    return <WishlistProvider>{children}</WishlistProvider>;
+};
+
 const App = () => {
     return (
         <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
             <ThemeProvider>
                 <AuthProvider>
                     <CartProvider>
-                    <WishlistProvider>
                         <Router>
+                            <StorefrontProviders>
                             <LiveTracker />
+                            <Suspense fallback={<PageSpinner />}>
                             <Routes>
                                 <Route path="/" element={<Layout />}>
                                     <Route index element={<HomePage />} />
@@ -105,7 +127,7 @@ const App = () => {
                                     <Route path="contact-lenses/:id" element={<ContactLensDetailPage />} />
                                     <Route path="cart" element={<CartPage />} />
                                     <Route path="checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
-                                    <Route path="order-confirmation/:orderId" element={<ConfirmationErrorBoundary><OrderConfirmationPage /></ConfirmationErrorBoundary>} />
+                                    <Route path="order-confirmation/:orderId" element={<Suspense fallback={<PageSpinner />}><ConfirmationErrorBoundary><OrderConfirmationPage /></ConfirmationErrorBoundary></Suspense>} />
                                     <Route path="login" element={<LoginPage />} />
                                     <Route path="register" element={<RegisterPage />} />
                                     <Route path="auth/callback" element={<AuthCallbackPage />} />
@@ -149,8 +171,9 @@ const App = () => {
                                     }
                                 />
                             </Routes>
+                            </Suspense>
+                            </StorefrontProviders>
                         </Router>
-                    </WishlistProvider>
                     </CartProvider>
                 </AuthProvider>
             </ThemeProvider>
