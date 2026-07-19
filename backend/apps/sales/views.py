@@ -360,6 +360,7 @@ class OrderViewSet(viewsets.ModelViewSet):
             qs = qs.filter(order_status='delivered', delivery_date__gte=one_year_ago)
 
         # On-page Search
+        search = request.query_params.get('search', '').strip()
         if search:
             if search.isdigit():
                 qs = qs.filter(id=int(search))
