@@ -4,6 +4,17 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
+const reactLikePackages = [
+    'react',
+    'react-dom',
+    'react-is',
+    'scheduler',
+    'use-sync-external-store',
+    'loose-envify',
+    'prop-types',
+    'object-assign',
+]
+
 export default defineConfig({
     base: process.env.NODE_ENV === 'production' ? '/static/' : '/',
     plugins: [
@@ -64,41 +75,39 @@ export default defineConfig({
         chunkSizeWarningLimit: 600,
         rollupOptions: {
             output: {
-                // Split vendors into long-lived cached chunks
+                // Split vendors into long-lived cached chunks while avoiding React runtime circular references
                 manualChunks(id) {
-                    // React core — highest cache priority, almost never changes
-                    if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
-                        return 'vendor-react';
-                    }
-                    // Router
-                    if (id.includes('node_modules/react-router')) {
-                        return 'vendor-router';
-                    }
-                    // Lucide icons (large icon library used heavily in admin)
-                    if (id.includes('node_modules/lucide-react')) {
-                        return 'vendor-icons';
-                    }
-                    // Recharts + bundled D3 — isolate into its own chunk so it only
-                    // loads when AnalyticsPage or DashboardHome is visited.
-                    // This alone removes 579KB from the critical path.
-                    if (
-                        id.includes('node_modules/recharts') ||
-                        id.includes('node_modules/d3') ||
-                        id.includes('node_modules/d3-') ||
-                        id.includes('node_modules/victory-vendor')
-                    ) {
-                        return 'vendor-charts';
-                    }
-                    // Google OAuth
-                    if (id.includes('node_modules/@react-oauth')) {
-                        return 'vendor-oauth';
-                    }
-                    // Axios — small but used everywhere; own chunk for cache stability
-                    if (id.includes('node_modules/axios') || id.includes('node_modules/follow-redirects')) {
-                        return 'vendor-axios';
-                    }
-                    // All other node_modules go into a general vendor chunk
                     if (id.includes('node_modules/')) {
+                        const normalized = id.replace(/\\/g, '/');
+
+                        if (reactLikePackages.some(pkg => normalized.includes(`/node_modules/${pkg}/`))) {
+                            return 'vendor-react';
+                        }
+
+                        if (normalized.includes('/node_modules/react-router')) {
+                            return 'vendor-router';
+                        }
+
+                        if (normalized.includes('/node_modules/lucide-react')) {
+                            return 'vendor-icons';
+                        }
+
+                        if (
+                            normalized.includes('/node_modules/recharts') ||
+                            normalized.includes('/node_modules/d3') ||
+                            normalized.includes('/node_modules/victory-vendor')
+                        ) {
+                            return 'vendor-charts';
+                        }
+
+                        if (normalized.includes('/node_modules/@react-oauth')) {
+                            return 'vendor-oauth';
+                        }
+
+                        if (normalized.includes('/node_modules/axios') || normalized.includes('/node_modules/follow-redirects')) {
+                            return 'vendor-axios';
+                        }
+
                         return 'vendor-misc';
                     }
                 },
