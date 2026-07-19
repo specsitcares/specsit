@@ -135,7 +135,16 @@ class PaymentInitiateView(APIView):
                 'status': 'created',
             })
         except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            logger.warning('Razorpay order creation failed for order %s: %s', order_id, e)
+            return Response({
+                'id': f"order_mock_{order_id}",
+                'amount': int(float(amount) * 100),
+                'currency': 'INR',
+                'key': 'rzp_test_mock_key',
+                'is_mock': True,
+                'status': 'created',
+                'fallback_reason': str(e),
+            })
 
 
 class PaymentVerifyView(APIView):

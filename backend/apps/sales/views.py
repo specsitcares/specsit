@@ -37,6 +37,15 @@ class OrderViewSet(viewsets.ModelViewSet):
         'items__patient_name'
     ]
     
+    def _invalidate_order_cache(self, user_id=None):
+        """Compatibility hook for older cache invalidation logic.
+
+        The storefront no longer uses a custom order cache layer, so this is a
+        no-op. Keeping the method avoids crashes from older code paths that still
+        call it during create/update operations.
+        """
+        return None
+
     def get_queryset(self):
         from django.db.models import Prefetch
         from apps.catalog.models import Review
