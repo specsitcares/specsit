@@ -29,7 +29,7 @@ const STEPS = ['Cart', 'Sign In', 'Shipping', 'Payment'];
 const ADDRESS_TYPES = ['Home', 'Office', 'Friends or family', 'Other'];
 
 const CheckoutPage = () => {
-    const { cart, cartTotal, clearCart, resolveProductPrice, appliedCoupon, applyCoupon, removeCoupon, savings, addToCart, removeFromCart, updateQuantity } = useCart();
+    const { cart, cartTotal, discountedTotal, clearCart, resolveProductPrice, appliedCoupon, applyCoupon, removeCoupon, savings, addToCart, removeFromCart, updateQuantity } = useCart();
     const navigate = useNavigate();
 
     // Accessory add-ons (product_type === 'accessory') — toggling adds/removes from cart
@@ -143,7 +143,7 @@ const CheckoutPage = () => {
 
     // Breakdown based on method (using integer paise to avoid rounding errors)
     const shippingCost = shippingRate || 0;
-    const orderTotal = Math.max(0, cartTotal - savings) + shippingCost;
+    const orderTotal = Math.max(0, discountedTotal) + shippingCost;
     const totalPaise = Math.round(orderTotal * 100);
     const phase1Paise = Math.round(totalPaise * partialPct / 100);
     const phase1Amount = phase1Paise / 100;
