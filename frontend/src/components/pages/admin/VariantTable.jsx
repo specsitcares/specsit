@@ -18,7 +18,7 @@ const VariantTable = () => {
   const [selectedIds, setSelectedIds] = useState(new Set());
 
   useEffect(() => { fetchData(); }, []);
-F
+
   const fetchData = async () => {
     try {
       const [varRes, prodRes] = await Promise.all([
@@ -182,7 +182,7 @@ F
 
       <FormModal isOpen={showForm} onClose={() => setShowForm(false)} onSubmit={handleFormSubmit}
         onDelete={handleFormDelete} mode={formMode} title="Variant"
-        fields={
+        fields={[
           { name: 'product', label: 'Product', type: 'select', options: products.map(p => ({ value: p.id, label: p.title })) },
           { name: 'sku', label: 'SKU Code', type: 'text' },
           { name: 'barcode', label: 'Barcode', type: 'text' },
