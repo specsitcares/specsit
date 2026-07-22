@@ -249,7 +249,9 @@ const AccessoryForm = () => {
                     if (match) setP(prev => ({ ...prev, category: String(match.id) }));
                 }
             }).catch(() => { });
-        apiClient.get('/catalog/brands/').then(res => setBrands(res.data.results || res.data || [])).catch(() => { });
+        apiClient.get('/catalog/brands/?product_type=accessory')
+            .then(res => setBrands(res.data.results || res.data || []))
+            .catch(() => { });
     }, [isEdit, presetCategory]);
 
     useEffect(() => {
@@ -293,8 +295,14 @@ const AccessoryForm = () => {
     const isSolution = /solution/i.test(categoryLabel);
     const isCase = /case/i.test(categoryLabel);
     // Brands are scoped per accessory category — only show brands of the matching type.
-    const accessoryBrandType = isCase ? 'Cases' : isSolution ? 'Solution' : /cloth/i.test(categoryLabel) ? 'Cloths' : null;
-    const brandOptions = accessoryBrandType ? brands.filter(b => b.brand_type === accessoryBrandType) : brands;
+    const accessoryBrandTypes = isCase
+        ? ['Cases']
+        : isSolution
+            ? ['Solutions']
+            : /cloth/i.test(categoryLabel)
+                ? ['Cloths']
+                : ['Cases', 'Cloths', 'Solutions'];
+    const brandOptions = brands.filter(b => accessoryBrandTypes.includes(b.brand_type));
 
     const setProd = (f, v) => setP(prev => ({ ...prev, [f]: v }));
     const setVar = (key, f, v) => setVariants(prev => prev.map(x => x._key === key ? { ...x, [f]: v } : x));

@@ -290,10 +290,20 @@ class BrandViewSet(CachedReadMixin, viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
-        qs = BrandLogo.objects.all() if self.request.user.is_staff else BrandLogo.objects.filter(is_active=True)
+        qs = BrandLogo.objects.all() if self.request.user.is_staff else BrandLogo.objects.filter(is_published=True)
         brand_type = self.request.query_params.get('brand_type')
         if brand_type:
             qs = qs.filter(brand_type=brand_type)
+
+        product_type = self.request.query_params.get('product_type')
+        if product_type:
+            if product_type in {'frame', 'eyeglasses', 'sunglasses'}:
+                qs = qs.filter(brand_type__in=['Frame'])
+            elif product_type in {'lens', 'contact_lens', 'contact'}:
+                qs = qs.filter(brand_type__in=['Lens', 'Contact'])
+            elif product_type in {'accessory', 'accessories'}:
+                qs = qs.filter(brand_type__in=['Cases', 'Cloths', 'Solutions', 'Accessory'])
+
         return qs.order_by('id')
     
 
@@ -612,10 +622,19 @@ class ProductViewSet(CachedReadMixin, viewsets.ModelViewSet):
         listed = Variant.objects.filter(product=OuterRef('pk'), is_listed=True, stock__gt=0)
         active_products = Product.objects.filter(is_active=True).filter(Exists(listed))
 
-        # Distinct brands (only those attached to active, in-stock products)
+        product_type = request.query_params.get('product_type')
         brand_ids = active_products.filter(brand__isnull=False).values_list('brand', flat=True).distinct()
+
+        brand_qs = BrandLogo.objects.filter(id__in=brand_ids)
+        if product_type in {'frame', 'eyeglasses', 'sunglasses'}:
+            brand_qs = brand_qs.filter(brand_type='Frame')
+        elif product_type in {'lens', 'contact_lens', 'contact'}:
+            brand_qs = brand_qs.filter(brand_type__in=['Lens', 'Contact'])
+        elif product_type in {'accessory', 'accessories'}:
+            brand_qs = brand_qs.filter(brand_type__in=['Cases', 'Cloths', 'Solutions', 'Accessory'])
+
         brands = list(
-            BrandLogo.objects.filter(id__in=brand_ids).values('id', 'name', 'logo').order_by('name')
+            brand_qs.values('id', 'name', 'logo', 'brand_type').order_by('name')
         )
         # Build full logo URLs
         for b in brands:
