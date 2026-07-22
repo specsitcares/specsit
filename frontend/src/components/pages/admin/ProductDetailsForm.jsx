@@ -68,6 +68,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
   const [currentStep, setCurrentStep] = useState(1);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
+  const [allBrands, setAllBrands] = useState([]);
   const [catalogBrands, setCatalogBrands] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -79,6 +80,37 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
   const variantFormRef = useRef(null);
 
   const useCmsBrandLogos = productType === 'eyeglasses' || productType === 'sunglasses';
+
+  const getBrandFilterForCategory = (categoryName = '', selectedProductType = productType) => {
+    const name = (categoryName || '').toLowerCase();
+    const selectedType = (selectedProductType || '').toLowerCase();
+
+    const isFrameContext = ['frame', 'frames', 'eyeglass', 'eyeglasses', 'sunglass', 'sunglasses'].some(keyword =>
+      selectedType.includes(keyword) || name.includes(keyword)
+    );
+    const isLensContext = ['lens', 'lenses', 'contact', 'contact lens', 'contact lenses', 'frame lens', 'frame lenses'].some(keyword =>
+      selectedType.includes(keyword) || name.includes(keyword)
+    );
+    const isAccessoryContext = ['accessory', 'accessories', 'case', 'cases', 'cloth', 'cloths', 'solution', 'solutions'].some(keyword =>
+      selectedType.includes(keyword) || name.includes(keyword)
+    );
+
+    if (isFrameContext) return ['Frame'];
+    if (isLensContext) return ['Lens', 'Contact'];
+    if (isAccessoryContext) {
+      if (name.includes('case')) return ['Cases'];
+      if (name.includes('cloth')) return ['Cloths'];
+      if (name.includes('solution')) return ['Solutions'];
+      return ['Cases', 'Cloths', 'Solutions', 'Accessory'];
+    }
+    return null;
+  };
+
+  const filterBrandsForCategory = (brandList = [], categoryName = '', selectedProductType = productType) => {
+    const brandFilters = getBrandFilterForCategory(categoryName, selectedProductType);
+    if (!brandFilters) return brandList;
+    return brandList.filter(b => brandFilters.includes(b.brand_type));
+  };
 
   const normalizeName = (value) =>
     (value || '').trim().toLowerCase().replace(/\s+/g, ' ');
@@ -110,7 +142,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
       try {
         const requests = [
           apiClient.get('/catalog/categories/'),
-          apiClient.get('/cms/brand-logos/'),
+          apiClient.get('/catalog/brands/'),
           apiClient.get('/catalog/brands/'),
           apiClient.get('/cms/site-settings/'),
         ];
@@ -145,12 +177,15 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
         if (brandResult.status === 'fulfilled') {
           const d = brandResult.value.data;
           brandList = Array.isArray(d) ? d : (d.results || []);
-          setBrands(brandList.map(b => ({
+          const normalizedBrandList = brandList.map(b => ({
             id: b.id,
             name: b.name,
             logo: b.logo || null,
             is_published: b.is_published,
-          })));
+            brand_type: b.brand_type,
+          }));
+          setAllBrands(normalizedBrandList);
+          setBrands(filterBrandsForCategory(normalizedBrandList, '', productType));
           setBrandSource('cms');
         }
         if (catalogBrandResult.status === 'fulfilled') {
@@ -265,9 +300,22 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
     setFormData(prev => {
       let updatedData = { ...prev, [field]: value };
 
+      if (field === 'category') {
+        const selectedCategory = categories.find(c => String(c.id) === String(value));
+        const categoryName = selectedCategory?.name || '';
+        const requestedBrandTypes = getBrandFilterForCategory(categoryName);
+        const filteredBrands = filterBrandsForCategory(allBrands, categoryName);
+        setBrands(filteredBrands);
+        if (requestedBrandTypes && !filteredBrands.some(b => b.name === prev.brand)) {
+          updatedData.brand = '';
+          updatedData.brand_id = null;
+          updatedData.brand_logo = '';
+        }
+      }
+
       // Auto-update the product title when the admin selects a brand.
       if (field === 'brand') {
-        const selectedBrand = brands.find(b => b.name === value || String(b.id) === String(value));
+        const selectedBrand = allBrands.find(b => b.name === value || String(b.id) === String(value));
         const selectedCatalogBrand = catalogBrands.find(b => b.name === value || String(b.id) === String(value));
         const selectedLogo = selectedBrand?.logo || selectedCatalogBrand?.logo || '';
         updatedData.brand_logo = selectedLogo;
