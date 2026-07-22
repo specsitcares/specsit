@@ -3,7 +3,9 @@ import { useHomeData } from '../../../context/HomeDataContext';
 
 const BrandsGrid = ({ brands = null }) => {
   const home = useHomeData();
-  const cmsBrands = (home?.brand_logos || []).map(b => ({ name: b.name, logo: b.logo, style: 'normal' }));
+  const cmsBrands = (home?.brand_logos || [])
+    .filter(b => b.in_corousel)
+    .map(b => ({ name: b.name, logo: b.logo, style: 'normal' }));
 
   // Up to 6 logos, duplicated once so the marquee scrolls seamlessly (-50% loop).
   const data = (brands || cmsBrands).slice(0, 6);

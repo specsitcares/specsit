@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from decimal import Decimal
 # pyrefly: ignore [missing-import]
-from apps.catalog.models import Variant, Lens, Prescription
+from apps.catalog.models import Variant, Lens, Prescription, BrandLogo
 # pyrefly: ignore [missing-import]
 from apps.catalog.core.models import MetadataItem
 
@@ -48,7 +48,7 @@ class Coupon(models.Model):
     is_active = models.BooleanField(default=True)
     is_bogo = models.BooleanField(default=False)
     brands = models.ManyToManyField(
-        'catalog.Brand',
+        BrandLogo,
         blank=True,
         related_name='coupons',
         help_text='Brands this coupon applies to. Leave empty to apply to all brands.'

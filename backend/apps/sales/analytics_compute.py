@@ -1,15 +1,3 @@
-"""
-analytics_compute.py
-────────────────────
-Heavy O(n log n) analytics aggregation logic.
-
-This module is intentionally separated from views.py.
-It is called ONLY from background daemon threads (triggered by Django signals),
-never from the HTTP request/response cycle.
-
-Read path  → O(log n)  :  AnalyticsSnapshot.objects.get(period=period)
-Write path → O(n log n):  compute_analytics(period)  [this file]
-"""
 
 from django.utils import timezone
 from datetime import timedelta
@@ -52,7 +40,10 @@ def compute_analytics(period='last_30'):
 
     start_date, prev_start, label_fmt, trunc_fn = _period_window(period)
 
-    base_qs  = Order.objects.all()
+    # ── SOURCE OF TRUTH: Exclude replacement orders from ALL metrics ──────────
+    # Replacement orders are corrections, not new sales, so they should not
+    # be counted in KPIs like total orders, revenue, products sold, etc.
+    base_qs  = Order.objects.exclude(is_replacement=True)
     curr_qs  = base_qs.filter(created_at__date__gte=start_date)
     prev_qs  = base_qs.filter(created_at__date__gte=prev_start,
                                created_at__date__lt=start_date)
@@ -76,26 +67,26 @@ def compute_analytics(period='last_30'):
     conversion_rate = round((total_orders / max(carts_curr, 1)) * 100, 1)
 
     # ── 3. Revenue ─────────────────────────────────────────────────────────────
+    # Already excluded replacements via base_qs, so no need to exclude again
     total_revenue = float(
-        curr_qs.exclude(is_replacement=True)
-                .aggregate(total=Sum('total_amount'))['total'] or 0
+        curr_qs.aggregate(total=Sum('total_amount'))['total'] or 0
     )
     prev_revenue = float(
-        prev_qs.exclude(is_replacement=True)
-                .aggregate(total=Sum('total_amount'))['total'] or 0
+        prev_qs.aggregate(total=Sum('total_amount'))['total'] or 0
     )
     revenue_trend = safe_trend(total_revenue, prev_revenue)
     avg_order     = round(total_revenue / max(total_orders, 1), 2)
 
     # ── 4. Products Sold ───────────────────────────────────────────────────────
+    # Filter by orders that exclude replacements
     products_curr = (
-        OrderItem.objects.filter(order__created_at__date__gte=start_date)
-                         .aggregate(total=Sum('quantity'))['total'] or 0
+        OrderItem.objects.filter(
+            order__in=curr_qs
+        ).aggregate(total=Sum('quantity'))['total'] or 0
     )
     products_prev = (
         OrderItem.objects.filter(
-            order__created_at__date__gte=prev_start,
-            order__created_at__date__lt=start_date,
+            order__in=prev_qs
         ).aggregate(total=Sum('quantity'))['total'] or 0
     )
     products_trend = safe_trend(products_curr, products_prev)
@@ -106,7 +97,7 @@ def compute_analytics(period='last_30'):
                   '#10B981', '#3B82F6', '#EF4444', '#14B8A6']
 
     sales_qs = (
-        OrderItem.objects.filter(order__created_at__date__gte=start_date)
+        OrderItem.objects.filter(order__in=curr_qs)
         .values('variant__product__category__id', 'variant__product__category__name')
         .annotate(total=Sum('quantity'))
     )
@@ -139,7 +130,7 @@ def compute_analytics(period='last_30'):
 
     # ── 6. Orders Over Time Chart ──────────────────────────────────────────────
     chart_qs = (
-        base_qs.filter(created_at__date__gte=start_date)
+        curr_qs
         .annotate(period=trunc_fn('created_at'))
         .values('period')
         .annotate(orders=Count('id'), revenue=Sum('total_amount'))
@@ -157,7 +148,7 @@ def compute_analytics(period='last_30'):
     # ── 7. Delivery Cost Analytics ─────────────────────────────────────────────
     BAND_COLORS = ['#6366F1', '#A855F7', '#EC4899', '#F59E0B', '#10B981', '#3B82F6', '#94A3B8']
     dispatched = OT.objects.filter(
-        order__in=base_qs.filter(created_at__date__gte=start_date),
+        order__in=curr_qs,
         delivery_cost__isnull=False,
     )
     total_carrier_cost = float(dispatched.aggregate(t=Sum('delivery_cost'))['t'] or 0)
@@ -204,7 +195,7 @@ def compute_analytics(period='last_30'):
     # ── 8. Top Lenses ──────────────────────────────────────────────────────────
     frame_lens_qs = (
         OrderItem.objects.filter(
-            order__created_at__date__gte=start_date,
+            order__in=curr_qs,
             lens__isnull=False, lens__replacement__isnull=True,
         ).values('lens__package__name').annotate(count=Count('id')).order_by('-count')[:6]
     )
@@ -215,7 +206,7 @@ def compute_analytics(period='last_30'):
 
     contact_lens_qs = (
         OrderItem.objects.filter(
-            order__created_at__date__gte=start_date,
+            order__in=curr_qs,
             lens__isnull=False, lens__replacement__isnull=False,
         ).values('lens__package__name').annotate(count=Count('id')).order_by('-count')[:6]
     )
@@ -226,7 +217,7 @@ def compute_analytics(period='last_30'):
 
     # ── 9. Frame Materials & Accessories ───────────────────────────────────────
     mat_qs = (
-        OrderItem.objects.filter(order__created_at__date__gte=start_date, variant__isnull=False)
+        OrderItem.objects.filter(order__in=curr_qs, variant__isnull=False)
         .exclude(variant__frame_material='').exclude(variant__frame_material__isnull=True)
         .values('variant__frame_material').annotate(units=Sum('quantity')).order_by('-units')[:6]
     )
@@ -237,7 +228,7 @@ def compute_analytics(period='last_30'):
 
     acc_qs = (
         OrderItem.objects.filter(
-            order__created_at__date__gte=start_date,
+            order__in=curr_qs,
             variant__product__category__group='accessory',
         ).values('variant__product__title').annotate(units=Sum('quantity')).order_by('-units')[:6]
     )
@@ -283,7 +274,7 @@ def compute_analytics(period='last_30'):
     )
     sold_by_title = {}
     for row in (
-        OrderItem.objects.filter(order__created_at__date__gte=start_date)
+        OrderItem.objects.filter(order__in=curr_qs)
         .values('variant__product__title').annotate(total=Sum('quantity'))
     ):
         sold_by_title[row['variant__product__title']] = int(row['total'] or 0)
@@ -481,7 +472,7 @@ def compute_analytics(period='last_30'):
     # ── 13. Product Profit (revenue share by category) ─────────────────────────
     profit_qs = (
         OrderItem.objects.filter(
-            order__created_at__date__gte=start_date, order__is_replacement=False
+            order__in=curr_qs
         ).values('variant__product__category__name')
         .annotate(revenue=Sum('item_total', output_field=FloatField()))
         .order_by('-revenue')[:4]

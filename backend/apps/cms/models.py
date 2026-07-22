@@ -51,6 +51,7 @@ class SiteSettings(models.Model):
             'brand': brand,
             'category': category,
             'store_name': self.store_name,
+
         }
         return {
             'meta_title': self.meta_title_template.format_map(ctx),
@@ -87,11 +88,18 @@ class HomeSection(models.Model):
         return f"{self.title} ({self.status})"
 
 class BrandLogo(models.Model):
-    """A logo shown in the homepage 'Brand Logos' strip."""
+    BRAND_TYPE_CHOICES = [('Frame', 'Frame'), ('Lens', 'Lenses for Frames'), ('Contact', 'Contact Lenses'), ('Cases', 'Cases'), ('Cloths', 'Cloths'), ('Solutions', 'Cleaning Solutions')]
     name = models.CharField(max_length=100)
+    brand_type = models.CharField(max_length=10, choices=BRAND_TYPE_CHOICES, default='Frame')
+    categories = models.ManyToManyField('catalog.Category', blank=True, related_name='brand_logos')
+    # on = can be used anywhere as a dynamic input ELSE NO!!!!!!
+    is_published = models.BooleanField(default=True)
+    # on = show in the home page courosel strip ELSE NO!!!!!!!
+    in_corousel = models.BooleanField(default=True)
     logo = models.ImageField(upload_to='cms/brand_logos/', null=True, blank=True)
     order = models.PositiveIntegerField(default=0)
-    is_published = models.BooleanField(default=True)
+    created_at = models.DateField(auto_now_add=True)
+    updated_at = models.DateField(auto_now=True)
 
     class Meta:
         ordering = ['order', 'id']

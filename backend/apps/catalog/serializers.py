@@ -1,6 +1,6 @@
 from rest_framework import serializers # type: ignore
 from decimal import Decimal
-from .models import Category, Brand, Manufacturer, Product, Variant, VariantImage, Collection, LensPackage, Lens, ContactLens, Prescription, UserFace, Review, LensConstraint, MetadataItem
+from .models import Category, BrandLogo, Product, Variant, VariantImage, Collection, LensPackage, Lens, ContactLens, Prescription, UserFace, Review, LensConstraint, MetadataItem
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -9,13 +9,9 @@ class CategorySerializer(serializers.ModelSerializer):
 
 class BrandSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Brand
+        model = BrandLogo
         fields = '__all__'
 
-class ManufacturerSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Manufacturer
-        fields = '__all__'
 
 class VariantImageSerializer(serializers.ModelSerializer):
     class Meta:
@@ -31,10 +27,20 @@ class VariantSerializer(serializers.ModelSerializer):
     effective_stock = serializers.SerializerMethodField()
     is_bestseller = serializers.ReadOnlyField(source='product.is_bestseller')
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # For partial updates (PATCH), make all fields not required so users can edit specific fields
+        if self.partial:
+            for field_name, field in self.fields.items():
+                field.required = False
+
     def get_brand_name(self, obj):
-        if obj.product.brand:
-            return obj.product.brand.name
-        return obj.product.brand_name or ''
+        prod = getattr(obj, 'product', None)
+        if prod is None:
+            return ''
+        if getattr(prod, 'brand', None):
+            return prod.brand.name
+        return getattr(prod, 'brand_name', '') or ''
 
     def get_effective_stock(self, obj):
         # Prefer variant-level stock; fallback to product-level stock_quantity
@@ -81,6 +87,8 @@ class ProductSerializer(serializers.ModelSerializer):
     variants = VariantSerializer(many=True, required=False)
     category_name = serializers.ReadOnlyField(source='category.name')
     brand_display_name = serializers.ReadOnlyField(source='brand.name')
+    main_image = serializers.SerializerMethodField()
+    brand_logo = serializers.SerializerMethodField()
     stock_status = serializers.SerializerMethodField()
     computed_final_price = serializers.SerializerMethodField()
     average_rating = serializers.SerializerMethodField()
@@ -89,6 +97,13 @@ class ProductSerializer(serializers.ModelSerializer):
     # queryset is annotated with `units_sold_90d` (storefront listing / home bundle);
     # defaults to 0 elsewhere. Used to justify bestseller status with real sales data.
     units_sold = serializers.SerializerMethodField()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # For partial updates (PATCH), make all fields not required so users can edit specific fields
+        if self.partial:
+            for field_name, field in self.fields.items():
+                field.required = False
 
     def _approved_reviews(self, obj):
         return [r for r in obj.reviews.all() if r.is_approved]
@@ -114,6 +129,55 @@ class ProductSerializer(serializers.ModelSerializer):
 
     def get_computed_final_price(self, obj):
         return float(obj.selling_price or 0)
+
+    def get_brand_logo(self, obj):
+        """Return the brand logo URL from the catalog brand or CMS fallback.
+
+        Prefer the brand name saved on the product (from the admin form) so the
+        homepage card can resolve the CMS logo even when the Brand FK is not the
+        matching CMS brand entry.
+        """
+        request = self.context.get('request')
+        logo_file = None
+
+        if obj.brand and obj.brand.logo:
+            logo_file = obj.brand.logo
+
+        if not logo_file:
+            brand_name = (getattr(obj, 'brand_name', '') or '').strip()
+            if not brand_name and obj.brand:
+                brand_name = (obj.brand.name or '').strip()
+
+            if brand_name:
+                from apps.cms.models import BrandLogo
+                cms_logo = BrandLogo.objects.filter(
+                    name__iexact=brand_name,
+                    is_published=True,
+                ).order_by('order', 'id').first()
+                if cms_logo and cms_logo.logo:
+                    logo_file = cms_logo.logo
+
+        if not logo_file:
+            return None
+
+        if request:
+            return request.build_absolute_uri(logo_file.url)
+        return logo_file.url
+
+    def get_main_image(self, obj):
+        request = self.context.get('request')
+        img = getattr(obj, 'product_image', None)
+        try:
+            if not img:
+                return None
+        except Exception:
+            return None
+        try:
+            if request:
+                return request.build_absolute_uri(img.url)
+            return img.url
+        except Exception:
+            return None
 
     class Meta:
         model = Product

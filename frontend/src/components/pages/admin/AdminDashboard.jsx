@@ -27,7 +27,6 @@ const ReviewTable            = lazy(() => import('./ReviewTable'));
 const EmployeeTable          = lazy(() => import('./EmployeeTable'));
 const CouponTable            = lazy(() => import('./CouponTable'));
 const CategoryTable          = lazy(() => import('./CategoryTable'));
-const BrandTable             = lazy(() => import('./BrandTable'));
 const CollectionTable        = lazy(() => import('./CollectionTable'));
 const VariantTable           = lazy(() => import('./VariantTable'));
 const LensManagement         = lazy(() => import('./LensManagement'));
@@ -236,7 +235,6 @@ const AdminDashboard = () => {
               <Route path="products/edit/eyeglasses/:id"   element={<EyeglassesFormRoute />} />
               <Route path="products/edit/sunglasses/:id"   element={<SunglassesFormRoute />} />
               <Route path="products/categories"       element={<CategoryTable />} />
-              <Route path="products/brands"           element={<BrandTable />} />
               <Route path="products/collections"      element={<CollectionTable />} />
               <Route path="products/variants"         element={<VariantTable />} />
               <Route path="products/lenses"           element={<LensManagement />} />

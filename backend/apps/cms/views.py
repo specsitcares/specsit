@@ -1,8 +1,11 @@
+from django.apps import apps
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, serializers, viewsets
 from rest_framework.permissions import AllowAny, IsAdminUser
 from .models import Announcement, HeroSlide, EditorialSection, Benefit, HomeSectionTitle, SiteSettings, HomeSection, BrandLogo, FrameRangeCard, SectionCard, PromoBanner, Blog, Faq, NewsletterSettings
+
+Category = apps.get_model('catalog', 'Category')
 
 class AnnouncementSerializer(serializers.ModelSerializer):
     class Meta:
@@ -106,9 +109,11 @@ class HeroSlideViewSet(viewsets.ModelViewSet):
 
 
 class BrandLogoSerializer(serializers.ModelSerializer):
+    categories = serializers.PrimaryKeyRelatedField(many=True, queryset=Category.objects.all(), required=False)
+
     class Meta:
         model = BrandLogo
-        fields = ['id', 'name', 'logo', 'order', 'is_published']
+        fields = ['id', 'name', 'logo', 'order', 'is_published', 'brand_type', 'in_corousel', 'categories']
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -120,10 +125,9 @@ class BrandLogoSerializer(serializers.ModelSerializer):
 
 class BrandLogoViewSet(viewsets.ModelViewSet):
     """Homepage brand-logo strip. Public reads see published logos.
-    Capped at 6 logos; each uploaded logo must be under 2 KB."""
+    Capped at 6 logos."""
     serializer_class = BrandLogoSerializer
     MAX_LOGOS = 6
-    MAX_LOGO_BYTES = 2 * 1024  # 2 KB
 
     def get_queryset(self):
         qs = BrandLogo.objects.all().order_by('order', 'id')
@@ -136,20 +140,12 @@ class BrandLogoViewSet(viewsets.ModelViewSet):
             return [AllowAny()]
         return [IsAdminUser()]
 
-    def _logo_too_big(self, request):
-        f = request.FILES.get('logo')
-        return f is not None and f.size > self.MAX_LOGO_BYTES
-
     def create(self, request, *args, **kwargs):
         if BrandLogo.objects.count() >= self.MAX_LOGOS:
             return Response({'detail': 'You can have at most 6 brand logos.'}, status=status.HTTP_400_BAD_REQUEST)
-        if self._logo_too_big(request):
-            return Response({'detail': 'Logo must be under 2 KB.'}, status=status.HTTP_400_BAD_REQUEST)
         return super().create(request, *args, **kwargs)
 
     def update(self, request, *args, **kwargs):
-        if self._logo_too_big(request):
-            return Response({'detail': 'Logo must be under 2 KB.'}, status=status.HTTP_400_BAD_REQUEST)
         return super().update(request, *args, **kwargs)
 
 
@@ -470,7 +466,7 @@ class HomeBundleView(APIView):
         from apps.catalog.serializers import ReviewSerializer, ProductSerializer
         reviews = Review.objects.filter(is_featured=True, is_approved=True).select_related('user', 'product').order_by('-updated_at')[:12]
         products = (Product.objects.filter(is_active=True)
-                    .select_related('category', 'brand', 'manufacturer')
+                    .select_related('category', 'brand')
                     .prefetch_related('variants', 'reviews')
                     .order_by('-created_at')[:40])
 
@@ -484,7 +480,7 @@ class HomeBundleView(APIView):
         sales_window_start = timezone.now() - timedelta(days=90)
         best_sellers = (
             Product.objects.filter(is_active=True, is_bestseller=True)
-            .select_related('category', 'brand', 'manufacturer')
+            .select_related('category', 'brand')
             .prefetch_related('variants', 'reviews')
             .annotate(units_sold_90d=Sum(
                 'variants__orderitem__quantity',
@@ -508,7 +504,7 @@ class HomeBundleView(APIView):
             'hero_slides': HeroSlideAdminSerializer(
                 HeroSlide.objects.filter(is_active=True, status='published').order_by('order', 'id'), many=True, context=ctx).data,
             'brand_logos': BrandLogoSerializer(
-                BrandLogo.objects.filter(is_published=True).order_by('order', 'id'), many=True, context=ctx).data,
+                BrandLogo.objects.filter(is_published=True, in_corousel=True).order_by('order', 'id'), many=True, context=ctx).data,
             'frame_range_cards': FrameRangeCardSerializer(
                 FrameRangeCard.objects.filter(is_active=True).order_by('order', 'id'), many=True, context=ctx).data,
             'explore_frame_styles': SectionCardSerializer(

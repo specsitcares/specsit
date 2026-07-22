@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Announcement, HeroSlide, EditorialSection, Benefit, HomeSectionTitle
+from .models import Announcement, BrandLogo, HeroSlide, EditorialSection, Benefit, HomeSectionTitle
 
 @admin.register(Announcement)
 class AnnouncementAdmin(admin.ModelAdmin):
@@ -24,3 +24,9 @@ class BenefitAdmin(admin.ModelAdmin):
 @admin.register(HomeSectionTitle)
 class HomeSectionTitleAdmin(admin.ModelAdmin):
     list_display = ('key', 'title')
+
+@admin.register(BrandLogo)
+class BrandLogoSection(admin.ModelAdmin):
+    list_display = ('name', 'brand_type', 'in_corousel', 'is_published', 'order')
+    list_filters = ('brand_type', 'in_corousel', 'is_published')
+    search_fields = ['name']

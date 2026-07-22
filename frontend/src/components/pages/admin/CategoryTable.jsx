@@ -65,7 +65,7 @@ const CategoryTable = () => {
     { label: 'Delete Selected', variant: 'danger', icon: Trash2, onClick: bulkDelete },
   ];
   /* a form which pops up when the admin wants to create a new cateogory */
-  const handleCreateClick = () => { setFormMode('create'); setSelectedCategory({ category_type: activeTab }); setShowForm(true); };
+  const handleCreateClick = () => { setFormMode('create'); setSelectedCategory({ group: activeTab, is_active: true }); setShowForm(true); };
   /*  a form which pops up when the admin wants to edit an existing cateogory */
   const handleEditClick = (c) => { setFormMode('edit'); setSelectedCategory(c); setShowForm(true); };
   /* a pop up when the admin wants to delete a particular cateogory */
@@ -76,10 +76,12 @@ const CategoryTable = () => {
   const handleFormSubmit = async (formData) => {
     const data = new FormData();
     Object.keys(formData).forEach(k => {
-      if (formData[k] != null) {
-        if (k === 'parent' && formData[k] === '') return;
-        if (k === 'image' && typeof formData[k] === 'string') return;
-        data.append(k, formData[k]);
+      const value = formData[k];
+      if (value === undefined || value === null) return;
+      if (value instanceof File) {
+        data.append(k, value);
+      } else {
+        data.append(k, typeof value === 'boolean' ? String(value) : value);
       }
     });
     /* NEW CATEOGORY ENTRY */
@@ -99,7 +101,7 @@ const CategoryTable = () => {
   /*  */
 
   const filtered = categories
-    .filter(c => ((c.group || c.category_type || 'frame').toString().toLowerCase()) === activeTab)
+    .filter(c => (c.group || 'frame').toString().toLowerCase() === activeTab)
     .filter(c => [c.name, c.slug, c.description].some(v => (v || '').toLowerCase().includes(searchQuery.toLowerCase())));
 
   const paginated = filtered.slice((page - 1) * perPage, page * perPage);
@@ -126,10 +128,6 @@ const CategoryTable = () => {
       <td style={{ padding: '16px 24px' }}>
         {/* start of the container */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {/* image  */}
-          <div style={{ width: 42, height: 42, borderRadius: 8, background: '#F4EBFF', color: '#7F56D9', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-            {c.image ? <img src={c.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <FolderOpen size={20} />}
-          </div>
           {/* name of the cateogory */}
           <div>
             <div style={{ fontWeight: 600, color: '#101828', fontSize: '11px' }}>{c.name}</div>
@@ -182,8 +180,8 @@ const CategoryTable = () => {
       {/* end of the actions button */}
     </tr>
   );
-  {/* end of the row in the table */ }
-  const tabCounts = Object.fromEntries(CAT_TABS.map(t => [t.key, categories.filter(c => ((c.group || c.category_type || 'frame').toString().toLowerCase()) === t.key).length]));
+
+  const tabCounts = Object.fromEntries(CAT_TABS.map(t => [t.key, categories.filter(c => (c.group || 'frame').toString().toLowerCase() === t.key).length]));
 
   return (
     <>
@@ -248,7 +246,6 @@ const CategoryTable = () => {
         fields={[
           { name: 'name', label: 'Category Name', type: 'text' },
           { name: 'group', label: 'Group', type: 'select', options: CAT_TYPE_OPTIONS },
-          { name: 'image', label: 'Category Image', type: 'file' },
           { name: 'is_active', label: 'Active', type: 'checkbox', defaultValue: true },
         ]}
         initialData={selectedCategory || {}} />

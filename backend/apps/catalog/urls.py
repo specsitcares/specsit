@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import SimpleRouter
 from .views import (
-    CategoryViewSet, BrandViewSet, ManufacturerViewSet, ProductViewSet, VariantViewSet,
+    CategoryViewSet, BrandViewSet, ProductViewSet, VariantViewSet,
     VariantImageViewSet, CollectionViewSet, LensPackageViewSet, LensViewSet, LensConstraintViewSet,
     ContactLensViewSet, PrescriptionViewSet, UserFaceViewSet, ReviewViewSet, MeasurePDView
 )
@@ -9,7 +9,6 @@ from .views import (
 router = SimpleRouter()
 router.register(r'categories', CategoryViewSet)
 router.register(r'brands', BrandViewSet)
-router.register(r'manufacturers', ManufacturerViewSet)
 router.register(r'products', ProductViewSet)
 router.register(r'variants', VariantViewSet)
 router.register(r'variant-images', VariantImageViewSet)

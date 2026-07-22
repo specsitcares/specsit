@@ -92,6 +92,7 @@ const ProductCard = ({ product, replaceCtx = null }) => {
   const hasDiscount = discountPct > 0;
 
   const brandName   = (product.brand_name || product.brand_display_name || product.category_name || '').toUpperCase();
+  const brandLogo   = product.brand_logo || null;
   const title       = product.title || '';
   const ratingValue = product.average_rating ? parseFloat(product.average_rating).toFixed(1) : null;
   const reviewCount = product.review_count || 0;
@@ -168,7 +169,18 @@ const ProductCard = ({ product, replaceCtx = null }) => {
 
           {/* Left: brand, title, price */}
           <div className="product-card__info-col">
-            {brandName && <span className="product-card__brand">{brandName}</span>}
+            {brandLogo ? (
+              <div className="product-card__brand-logo-wrapper">
+                <img 
+                  src={brandLogo} 
+                  alt={brandName} 
+                  className="product-card__brand-logo"
+                  onError={(e) => { e.target.style.display = 'none'; }}
+                />
+              </div>
+            ) : brandName ? (
+              <span className="product-card__brand">{brandName}</span>
+            ) : null}
             <h3 className="product-card__title">{title}</h3>
             <div className="product-card__price-block">
               <span className="product-card__price-new">

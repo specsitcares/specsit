@@ -53,16 +53,20 @@ const CouponTable = () => {
     { name: 'discount_percentage', label: 'Discount %',         type: 'number', required: true, min: 0, max: 100, step: 0.5 },
     { name: 'min_cart_value',      label: 'Min Cart Value (₹)', type: 'number', required: true, min: 0, step: 100 },
     {
-      name: 'brand',
+      name: 'brands',
       label: 'Applicable Brands',
       type: 'checkbox-group',
-           options: brands.map(b => ({value: String(b.id), label: b.name}))
+      searchable: true,
+      searchPlaceholder: 'Search brands…',
+      options: brands.map(b => ({ value: String(b.id), label: b.name })),
     },
     {
       name: 'categories',
       label: 'Applicable Categories',
       type: 'checkbox-group',
-           options: categories.map(c => ({ value: String(c.id), label: c.name })),
+      searchable: true,
+      searchPlaceholder: 'Search categories…',
+      options: categories.map(c => ({ value: String(c.id), label: c.name })),
     },
     { name: 'is_active',  label: 'Active',          type: 'checkbox' },
     { name: 'valid_from', label: 'Valid From',       type: 'date' },
@@ -97,12 +101,11 @@ const CouponTable = () => {
   };
 
   const handleEditClick = (c) => {
-    // Ensure categories is an array of numbers for the checkbox-group pre-population
+    // Ensure categories and brands are arrays of numbers for the checkbox-group pre-population
     const normalized = {
       ...c,
-      categories: Array.isArray(c.categories)
-        ? c.categories.map(Number)
-        : [],
+      brands: Array.isArray(c.brands) ? c.brands.map(Number) : [],
+      categories: Array.isArray(c.categories) ? c.categories.map(Number) : [],
     };
     setFormMode('edit');
     setSelectedCoupon(normalized);
@@ -111,6 +114,9 @@ const CouponTable = () => {
 
   const handleFormSubmit = async (formData) => {
     // categories must be sent as an array of integer IDs
+    const brandsArr = Array.isArray(formData.brands)
+      ? formData.brands.map(Number).filter(n => !isNaN(n))
+      : [];
     const categoriesArr = Array.isArray(formData.categories)
       ? formData.categories.map(Number).filter(n => !isNaN(n))
       : [];
@@ -126,6 +132,7 @@ const CouponTable = () => {
       is_active: !!formData.is_active,
       valid_from: formData.valid_from || null,
       valid_until: formData.valid_until || null,
+      brands: brandsArr,
       categories: categoriesArr,
     };
 

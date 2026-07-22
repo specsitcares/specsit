@@ -16,7 +16,6 @@ const SUB_URLS = {
   // Products
   'All Products':       '/admin/products',
   'All Categories':     '/admin/products/categories',
-  'All Brands':         '/admin/products/brands',
   'Spectacle Lenses':   '/admin/products/lenses',
   'Coupons':            '/admin/settings/coupons',
   // Inventory
@@ -70,7 +69,7 @@ const Badge = ({ count }) => {
 const menuItems = [
   { key: 'Dashboard',     label: 'Dashboard',         icon: LayoutGrid,   subs: ['Dashboard'] },
   { key: 'Orders',        label: 'Orders',            icon: ShoppingCart, subs: ['All Orders', 'Return Window', 'Warranty Window'] },
-  { key: 'Products',      label: 'Products Catalog',  icon: Package,      subs: ['All Products', 'All Categories', 'All Brands', 'Spectacle Lenses', 'Coupons'] },
+  { key: 'Products',      label: 'Products Catalog',  icon: Package,      subs: ['All Products', 'All Categories', 'Spectacle Lenses', 'Coupons'] },
   { key: 'Inventory',     label: 'Inventory & Stock', icon: Box,          subs: ['Current Stock'] },
   { key: 'Prescriptions', label: 'Prescriptions',     icon: CheckCircle,  subs: ['All Prescriptions'] },
   { key: 'Shipments',     label: 'Shipments',         icon: Truck,        subs: ['Track Shipments'] },

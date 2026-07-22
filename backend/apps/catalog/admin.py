@@ -7,7 +7,8 @@ from django.contrib import admin
 from django.utils.html import format_html
 import json
 from .models import (
-    Category, Brand, Manufacturer, Product, Variant, VariantImage, Collection,
+    Category, Product, BrandLogo, 
+    Variant, VariantImage, Collection,
     LensPackage, Lens, ContactLens, Prescription, UserFace, Review, LensConstraint
 )
 
@@ -19,19 +20,10 @@ class ContactLensAdmin(admin.ModelAdmin):
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ('name', 'parent')
+    list_display = ('name', 'is_active', 'created_at', 'updated_at')
     search_fields = ('name',)
 
-@admin.register(Brand)
-class BrandAdmin(admin.ModelAdmin):
-    list_display = ('name', 'label', 'is_active', 'created_at')
-    list_filter = ('is_active',)
-    search_fields = ('name',)
 
-@admin.register(Manufacturer)
-class ManufacturerAdmin(admin.ModelAdmin):
-    list_display = ('name',)
-    search_fields = ('name',)
 
 class VariantImageInline(admin.TabularInline):
     model = VariantImage
