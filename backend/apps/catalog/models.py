@@ -1,42 +1,29 @@
-from django.db import models  # type: ignore
+from django.db import models
 from django.contrib.auth.models import User  # type: ignore
 from .core.models import MetadataItem  # type: ignore
 from decimal import Decimal
+from apps.cms.models import BrandLogo
 
 class Category(models.Model):
-    name = models.CharField(max_length=100, unique=True)
-    description = models.TextField(blank=True)
-    image = models.ImageField(upload_to='categories/', blank=True, null=True)
-    parent = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='subcategories')
-    # Grouping for admin tabs: frame, lens, accessory
     GROUP_CHOICES = [
         ('frame', 'Frames'),
-        ('lens', 'Contact Lenses'),
+        ('lens', 'Lenses'),
         ('accessory', 'Accessories'),
     ]
-    group = models.CharField(max_length=20, choices=GROUP_CHOICES, default='frame')
-    category_type = models.CharField(max_length=10, choices=[('Lens', 'Lens'), ('Frame', 'Frame')], default='Frame')
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True, null=True)
-    updated_at = models.DateTimeField(auto_now=True, null=True)
-    def __str__(self): return self.name
 
-class Brand(models.Model):
-    BRAND_TYPE_CHOICES = [('Frame', 'Frame'), ('Lens', 'Lenses for Frames'), ('Contact', 'Contact Lenses'), ('Cases', 'Cases'), ('Cloths', 'Cloths'), ('Solution', 'Cleaning Solutions')]
     name = models.CharField(max_length=100, unique=True)
-    label = models.CharField(max_length=100, blank=True)
-    logo = models.ImageField(upload_to='brands/', blank=True, null=True)
-    description = models.TextField(blank=True)
-    brand_type = models.CharField(max_length=10, choices=BRAND_TYPE_CHOICES, default='Frame')
+    group = models.CharField(max_length=20, choices=GROUP_CHOICES, default='frame')
+    parent = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='children')
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    def __str__(self): return self.name
 
-class Manufacturer(models.Model):
-    name = models.CharField(max_length=100, unique=True)
-    contact_details = models.TextField(blank=True)
-    def __str__(self): return self.name
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
 
 class Product(models.Model):
     """
@@ -52,12 +39,8 @@ class Product(models.Model):
     title = models.CharField(max_length=255, db_index=True)
     product_type = models.CharField(max_length=10, choices=PRODUCT_TYPE_CHOICES, default='frame')
     sku = models.CharField(max_length=100, unique=True, null=True, blank=True)
-    description = models.TextField(blank=True)
-    short_description = models.TextField(blank=True)
-    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='products')
-    brand = models.ForeignKey(Brand, on_delete=models.SET_NULL, null=True, blank=True)
-    brand_name = models.CharField(max_length=100, null=True, blank=True, db_index=True)
-    manufacturer = models.ForeignKey(Manufacturer, on_delete=models.SET_NULL, null=True, blank=True)
+    category = models.ForeignKey('Category', on_delete=models.CASCADE, related_name='products')
+    brand = models.ForeignKey(BrandLogo, on_delete=models.CASCADE, related_name='brands_names', null=True, blank=True)
     product_image = models.ImageField(upload_to='products/', null=True, blank=True)
 
     # SEO Fields
@@ -91,6 +74,9 @@ class Product(models.Model):
     frame_only_mode = models.BooleanField(default=False)
     use_meta_template = models.BooleanField(default=True)
 
+    # Transient attribute for tests/serializers
+    brand_name = ''
+
     is_featured = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -121,8 +107,12 @@ class Product(models.Model):
         self.final_price = (sp - (sp * dp / Decimal('100'))).quantize(Decimal('0.01'))
         super().save(*args, **kwargs)
 
-    def __str__(self): return self.title
+    def __init__(self, *args, **kwargs):
+        # Accept `brand_name` as a transient attribute used by legacy code/tests
+        self.brand_name = kwargs.pop('brand_name', '')
+        super().__init__(*args, **kwargs)
 
+    def __str__(self): return self.title
 class Variant(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='variants')
     sku = models.CharField(max_length=100, unique=True)
@@ -165,7 +155,7 @@ class Variant(models.Model):
 
     # sizes 
     quantity = models.IntegerField(default = 0)
-    bride_lentgh = models.IntegerField(default=0)
+    bridge_length = models.IntegerField(default=0)
     temple_length = models.IntegerField(default=0)
     lens_width = models.IntegerField(default=0)
 
@@ -270,7 +260,7 @@ class LensPackage(models.Model):
     description = models.TextField(blank=True)
     features = models.JSONField(default=list) # e.g. ["Anti-glare", "UV Protection"]
     is_active = models.BooleanField(default=True)
-    categories = models.ManyToManyField(Category, blank=True, related_name='lens_packages')
+    categories = models.ManyToManyField('Category', blank=True, related_name='lens_packages')
     # Financial and warranty fields for packages
     cost_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True)
     selling_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True)
@@ -282,7 +272,7 @@ class Lens(models.Model):
     image = models.ImageField(upload_to='lenses/', null=True, blank=True)
     package = models.ForeignKey(LensPackage, on_delete=models.CASCADE, related_name='lenses')
     type = models.ForeignKey(MetadataItem, on_delete=models.SET_NULL, null=True, blank=True, limit_choices_to={'group__name': 'Lens Type'})
-    brand = models.ForeignKey(Brand, on_delete=models.SET_NULL, null=True, blank=True, related_name='lenses')
+    brand = models.ForeignKey(BrandLogo, on_delete=models.SET_NULL, null=True, blank=True, related_name='lenses')
     price = models.DecimalField(max_digits=10, decimal_places=2)
     index = models.CharField(max_length=10, null=True, blank=True)  # e.g., "1.5", "1.61", "1.67", "1.74"
     # Power range for the lens package (stored as decimal diopters)
@@ -318,7 +308,7 @@ class ContactLens(models.Model):
     package = models.ForeignKey(LensPackage, on_delete=models.CASCADE, related_name='contact_lenses')
     type = models.ForeignKey(MetadataItem, on_delete=models.SET_NULL, null=True, blank=True,
         limit_choices_to={'group__name': 'Contact Lens Type'})
-    brand = models.ForeignKey(Brand, on_delete=models.SET_NULL, null=True, blank=True, related_name='contact_lenses')
+    brand = models.ForeignKey(BrandLogo, on_delete=models.SET_NULL, null=True, blank=True, related_name='contact_lenses')
     price = models.DecimalField(max_digits=10, decimal_places=2)
     is_active = models.BooleanField(default=True)
     # Sphere power range (diopters)

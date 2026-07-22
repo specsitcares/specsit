@@ -1,10 +1,10 @@
 from django import forms
 from apps.sales.models import Coupon
-from apps.catalog.models import Brand, Category
+from apps.catalog.models import BrandLogo, Category
 
 class CouponAdminForm(forms.ModelForm):
     brand_filter = forms.ModelChoiceField(
-        queryset=Brand.objects.all(),
+        queryset=BrandLogo.objects.all(),
         required=False,
         label="Brand",
         help_text="Select a brand"
@@ -23,9 +23,9 @@ class CouponAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.instance and self.instance.pk:
-            brands = self.instance.brands.all()
+            brands = self.instance.BrandLogo.all()
             if brands.exists():
-                self.fields['brand_filter'].initial = brands.first()
+                self.fields['brand_filter'].initial = BrandLogo.first()
             
             categories = self.instance.categories.all()
             if categories.exists():
@@ -42,8 +42,8 @@ class CouponAdminForm(forms.ModelForm):
         category = self.cleaned_data.get('category_filter')
 
         if commit:
-            if brand:
-                instance.brands.set([brand])
+            if BrandLogo:
+                instance.BrandLogo.set([BrandLogo])
             else:
                 instance.brands.clear()
                 

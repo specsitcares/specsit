@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import Order, OrderItem, Cart, Wishlist, Coupon, Shipment, PaymentGatewayConfig, OrderTracking, Payment, PincodeDeliveryRate
 from .forms import CouponAdminForm
-from apps.catalog.models import Category, Brand
+from apps.catalog.models import Category, BrandLogo
 
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
@@ -36,11 +36,11 @@ class CouponAdmin(admin.ModelAdmin):
 
     def get_brands_display(self, obj):
         """Display brands in list view"""
-        brands = obj.brands.all()
+        brands = obj.BrandLogo.all()
         if brands:
-            brand_list = ', '.join([b.name for b in brands[:2]])
-            if brands.count() > 2:
-                brand_list += f' +{brands.count() - 2}'
+            brand_list = ', '.join([b.name for b in BrandLogo[:2]])
+            if BrandLogo.count() > 2:
+                brand_list += f' +{BrandLogo.count() - 2}'
             return brand_list
         return '—'
     get_brands_display.short_description = 'Brands'

@@ -2,9 +2,9 @@ from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .models import Category, Brand, Manufacturer, Product, Variant, VariantImage, Collection, LensPackage, Lens, ContactLens, Prescription, UserFace, Review, LensConstraint
+from .models import Category, BrandLogo, Product, Variant, VariantImage, Collection, LensPackage, Lens, ContactLens, Prescription, UserFace, Review, LensConstraint
 from .serializers import (
-    CategorySerializer, BrandSerializer, ManufacturerSerializer,
+    CategorySerializer, BrandSerializer,
     ProductSerializer, VariantSerializer, CollectionSerializer,
     LensPackageSerializer, LensSerializer, ContactLensSerializer, PrescriptionSerializer, UserFaceSerializer,
     ReviewSerializer, VariantImageSerializer, LensConstraintSerializer
@@ -285,24 +285,20 @@ class CategoryViewSet(CachedReadMixin, viewsets.ModelViewSet):
 
 class BrandViewSet(CachedReadMixin, viewsets.ModelViewSet):
     cache_namespace = 'catalog_brands'
-    queryset = Brand.objects.all().order_by('id')
+    queryset = BrandLogo.objects.all().order_by('id')
     serializer_class = BrandSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
-        qs = Brand.objects.all() if self.request.user.is_staff else Brand.objects.filter(is_active=True)
+        qs = BrandLogo.objects.all() if self.request.user.is_staff else BrandLogo.objects.filter(is_active=True)
         brand_type = self.request.query_params.get('brand_type')
         if brand_type:
             qs = qs.filter(brand_type=brand_type)
         return qs.order_by('id')
-
-class ManufacturerViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Manufacturer.objects.all()
-    serializer_class = ManufacturerSerializer
-    permission_classes = [permissions.AllowAny]
+    
 
 class ProductViewSet(CachedReadMixin, viewsets.ModelViewSet):
-    queryset = Product.objects.select_related('category', 'brand', 'manufacturer').prefetch_related('variants', 'reviews').all().order_by('-created_at')
+    queryset = Product.objects.select_related('category', 'brand', ).prefetch_related('variants', 'reviews').all().order_by('-created_at')
     serializer_class = ProductSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     cache_namespace = 'catalog_products'
@@ -617,9 +613,9 @@ class ProductViewSet(CachedReadMixin, viewsets.ModelViewSet):
         active_products = Product.objects.filter(is_active=True).filter(Exists(listed))
 
         # Distinct brands (only those attached to active, in-stock products)
-        brand_ids = active_products.filter(brand__isnull=False, brand__is_active=True).values_list('brand', flat=True).distinct()
+        brand_ids = active_products.filter(brand__isnull=False).values_list('brand', flat=True).distinct()
         brands = list(
-            Brand.objects.filter(id__in=brand_ids).values('id', 'name', 'logo').order_by('name')
+            BrandLogo.objects.filter(id__in=brand_ids).values('id', 'name', 'logo').order_by('name')
         )
         # Build full logo URLs
         for b in brands:

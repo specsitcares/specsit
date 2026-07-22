@@ -22,7 +22,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
 
 from apps.system_core.models import MetadataGroup, MetadataItem  # type: ignore
-from apps.catalog.models import Category, Brand, Manufacturer, Product, Variant  # type: ignore
+from apps.catalog.models import Category, BrandLogo, Manufacturer, Product, Variant  # type: ignore
 from apps.eyewear_features.models import LensPackage, Lens  # type: ignore
 from apps.marketing.models import Coupon  # type: ignore
 
@@ -54,7 +54,7 @@ def seed():
     sun, _ = Category.objects.get_or_create(name="Sunglasses")
     eye, _ = Category.objects.get_or_create(name="Eyeglasses")
     
-    brand, _ = Brand.objects.get_or_create(name="SpecsHQ", label="Premium Vision", status=True)
+    brand, _ = BrandLogo.objects.get_or_create(name="SpecsHQ", label="Premium Vision", status=True)
     man, _ = Manufacturer.objects.get_or_create(name="OptiFab Global")
     
     rimless_item = MetadataItem.objects.get(group=frame_group, value="rimless")

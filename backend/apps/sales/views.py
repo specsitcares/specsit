@@ -1684,6 +1684,7 @@ class RecentOrdersView(views.APIView):
         today = timezone.localdate()
         from datetime import datetime, time
         start_of_today = timezone.make_aware(datetime.combine(today, time.min))
+        limit = int(request.query_params.get('limit', 10))
         recent_orders = Order.objects.select_related(
             'status', 'user'
         ).prefetch_related(
@@ -1951,11 +1952,12 @@ class OrdersOverviewView(views.APIView):
 
         # O(log n) -- single indexed point-lookup on unique `period` column
         snapshot = AnalyticsSnapshot.objects.filter(period=period).first()
+        force_refresh = request.query_params.get('refresh') == 'true'
 
-        if snapshot and not snapshot.is_stale and snapshot.data:
+        if not force_refresh and snapshot and not snapshot.is_stale and snapshot.data:
             return Response(snapshot.data)
 
-        # Cache-miss / stale: compute synchronously once, cache result
+        # Cache-miss / stale / forced refresh: compute synchronously once, cache result
         data = compute_analytics(period)
         AnalyticsSnapshot.objects.update_or_create(
             period=period,

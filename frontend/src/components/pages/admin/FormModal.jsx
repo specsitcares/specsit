@@ -88,6 +88,7 @@ const FormModal = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [searchText, setSearchText] = useState({});
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => { setMounted(true); return () => setMounted(false); }, []);
@@ -108,6 +109,7 @@ const FormModal = ({
         setFormData(empty);
       }
       setErrors({});
+      setSearchText({});
       setSuccessMessage('');
       setShowDeleteConfirm(false);
     }
@@ -313,12 +315,31 @@ const FormModal = ({
                         </div>
                       ) : field.type === 'checkbox-group' ? (
                         <div>
+                          {(field.searchable || field.searchPlaceholder) && (
+                            <input
+                              type="search"
+                              value={searchText[field.name] || ''}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                setSearchText(prev => ({ ...prev, [field.name]: value }));
+                                if (errors[field.name]) setErrors(prev => ({ ...prev, [field.name]: '' }));
+                              }}
+                              placeholder={field.searchPlaceholder || `Search ${field.label}`}
+                              disabled={isSubmitting || field.readOnly}
+                              style={{ ...inputStyle(errors[field.name]), marginBottom: 10 }}
+                            />
+                          )}
                           <div style={{
                             border: '1px solid #D0D5DD', borderRadius: 8,
                             maxHeight: 200, overflowY: 'auto', padding: '8px 12px',
                             display: 'flex', flexDirection: 'column', gap: 8,
                           }}>
-                            {(field.options || []).map(opt => {
+                            {((field.options || []).filter(opt => {
+                              const searchValue = String(searchText[field.name] || '').trim().toLowerCase();
+                              if (!searchValue) return true;
+                              if (field.filter) return field.filter(opt, searchValue);
+                              return String(opt.label || opt.value).toLowerCase().includes(searchValue);
+                            })).map(opt => {
                               const currentArr = Array.isArray(formData[field.name]) ? formData[field.name] : [];
                               const isChecked = currentArr.includes(Number(opt.value));
                               return (
@@ -334,6 +355,12 @@ const FormModal = ({
                                 </label>
                               );
                             })}
+                            {field.searchable && (field.options || []).filter(opt => {
+                              const searchValue = String(searchText[field.name] || '').trim().toLowerCase();
+                              return searchValue && !String(opt.label || opt.value).toLowerCase().includes(searchValue);
+                            }).length === (field.options || []).length ? (
+                              <div style={{ color: '#667085', fontSize: 12, padding: '8px 0' }}>No matching options found.</div>
+                            ) : null}
                           </div>
                           {field.helpText && (
                             <div style={{ fontSize: 11, color: '#667085', marginTop: 8, fontStyle: 'italic' }}>

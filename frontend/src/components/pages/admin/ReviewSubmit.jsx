@@ -68,7 +68,21 @@ const ReviewSubmit = ({ formData, categories, brands, confirmed, setConfirmed, e
   const isSunglasses = productType === 'sunglasses';
 
   const getCategoryName = (id) => categories.find(c => c.id?.toString() === id?.toString())?.name || '—';
-  const getBrandName   = (id) => brands.find(b => b.id?.toString() === id?.toString())?.name || '—';
+  
+  // Get brand by ID first, fall back to finding by name string
+  const getBrandInfo = () => {
+    const id = formData.brand_id;
+    let brand = null;
+    if (id) {
+      brand = brands.find(b => b.id?.toString() === id?.toString());
+    }
+    if (!brand && formData.brand) {
+      brand = brands.find(b => b.name?.toLowerCase() === formData.brand?.toLowerCase());
+    }
+    return brand || { name: formData.brand || '—', logo: null };
+  };
+
+  const brandInfo = getBrandInfo();
 
   const [expandedVariants, setExpandedVariants] = useState({ 0: true });
   const [activeSizeTabs, setActiveSizeTabs] = useState({});
@@ -114,7 +128,14 @@ const ReviewSubmit = ({ formData, categories, brands, confirmed, setConfirmed, e
         <SectionTitle title="General Information" />
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '16px' }}>
           <Field label="Product Title"        value={formData.title} />
-          <Field label="Manufacturer / Brand" value={getBrandName(formData.brand)} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <Field label="Manufacturer / Brand" value={brandInfo.name} />
+            {brandInfo.logo && (
+              <div style={{ maxHeight: '50px', maxWidth: '120px' }}>
+                <img src={brandInfo.logo} alt={brandInfo.name} style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} />
+              </div>
+            )}
+          </div>
           <Field label="Category"             value={getCategoryName(formData.category)} />
           <Field label="Tax %"                value={formData.taxPercent ? String(formData.taxPercent) : null} />
         </div>

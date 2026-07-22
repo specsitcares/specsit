@@ -23,126 +23,20 @@ const PERIOD_OPTIONS = [
 /* ─── tabs ─── */
 const TABS = ['Orders Overview', 'Abandoned Carts', 'Traffic & Clicks', 'Returns/Exchanges'];
 
-/* ─── fallback data so the page always looks populated ─── */
-const FALLBACK = {
-  kpis: {
-    totalOrders:  { value: 1204, trend: 12.5, label: 'vs last week' },
-    cartsCreated: { value: 2847, trend: 8.2,  conversionRate: 42.3  },
-    revenue:      { value: 90500, trend: 18.2, avgOrder: 75.17, label: 'growth' },
-    productsSold: {
-      value: 2889, trend: 23,  label: 'last period',
-      categoryBreakdown: [
-        { category: 'Sunglasses', percent: 62 },
-        { category: 'Eyeglasses', percent: 38 },
-      ],
-    },
-  },
-  chart: [
-    { date: 'Mon', orders: 8,  revenue: 4200  },
-    { date: 'Tue', orders: 14, revenue: 7800  },
-    { date: 'Wed', orders: 11, revenue: 5900  },
-    { date: 'Thu', orders: 19, revenue: 11200 },
-    { date: 'Fri', orders: 23, revenue: 14500 },
-    { date: 'Sat', orders: 17, revenue: 9600  },
-    { date: 'Sun', orders: 9,  revenue: 5100  },
-  ],
-  deliveryCost: {
-    totalRateCharged: 0,
-    totalCarrierCost: 0,
-    pocketMoney: 0,
-    ordersWithData: 0,
-    segments: [{ label: 'No data yet', percent: 100, color: '#E5E7EB' }],
-    bandBreakdown: [],
-  },
-  productProfit: [
-    { label: 'Sunglasses',  percent: 42, color: '#6366F1' },
-    { label: 'Eyeglasses',  percent: 31, color: '#A855F7' },
-    { label: 'Contact Lens', percent: 16, color: '#EC4899' },
-    { label: 'Accessories', percent: 11, color: '#94A3B8' },
-  ],
-  productCategory: [
-    { label: 'Sunglasses', percent: 58, color: '#A855F7' },
-    { label: 'Eyeglasses', percent: 42, color: '#6366F1' },
-  ],
-  topFrameLenses: [
-    { label: 'Polarized', value: 320 },
-    { label: 'Photochromic', value: 280 },
-    { label: 'Blue Light', value: 260 },
-    { label: 'Prescription', value: 200 },
-  ],
-  topContactLenses: [
-    { label: 'Daily Comfort', value: 180 },
-    { label: 'Monthly Pro', value: 150 },
-    { label: 'Toric Plus', value: 90 },
-    { label: 'Multifocal', value: 60 },
-  ],
-  frameMaterials: [
-    { material: 'Acetate', units: 567 },
-    { material: 'Metal', units: 423 },
-    { material: 'Titanium', units: 289 },
-    { material: 'Plastic', units: 234 },
-  ],
-  accessories: [
-    { name: 'Lens Cleaning Kit', units: 210 },
-    { name: 'Hard Case', units: 185 },
-    { name: 'Neck Cord', units: 140 },
-    { name: 'Anti-fog Spray', units: 98 },
-  ],
-  abandonedCarts: {
-    abandonmentRate: { value: 68.4, trend: -3 },
-    funnel: [
-      { label: 'Cart Created',     count: 1079, pct: 100 },
-      { label: 'Checkout Started', count: 524,  pct: 49  },
-      { label: 'Order Placed',     count: 341,  pct: 32  },
-    ],
-    topAbandoned: [
-      { name: 'Aviator Classic', rate: 78, cartCount: 84 },
-      { name: 'Round Tortoise',  rate: 72, cartCount: 65 },
-      { name: 'Blue-Light Pro',  rate: 65, cartCount: 52 },
-      { name: 'Polarized Sport', rate: 58, cartCount: 41 },
-    ],
-  },
-  trafficClicks: {
-    kpis: {
-      totalVisits:  { value: 84210, trend: 3  },
-      uniqueUsers:  { value: 52604, trend: -5 },
-      avgSession:   { value: '3m 42s', trend: 2 },
-      bounceRate:   { value: 38.6, trend: 4  },
-    },
-    trafficTrend: [
-      { month: 'Jan', visitors: 62000, ctr: 2.1 },
-      { month: 'Feb', visitors: 68000, ctr: 2.3 },
-      { month: 'Mar', visitors: 71000, ctr: 2.5 },
-      { month: 'Apr', visitors: 74000, ctr: 2.9 },
-      { month: 'May', visitors: 79000, ctr: 3.3 },
-      { month: 'Jun', visitors: 84000, ctr: 3.8 },
-    ],
-    topPages: [
-      { path: '/sunglasses',  clicks: 12400 },
-      { path: '/men/aviator', clicks: 8900  },
-      { path: '/blue-light',  clicks: 6300  },
-      { path: '/try-on',      clicks: 5100  },
-      { path: '/lookbook',    clicks: 3800  },
-    ],
-    deviceBreakdown: [
-      { name: 'Mobile',  value: 34, color: '#6366f1' },
-      { name: 'Tablet',  value: 28, color: '#a855f7' },
-      { name: 'Desktop', value: 22, color: '#ec4899' },
-      { name: 'Other',   value: 16, color: '#cbd5e1' },
-    ],
-  },
-  returnsExchanges: {
-    kpis: {
-      returnRate:     { value: 0,   trend: 0 },
-      totalRefunds:   { value: 0,   trend: 0 },
-      exchangeRate:   { value: 0,   trend: 0 },
-      avgProcessTime: { value: '—', trend: 0 },
-    },
-    trend:           [],
-    topReasons:      [],
-    topProducts:     [],
-    statusBreakdown: [],
-  },
+/* ─── empty analytics defaults for live-only rendering ─── */
+const EMPTY_ANALYTICS = {
+  kpis: {},
+  chart: [],
+  deliveryCost: {},
+  productProfit: [],
+  productCategory: [],
+  topFrameLenses: [],
+  topContactLenses: [],
+  frameMaterials: [],
+  accessories: [],
+  abandonedCarts: {},
+  trafficClicks: {},
+  returnsExchanges: {},
 };
 
 /* ══════════════════════════════════════════════════════════════
@@ -151,7 +45,7 @@ const FALLBACK = {
 const AnalyticsPage = () => {
   const [activeTab,  setActiveTab]  = useState(0);
   const [period,     setPeriod]     = useState('last_30');
-  const [data,       setData]       = useState(FALLBACK);
+  const [data,       setData]       = useState(EMPTY_ANALYTICS);
   const [loading,    setLoading]    = useState(true);
   const [lastUpdate, setLastUpdate] = useState(null);
   const [periodOpen, setPeriodOpen] = useState(false);
@@ -162,22 +56,20 @@ const AnalyticsPage = () => {
 
   /* ── fetch from backend ── */
   const fetchData = useCallback(async (showSpinner = false) => {
-    if (showSpinner) setLoading(true);
+    if (showSpinner) {
+      setLoading(true);
+      setData(EMPTY_ANALYTICS);
+    }
     try {
-      const res = await apiClient.get('/sales/analytics/orders-overview/', { params: { period } });
-      if (res.data) {
-        setData(prev => ({
-          ...FALLBACK,
-          ...res.data,
-          kpis:             { ...FALLBACK.kpis,             ...(res.data.kpis             || {}) },
-          abandonedCarts:   { ...FALLBACK.abandonedCarts,   ...(res.data.abandonedCarts   || {}) },
-          trafficClicks:    { ...FALLBACK.trafficClicks,    ...(res.data.trafficClicks    || {}) },
-          returnsExchanges: { ...FALLBACK.returnsExchanges, ...(res.data.returnsExchanges || {}) },
-        }));
-        setLastUpdate(new Date());
-      }
+      const res = await apiClient.get('/sales/analytics/orders-overview/', {
+        params: { period, refresh: showSpinner ? 'true' : 'false' },
+        cache: false,
+      });
+      setData(res.data ?? EMPTY_ANALYTICS);
+      setLastUpdate(new Date());
     } catch {
-      /* keep fallback data */
+      // failed to fetch analytics data; keep empty live defaults if this was a refresh
+      if (showSpinner) setData(EMPTY_ANALYTICS);
     } finally {
       setLoading(false);
     }
@@ -225,11 +117,11 @@ const AnalyticsPage = () => {
     return () => clearInterval(intervalRef.current);
   }, [fetchData]);
 
-  const kpis = data.kpis || FALLBACK.kpis;
-  const chartData = (data.chart && data.chart.length > 0) ? data.chart : FALLBACK.chart;
-  const ac = data.abandonedCarts   || FALLBACK.abandonedCarts;
-  const tc = data.trafficClicks    || FALLBACK.trafficClicks;
-  const re = data.returnsExchanges || FALLBACK.returnsExchanges;
+  const kpis = data.kpis ?? {};
+  const chartData = data.chart ?? [];
+  const ac = data.abandonedCarts ?? {};
+  const tc = data.trafficClicks ?? {};
+  const re = data.returnsExchanges ?? {};
 
   return (
     <div className="ao-page">
@@ -299,23 +191,23 @@ const AnalyticsPage = () => {
               label="Carts Created"
               value={kpis.cartsCreated?.value?.toLocaleString() ?? '—'}
               trend={kpis.cartsCreated?.trend}
-              subLine={`Conversion ${kpis.cartsCreated?.conversionRate ?? 0}%`}
-              subProgress={kpis.cartsCreated?.conversionRate ?? 0}
+              subLine={kpis.cartsCreated?.conversionRate != null ? `Conversion ${kpis.cartsCreated.conversionRate}%` : 'Conversion data unavailable'}
+              subProgress={kpis.cartsCreated?.conversionRate}
             />
             <KpiCard
               icon={<DollarSign size={16} />}
               iconBg="#EFDFFF"
               label="Revenue"
-              value={`₹${(kpis.revenue?.value ?? 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
+              value={kpis.revenue?.value != null ? `₹${kpis.revenue.value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}` : '—'}
               trend={kpis.revenue?.trend}
               trendLabel={kpis.revenue?.label}
-              subLine={`Avg Order: ₹${(kpis.revenue?.avgOrder ?? 0).toLocaleString('en-IN')}`}
+              subLine={kpis.revenue?.avgOrder != null ? `Avg Order: ₹${kpis.revenue.avgOrder.toLocaleString('en-IN')}` : 'Avg Order unavailable'}
             />
             <KpiCard
               icon={<Package size={16} />}
               iconBg="#EFDFFF"
               label="Products Sold"
-              value={(kpis.productsSold?.value ?? 0).toLocaleString()}
+              value={kpis.productsSold?.value != null ? kpis.productsSold.value.toLocaleString() : '—'}
               trend={kpis.productsSold?.trend}
               trendLabel={kpis.productsSold?.label}
               categoryBreakdown={kpis.productsSold?.categoryBreakdown}
@@ -336,8 +228,8 @@ const AnalyticsPage = () => {
 
           {/* Bottom row: Delivery Cost + Product Profit */}
           <div className="ao-bottom-grid">
-            <DeliveryCostCard data={data.deliveryCost || FALLBACK.deliveryCost} />
-            <DonutCard title="Product Profit Calculations" segments={data.productProfit || FALLBACK.productProfit} />
+            <DeliveryCostCard data={data.deliveryCost} />
+            <DonutCard title="Product Profit Calculations" segments={data.productProfit ?? []} />
           </div>
 
           {/* Bottom row 2: Extra Details (3 columns) */}
@@ -348,7 +240,7 @@ const AnalyticsPage = () => {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={data.productCategory || FALLBACK.productCategory}
+                      data={data.productCategory ?? []}
                       cx="50%" cy="50%"
                       outerRadius={65}
                       dataKey="percent"
@@ -358,7 +250,7 @@ const AnalyticsPage = () => {
                       label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                       labelLine={false}
                     >
-                      {(data.productCategory || FALLBACK.productCategory).map((entry, i) => (
+                      {(data.productCategory ?? []).map((entry, i) => (
                         <Cell key={`cell-${i}`} fill={entry.color} />
                       ))}
                     </Pie>
@@ -398,8 +290,8 @@ const AnalyticsPage = () => {
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
                     data={lensTab === 0
-                      ? (data.topFrameLenses || FALLBACK.topFrameLenses)
-                      : (data.topContactLenses || FALLBACK.topContactLenses)}
+                      ? (data.topFrameLenses ?? [])
+                      : (data.topContactLenses ?? [])}
                     layout="vertical"
                     margin={{ top: 0, right: 20, left: 10, bottom: 0 }}
                   >
@@ -450,7 +342,7 @@ const AnalyticsPage = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {(data.frameMaterials || FALLBACK.frameMaterials).map((row, i) => (
+                      {(data.frameMaterials ?? []).map((row, i) => (
                         <tr key={i}>
                           <td style={{ textAlign: 'left', fontWeight: 500 }}>{row.material}</td>
                           <td style={{ textAlign: 'right', color: '#697177' }}>{row.units}</td>
@@ -467,7 +359,7 @@ const AnalyticsPage = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {(data.accessories || FALLBACK.accessories).map((row, i) => (
+                      {(data.accessories ?? []).map((row, i) => (
                         <tr key={i}>
                           <td style={{ textAlign: 'left', fontWeight: 500 }}>{row.name}</td>
                           <td style={{ textAlign: 'right', color: '#697177' }}>{row.units}</td>
@@ -504,14 +396,16 @@ const AnalyticsPage = () => {
                   <span className="ao-kpi-label">Abandonment Rate</span>
                 </div>
               </div>
-              <div className="ao-kpi-value">{ac.abandonmentRate?.value ?? 68.4}%</div>
+              <div className="ao-kpi-value">
+                {ac.abandonmentRate?.value != null ? `${ac.abandonmentRate.value}%` : '—'}
+              </div>
               {(() => {
-                const t = ac.abandonmentRate?.trend ?? -3;
-                const improving = t <= 0;
+                const t = ac.abandonmentRate?.trend;
+                const improving = t != null ? t <= 0 : true;
                 return (
                   <div className="ao-kpi-trend" style={{ color: improving ? '#147F27' : '#E11D48' }}>
                     {improving ? <TrendingDown size={14} /> : <TrendingUp size={14} />}
-                    <span>{t > 0 ? '+' : ''}{t}%</span>
+                    <span>{t != null ? `${t > 0 ? '+' : ''}${t}%` : '—'}</span>
                     <span className="ao-kpi-trend-label">&nbsp;vs last period</span>
                   </div>
                 );
@@ -525,7 +419,7 @@ const AnalyticsPage = () => {
               <h2 className="ac-section-title">Cart Drop-off Funnel</h2>
               <div className="ac-products-card">
                 <div className="ac-products-scroll">
-                  {(ac.funnel ?? FALLBACK.abandonedCarts.funnel).map((step, i) => (
+                  {(ac.funnel ?? []).map((step, i) => (
                     <div key={step.label} className="ac-product-item" data-tooltip={`${step.count.toLocaleString()} users`}>
                       <div className="ac-product-header">
                         <div className="ac-product-name-row">
@@ -547,7 +441,7 @@ const AnalyticsPage = () => {
               <h2 className="ac-section-title">Products — Abandonment Rate</h2>
               <div className="ac-products-card">
                 <div className="ac-products-scroll">
-                  {(ac.topAbandoned ?? FALLBACK.abandonedCarts.topAbandoned).map((product, i) => (
+                  {(ac.topAbandoned ?? []).map((product, i) => (
                     <div key={product.name} className="ac-product-item" data-tooltip={`${product.cartCount} cart${product.cartCount !== 1 ? 's' : ''} added`}>
                       <div className="ac-product-header">
                         <div className="ac-product-name-row">
@@ -570,10 +464,10 @@ const AnalyticsPage = () => {
 
       {/* ─── Tab 2: Traffic & Clicks ─── */}
       {activeTab === 2 && (() => {
-        const tckpis   = tc.kpis           || FALLBACK.trafficClicks.kpis;
-        const trend    = tc.trafficTrend   || FALLBACK.trafficClicks.trafficTrend;
-        const pages    = tc.topPages       || FALLBACK.trafficClicks.topPages;
-        const devices  = tc.deviceBreakdown|| FALLBACK.trafficClicks.deviceBreakdown;
+        const tckpis   = tc.kpis           ?? {};
+        const trend    = tc.trafficTrend   ?? [];
+        const pages    = tc.topPages       ?? [];
+        const devices  = tc.deviceBreakdown?? [];
         const maxClicks = Math.max(...pages.map(p => p.clicks), 1);
         return (
           <div className="ao-content">
@@ -709,7 +603,7 @@ const AnalyticsPage = () => {
 
       {/* ─── Tab 3: Returns & Exchanges ─── */}
       {activeTab === 3 && (() => {
-        const rekpis   = re.kpis            || FALLBACK.returnsExchanges.kpis;
+        const rekpis   = re.kpis            ?? {};
         const reTrend  = re.trend           || [];
         const reasons  = re.topReasons      || [];
         const products = re.topProducts     || [];
@@ -1130,47 +1024,56 @@ const DeliveryCostCard = ({ data }) => {
    Vertical: large centered donut + 2-col legend below
 ═══════════════════════════════════════════════════════════════ */
 const DonutCard = ({ title, segments }) => {
-  const total = segments.reduce((s, seg) => s + (seg.percent || 0), 0) || 1;
-  const normalized = segments.map(seg => ({
+  const safeSegments = Array.isArray(segments) ? segments : [];
+  const total = safeSegments.reduce((s, seg) => s + (Number(seg?.percent) || 0), 0) || 1;
+  const normalized = safeSegments.map(seg => ({
     ...seg,
-    pct: Math.round((seg.percent / total) * 100),
+    pct: Math.round((Number(seg?.percent) || 0) / total * 100),
   }));
 
   return (
     <div className="ao-donut-card">
       {title && <h3 className="ao-donut-title">{title}</h3>}
-      <ResponsiveContainer width="100%" height={180}>
-        <PieChart>
-          <Pie
-            data={normalized}
-            cx="50%" cy="50%"
-            innerRadius={44} outerRadius={65}
-            dataKey="pct"
-            startAngle={90} endAngle={-270}
-            strokeWidth={3} stroke="#fff"
-          >
-            {normalized.map((entry, i) => (
-              <Cell key={i} fill={entry.color} />
-            ))}
-          </Pie>
-          <RechartsTooltip
-            formatter={(value) => `${value}%`}
-            contentStyle={{ borderRadius: 8, border: '1px solid #eaeaea', fontSize: 12 }}
-          />
-        </PieChart>
-      </ResponsiveContainer>
+      {safeSegments.length === 0 ? (
+        <div className="ao-donut-empty">
+          No chart data available yet.
+        </div>
+      ) : (
+        <>
+          <ResponsiveContainer width="100%" height={180}>
+            <PieChart>
+              <Pie
+                data={normalized}
+                cx="50%" cy="50%"
+                innerRadius={44} outerRadius={65}
+                dataKey="pct"
+                startAngle={90} endAngle={-270}
+                strokeWidth={3} stroke="#fff"
+              >
+                {normalized.map((entry, i) => (
+                  <Cell key={i} fill={entry.color || '#CBD5E1'} />
+                ))}
+              </Pie>
+              <RechartsTooltip
+                formatter={(value) => `${value}%`}
+                contentStyle={{ borderRadius: 8, border: '1px solid #eaeaea', fontSize: 12 }}
+              />
+            </PieChart>
+          </ResponsiveContainer>
 
-      <div className="ao-donut-legend">
-        {normalized.map((seg) => (
-          <div key={seg.label} className="ao-donut-legend-row">
-            <div className="ao-donut-legend-left">
-              <span className="ao-donut-dot" style={{ background: seg.color }} />
-              <span className="ao-donut-label">{seg.label}</span>
-            </div>
-            <span className="ao-donut-pct">{seg.pct}%</span>
+          <div className="ao-donut-legend">
+            {normalized.map((seg) => (
+              <div key={seg.label} className="ao-donut-legend-row">
+                <div className="ao-donut-legend-left">
+                  <span className="ao-donut-dot" style={{ background: seg.color }} />
+                  <span className="ao-donut-label">{seg.label}</span>
+                </div>
+                <span className="ao-donut-pct">{seg.pct}%</span>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </>
+      )}
     </div>
   );
 };

@@ -68,13 +68,20 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
   const [currentStep, setCurrentStep] = useState(1);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
+  const [catalogBrands, setCatalogBrands] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [errors, setErrors] = useState({});
   const [confirmed, setConfirmed] = useState(false);
   const [globalTemplates, setGlobalTemplates] = useState(null);
+  const [brandSource, setBrandSource] = useState('cms');
   const variantFormRef = useRef(null);
+
+  const useCmsBrandLogos = productType === 'eyeglasses' || productType === 'sunglasses';
+
+  const normalizeName = (value) =>
+    (value || '').trim().toLowerCase().replace(/\s+/g, ' ');
 
   // Track DB-side items removed in edit mode so we can DELETE them on submit
   const [deletedVariantIds, setDeletedVariantIds] = useState([]);
@@ -84,7 +91,9 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
     title: '',
     description: '',
     category: '',
-    brand: '',
+    brand: '', // brand name
+    brand_id: null, // brand ID for lookup
+    brand_logo: '',
     short_description: '',
     variants: [DEFAULT_VARIANT()],
     taxPercent: '0',
@@ -101,6 +110,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
       try {
         const requests = [
           apiClient.get('/catalog/categories/'),
+          apiClient.get('/cms/brand-logos/'),
           apiClient.get('/catalog/brands/'),
           apiClient.get('/cms/site-settings/'),
         ];
@@ -109,16 +119,20 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
         }
 
         const results = await Promise.allSettled(requests);
-        const [catResult, brandResult, settingsResult, productResult] = results;
+        const [catResult, brandResult, catalogBrandResult, settingsResult, productResult] = results;
+
+        let categoryList = [];
+        let brandList = [];
+        let catalogBrandList = [];
 
         if (catResult.status === 'fulfilled') {
           const d = catResult.value.data;
-          const cats = Array.isArray(d) ? d : (d.results || []);
-          setCategories(cats);
+          categoryList = Array.isArray(d) ? d : (d.results || []);
+          setCategories(categoryList);
           // Auto-lock category for eyeglasses/sunglasses forms
           if (!editProduct?.id) {
             const term = productType === 'sunglasses' ? 'sunglass' : 'eyeglass';
-            const matched = cats.find(c => c.name.toLowerCase().includes(term));
+            const matched = categoryList.find(c => c.name.toLowerCase().includes(term));
             if (matched) {
               setFormData(prev => ({
                 ...prev,
@@ -130,7 +144,19 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
         }
         if (brandResult.status === 'fulfilled') {
           const d = brandResult.value.data;
-          setBrands(Array.isArray(d) ? d : (d.results || []));
+          brandList = Array.isArray(d) ? d : (d.results || []);
+          setBrands(brandList.map(b => ({
+            id: b.id,
+            name: b.name,
+            logo: b.logo || null,
+            is_published: b.is_published,
+          })));
+          setBrandSource('cms');
+        }
+        if (catalogBrandResult.status === 'fulfilled') {
+          const d = catalogBrandResult.value.data;
+          catalogBrandList = Array.isArray(d) ? d : (d.results || []);
+          setCatalogBrands(catalogBrandList);
         }
         if (settingsResult.status === 'fulfilled') {
           setGlobalTemplates(settingsResult.value.data);
@@ -202,11 +228,22 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
           // Step 2 form is pre-filled with the values that were saved last time.
           const firstVariant = (p.variants || [])[0] || {};
 
+          const selectedBrandName = p.brand_name || p.brand?.name || '';
+          const selectedCatalogBrand = selectedBrandName
+            ? catalogBrandList.find(b => b.name.toLowerCase() === selectedBrandName.toLowerCase())
+            : null;
+          const selectedBrand = selectedBrandName
+            ? brandList.find(b => b.name.toLowerCase() === selectedBrandName.toLowerCase())
+            : null;
+
           setFormData({
             title: p.title || '',
             description: p.description || '',
             category: p.category?.id || p.category || '',
-            brand: p.brand?.id || p.brand || '',
+            brand: selectedBrandName,
+            brand_id: selectedCatalogBrand?.id || null,
+            brand_logo: selectedBrand?.logo || selectedCatalogBrand?.logo || '',
+            brand_name: selectedBrandName,
             short_description: p.short_description || '',
             variants: (p.variants || []).map(mapVariant),
             taxPercent: firstVariant.tax_percent != null ? String(firstVariant.tax_percent) : '0',
@@ -226,8 +263,34 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
 
   const handleInputChange = (field, value) => {
     setFormData(prev => {
-      const updatedData = { ...prev, [field]: value };
-      
+      let updatedData = { ...prev, [field]: value };
+
+      // Auto-update the product title when the admin selects a brand.
+      if (field === 'brand') {
+        const selectedBrand = brands.find(b => b.name === value || String(b.id) === String(value));
+        const selectedCatalogBrand = catalogBrands.find(b => b.name === value || String(b.id) === String(value));
+        const selectedLogo = selectedBrand?.logo || selectedCatalogBrand?.logo || '';
+        updatedData.brand_logo = selectedLogo;
+        updatedData.brand_id = selectedCatalogBrand?.id || null;
+
+        if (selectedBrand || selectedCatalogBrand) {
+          const currentTitle = prev.title || '';
+          const previousBrand = brands.find(b => b.name === prev.brand || String(b.id) === String(prev.brand))
+            || catalogBrands.find(b => b.name === prev.brand || String(b.id) === String(prev.brand));
+          const previousBrandName = previousBrand?.name || '';
+          const trimmedTitle = currentTitle.trimStart();
+          const titleHasPreviousBrandPrefix = previousBrandName && trimmedTitle.toLowerCase().startsWith(previousBrandName.toLowerCase());
+
+          const brandLabel = selectedBrand?.name || selectedCatalogBrand?.name || value || '';
+          if (!trimmedTitle) {
+            updatedData.title = `${brandLabel} `;
+          } else if (titleHasPreviousBrandPrefix) {
+            const suffix = trimmedTitle.slice(previousBrandName.length).trimStart();
+            updatedData.title = suffix ? `${brandLabel} ${suffix}` : `${brandLabel} `;
+          }
+        }
+      }
+
       // Auto-update tax based on category selection
       if (field === 'category') {
         const selectedCategory = categories.find(c => String(c.id) === String(value));
@@ -267,6 +330,8 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
       description: '',
       category: '',
       brand: '',
+      brand_id: null,
+      brand_logo: '',
       short_description: '',
       variants: [DEFAULT_VARIANT()],
       taxPercent: '0',
@@ -287,22 +352,37 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
 
   const buildProductPayload = (isActive = true) => {
     const firstVariant = formData.variants?.[0];
+    // Use the stored catalog brand id when available; otherwise fall back to a name match
+    const brandId = formData.brand_id || (catalogBrands.find(b => b.name === formData.brand || String(b.id) === String(formData.brand))?.id || null);
+
     return {
       title: formData.title,
       description: formData.description || formData.short_description || '',
       short_description: formData.short_description,
       category: parseInt(formData.category) || formData.category,
-      brand: formData.brand ? parseInt(formData.brand) : null,
+      brand: brandId, // Save the Brand FK
+      brand_name: formData.brand || '', // Also save brand_name for legacy compat
       product_type: 'frame',
+      sku: firstVariant?.sku || '',
+      meta_title: firstVariant?.meta_title || '',
+      meta_description: firstVariant?.meta_description || '',
       frame_type: firstVariant?.frame_type || '',
       frame_shape: firstVariant?.frame_shape || '',
       frame_width: firstVariant?.frame_width || '',
+      frame_style: firstVariant?.frame_style || '',
+      frame_material: firstVariant?.frame_material || '',
+      frame_size: firstVariant?.frame_size || '',
+      frame_color: firstVariant?.colorName || '',
       gender: firstVariant?.gender || 'Unisex',
       base_price: parseFloat(firstVariant?.base_price) || 0,
       selling_price: parseFloat(firstVariant?.selling_price) || parseFloat(firstVariant?.base_price) || 0,
+      cost_price: parseFloat(firstVariant?.cost_price) || 0,
       discount_percentage: parseFloat(firstVariant?.discount_percentage) || 0,
+      stock_quantity: parseInt(firstVariant?.quantity) || 0,
       frame_only_mode: !!firstVariant?.frame_only_mode,
       is_active: isActive,
+      is_featured: firstVariant?.is_featured || false,
+      is_bestseller: firstVariant?.is_bestseller !== undefined ? firstVariant.is_bestseller : true,
     };
   };
 
@@ -616,10 +696,19 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
                           onChange={(e) => handleInputChange('brand', e.target.value)}
                         >
                           <option value="">Select Brand</option>
-                          {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                          {brands.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
                         </select>
                         <span className="select-chevron"><ChevronDown size={16} /></span>
                       </div>
+                      {formData.brand_logo && (
+                        <div className="form-field-brand-preview" style={{ marginTop: 10 }}>
+                          <img
+                            src={formData.brand_logo}
+                            alt={`${formData.brand} logo`}
+                            style={{ maxHeight: 40, maxWidth: 120, objectFit: 'contain', borderRadius: 4 }}
+                          />
+                        </div>
+                      )}
                     </div>
 
                     <div className="form-field">

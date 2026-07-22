@@ -21,7 +21,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
 
 from django.contrib.auth.models import User
-from apps.catalog.models import Category, Product, Brand, Manufacturer, Variant, Lens, LensPackage, Prescription, VariantImage
+from apps.catalog.models import Category, Product, BrandLogo, Manufacturer, Variant, Lens, LensPackage, Prescription, VariantImage
 from apps.sales.models import Coupon, Order, OrderItem, Shipment, LiveSession
 from apps.accounts.models import Address
 from apps.system_core.models import MetadataItem, MetadataGroup
@@ -72,8 +72,8 @@ def seed_data():
 
     # 3. Manufacturers & Brands
     m1, _ = Manufacturer.objects.get_or_create(name="Global Vision Corp")
-    b1, _ = Brand.objects.get_or_create(name="Titan")
-    b2, _ = Brand.objects.get_or_create(name="Ray-Ban")
+    b1, _ = BrandLogo.objects.get_or_create(name="Titan")
+    b2, _ = BrandLogo.objects.get_or_create(name="Ray-Ban")
 
     # 4. Categories
     sun, _ = Category.objects.get_or_create(name="Sunglasses", defaults={'description': "Fashionable solar protection"})
