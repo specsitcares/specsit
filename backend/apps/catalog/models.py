@@ -10,7 +10,7 @@ class Category(models.Model):
         ('lens', 'Lenses'),
         ('accessory', 'Accessories'),
     ]
-
+    
     name = models.CharField(max_length=100, unique=True)
     group = models.CharField(max_length=20, choices=GROUP_CHOICES, default='frame')
     parent = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='children')

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useWishlist } from '../../../context/WishlistContext';
 import { useAuth } from '../../../context/AuthContext';
+import apiClient from '../../../services/api';
 import '../../../styles/ProductCard.css';
 
 /* ── Star SVG (matches Figma node I401:19556;47:1196) ── */
@@ -40,6 +41,7 @@ const ProductCard = ({ product, replaceCtx = null }) => {
   const navigate = useNavigate();
   const [wishlistPending, setWishlistPending] = useState(false);
   const [activeVariantIdx, setActiveVariantIdx] = useState(0);
+  const [resolvedBrandLogo, setResolvedBrandLogo] = useState(product?.brand_logo || null);
 
   const productVariants = product.variants || [];
   const selectedVariant = productVariants[activeVariantIdx] || productVariants[0] || null;
@@ -62,6 +64,30 @@ const ProductCard = ({ product, replaceCtx = null }) => {
 
   // Clear the interval on unmount
   useEffect(() => () => clearInterval(hoverTimer.current), []);
+
+  useEffect(() => {
+    if (product?.brand_logo) {
+      setResolvedBrandLogo(product.brand_logo);
+      return;
+    }
+
+    const brandId = product?.brand ?? product?.brand_id ?? null;
+    if (!brandId) {
+      setResolvedBrandLogo(null);
+      return;
+    }
+
+    let cancelled = false;
+    apiClient.get(`/catalog/brands/${brandId}/`)
+      .then((res) => {
+        if (!cancelled) setResolvedBrandLogo(res?.data?.logo || null);
+      })
+      .catch(() => {
+        if (!cancelled) setResolvedBrandLogo(null);
+      });
+
+    return () => { cancelled = true; };
+  }, [product?.brand, product?.brand_id, product?.brand_logo]);
 
   const startCarousel = () => {
     if (imageCount <= 1) return;
@@ -92,7 +118,7 @@ const ProductCard = ({ product, replaceCtx = null }) => {
   const hasDiscount = discountPct > 0;
 
   const brandName   = (product.brand_name || product.brand_display_name || product.category_name || '').toUpperCase();
-  const brandLogo   = product.brand_logo || null;
+  const brandLogo   = resolvedBrandLogo || product.brand_logo || null;
   const title       = product.title || '';
   const ratingValue = product.average_rating ? parseFloat(product.average_rating).toFixed(1) : null;
   const reviewCount = product.review_count || 0;
