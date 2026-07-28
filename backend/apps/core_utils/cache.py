@@ -1,6 +1,23 @@
 from django.core.cache import cache
 from rest_framework.response import Response
 
+# ── Cache TTL constants (seconds) — centralised so every endpoint agrees ─────
+TTL_SHORT            = 60     # 1 min  — rapidly-changing data
+TTL_DEFAULT          = 300    # 5 min  — standard product data (matches CachedReadMixin default)
+TTL_PRODUCT_DETAIL   = 600    # 10 min — changes only when admin edits product
+TTL_PRODUCT_LIST     = 300    # 5 min  — changes on any product edit
+TTL_CATEGORY_TREE    = 1800   # 30 min — rarely edited
+TTL_BRAND_LIST       = 900    # 15 min
+TTL_COLLECTION       = 600    # 10 min
+TTL_LENS_LIST        = 600    # 10 min
+TTL_CONTACT_LENS     = 600    # 10 min
+TTL_RECOMMENDED_LENS = 300    # 5 min  — depends on product + lens tables
+TTL_NAV_OPTIONS      = 120    # 2 min  — navbar options; changes when products/brands change
+TTL_REVIEWS          = 300    # 5 min  — homepage featured reviews
+TTL_REVIEW_LIST      = TTL_REVIEWS
+TTL_CMS              = 900    # 15 min
+TTL_ADMIN_STATS      = 120    # 2 min  — admin dashboard, frequently polled
+
 
 def cache_aside(key, ttl, producer):
     """Check cache -> return if found -> else produce -> store with TTL -> return.

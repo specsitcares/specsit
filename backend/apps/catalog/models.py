@@ -1,4 +1,4 @@
-from django.db import models
+from django.db import models #type: ignore
 from django.contrib.auth.models import User  # type: ignore
 from .core.models import MetadataItem  # type: ignore
 from decimal import Decimal
@@ -20,155 +20,202 @@ class Category(models.Model):
 
     class Meta:
         ordering = ['name']
+        indexes = [
+            models.Index(fields=['parent', 'is_active'], name='cat_parent_active_idx'),
+        ]
 
     def __str__(self):
         return self.name
 
+# common input fields for creating a product
 
-class Product(models.Model):
-    """
-    Main Product model — supports both lens and frame products.
-    """
+class FrameProduct(models.Model):
+    """One row per frame *style* — the attributes shared by every colorway.
+    Per-colorway data (SKU, price, stock, images…) lives on FrameVariant."""
+
     PRODUCT_TYPE_CHOICES = [('lens', 'Lens'), ('frame', 'Frame'), ('accessory', 'Accessory')]
-    LENS_TYPE_CHOICES = [
-        ('Single Vision', 'Single Vision'),
-        ('Bifocal', 'Bifocal'),
-        ('Progressive', 'Progressive'),
-    ]
+    GENDER_CHOICES = [('Men', 'Men'), ('Women', 'Women'), ('Unisex', 'Unisex'), ('Kids', 'Kids')]
 
-    title = models.CharField(max_length=255, db_index=True)
+    title = models.CharField(max_length=255, blank=True, default="", db_index=True)
     product_type = models.CharField(max_length=10, choices=PRODUCT_TYPE_CHOICES, default='frame')
-    sku = models.CharField(max_length=100, unique=True, null=True, blank=True)
+    description = models.TextField(blank=True, default='')
     category = models.ForeignKey('Category', on_delete=models.CASCADE, related_name='products')
     brand = models.ForeignKey(BrandLogo, on_delete=models.CASCADE, related_name='brands_names', null=True, blank=True)
-    product_image = models.ImageField(upload_to='products/', null=True, blank=True)
 
-    # SEO Fields
-    meta_title = models.CharField(max_length=255, blank=True)
-    meta_description = models.TextField(blank=True)
-
-    # Frame Specs
-    frame_type = models.CharField(max_length=100, blank=True, default='')
+    # Frame specs shared across all colorways of this style
+    frame_material = models.CharField(max_length=100, blank=True, default='')
+    lens_material = models.CharField(max_length=100, blank=True, default='')
     frame_shape = models.CharField(max_length=100, blank=True, default='')
-    frame_width = models.CharField(max_length=100, blank=True, default='')
-    frame_style = models.CharField(max_length=100, null=True, blank=True)
-    frame_material = models.CharField(max_length=100, null=True, blank=True)
-    frame_size = models.CharField(max_length=100, null=True, blank=True)
-    frame_color = models.CharField(max_length=100, null=True, blank=True)
-    gender = models.CharField(max_length=20, choices=[('Men', 'Men'), ('Women', 'Women'), ('Unisex', 'Unisex'), ('Kids', 'Kids')], default='Unisex')
-
-    # Lens Specs
-    lens_type = models.CharField(max_length=20, choices=LENS_TYPE_CHOICES, null=True, blank=True)
-    requires_pd = models.BooleanField(default=False)
-
-    # Pricing
-    base_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
-    selling_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
-    discount_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
-    final_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
-    cost_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True)
-
-    # Inventory
-    stock_quantity = models.IntegerField(default=0)
-    low_stock_threshold = models.IntegerField(default=10)
+    frame_type = models.CharField(max_length=100, blank=True, default='')  # Full Rim / Half Rim / Rimless
+    frame_country_of_origin = models.CharField(max_length=100, blank=True, default='')
+    gender = models.CharField(max_length=20, choices=GENDER_CHOICES, default='Unisex')
+    frame_tax_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
     frame_only_mode = models.BooleanField(default=False)
-    use_meta_template = models.BooleanField(default=True)
-
-    # Transient attribute for tests/serializers
-    brand_name = ''
+    is_warranty_eligible = models.BooleanField(default=False)
+    is_return_eligible = models.BooleanField(default=True)
+    low_stock_threshold = models.IntegerField(default=10)
 
     is_featured = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
+    is_bestseller = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    is_bestseller = models.BooleanField(default=True)
 
     class Meta:
         indexes = [
-            # Main storefront query: active products by type
-            models.Index(fields=['is_active', 'product_type', '-created_at'], name='prod_act_type_created_idx'),
-            # Brand + active filter (brand page, nav-options)
-            models.Index(fields=['brand', 'is_active'], name='product_brand_active_idx'),
-            # Category + active filter (category page)
-            models.Index(fields=['category', 'is_active'], name='product_category_active_idx'),
-            # Bestseller flag for homepage/sorting
-            models.Index(fields=['is_bestseller', 'is_active'], name='product_bestseller_active_idx'),
-            # Price range filter
-            models.Index(fields=['final_price'], name='product_final_price_idx'),
-            # SKU lookup (admin + order validation)
-            models.Index(fields=['sku'], name='product_sku_idx'),
+            models.Index(fields=['is_active', 'product_type', '-created_at'], name='fprod_act_type_created_idx'),
+            models.Index(fields=['brand', 'is_active'], name='fprod_brand_active_idx'),
+            models.Index(fields=['category', 'is_active'], name='fprod_category_active_idx'),
+            models.Index(fields=['is_bestseller', 'is_active'], name='fprod_bestseller_active_idx'),
         ]
 
-    def save(self, *args, **kwargs):
-        if self.lens_type == 'Progressive':
-            self.requires_pd = True
-        sp = Decimal(str(self.selling_price or 0))
-        dp = Decimal(str(self.discount_percentage or 0))
-        self.final_price = (sp - (sp * dp / Decimal('100'))).quantize(Decimal('0.01'))
-        super().save(*args, **kwargs)
+    @property
+    def stock_quantity(self):
+        """Aggregate stock across all variants — not stored, always derived."""
+        return sum(v.stock or 0 for v in self.variants.all())
 
-    def __init__(self, *args, **kwargs):
-        # Accept `brand_name` as a transient attribute used by legacy code/tests
-        self.brand_name = kwargs.pop('brand_name', '')
-        super().__init__(*args, **kwargs)
+    @property
+    def selling_price(self):
+        """Lowest variant selling price ("starting at ₹X"); 0 if no variants yet."""
+        prices = [v.selling_price for v in self.variants.all() if v.selling_price]
+        return min(prices) if prices else Decimal('0.00')
 
-    def __str__(self): return self.title
-class Variant(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='variants')
-    sku = models.CharField(max_length=100, unique=True)
-    name = models.CharField(max_length=100, blank=True, default='')  # Admin-configured variant name (e.g. "Classic Tortoise")
-    
-    # Color Differentiation
-    lens_color = models.CharField(max_length=100, blank=True, default='')
-    frame_color = models.CharField(max_length=100, blank=True, default='', db_index=True)
-    color = models.CharField(max_length=100, help_text="Common color name for SEO/Display", default='', db_index=True) 
-    
-    # Color Selection from Figma
+    @property
+    def final_price(self):
+        return self.selling_price
+
+    def __str__(self): return self.title or f"Frame Product #{self.pk}"
+
+
+class FrameVariant(models.Model):
+    """One row per colorway/size-run of a FrameProduct — carries SKU, price, stock,
+    images and all per-colorway technical specs."""
+
     COLOR_METHOD_CHOICES = [('code', 'Color Code'), ('palette', 'Palette Image')]
-    color_selection_method = models.CharField(max_length=10, choices=COLOR_METHOD_CHOICES, default='code')
-    color_code = models.CharField(max_length=7, blank=True) # Hex code
-    palette_image = models.ImageField(upload_to='catalog/palettes/', blank=True, null=True)
-    
-    # Frame Details (from Figma Node 76:8389)
-    frame_material = models.CharField(max_length=100, blank=True, default='', db_index=True)
-    # Additional technical spec fields for variants (barcode, lens specs, logistics)
-    barcode = models.CharField(max_length=100, blank=True, default='', db_index=True)
-    lens_color_name = models.CharField(max_length=100, blank=True, default='')
-    lens_color_code = models.CharField(max_length=7, blank=True, default='#000000')
-    sg_palette_image = models.ImageField(upload_to='catalog/palettes/sg/', blank=True, null=True)
-    weight = models.CharField(max_length=50, blank=True, default='')
-    lens_material = models.CharField(max_length=100, blank=True, default='')
-    uv_protection = models.CharField(max_length=100, blank=True, default='')
-    polarized = models.CharField(max_length=50, blank=True, default='')
-    country_of_origin = models.CharField(max_length=100, blank=True, default='')
 
-    # Accessory Details (cloths / cases / cleaning solutions — Figma Node 548:61308)
-    accessory_type = models.CharField(max_length=100, blank=True, default='')
-    compatibility = models.CharField(max_length=100, blank=True, default='')
-    features = models.CharField(max_length=255, blank=True, default='', help_text='Comma-separated feature tags.')
-    warranty_period = models.CharField(max_length=50, blank=True, default='', help_text='Warranty duration for cases, e.g. "1 Year".')
-    
+    product = models.ForeignKey(FrameProduct, on_delete=models.CASCADE, related_name='variants')
+    variant_name = models.CharField(max_length=100, default="", blank=True)
+    sku = models.CharField(max_length=100, unique=True)
+    barcode = models.CharField(max_length=100, blank=True, default='', db_index=True)
+
+    # Color
+    color = models.CharField(max_length=100, blank=True, default='', db_index=True)
+    frame_color = models.CharField(max_length=100, blank=True, default='')
+    lens_color = models.CharField(max_length=10, blank=True, default='')  # sunglasses lens tint
+    color_selection_method = models.CharField(max_length=10, choices=COLOR_METHOD_CHOICES, default='code')
+    color_code = models.CharField(max_length=10, blank=True, default='#000000')
+    palette_image = models.ImageField(upload_to='catalog/palettes/', blank=True, null=True)
+    lens_color_name = models.CharField(max_length=100, blank=True, default='')
+    lens_color_code = models.CharField(max_length=10, blank=True, default='#000000')
+    lens_palette_image = models.ImageField(upload_to='catalog/palettes/sg/', blank=True, null=True)
+
+    # Technical specs (authoritative per colorway; product carries the shared defaults)
+    frame_material = models.CharField(max_length=100, blank=True, default='')
+    lens_material = models.CharField(max_length=100, blank=True, default='')
+    frame_shape = models.CharField(max_length=100, blank=True, default='')
+    frame_type = models.CharField(max_length=100, blank=True, default='')
+    frame_size = models.CharField(max_length=50, blank=True, default='')
+    weight = models.CharField(max_length=50, blank=True, default='')          # free text, e.g. "28g"
+    frame_weight = models.CharField(max_length=50, blank=True, default='')    # bucket, e.g. "Standard"
+    gender = models.CharField(max_length=20, choices=FrameProduct.GENDER_CHOICES, default='Unisex')
+    uv_protection = models.CharField(max_length=100, blank=True, default='')
+    polarized = models.BooleanField(default=False)
+    country_of_origin = models.CharField(max_length=100, blank=True, default='')
+    frame_only_mode = models.BooleanField(default=False)
+
+    # Stock
+    stock = models.IntegerField(default=0)
+    stock_by_size = models.JSONField(default=dict, blank=True)
+
     # Per-variant pricing
     base_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True)
     selling_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True)
     cost_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True)
-
-    # sizes 
-    quantity = models.IntegerField(default = 0)
-    bridge_length = models.IntegerField(default=0)
-    temple_length = models.IntegerField(default=0)
-    lens_width = models.IntegerField(default=0)
-
-    # Marketing and Tax
-    stock = models.IntegerField(default=0)
-    stock_by_size = models.JSONField(default=dict, blank=True)
-    price_adjustment = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     tax_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
     discount_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
     is_bogo = models.BooleanField(default=False)
     discount_start_date = models.DateField(null=True, blank=True)
     discount_end_date = models.DateField(null=True, blank=True)
 
+    # SEO
+    meta_title = models.CharField(max_length=255, blank=True)
+    meta_description = models.TextField(blank=True)
+    use_meta_template = models.BooleanField(default=True)
+
+    # Storefront visibility — auto-cleared when stock hits 0; manually re-enabled by admin
+    is_listed = models.BooleanField(default=True)
+    last_restocked = models.DateTimeField(null=True, blank=True)
+    last_sold = models.DateTimeField(null=True, blank=True)
+
+
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['product', 'is_listed', 'stock'], name='fvar_prod_listed_stock_idx'),
+            models.Index(fields=['sku'], name='fvar_sku_idx'),
+            models.Index(fields=['is_listed', 'stock'], name='fvar_listed_stock_idx'),
+            models.Index(fields=['product', '-id'], name='fvar_product_id_idx'),
+        ]
+
+    def save(self, *args, **kwargs):
+        from django.utils import timezone #type: ignore
+        if self.pk:
+            try:
+                orig = FrameVariant.objects.get(pk=self.pk)
+                if self.stock > orig.stock:
+                    self.last_restocked = timezone.now()
+                elif self.stock < orig.stock:
+                    self.last_sold = timezone.now()
+            except FrameVariant.DoesNotExist:
+                pass
+        elif self.stock > 0:
+            self.last_restocked = timezone.now()
+        super().save(*args, **kwargs)
+
+    def __str__(self): return f"{self.product.title} [{self.sku}]"
+
+
+class VariantImage(models.Model):
+    variant = models.ForeignKey(FrameVariant, on_delete=models.CASCADE, related_name='images')
+    image = models.ImageField(upload_to='catalog/products/')
+    order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['order']
+
+class AccessoriesProduct(models.Model):
+    ACCESSORIES_TYPE_CHOICES = [
+            ('cloths', 'cloths'),
+            ('cases', 'cases'),
+            ('cleaning_solutions', 'cleaning_solutions'),
+        ]
+    accessory_product_type = models.CharField(max_length=20, choices=ACCESSORIES_TYPE_CHOICES, default = "None")
+    accessory_name = models.CharField(max_length=20, blank=True, default="")
+    accessory_brand = models.ForeignKey(BrandLogo, on_delete=models.CASCADE, related_name='accessory_brands', null=True, blank=True)
+    accessory_tax_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
+    accessory_material = models.CharField(max_length=20, default="", blank=True)
+    accessory_notes = models.TextField(blank=True)
+    features = models.CharField(max_length=255, blank=True, default='', help_text='Comma-separated feature tags.')
+    warranty_period = models.CharField(max_length=50, blank=True, default='', help_text='Warranty duration for cases, e.g. "1 Year".')
+    AccessoryCaseType = models.CharField(max_length=20, blank=True, default="")
+    AccessorySolution_ml = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True)
+    # LXBXH format for cases
+    Accessory_case_dimensions=models.CharField(max_length=20, blank=True, default="")
+    # LXBXH format for cloths
+    Accessory_cloth_dimensions=models.CharField(max_length=20, blank=True, default="")
+
+class AccessoriesVariants(models.Model):
+    product = models.ForeignKey(AccessoriesProduct, on_delete=models.CASCADE, related_name='variants', null=True, blank=True)
+    AccessoryesVariantName = models.CharField(max_length=20, blank=True, default="")
+    AccessoryesSKU = models.CharField(max_length=20, blank=True, default="")
+    AccessoryesColorName = models.CharField(max_length=20, blank=True, default="")
+    COLOR_METHOD_CHOICES = [('code', 'Color Code'), ('palette', 'Palette Image')]
+    AccessoryColorCode = models.CharField(max_length=20, blank=True, default=" ")
+    AccessoryPalette = models.ImageField(upload_to="",blank=True, null=True)
+    stock = models.IntegerField(default=0)
+    selling_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True)
+    cost_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True)
     # Storefront visibility — auto-cleared when stock hits 0; manually re-enabled by admin
     is_listed = models.BooleanField(default=True)
 
@@ -176,75 +223,49 @@ class Variant(models.Model):
     last_restocked = models.DateTimeField(null=True, blank=True)
     last_sold = models.DateTimeField(null=True, blank=True)
 
-    # SEO Fields (per-variant)
-    meta_title = models.CharField(max_length=255, blank=True)
-    meta_description = models.TextField(blank=True)
-
-    # VTO Assets
-    vto_image_front = models.ImageField(upload_to='vto_assets/', blank=True, null=True)
-    vto_video = models.FileField(upload_to='vto_assets/', blank=True, null=True)
-
-    is_warranty_eligible = models.BooleanField(default=False)
     # Whether this variant can be returned. Return window (days) is set globally in
     # Store Settings (SiteSettings.return_window_days).
     is_return_eligible = models.BooleanField(default=True)
 
     class Meta:
         indexes = [
-            # THE critical index: powers the Exists() availability subquery on every
-            # product list page — product_id, is_listed, stock must all be in one index.
-            models.Index(fields=['product', 'is_listed', 'stock'], name='var_prod_listed_stock_idx'),
-            # SKU lookup (admin, order creation, search)
-            models.Index(fields=['sku'], name='variant_sku_idx'),
             # Listed variants only (storefront listing)
-            models.Index(fields=['is_listed', 'stock'], name='variant_listed_stock_idx'),
-            # Bestsellers / sales sort (90-day annotation join)
-            models.Index(fields=['product', '-id'], name='variant_product_id_idx'),
+            models.Index(fields=['is_listed'], name='acc_variant_listed_idx'),
         ]
 
     def save(self, *args, **kwargs):
-        from django.utils import timezone
+        from django.utils import timezone #type: ignore
         if self.pk:
             try:
-                orig = Variant.objects.get(pk=self.pk)
-                if self.stock > orig.stock:
+                orig = AccessoriesVariants.objects.get(pk=self.pk)
+                if self.is_listed and not orig.is_listed:
                     self.last_restocked = timezone.now()
                     if kwargs.get('update_fields') is not None:
                         fields = list(kwargs['update_fields'])
                         if 'last_restocked' not in fields:
                             fields.append('last_restocked')
                         kwargs['update_fields'] = fields
-                elif self.stock < orig.stock:
+                elif not self.is_listed and orig.is_listed:
                     self.last_sold = timezone.now()
                     if kwargs.get('update_fields') is not None:
                         fields = list(kwargs['update_fields'])
                         if 'last_sold' not in fields:
                             fields.append('last_sold')
                         kwargs['update_fields'] = fields
-            except Variant.DoesNotExist:
+            except AccessoriesVariants.DoesNotExist:
                 pass
-        else:
-            if self.stock > 0:
-                self.last_restocked = timezone.now()
         super().save(*args, **kwargs)
 
-    def __str__(self): return f"{self.product.title} [{self.sku}]"
+    def __str__(self): return f"Accessory Variant #{self.pk}"
 
-class VariantImage(models.Model):
-    variant = models.ForeignKey(Variant, on_delete=models.CASCADE, related_name='images')
-    image = models.ImageField(upload_to='catalog/products/')
-    order = models.PositiveIntegerField(default=0)
-    created_at = models.DateTimeField(auto_now_add=True)
-    
-    class Meta:
-        ordering = ['order']
+
 
 class Collection(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
     image = models.ImageField(upload_to='collections/', blank=True, null=True)
     is_active = models.BooleanField(default=True)
-    products = models.ManyToManyField(Product, related_name='collections')
+    products = models.ManyToManyField(FrameProduct, related_name='collections')
     def __str__(self): return self.name
 
 # --- Consolidated Eyewear/Lenses Features ---
@@ -296,6 +317,13 @@ class Lens(models.Model):
     dkt = models.CharField(max_length=20, blank=True, null=True)
     colors = models.JSONField(default=list, blank=True)
     lenses_per_box = models.IntegerField(null=True, blank=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['type', 'is_active'], name='lens_type_active_idx'),
+            models.Index(fields=['is_for_sunglasses', 'is_active'], name='lens_sunglass_active_idx'),
+            models.Index(fields=['is_for_eyeglasses', 'is_active'], name='lens_eyeglass_active_idx'),
+        ]
 
     def __str__(self): return f"{self.package.name}: {self.type.label if self.type else 'Generic'}"
 
@@ -381,7 +409,7 @@ class UserFace(models.Model):
 
 class Review(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews')
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='reviews')
+    product = models.ForeignKey(FrameProduct, on_delete=models.CASCADE, related_name='reviews')
     order = models.ForeignKey('sales.Order', on_delete=models.SET_NULL, null=True, blank=True, related_name='reviews')
     rating = models.IntegerField(default=5)
     review_title = models.CharField(max_length=255, blank=True)

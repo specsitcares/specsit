@@ -13,6 +13,9 @@ class OrderAdmin(admin.ModelAdmin):
     list_filter = ('order_status', 'created_at')
     search_fields = ('id', 'user__username')
     inlines = [OrderItemInline]
+    list_select_related = ('user',)
+    list_per_page = 25
+    show_full_result_count = False
 
 @admin.register(Coupon)
 class CouponAdmin(admin.ModelAdmin):
@@ -60,14 +63,20 @@ class CouponAdmin(admin.ModelAdmin):
 class ShipmentAdmin(admin.ModelAdmin):
     list_display = ('tracking_id', 'carrier', 'status', 'created_at')
     list_filter = ('status', 'carrier')
+    list_select_related = ('status',)
+    list_per_page = 25
 
 @admin.register(Cart)
 class CartAdmin(admin.ModelAdmin):
     list_display = ('user', 'variant', 'quantity', 'added_at')
+    list_select_related = ('user', 'variant')
+    list_per_page = 25
 
 @admin.register(Wishlist)
 class WishlistAdmin(admin.ModelAdmin):
     list_display = ('user', 'variant', 'added_at')
+    list_select_related = ('user', 'variant')
+    list_per_page = 25
 
 @admin.register(PaymentGatewayConfig)
 class PaymentGatewayConfigAdmin(admin.ModelAdmin):
@@ -78,12 +87,16 @@ class PaymentGatewayConfigAdmin(admin.ModelAdmin):
 class OrderTrackingAdmin(admin.ModelAdmin):
     list_display = ('order', 'tracking_number', 'courier_company', 'current_status', 'estimated_delivery_date')
     search_fields = ('tracking_number', 'order__id')
+    list_select_related = ('order',)
+    list_per_page = 25
 
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
     list_display = ('id', 'order', 'payment_method', 'amount_paid', 'payment_status', 'payment_date')
     list_filter = ('payment_status', 'payment_method')
     search_fields = ('transaction_id', 'order__id')
+    list_select_related = ('order',)
+    list_per_page = 25
 
 @admin.register(PincodeDeliveryRate)
 class PincodeDeliveryRateAdmin(admin.ModelAdmin):

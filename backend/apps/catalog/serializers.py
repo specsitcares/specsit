@@ -1,6 +1,6 @@
 from rest_framework import serializers # type: ignore
 from decimal import Decimal
-from .models import Category, BrandLogo, Product, Variant, VariantImage, Collection, LensPackage, Lens, ContactLens, Prescription, UserFace, Review, LensConstraint, MetadataItem
+from .models import Category, BrandLogo, FrameProduct, FrameVariant, VariantImage, Collection, LensPackage, Lens, ContactLens, Prescription, UserFace, Review, LensConstraint, MetadataItem
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -23,9 +23,11 @@ class VariantSerializer(serializers.ModelSerializer):
     product_name = serializers.ReadOnlyField(source='product.title')
     category_name = serializers.ReadOnlyField(source='product.category.name')
     brand_name   = serializers.SerializerMethodField()
+    brand_logo   = serializers.SerializerMethodField()
     stock = serializers.IntegerField(required=False, default=0)
     effective_stock = serializers.SerializerMethodField()
     is_bestseller = serializers.ReadOnlyField(source='product.is_bestseller')
+    low_stock_threshold = serializers.ReadOnlyField(source='product.low_stock_threshold')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -36,14 +38,21 @@ class VariantSerializer(serializers.ModelSerializer):
 
     def get_brand_name(self, obj):
         prod = getattr(obj, 'product', None)
-        if prod is None:
+        if prod is None or not getattr(prod, 'brand', None):
             return ''
-        if getattr(prod, 'brand', None):
-            return prod.brand.name
-        return getattr(prod, 'brand_name', '') or ''
+        return prod.brand.name
+
+    def get_brand_logo(self, obj):
+        prod = getattr(obj, 'product', None)
+        if prod is None or not getattr(prod, 'brand', None) or not prod.brand.logo:
+            return None
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri(prod.brand.logo.url)
+        return prod.brand.logo.url
 
     def get_effective_stock(self, obj):
-        # Prefer variant-level stock; fallback to product-level stock_quantity
+        # Prefer variant-level stock; fallback to product-level aggregate stock
         try:
             if obj.stock and obj.stock > 0:
                 return obj.stock
@@ -53,6 +62,22 @@ class VariantSerializer(serializers.ModelSerializer):
             return obj.product.stock_quantity or 0
         except Exception:
             return 0
+
+    def validate_sku(self, value):
+        if not value:
+            raise serializers.ValidationError('SKU is required.')
+        qs = FrameVariant.objects.filter(sku=value)
+        if self.instance:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError('A variant with this SKU already exists.')
+        return value
+
+    def validate_discount_percent(self, value):
+        if value is not None and (value < 0 or value > 100):
+            raise serializers.ValidationError('Discount percentage must be between 0 and 100.')
+        return value
+
     def validate_stock_by_size(self, value):
         if not isinstance(value, dict):
             raise serializers.ValidationError("stock_by_size must be a dictionary")
@@ -72,7 +97,43 @@ class VariantSerializer(serializers.ModelSerializer):
                     f"Size '{size_name}' quantity must be a non-negative number"
                 )
         return value
-    
+
+    @staticmethod
+    def _sum_stock_by_size(value):
+        total = 0
+        if isinstance(value, dict):
+            for entry in value.values():
+                if isinstance(entry, dict):
+                    total += int(entry.get('quantity') or 0)
+        return total
+
+    def create(self, validated_data):
+        # A brand-new variant has no order history yet, so stock is simply whatever
+        # the size breakdown adds up to.
+        if 'stock_by_size' in validated_data:
+            validated_data['stock'] = self._sum_stock_by_size(validated_data.get('stock_by_size'))
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        # Apply a stock_by_size edit as a DELTA on top of the variant's current
+        # live `stock`, instead of overwriting `stock` with the new total outright.
+        # The admin form always resends the full stock_by_size on every save, so a
+        # blind overwrite would silently resurrect units an order already sold
+        # between page-load and save. This also guarantees stock and stock_by_size
+        # can never drift apart via this path.
+        if 'stock_by_size' in validated_data:
+            from django.db import transaction
+            with transaction.atomic():
+                # Row-lock before reading `stock` so a concurrent order placement/
+                # cancellation (or another admin's save) can't race this read-modify-
+                # write and have one side's change silently overwrite the other's.
+                locked = FrameVariant.objects.select_for_update().get(pk=instance.pk)
+                old_total = self._sum_stock_by_size(locked.stock_by_size)
+                new_total = self._sum_stock_by_size(validated_data.get('stock_by_size'))
+                validated_data['stock'] = max(0, locked.stock + (new_total - old_total))
+                return super().update(instance, validated_data)
+        return super().update(instance, validated_data)
+
     def to_representation(self, instance):
         data = super().to_representation(instance)
         # On read, return effective stock (variant stock or product fallback)
@@ -80,7 +141,7 @@ class VariantSerializer(serializers.ModelSerializer):
         return data
 
     class Meta:
-        model = Variant
+        model = FrameVariant
         fields = '__all__'
 
 class ProductSerializer(serializers.ModelSerializer):
@@ -93,10 +154,23 @@ class ProductSerializer(serializers.ModelSerializer):
     computed_final_price = serializers.SerializerMethodField()
     average_rating = serializers.SerializerMethodField()
     review_count = serializers.SerializerMethodField()
+    # Aggregated from variants — not stored on the model, always derived.
+    stock_quantity = serializers.SerializerMethodField()
+    selling_price = serializers.SerializerMethodField()
+    final_price = serializers.SerializerMethodField()
     # Units actually sold in the trailing 90-day window. Populated only when the
     # queryset is annotated with `units_sold_90d` (storefront listing / home bundle);
     # defaults to 0 elsewhere. Used to justify bestseller status with real sales data.
     units_sold = serializers.SerializerMethodField()
+
+    def get_stock_quantity(self, obj):
+        return obj.stock_quantity
+
+    def get_selling_price(self, obj):
+        return float(obj.selling_price or 0)
+
+    def get_final_price(self, obj):
+        return float(obj.final_price or 0)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -131,31 +205,25 @@ class ProductSerializer(serializers.ModelSerializer):
         return float(obj.selling_price or 0)
 
     def get_brand_logo(self, obj):
-        """Return the brand logo URL from the catalog brand or CMS fallback.
-
-        Prefer the brand name saved on the product (from the admin form) so the
-        homepage card can resolve the CMS logo even when the Brand FK is not the
-        matching CMS brand entry.
-        """
+        """Return the brand logo URL from the catalog brand or CMS fallback."""
         request = self.context.get('request')
         logo_file = None
 
         if obj.brand and obj.brand.logo:
             logo_file = obj.brand.logo
 
-        if not logo_file:
-            brand_name = (getattr(obj, 'brand_name', '') or '').strip()
-            if not brand_name and obj.brand:
-                brand_name = (obj.brand.name or '').strip()
-
-            if brand_name:
-                from apps.cms.models import BrandLogo
-                cms_logo = BrandLogo.objects.filter(
-                    name__iexact=brand_name,
-                    is_published=True,
-                ).order_by('order', 'id').first()
-                if cms_logo and cms_logo.logo:
-                    logo_file = cms_logo.logo
+        if not logo_file and obj.brand and obj.brand.name:
+            from apps.cms.models import BrandLogo
+            # Must filter for an actual logo file here, not just take the first
+            # name match and check afterward — when multiple BrandLogo rows share
+            # a name (duplicate/legacy entries), .first() could just as easily
+            # return one with no logo, silently hiding a real logo that exists.
+            cms_logo = BrandLogo.objects.filter(
+                name__iexact=obj.brand.name.strip(),
+                is_published=True,
+            ).exclude(logo='').exclude(logo__isnull=True).order_by('order', 'id').first()
+            if cms_logo and cms_logo.logo:
+                logo_file = cms_logo.logo
 
         if not logo_file:
             return None
@@ -166,7 +234,14 @@ class ProductSerializer(serializers.ModelSerializer):
 
     def get_main_image(self, obj):
         request = self.context.get('request')
-        img = getattr(obj, 'product_image', None)
+        # There's no dedicated product-level image — use the first image of the
+        # first (listed) variant.
+        img = None
+        first_variant = obj.variants.all().order_by('id').first()
+        if first_variant:
+            first_image = first_variant.images.all().order_by('order').first()
+            if first_image:
+                img = first_image.image
         try:
             if not img:
                 return None
@@ -180,32 +255,14 @@ class ProductSerializer(serializers.ModelSerializer):
             return None
 
     class Meta:
-        model = Product
+        model = FrameProduct
         fields = '__all__'
-
-    def validate(self, data):
-        discount_percentage = data.get('discount_percentage', getattr(self.instance, 'discount_percentage', 0))
-        if discount_percentage is not None:
-            dp = Decimal(str(discount_percentage))
-            if dp < 0 or dp > 100:
-                raise serializers.ValidationError({'discount_percentage': 'Discount percentage must be between 0 and 100.'})
-        return data
-
-    def validate_sku(self, value):
-        if not value:
-            return value
-        qs = Product.objects.filter(sku=value)
-        if self.instance:
-            qs = qs.exclude(pk=self.instance.pk)
-        if qs.exists():
-            raise serializers.ValidationError('A product with this SKU already exists.')
-        return value
 
     def create(self, validated_data):
         variants_data = validated_data.pop('variants', [])
-        product = Product.objects.create(**validated_data)
+        product = FrameProduct.objects.create(**validated_data)
         for variant_data in variants_data:
-            Variant.objects.create(product=product, **variant_data)
+            FrameVariant.objects.create(product=product, **variant_data)
         return product
 
     def update(self, instance, validated_data):
@@ -224,7 +281,7 @@ class ProductSerializer(serializers.ModelSerializer):
                         setattr(variant, attr, value)
                     variant.save()
                 else:
-                    Variant.objects.create(product=instance, **v_data)
+                    FrameVariant.objects.create(product=instance, **v_data)
         return instance
 
 class CollectionSerializer(serializers.ModelSerializer):

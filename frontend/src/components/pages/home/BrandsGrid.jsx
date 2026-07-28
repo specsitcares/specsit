@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useHomeData } from '../../../context/HomeDataContext';
 
 const BrandsGrid = ({ brands = null }) => {
@@ -12,18 +12,25 @@ const BrandsGrid = ({ brands = null }) => {
   if (data.length === 0) return null;
   const loop = [...data, ...data];
 
+  // The DB can reference a logo file that isn't actually present in storage
+  // (stale record, or a local dev environment missing the media file) — a
+  // non-empty URL doesn't guarantee the image will load, so fall back to the
+  // brand name on a real load failure rather than showing a broken-image icon.
+  const [failedLogos, setFailedLogos] = useState(() => new Set());
+
   return (
     <section className="brands-grid hp-reveal" id="brands-grid">
       <div className="brands-grid__marquee">
         <div className="brands-grid__track">
           {loop.map((brand, idx) => (
-            brand.logo ? (
+            brand.logo && !failedLogos.has(idx) ? (
               <img
                 key={idx}
                 src={brand.logo}
                 alt={brand.name}
                 className="brands-grid__brand-logo"
                 style={{ height: 64, maxWidth: 200, objectFit: 'contain', padding: '0 32px', flexShrink: 0 }}
+                onError={() => setFailedLogos(prev => new Set(prev).add(idx))}
               />
             ) : (
               <span

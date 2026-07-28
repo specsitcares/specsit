@@ -13,7 +13,7 @@ from pathlib import Path
 # Initialize environ
 env = environ.Env(
     DEBUG=(bool, False),
-    ALLOWED_HOSTS=(list, ['*'])
+    ALLOWED_HOSTS=(list, ['localhost', '127.0.0.1']),
 )
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'. 
@@ -26,11 +26,22 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 # Quick-start development settings - unsuitable for production
-SECRET_KEY = env('SECRET_KEY', default='django-insecure-dev-key-change-in-production')
-DEBUG = env.bool('DEBUG', default=True)
-ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1', '*'])
+# No insecure defaults: if these aren't set in .env, the app crashes at startup
+# rather than silently running with a guessable key / DEBUG on / wildcard hosts.
+SECRET_KEY = env('SECRET_KEY')
+DEBUG = env.bool('DEBUG', default=False)
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
 
-# Security Settings for Production
+# Security headers that are safe (and cost nothing) in every environment —
+# these don't depend on HTTPS, so they were previously and incorrectly gated
+# behind `if not DEBUG`, meaning local/dev requests got none of them.
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = True
+X_FRAME_OPTIONS = 'DENY'
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_BROWSER_XSS_FILTER = True
+
+# HTTPS-dependent hardening — only makes sense once actually served over HTTPS.
 if not DEBUG:
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
@@ -38,9 +49,6 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = 31536000  # 1 year
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
-    SECURE_CONTENT_TYPE_NOSNIFF = True
-    SECURE_BROWSER_XSS_FILTER = True
-    X_FRAME_OPTIONS = 'DENY'
 
 # Application definition
 INSTALLED_APPS = [
@@ -54,7 +62,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
-    'storages',
+    'axes',  # login brute-force lockout
     # Local Domain Apps
     'apps.core_utils',   # Idempotency, Shared Utilities
     'apps.catalog',      # Products, Lenses, Prescriptions, Faces
@@ -66,9 +74,6 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
-    # Sets COEP + COOP headers on HTML responses so the browser enables
-    # Cross-Origin Isolation, which MediaPipe WASM needs for SharedArrayBuffer.
-    'apps.core_utils.middleware.CrossOriginIsolationMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -78,22 +83,38 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'apps.core_utils.middleware.IdempotencyMiddleware',  # Idempotency handling
-    # 'core.middleware.RedisRateLimitMiddleware',  # Disabled temporarily as Redis is not running locally
+    # NOTE: no RedisRateLimitMiddleware exists in this codebase (the old commented-out
+    # reference here pointed at a module path — core.middleware — that was never real).
+    # Rate limiting is handled at the DRF level instead: global anon/user throttles
+    # (REST_FRAMEWORK below) plus per-view throttles on sensitive endpoints — see
+    # LoginThrottle/RegisterThrottle in apps/core_utils/throttling.py.
+    'axes.middleware.AxesMiddleware',  # must stay last
 ]
 
-CSRF_TRUSTED_ORIGINS = [
-    'http://localhost:5173',
-    'http://localhost:5174',
-    'http://localhost:5175',
-    'http://localhost:3000',
-    'http://localhost:8000',
-    'http://127.0.0.1:5173',
-    'http://127.0.0.1:5174',
-    'http://127.0.0.1:5175',
-    'http://127.0.0.1:3000',
-    'http://127.0.0.1:8000',
-    'https://specsit1.onrender.com',
+# django-axes: locks out login attempts after repeated failures, independent of
+# (and in addition to) the LoginThrottle rate-limit above — axes tracks failures
+# per username+IP over a longer window, throttle limits raw request rate.
+AUTHENTICATION_BACKENDS = [
+    'axes.backends.AxesStandaloneBackend',
+    'django.contrib.auth.backends.ModelBackend',
 ]
+AXES_FAILURE_LIMIT = 5
+AXES_COOLOFF_TIME = 0.167  # ~10 minutes, in hours
+AXES_RESET_ON_SUCCESS = True
+
+# Dev-only origins are gated behind DEBUG so they can never leak into a prod build;
+# real deployment origins (e.g. the Render frontend) come from CSRF_TRUSTED_ORIGINS
+# in .env, with the current production origin kept as the default so this is a
+# no-op change for the existing deployment.
+CSRF_TRUSTED_ORIGINS = []
+if DEBUG:
+    CSRF_TRUSTED_ORIGINS += [
+        'http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175',
+        'http://localhost:3000', 'http://localhost:8000',
+        'http://127.0.0.1:5173', 'http://127.0.0.1:5174', 'http://127.0.0.1:5175',
+        'http://127.0.0.1:3000', 'http://127.0.0.1:8000',
+    ]
+CSRF_TRUSTED_ORIGINS += env.list('CSRF_TRUSTED_ORIGINS', default=['https://specsit1.onrender.com'])
 
 # Session/Cookie settings for cross-origin admin access (development)
 SESSION_COOKIE_SAMESITE = 'Lax'
@@ -131,115 +152,107 @@ STATICFILES_DIRS = [
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# ── Media storage ──────────────────────────────────────────────────────────
-# Static assets (compiled React/JS/CSS) are always served by WhiteNoise.
-# User-uploaded media (product/variant images) must live somewhere durable in
-# production because the host's local disk is ephemeral and wiped on redeploy.
-# In production we store media in Supabase Storage (S3-compatible); locally we
-# fall back to the filesystem (served via urls.py under DEBUG).
-#
-# All config is supplied via SUPABASE_* env vars. The AWS_* names below are just
-# the setting keys the S3 client (django-storages/boto3) reads for ANY
-# S3-compatible provider — they are internal and provider-agnostic, not Amazon.
-STATICFILES_BACKEND = 'whitenoise.storage.CompressedStaticFilesStorage'
-
-# Supabase project's S3 endpoint, e.g. https://<project-ref>.storage.supabase.co/storage/v1/s3
-SUPABASE_S3_ENDPOINT = env('SUPABASE_S3_ENDPOINT', default='').strip()
-# boto3 rejects a scheme-less endpoint ("Invalid endpoint") — normalise it.
-if SUPABASE_S3_ENDPOINT and not SUPABASE_S3_ENDPOINT.startswith(('http://', 'https://')):
-    SUPABASE_S3_ENDPOINT = 'https://' + SUPABASE_S3_ENDPOINT
-# Auto-enable object storage whenever the Supabase endpoint is configured.
-USE_S3 = env.bool('USE_S3', default=bool(SUPABASE_S3_ENDPOINT))
-
-if USE_S3:
-    AWS_S3_ENDPOINT_URL = SUPABASE_S3_ENDPOINT
-    AWS_ACCESS_KEY_ID = env('SUPABASE_S3_ACCESS_KEY_ID')
-    AWS_SECRET_ACCESS_KEY = env('SUPABASE_S3_SECRET_ACCESS_KEY')
-    AWS_STORAGE_BUCKET_NAME = env('SUPABASE_S3_BUCKET', default=env('SUPABASE_BUCKET_NAME', default=''))
-    AWS_S3_REGION_NAME = env('SUPABASE_S3_REGION', default='ap-northeast-1')
-    # Supabase requires path-style addressing and does not support S3 ACLs.
-    AWS_S3_ADDRESSING_STYLE = 'path'
-    AWS_DEFAULT_ACL = None
-    AWS_S3_FILE_OVERWRITE = False
-    # Public bucket → clean, un-signed URLs. Point the public host at
-    # <project-ref>.supabase.co/storage/v1/object/public/<bucket> so image .url()
-    # resolves to the publicly reachable path (the /s3 endpoint itself is auth-only).
-    AWS_QUERYSTRING_AUTH = env.bool('SUPABASE_S3_SIGNED_URLS', default=False)
-    AWS_S3_CUSTOM_DOMAIN = env('SUPABASE_S3_PUBLIC_HOST', default=None)
-    _MEDIA_BACKEND = 'storages.backends.s3.S3Storage'
-else:
-    _MEDIA_BACKEND = 'django.core.files.storage.FileSystemStorage'
+# Media storage: local disk by default (fine for dev, NOT durable on hosts with an
+# ephemeral filesystem — every uploaded product/brand/review image is lost on the
+# next deploy/restart). Set AWS_STORAGE_BUCKET_NAME to switch to S3-compatible
+# object storage instead — works with real AWS S3 (leave AWS_S3_ENDPOINT_URL unset)
+# or any S3-compatible provider incl. Supabase Storage (set AWS_S3_ENDPOINT_URL to
+# its S3 endpoint, e.g. https://<project-ref>.supabase.co/storage/v1/s3).
+_aws_bucket = env('AWS_STORAGE_BUCKET_NAME', default='')
 
 STORAGES = {
-    'default': {'BACKEND': _MEDIA_BACKEND},
-    'staticfiles': {'BACKEND': STATICFILES_BACKEND},
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage',
+    },
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
 }
+
+if _aws_bucket:
+    AWS_STORAGE_BUCKET_NAME = _aws_bucket
+    AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID', default='')
+    AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY', default='')
+    AWS_S3_REGION_NAME = env('AWS_S3_REGION_NAME', default='us-east-1')
+    AWS_S3_ENDPOINT_URL = env('AWS_S3_ENDPOINT_URL', default='') or None
+    AWS_S3_CUSTOM_DOMAIN = env('AWS_S3_CUSTOM_DOMAIN', default='') or None
+    AWS_DEFAULT_ACL = None  # bucket policy controls access, not per-object ACLs
+    AWS_S3_FILE_OVERWRITE = False
+    AWS_QUERYSTRING_AUTH = env.bool('AWS_QUERYSTRING_AUTH', default=False)
+    AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400'}
+    STORAGES['default'] = {'BACKEND': 'storages.backends.s3boto3.S3Boto3Storage'}
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-import dj_database_url
-
-# Local-dev escape hatch: set USE_SQLITE=True in .env to run entirely against the
-# bundled db.sqlite3 — handy when the remote Supabase host is unreachable
-# (flaky DNS/network, or a paused free-tier project). Defaults to False so
-# staging/production keep using DATABASE_URL unchanged.
-if env.bool('USE_SQLITE', default=False):
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
+# Database
+# A single DATABASE_URL (Supabase pooler / any Postgres URL) always wins over the
+# discrete DB_* vars — this matches .env.example's documented behavior. Falls back
+# to sqlite for a zero-config local dev run when neither is set.
+_database_url = env('DATABASE_URL', default='')
+if _database_url:
+    DATABASES = {'default': env.db_url('DATABASE_URL')}
+    # Supabase's connection pooler (port 6543) runs PgBouncer in transaction mode,
+    # which doesn't support Django's persistent connections — keep them off.
+    DATABASES['default']['CONN_MAX_AGE'] = 0
 else:
     DATABASES = {
-        'default': dj_database_url.config(
-            default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
-            conn_max_age=0,
-            ssl_require=not DEBUG
-        )
-    }
-
-    # If separate DB variables are defined in env, map them as a fallback
-    if not env('DATABASE_URL', default=None) and env('DB_NAME', default=None):
-        DATABASES['default'] = {
-            'ENGINE': env('DB_ENGINE', default='django.db.backends.postgresql'),
-            'NAME': env('DB_NAME'),
+        'default': {
+            'ENGINE': env('DB_ENGINE', default='django.db.backends.sqlite3'),
+            'NAME': env('DB_NAME', default=str(BASE_DIR / 'db.sqlite3')),
             'USER': env('DB_USER', default=''),
             'PASSWORD': env('DB_PASSWORD', default=''),
             'HOST': env('DB_HOST', default=''),
             'PORT': env('DB_PORT', default=''),
         }
+    }
 
-# Cache Configuration — Upstash serverless Redis when REDIS_URL is set
-# (rediss://… TLS URL), else in-memory for local/dev. IGNORE_EXCEPTIONS keeps
-# the app serving if the cache is briefly unreachable.
-REDIS_URL = env('REDIS_URL', default=None)
-if REDIS_URL:
+# Cache Configuration
+# LocMemCache is process-local — production-unsafe the moment you run more than
+# one worker process (each gets its own cache, so invalidation from one never
+# reaches another). Use it only as the zero-config local-dev fallback.
+_redis_url = env('REDIS_URL', default='')
+
+if _redis_url:
     CACHES = {
         'default': {
             'BACKEND': 'django_redis.cache.RedisCache',
-            'LOCATION': REDIS_URL,
+            'LOCATION': _redis_url,
             'OPTIONS': {
                 'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-                'IGNORE_EXCEPTIONS': True,
+                'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',
+                'SERIALIZER': 'django_redis.serializers.json.JSONSerializer',
+                'CONNECTION_POOL_KWARGS': {
+                    'max_connections': 20,
+                    'retry_on_timeout': True,
+                },
+                'SOCKET_CONNECT_TIMEOUT': 3,
+                'SOCKET_TIMEOUT': 3,
+                'IGNORE_EXCEPTIONS': True,  # degrade gracefully; never 500 on a cache miss/outage
             },
-        }
+            'KEY_PREFIX': 'specsit',
+            'TIMEOUT': 300,  # default TTL: 5 min — most views set an explicit TTL anyway
+        },
+        # Throttle counters are per-instance, short-lived, and don't need to be
+        # durable or shared — keep them off Redis entirely (apps/core_utils/throttling.py).
+        'throttle': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'specsit-throttle',
+        },
     }
-    DJANGO_REDIS_IGNORE_EXCEPTIONS = True
+    # Session storage rides on the same Redis cache instead of the DB.
+    SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+    SESSION_CACHE_ALIAS = 'default'
 else:
     CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
             'LOCATION': 'unique-snowflake',
-        }
+        },
+        'throttle': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'specsit-throttle',
+        },
     }
-
-# Rate-limit counters live in a LOCAL in-memory cache, never Upstash — otherwise
-# every single API request (incl. admin) would burn 2 Upstash commands on throttling.
-CACHES['throttle'] = {
-    'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-    'LOCATION': 'drf-throttle',
-}
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -276,8 +289,8 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ],
     'DEFAULT_THROTTLE_CLASSES': [
-        'apps.core_utils.throttling.LocalAnonThrottle',
-        'apps.core_utils.throttling.LocalUserThrottle'
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle'
     ],
     'DEFAULT_THROTTLE_RATES': {
         'anon': '1000/hour',

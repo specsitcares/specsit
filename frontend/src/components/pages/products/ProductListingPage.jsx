@@ -282,8 +282,8 @@ const ProductListingPage = () => {
         // Frame Shape → shape (multi-value, backend supports iexact per value)
         (selectedFilters['Frame Shape'] || []).forEach(s => params.append('shape', s));
 
-        // Frame Style → frame_style (multi-value)
-        (selectedFilters['Frame Style'] || []).forEach(s => params.append('frame_style', s));
+        // Frame Type (Full Rim / Half Rim / Rimless) → frame_type (multi-value)
+        (selectedFilters['Frame Type'] || []).forEach(s => params.append('frame_type', s));
 
         // Material → frame_material (multi-value)
         (selectedFilters['Material'] || []).forEach(m => params.append('frame_material', m));

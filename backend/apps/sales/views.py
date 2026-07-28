@@ -1,3 +1,4 @@
+import logging
 import uuid
 from rest_framework import viewsets, permissions, status, views, filters, parsers
 from rest_framework.response import Response
@@ -8,7 +9,7 @@ from django.db import transaction
 import time
 from datetime import timedelta, datetime
 from .models import Order, OrderItem, Cart, Wishlist, Coupon, Shipment, LiveSession, SiteVisit, OrderTracking, Payment, ReturnRequest, WarrantyClaim
-from apps.catalog.models import Prescription, Variant
+from apps.catalog.models import Prescription, FrameVariant
 from apps.core_utils.idempotency import idempotent_endpoint
 from .serializers import (
     OrderSerializer, OrderItemSerializer, CartSerializer,
@@ -21,6 +22,8 @@ from .serializers import (
 import csv
 from django.http import HttpResponse
 from rest_framework.decorators import action
+
+logger = logging.getLogger(__name__)
 
 class OrderViewSet(viewsets.ModelViewSet):
     serializer_class = OrderSerializer
@@ -255,12 +258,12 @@ class OrderViewSet(viewsets.ModelViewSet):
                         item_summary
                     ])
                 except Exception as e:
-                    print(f"Row export error for Order {getattr(o, 'id', 'Unknown')}: {e}")
+                    logger.warning("Row export error for Order %s: %s", getattr(o, 'id', 'Unknown'), e)
                     continue
-                
+
             return response
         except Exception as e:
-            print(f"Fatal Export Error: {e}")
+            logger.error("Fatal export error: %s", e)
             return HttpResponse(f"Error: {str(e)}", status=500)
 
     @action(detail=False, methods=['get'], url_path='shipment_view')
@@ -506,7 +509,7 @@ class OrderViewSet(viewsets.ModelViewSet):
         from django.db import transaction
         from rest_framework.exceptions import ValidationError
         from apps.catalog.core.models import MetadataItem
-        from apps.catalog.models import Variant, Lens
+        from apps.catalog.models import FrameVariant as Variant, Lens
 
         items_data = self.request.data.get('items', [])
 
@@ -686,11 +689,26 @@ class OrderViewSet(viewsets.ModelViewSet):
                     # before save to prevent the always-false guard that was here previously)
                     from django.db import transaction
                     with transaction.atomic():
-                        for item in instance.items.select_related('variant__product').all():
-                            if item.variant:
-                                item.variant.stock += item.quantity
-                                item.variant.save(update_fields=['stock'])
-                                product = item.variant.product
+                        # Row-lock the variants (and their products) being restocked so this
+                        # can't race with a concurrent admin stock edit or another order's
+                        # placement/cancellation on the same variant (lost-update prevention —
+                        # matches the select_for_update() order placement already uses).
+                        variant_ids = [item.variant_id for item in instance.items.all() if item.variant_id]
+                        locked_variants = {
+                            v.id: v for v in Variant.objects.select_for_update()
+                                .filter(id__in=variant_ids).select_related('product')
+                        }
+                        locked_products = {}
+                        for v in locked_variants.values():
+                            if v.product_id not in locked_products:
+                                locked_products[v.product_id] = Product.objects.select_for_update().get(pk=v.product_id)
+
+                        for item in instance.items.all():
+                            variant = locked_variants.get(item.variant_id)
+                            if variant:
+                                variant.stock += item.quantity
+                                variant.save(update_fields=['stock'])
+                                product = locked_products[variant.product_id]
                                 product.stock_quantity += item.quantity
                                 product.save(update_fields=['stock_quantity'])
 
@@ -872,7 +890,7 @@ class OrderViewSet(viewsets.ModelViewSet):
         # Enforce same-or-higher price and snapshot the choice + price difference.
         replacement_fields = {}
         if request_type == 'replacement' and request.data.get('replacement_variant_id'):
-            from apps.catalog.models import Variant
+            from apps.catalog.models import FrameVariant as Variant
             rv = Variant.objects.filter(id=request.data.get('replacement_variant_id')).first()
             if not rv:
                 return Response({'detail': 'Selected replacement product was not found.'},
@@ -1201,7 +1219,7 @@ class CouponViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'], url_path='validate',
             permission_classes=[permissions.AllowAny])
     def validate_coupon(self, request):
-        from apps.catalog.models import Variant
+        from apps.catalog.models import FrameVariant as Variant
         code = request.data.get('code', '').strip().upper()
         cart_value = float(request.data.get('cartValue', 0) or 0)
         # items is a list of {variant_id, quantity, price} sent by the frontend
@@ -1326,7 +1344,7 @@ class CouponViewSet(viewsets.ModelViewSet):
     def available(self, request):
         """Return every active coupon with an `eligible` flag computed against the
         current cart (min cart value, brand/category restrictions, expiry)."""
-        from apps.catalog.models import Variant
+        from apps.catalog.models import FrameVariant as Variant
         cart_value = float(request.data.get('cartValue', 0) or 0)
         items = request.data.get('items', [])
 

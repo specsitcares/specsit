@@ -50,12 +50,16 @@ const ActionBtn = ({ onClick, danger, children }) => (
 
 const DeleteModal = ({ target, onCancel, onConfirm }) => {
   if (!target) return null;
+  // This modal is only ever used for variant-row deletes (a "product" row in this
+  // table is really one variant) — target has no .title, only product_name/color/sku.
+  const name = target.product_name || target.title || 'this item';
+  const color = target.color || target.frame_color || target.lens_color;
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
       <div style={{ background: '#fff', borderRadius: 12, padding: 28, width: 360, textAlign: 'center', boxShadow: '0 20px 40px rgba(0,0,0,0.15)' }}>
-        <h3 style={{ margin: '0 0 8px', color: '#111827', fontSize: 16, fontWeight: 700 }}>Delete Product?</h3>
+        <h3 style={{ margin: '0 0 8px', color: '#111827', fontSize: 16, fontWeight: 700 }}>Delete Variant?</h3>
         <p style={{ color: '#6b7280', fontSize: 14, margin: '0 0 20px' }}>
-          Delete <strong>{target.title}</strong>? This cannot be undone.
+          Delete <strong>{name}</strong>{color ? <> — <strong>{color}</strong></> : null}{target.sku ? ` (SKU: ${target.sku})` : ''}? This cannot be undone.
         </p>
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
           <button onClick={onCancel} style={{ padding: '8px 20px', borderRadius: 8, border: '1px solid #D0D5DD', cursor: 'pointer', background: '#fff', fontWeight: 600, color: '#344054' }}>Cancel</button>
@@ -91,11 +95,27 @@ const VariantRow = ({ v, onEdit, onDelete, productType }) => {
           </div>
         </div>
       </td>
-      <td style={{ padding: '14px 24px', color: '#667085', fontSize: 13 }}>{v.brand_name || '—'}</td>
+      <td style={{ padding: '14px 24px', color: '#667085', fontSize: 13 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {v.brand_logo ? (
+            <img
+              src={v.brand_logo}
+              alt={v.brand_name || 'Brand'}
+              style={{ width: 22, height: 22, objectFit: 'contain', flexShrink: 0 }}
+              onError={(e) => { e.target.style.display = 'none'; }}
+            />
+          ) : null}
+          <span>{v.brand_name || '—'}</span>
+        </div>
+      </td>
       <td style={{ padding: '14px 24px', color: '#667085', fontSize: 13 }}>{v.category_name || '—'}</td>
       <td style={{ padding: '14px 24px', fontSize: 13 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          {v.color_code && <span style={{ width: 12, height: 12, borderRadius: '50%', background: v.color_code, border: '1px solid #D0D5DD', flexShrink: 0 }} />}
+          {v.color_selection_method === 'palette' && v.palette_image ? (
+            <span style={{ width: 12, height: 12, borderRadius: '50%', backgroundImage: `url(${v.palette_image})`, backgroundSize: 'cover', backgroundPosition: 'center', border: '1px solid #D0D5DD', flexShrink: 0 }} />
+          ) : v.color_code ? (
+            <span style={{ width: 12, height: 12, borderRadius: '50%', background: v.color_code, border: '1px solid #D0D5DD', flexShrink: 0 }} />
+          ) : null}
           <span style={{ color: '#344054' }}>{color}</span>
         </div>
       </td>
@@ -105,7 +125,7 @@ const VariantRow = ({ v, onEdit, onDelete, productType }) => {
           <td style={{ padding: '14px 24px', color: '#667085', fontSize: 13 }}>{v.frame_material || '—'}</td>
         </>
       )}
-      <td style={{ padding: '14px 24px', fontSize: 13 }}><StockBadge qty={v.stock ?? 0} threshold={5} /></td>
+      <td style={{ padding: '14px 24px', fontSize: 13 }}><StockBadge qty={v.stock ?? 0} threshold={v.low_stock_threshold ?? 10} /></td>
       <td style={{ padding: '14px 24px', color: '#344054', fontWeight: 600, fontSize: 13 }}>{price !== '—' ? formatPrice(price) : '—'}</td>
       <td style={{ padding: '14px 24px', color: '#667085', fontSize: 13 }}>{discount}%</td>
       {productType !== 'accessory' && (
@@ -153,6 +173,20 @@ const useVariantsTab = ({ productType, category }) => {
   const confirmDelete = async () => {
     if (!deleteTarget) return;
     try {
+      // Block deleting a product's last remaining variant from the list view —
+      // mirrors the guard already in the product form's own "Remove Variant"
+      // button, which never lets a product drop to zero variants.
+      if (deleteTarget.product) {
+        try {
+          const prodRes = await apiClient.get(`/catalog/products/${deleteTarget.product}/`, { cache: false });
+          const variantCount = (prodRes.data?.variants || []).length;
+          if (variantCount <= 1) {
+            alert('This is the only variant left on this product. Delete the whole product instead, or add another variant first.');
+            setDeleteTarget(null);
+            return;
+          }
+        } catch { /* if the check itself fails, fall through to the delete attempt below */ }
+      }
       await apiClient.delete(`/catalog/variants/${deleteTarget.id}/`);
       setDeleteTarget(null);
       fetch(); // Re-fetch to sync counts and data
@@ -318,11 +352,7 @@ const ProductsPage = ({ onAddNew, onEdit }) => {
         <CategoryTab
           title={activeCategory || 'Category'}
           categoryName={activeCategory}
-          onAdd={() => {
-            const cat = (activeCategory || '').toLowerCase();
-            const type = cat.includes('sunglass') ? 'sunglasses' : cat.includes('eyeglass') ? 'eyeglasses' : 'frame';
-            onAddNew(type);
-          }}
+          onAdd={() => onAddNew('frame')}
           onEdit={onEdit}
         />
       )}

@@ -37,6 +37,9 @@ const CategoryTable = () => {
   const [perPage, setPerPage] = useState(10);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
+  /* tracks which group's categories should populate the "Parent Category" dropdown
+     inside the create/edit modal — starts at the active tab, follows the Group select */
+  const [parentGroupFilter, setParentGroupFilter] = useState('frame');
 
   /* run the fetchCategories function when the page is loaded */
 
@@ -65,9 +68,9 @@ const CategoryTable = () => {
     { label: 'Delete Selected', variant: 'danger', icon: Trash2, onClick: bulkDelete },
   ];
   /* a form which pops up when the admin wants to create a new cateogory */
-  const handleCreateClick = () => { setFormMode('create'); setSelectedCategory({ group: activeTab, is_active: true }); setShowForm(true); };
+  const handleCreateClick = () => { setFormMode('create'); setParentGroupFilter(activeTab); setSelectedCategory({ group: activeTab, is_active: true }); setShowForm(true); };
   /*  a form which pops up when the admin wants to edit an existing cateogory */
-  const handleEditClick = (c) => { setFormMode('edit'); setSelectedCategory(c); setShowForm(true); };
+  const handleEditClick = (c) => { setFormMode('edit'); setParentGroupFilter(c.group || 'frame'); setSelectedCategory(c); setShowForm(true); };
   /* a pop up when the admin wants to delete a particular cateogory */
   const handleDeleteClick = (c) => { setFormMode('edit'); setSelectedCategory(c); setShowForm(true); };
 
@@ -100,11 +103,39 @@ const CategoryTable = () => {
 
   /*  */
 
-  const filtered = categories
+  const groupCategories = categories
     .filter(c => (c.group || 'frame').toString().toLowerCase() === activeTab)
     .filter(c => [c.name, c.slug, c.description].some(v => (v || '').toLowerCase().includes(searchQuery.toLowerCase())));
 
+  /* Build the display order so every subcategory sits directly under its parent —
+     this is the "centralized" view: one list, full hierarchy, nothing hidden. */
+  const buildHierarchy = (cats) => {
+    const topLevel = cats.filter(c => !c.parent).sort((a, b) => a.name.localeCompare(b.name));
+    const ordered = [];
+    topLevel.forEach(parent => {
+      ordered.push(parent);
+      cats
+        .filter(c => c.parent === parent.id)
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .forEach(child => ordered.push({ ...child, __isChild: true }));
+    });
+    // Orphans: subcategories whose parent got filtered out (e.g. by search) — still show them.
+    const seenIds = new Set(ordered.map(c => c.id));
+    cats.filter(c => c.parent && !seenIds.has(c.id)).forEach(c => ordered.push(c));
+    return ordered;
+  };
+
+  const filtered = buildHierarchy(groupCategories);
+
   const paginated = filtered.slice((page - 1) * perPage, page * perPage);
+
+  /* Options for the "Parent Category" select in the modal — top-level categories
+     in the same group only (keeps the hierarchy two levels deep, matching the rest
+     of the app's category-tree assumptions), excluding the category being edited. */
+  const parentOptions = categories
+    .filter(c => (c.group || 'frame') === parentGroupFilter && !c.parent && c.id !== selectedCategory?.id)
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map(c => ({ value: c.id, label: c.name }));
 
   /* entities in the admin's side cateogory table */
 
@@ -127,10 +158,11 @@ const CategoryTable = () => {
       {/* START */}
       <td style={{ padding: '16px 24px' }}>
         {/* start of the container */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingLeft: c.__isChild ? 24 : 0 }}>
+          {c.__isChild && <span style={{ color: '#D0D5DD', fontSize: 13 }}>↳</span>}
           {/* name of the cateogory */}
           <div>
-            <div style={{ fontWeight: 600, color: '#101828', fontSize: '11px' }}>{c.name}</div>
+            <div style={{ fontWeight: c.__isChild ? 500 : 600, color: '#101828', fontSize: '11px' }}>{c.name}</div>
           </div>
         </div>
         {/* end of container */}
@@ -245,7 +277,11 @@ const CategoryTable = () => {
         onDelete={handleFormDelete} mode={formMode} title="Category"
         fields={[
           { name: 'name', label: 'Category Name', type: 'text' },
-          { name: 'group', label: 'Group', type: 'select', options: CAT_TYPE_OPTIONS },
+          { name: 'group', label: 'Group', type: 'select', options: CAT_TYPE_OPTIONS, onChange: setParentGroupFilter },
+          {
+            name: 'parent', label: 'Parent Category', type: 'select', options: parentOptions,
+            helpText: 'Leave blank to create a top-level category.',
+          },
           { name: 'is_active', label: 'Active', type: 'checkbox', defaultValue: true },
         ]}
         initialData={selectedCategory || {}} />

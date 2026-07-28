@@ -57,6 +57,11 @@ class Address(models.Model):
     gstin = models.CharField(max_length=15, blank=True)  # Optional GST number for business invoices
     is_default = models.BooleanField(default=False)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['user', 'is_default'], name='addr_user_default_idx'),
+        ]
+
     def __str__(self): return f"{self.title}: {self.full_name_contact}"
 
 """ employee's POV :) """

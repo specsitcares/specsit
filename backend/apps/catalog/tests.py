@@ -7,7 +7,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from apps.catalog.models import BrandLogo, Category, Product, LensConstraint
+from apps.catalog.models import BrandLogo, Category, FrameProduct as Product, LensConstraint
 from apps.catalog.serializers import ProductSerializer
 from apps.catalog.views import _frame_constraint_name
 
@@ -20,7 +20,6 @@ class ProductSerializerTests(TestCase):
             title='Test Product',
             category=category,
             brand=brand,
-            product_image=None,
         )
 
         serializer = ProductSerializer(product)
@@ -28,15 +27,13 @@ class ProductSerializerTests(TestCase):
         self.assertIn('main_image', serializer.data)
         self.assertIsNone(serializer.data['main_image'])
 
-    def test_serializer_prefers_saved_brand_name_for_cms_logo(self):
+    def test_serializer_resolves_cms_logo_from_brand_name(self):
         category = Category.objects.create(name='Logo Category')
-        wrong_brand = BrandLogo.objects.create(name='Wrong Brand')
+        brand = BrandLogo.objects.create(name='Real Brand')
         product = Product.objects.create(
             title='Logo Product',
             category=category,
-            brand=wrong_brand,
-            brand_name='Real Brand',
-            product_image=None,
+            brand=brand,
         )
         logo_file = SimpleUploadedFile('logo.png', b'fake-image', content_type='image/png')
         cms_logo = BrandLogo.objects.create(name='Real Brand', logo=logo_file, is_published=True)

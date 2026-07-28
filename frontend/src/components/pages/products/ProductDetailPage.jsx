@@ -198,6 +198,10 @@ const ProductDetailPage = () => {
         .map(v => ({
             name: variantColorLabel(v),
             code: v.color_code || '#555555',
+            // Palette Image is the alternate, mutually-exclusive representation of a
+            // swatch (set via the admin's Solid Color / Palette Image toggle) — when
+            // it's the active method, show the actual texture instead of a flat dot.
+            paletteImage: v.color_selection_method === 'palette' ? (v.palette_image || null) : null,
             id: v.id,
             images: (v.images || []).map(img => img.image || img).filter(Boolean),
         }))
@@ -460,7 +464,9 @@ const ProductDetailPage = () => {
                                         key={v.id}
                                         type="button"
                                         className={`pd-swatch ${selectedColor === v.name ? 'active' : ''}`}
-                                        style={{ backgroundColor: v.code }}
+                                        style={v.paletteImage
+                                            ? { backgroundImage: `url(${v.paletteImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+                                            : { backgroundColor: v.code }}
                                         onClick={() => { setSelectedColor(v.name); setActiveImage(0); }}
                                         title={v.name}
                                         aria-label={v.name}

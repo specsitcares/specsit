@@ -303,7 +303,7 @@ const BrandLogosManager = () => {
                                 </div>
                             </div>
                             <div style={{ height: 110, background: '#F2F4F7', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-                                {b.logo ? <img src={b.logo} alt={b.name} style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} /> : <span style={{ fontSize: 18, fontWeight: 700, color: '#101828' }}>{b.name}</span>}
+                                {b.logo ? <img src={b.logo} alt={b.name} style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} onError={(e) => { e.target.style.display = 'none'; }} /> : <span style={{ fontSize: 18, fontWeight: 700, color: '#101828' }}>{b.name}</span>}
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px' }}>
                                 <span style={{ fontSize: 13, fontWeight: 600, color: '#101828', textTransform: 'uppercase' }}>{b.name}</span>

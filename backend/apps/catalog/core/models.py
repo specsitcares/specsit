@@ -38,6 +38,12 @@ class MetadataItem(models.Model):
         'self', on_delete=models.CASCADE,
         null=True, blank=True, related_name='children'
     )
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['group', 'is_active'], name='meta_group_active_idx'),
+        ]
+
     def __str__(self): return f"{self.group.name}: {self.label}"
 
 class AnalyticsLog(models.Model):
@@ -48,6 +54,11 @@ class AnalyticsLog(models.Model):
     location = models.CharField(max_length=100, blank=True)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['-timestamp'], name='analytics_ts_idx'),
+        ]
 
 class SystemConfig(models.Model):
     key = models.CharField(max_length=100, unique=True)

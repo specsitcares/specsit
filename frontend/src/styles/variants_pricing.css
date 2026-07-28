@@ -1026,7 +1026,7 @@
 
 .vp-size-fields-row {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
   gap: 12px;
   padding: 12px;
   background: white;
@@ -1061,6 +1061,20 @@
 .vp-row-3 {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+}
+
+/* ──── 2-column rows (Barcode / Lens Color — no palette image field) ──── */
+.vp-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* ──── 5-column rows (eyeglasses technical specs — no sunglasses fields) ──── */
+.vp-row-5 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
   gap: 16px;
 }
 

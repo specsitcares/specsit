@@ -261,7 +261,7 @@ def compute_analytics(period='last_30'):
         {'label': 'Order Placed',     'count': funnel_placed, 'pct': min(100, round(funnel_placed / funnel_max * 100))},
     ]
 
-    from apps.catalog.models import Product as CatalogProduct
+    from apps.catalog.models import FrameProduct as CatalogProduct
     all_products_list = list(
         CatalogProduct.objects.filter(is_active=True)
         .values('title')
@@ -528,7 +528,7 @@ def compute_dashboard_stats():
     Executed in a background thread or on cache miss.
     """
     from apps.sales.models import Order, Shipment
-    from apps.catalog.models import Prescription, Variant
+    from apps.catalog.models import Prescription, FrameVariant as Variant
     from django.db.models import Q, F, Sum, Count
     from django.utils import timezone
     from datetime import timedelta
