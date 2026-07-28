@@ -11,6 +11,7 @@ import UserFaceTable from './UserFaceTable';
 import ProductsPage from './ProductsPage';
 import LensForm from './LensForm';
 import ProductDetailsForm from './ProductDetailsForm';
+import AccessoryForm from './AccessoryForm';
 import InventoryTable from './InventoryTable';
 import ShipmentTable from './ShipmentTable';
 import ReviewTable from './ReviewTable';
@@ -168,6 +169,13 @@ const AdminDashboard = () => {
               <Route path="products"                  element={<ProductsRoute />} />
               <Route path="products/new/lens"         element={<LensFormRoute />} />
               <Route path="products/new/frame"        element={<FrameFormRoute />} />
+              {/* Accessories (Cases/Cloths/Solutions/etc.) — same missing-route bug as
+                  CMS: ProductsPage's "Add"/edit buttons navigated here via
+                  onAddNew('accessory?category=...')/onEdit('accessory', id), but no
+                  route ever matched, so every accessory Add/Edit click fell through
+                  to the catch-all "*" route and landed on the dashboard home. */}
+              <Route path="products/new/accessory"       element={<AccessoryForm />} />
+              <Route path="products/edit/accessory/:id"  element={<AccessoryForm />} />
               <Route path="products/edit/lens/:id"    element={<LensFormRoute />} />
               <Route path="products/edit/frame/:id"   element={<FrameFormRoute />} />
               <Route path="products/categories"       element={<CategoryTable />} />

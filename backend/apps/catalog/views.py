@@ -523,7 +523,7 @@ class ProductViewSet(CachedReadMixin, viewsets.ModelViewSet):
             queryset = queryset.filter(brand__name__istartswith=brand_name)
 
         # Price and stock are per-variant, so aggregate them onto the product row.
-        from django.db.models import Sum, Min, F
+        from django.db.models import Sum, Min, F, Avg
         queryset = queryset.annotate(
             total_stock=Sum('variants__stock'),
             min_selling_price=Min('variants__selling_price'),
@@ -573,9 +573,12 @@ class ProductViewSet(CachedReadMixin, viewsets.ModelViewSet):
         if frame_type_filter:
             queryset = queryset.filter(frame_type__in=frame_type_filter)
 
+        # frame_material is set per-variant by the admin form (the product-level copy
+        # of this field is never populated), so filtering on the product's own
+        # frame_material always matched zero rows. Filter through the variant instead.
         frame_material = params.getlist('frame_material')
         if frame_material:
-            queryset = queryset.filter(frame_material__in=frame_material)
+            queryset = queryset.filter(variants__frame_material__in=frame_material).distinct()
 
         # Existing filters
         category = params.get('category')
@@ -598,11 +601,64 @@ class ProductViewSet(CachedReadMixin, viewsets.ModelViewSet):
         if genders:
             queryset = queryset.filter(gender__in=genders)
 
+        # Frame Color — matches against each variant's own color/frame_color (free-text
+        # fields the admin types in), substring match since color names are rarely
+        # typed as the exact swatch label (e.g. "Classic Black" vs "Black"). This used
+        # to be a client-side-only filter checking a `frame_color` field that doesn't
+        # exist on the product at all, so it silently matched nothing.
+        color_filters = params.getlist('color')
+        if color_filters:
+            color_q = Q()
+            for c in color_filters:
+                color_q |= Q(variants__color__icontains=c) | Q(variants__frame_color__icontains=c)
+            queryset = queryset.filter(color_q).distinct()
+
+        # Size — matches variants that actually have a stock_by_size entry for one of
+        # the requested sizes (Small/Medium/Large — the only sizes used anywhere else
+        # in the app). This replaces a filter that used to check a `frame_width` field
+        # that was removed from the schema entirely.
+        size_filters = params.getlist('size')
+        if size_filters:
+            queryset = queryset.filter(variants__stock_by_size__has_any_keys=size_filters).distinct()
+
+        # Lens Type — sunglasses lens attributes, all variant-level.
+        lens_type_filters = params.getlist('lens_type')
+        if lens_type_filters:
+            lens_q = Q()
+            for lt in lens_type_filters:
+                norm = lt.strip().lower()
+                if norm == 'polarized':
+                    lens_q |= Q(variants__polarized=True)
+                elif norm == 'non-polarized':
+                    lens_q |= Q(variants__polarized=False)
+                elif norm == 'uv protection':
+                    lens_q |= ~Q(variants__uv_protection='')
+            if lens_q:
+                queryset = queryset.filter(lens_q).distinct()
+
         # Discount minimum filter — any variant discounted at least this much
         discount_min = params.get('discount_min')
         if discount_min:
             try:
                 queryset = queryset.filter(variants__discount_percent__gte=float(discount_min)).distinct()
+            except (ValueError, TypeError):
+                pass
+
+        # Minimum average rating (approved reviews only, matching ProductSerializer's
+        # own average_rating calculation). Computed as an isolated subquery rather than
+        # an annotation on the main queryset — the main queryset already annotates
+        # Sum/Min over `variants`, and adding an Avg over the unrelated `reviews`
+        # relation in the same query would fan-out the join and corrupt both aggregates.
+        rating_min = params.get('rating_min')
+        if rating_min:
+            try:
+                rating_min_f = float(rating_min)
+                qualifying_ids = list(
+                    Product.objects.annotate(
+                        avg_rating=Avg('reviews__rating', filter=Q(reviews__is_approved=True))
+                    ).filter(avg_rating__gte=rating_min_f).values_list('id', flat=True)
+                )
+                queryset = queryset.filter(id__in=qualifying_ids)
             except (ValueError, TypeError):
                 pass
 
