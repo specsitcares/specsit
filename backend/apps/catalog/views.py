@@ -809,10 +809,22 @@ class VariantImageViewSet(viewsets.ModelViewSet):
     serializer_class = VariantImageSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
+class VariantPagination(PageNumberPagination):
+    # The admin Inventory table asks for page_size=1000 to load "everything" into
+    # one client-side-searchable/sortable table — the default PageNumberPagination
+    # silently ignores that (same bug as ProductViewSet had) and caps every request
+    # at PAGE_SIZE=20, so the table only ever had the 20 newest variants to search
+    # through. Any variant outside that window looked like "search doesn't work".
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 2000
+
+
 class VariantViewSet(viewsets.ModelViewSet):
     queryset = FrameVariant.objects.select_related('product', 'product__category', 'product__brand').all().order_by('-id')
     serializer_class = VariantSerializer
     permission_classes = [IsStaffOrReadOnly]
+    pagination_class = VariantPagination
 
     def destroy(self, request, *args, **kwargs):
         from apps.sales.models import OrderItem
