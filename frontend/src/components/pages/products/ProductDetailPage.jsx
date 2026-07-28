@@ -156,10 +156,22 @@ const ProductDetailPage = () => {
     // product page always showed the static index.html title with no description tag
     // at all. Restores the prior title/description on cleanup so navigating to
     // another page (or away from this product) doesn't leave a stale product title.
+    //
+    // meta_title/meta_description are authored once per PRODUCT (colorways share the
+    // same /product/:id page), but since every colorway now also browses as its own
+    // "card" in the listing (linking here via ?variant=), the specific variant name
+    // is prepended at render time so each colorway's page still gets a distinct,
+    // identifiable title/description instead of an identical one for every color.
+    // Depends on selectedColor too, so switching swatches on this page live-updates it.
     useEffect(() => {
         if (!product) return;
         const defaultTitle = document.title;
-        document.title = product.meta_title || `${product.title} | SPECSIT`;
+        const activeVariant = (product.variants || []).find(v => variantColorLabel(v) === selectedColor)
+            || product.variants?.[0] || null;
+        const variantLabel = activeVariant ? (activeVariant.variant_name || variantColorLabel(activeVariant)) : '';
+
+        const baseTitle = product.meta_title || `${product.title} | SPECSIT`;
+        document.title = variantLabel ? `${variantLabel} - ${baseTitle}` : baseTitle;
 
         let descMeta = document.querySelector('meta[name="description"]');
         if (!descMeta) {
@@ -168,14 +180,15 @@ const ProductDetailPage = () => {
             document.head.appendChild(descMeta);
         }
         const prevDescription = descMeta.getAttribute('content');
-        descMeta.setAttribute('content', product.meta_description || product.description || '');
+        const baseDescription = product.meta_description || product.description || '';
+        descMeta.setAttribute('content', variantLabel ? `${variantLabel} — ${baseDescription}` : baseDescription);
 
         return () => {
             document.title = defaultTitle;
             if (prevDescription !== null) descMeta.setAttribute('content', prevDescription);
             else descMeta.removeAttribute('content');
         };
-    }, [product]);
+    }, [product, selectedColor]);
 
     const handleApplyCoupon = async () => {
         if (!couponCode.trim()) return;
