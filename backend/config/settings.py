@@ -154,11 +154,13 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 # Media storage: local disk by default (fine for dev, NOT durable on hosts with an
 # ephemeral filesystem — every uploaded product/brand/review image is lost on the
-# next deploy/restart). Set AWS_STORAGE_BUCKET_NAME to switch to S3-compatible
-# object storage instead — works with real AWS S3 (leave AWS_S3_ENDPOINT_URL unset)
-# or any S3-compatible provider incl. Supabase Storage (set AWS_S3_ENDPOINT_URL to
-# its S3 endpoint, e.g. https://<project-ref>.supabase.co/storage/v1/s3).
-_aws_bucket = env('AWS_STORAGE_BUCKET_NAME', default='')
+# next deploy/restart). Set SUPABASE_S3_BUCKET to switch to Supabase Storage's
+# S3-compatible endpoint instead — these are the exact env var names already
+# provisioned in render.yaml / the Render dashboard (secrets entered there as
+# SUPABASE_S3_ACCESS_KEY_ID / SUPABASE_S3_SECRET_ACCESS_KEY). django-storages'
+# S3Boto3Storage itself only understands settings named AWS_* — that's just the
+# library's naming convention, not tied to the actual provider being AWS.
+_supabase_bucket = env('SUPABASE_S3_BUCKET', default='')
 
 STORAGES = {
     'staticfiles': {
@@ -169,13 +171,15 @@ STORAGES = {
     },
 }
 
-if _aws_bucket:
-    AWS_STORAGE_BUCKET_NAME = _aws_bucket
-    AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID', default='')
-    AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY', default='')
-    AWS_S3_REGION_NAME = env('AWS_S3_REGION_NAME', default='us-east-1')
-    AWS_S3_ENDPOINT_URL = env('AWS_S3_ENDPOINT_URL', default='') or None
-    AWS_S3_CUSTOM_DOMAIN = env('AWS_S3_CUSTOM_DOMAIN', default='') or None
+if _supabase_bucket:
+    AWS_STORAGE_BUCKET_NAME = _supabase_bucket
+    AWS_ACCESS_KEY_ID = env('SUPABASE_S3_ACCESS_KEY_ID', default='')
+    AWS_SECRET_ACCESS_KEY = env('SUPABASE_S3_SECRET_ACCESS_KEY', default='')
+    AWS_S3_REGION_NAME = env('SUPABASE_S3_REGION', default='us-east-1')
+    AWS_S3_ENDPOINT_URL = env('SUPABASE_S3_ENDPOINT', default='') or None
+    # Public host used to build the URLs stored/served for each file (Supabase's
+    # public object URL host, not the S3 API endpoint above).
+    AWS_S3_CUSTOM_DOMAIN = env('SUPABASE_S3_PUBLIC_HOST', default='') or None
     AWS_DEFAULT_ACL = None  # bucket policy controls access, not per-object ACLs
     AWS_S3_FILE_OVERWRITE = False
     AWS_QUERYSTRING_AUTH = env.bool('AWS_QUERYSTRING_AUTH', default=False)

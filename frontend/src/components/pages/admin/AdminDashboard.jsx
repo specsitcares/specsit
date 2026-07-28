@@ -22,6 +22,17 @@ import CollectionTable from './CollectionTable';
 import VariantTable from './VariantTable';
 import LensManagement from './LensManagement';
 import CmsManagement from './CmsManagement';
+import HeroBannerEditor from './HeroBannerEditor';
+import BrandLogosManager from './BrandLogosManager';
+import FrameRangeEditor from './FrameRangeEditor';
+import ExploreFrameStylesEditor from './ExploreFrameStylesEditor';
+import PremiumIntentEditor from './PremiumIntentEditor';
+import PromoBannerEditor from './PromoBannerEditor';
+import BlogsManager from './BlogsManager';
+import BlogPostEditor from './BlogPostEditor';
+import BlogPreview from './BlogPreview';
+import FaqManager from './FaqManager';
+import NewsletterEditor from './NewsletterEditor';
 import StoreSettings from './StoreSettings';
 import PaymentSettings from './PaymentSettings';
 import QueryTable from './QueryTable';
@@ -189,6 +200,23 @@ const AdminDashboard = () => {
               <Route path="settings"         element={<StoreSettings />} />
               <Route path="settings/payment" element={<PaymentSettings />} />
               <Route path="settings/cms"     element={<CmsManagement />} />
+              {/* Dedicated CMS section editors — the arrow on each card in CmsManagement
+                  navigates here via EDITOR_ROUTES; these were missing entirely, so every
+                  arrow click fell through to the catch-all "*" route below and silently
+                  landed back on the dashboard home. */}
+              <Route path="settings/cms/hero-banner"           element={<HeroBannerEditor />} />
+              <Route path="settings/cms/brand-logos"           element={<BrandLogosManager />} />
+              <Route path="settings/cms/frame-range"           element={<FrameRangeEditor />} />
+              <Route path="settings/cms/explore-frame-styles"  element={<ExploreFrameStylesEditor />} />
+              <Route path="settings/cms/premium-intent"        element={<PremiumIntentEditor />} />
+              <Route path="settings/cms/promo-banner-1"        element={<PromoBannerEditor sectionKey="promo_banner_1" />} />
+              <Route path="settings/cms/promo-banner-2"        element={<PromoBannerEditor sectionKey="promo_banner_2" breadcrumb="Promotional Banner Management" pageTitle="Secondary Promotional Banner" />} />
+              <Route path="settings/cms/blogs"                 element={<BlogsManager />} />
+              <Route path="settings/cms/blogs/new"             element={<BlogPostEditor />} />
+              <Route path="settings/cms/blogs/:id/edit"        element={<BlogPostEditor />} />
+              <Route path="settings/cms/blogs/:id/preview"     element={<BlogPreview />} />
+              <Route path="settings/cms/faqs"                  element={<FaqManager />} />
+              <Route path="settings/cms/newsletter"            element={<NewsletterEditor />} />
               <Route path="settings/staff"   element={<EmployeeTable />} />
               <Route path="settings/coupons" element={<CouponTable />} />
 
