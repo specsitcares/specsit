@@ -16,7 +16,11 @@ const PRICE_RANGES = {
 };
 
 const FILTER_OPTIONS = {
-    'Frame Shape': ['Square', 'Round', 'Aviator', 'Wayfarer', 'Cat Eye', 'Rectangle'],
+    // Frame Shape is intentionally NOT hardcoded here — it's fetched from the same
+    // CMS-driven list the admin form uses (see the frameShapeOptions effect below),
+    // since the old hardcoded list ('Round', 'Aviator', 'Wayfarer') didn't match any
+    // real shape ever selectable in the admin, so those options always matched zero
+    // products, while real shapes (circle, pentagon, hexagon) weren't offered at all.
     'Frame Type': ['Full Rim', 'Half Rim', 'Rimless'],
     'Frame Color': [
         { name: 'Black', color: '#000000' },
@@ -27,12 +31,16 @@ const FILTER_OPTIONS = {
         { name: 'Purple', color: '#68408D' },
         { name: 'Grey', color: '#71717A' }
     ],
-    'Size / Width': ['Extra Small', 'Small', 'Medium', 'Large', 'Extra Large'],
+    // Matches the only sizes actually used anywhere else in the app (admin Stock
+    // Update rows) — 'Extra Small'/'Extra Large' never existed in real data.
+    'Size / Width': ['Small', 'Medium', 'Large'],
     'Material': ['Acetate', 'Titanium', 'Stainless Steel', 'TR90', 'Wood', 'Metal'],
     'Gender': ['Men', 'Women', 'Unisex', 'Kids'],
     'Price Range': Object.keys(PRICE_RANGES),
     'Discount': ['10% or more', '20% or more', '30% or more', '50% or more'],
-    'Lens Type': ['Polarized', 'Non-Polarized', 'Gradient', 'Mirrored', 'UV Protection'],
+    // 'Gradient'/'Mirrored' removed — there's no field anywhere in the schema that
+    // could back them (only polarized + uv_protection exist on the variant).
+    'Lens Type': ['Polarized', 'Non-Polarized', 'UV Protection'],
     'Rating': [
         { label: '4★ & above', value: 4 },
         { label: '3★ & above', value: 3 },
@@ -157,6 +165,23 @@ const ProductListingPage = () => {
     // Mobile: filter drawer + virtual-try-on modal
     const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
     const [vtoProduct, setVtoProduct] = useState(null);
+
+    // Frame shapes come from the CMS (same source the admin's product form uses) so
+    // the filter options always match what a product's frame_shape can actually be
+    // set to — a hardcoded list here previously offered shapes that were never a
+    // real admin option (and hid real ones that were).
+    const [frameShapeOptions, setFrameShapeOptions] = useState([]);
+    useEffect(() => {
+        apiClient.get('/cms/section-cards/?section=explore_frame_styles')
+            .then(res => {
+                const names = (res.data.results || res.data || [])
+                    .filter(c => c.is_active !== false)
+                    .map(c => c.name)
+                    .filter(Boolean);
+                setFrameShapeOptions(names);
+            })
+            .catch(() => {});
+    }, []);
 
     // Extended filter states
     const [selectedFilters, setSelectedFilters] = useState({});
@@ -294,6 +319,24 @@ const ProductListingPage = () => {
         // Lens Type → lens_type (multi-value)
         (selectedFilters['Lens Type'] || []).forEach(lt => params.append('lens_type', lt));
 
+        // Frame Color → color (multi-value, matched server-side against each
+        // variant's color/frame_color fields — previously filtered client-side
+        // against a `frame_color` field that doesn't exist on the product at all,
+        // so it silently matched zero products whenever used).
+        (selectedFilters['Frame Color'] || []).forEach(c => params.append('color', c));
+
+        // Size / Width → size (multi-value, matched against variants' stock_by_size
+        // keys — previously filtered client-side against a `frame_width` field that
+        // was removed from the schema entirely).
+        (selectedFilters['Size / Width'] || []).forEach(s => params.append('size', s));
+
+        // Rating → rating_min (use the most inclusive / lowest selected threshold,
+        // e.g. selecting both "4★ & above" and "3★ & above" means "3★ & above").
+        const ratingVals = (selectedFilters['Rating'] || []).filter(n => !isNaN(n));
+        if (ratingVals.length > 0) {
+            params.append('rating_min', Math.min(...ratingVals));
+        }
+
         // Availability → stock_status
         const avail = selectedFilters['Availability'] || [];
         if (avail.includes('In Stock') && !avail.includes('Out of Stock')) {
@@ -319,22 +362,6 @@ const ProductListingPage = () => {
                 const count = res.data.count || data.length;
                 setTotalCount(count);
                 setTotalPages(Math.ceil(count / 12));
-
-                // Client-side post-filters (no backend field support)
-                const colorFilters = selectedFilters['Frame Color'] || [];
-                if (colorFilters.length > 0) {
-                    data = data.filter(p =>
-                        colorFilters.some(c => p.frame_color?.toLowerCase().includes(c.toLowerCase()))
-                    );
-                }
-
-                const sizeFilters = selectedFilters['Size / Width'] || [];
-                if (sizeFilters.length > 0) {
-                    data = data.filter(p =>
-                        sizeFilters.some(s => p.frame_width?.toLowerCase().includes(s.toLowerCase()))
-                    );
-                }
-
 
                 // New Arrivals: products created in the last 30 days
                 if (avail.includes('New Arrivals')) {
@@ -515,13 +542,13 @@ const ProductListingPage = () => {
                                 </div>
                                 {expandedGroups['Frame Shape'] && (
                                     <div className="filter-options-grid">
-                                        {FILTER_OPTIONS['Frame Shape'].map(opt => (
+                                        {frameShapeOptions.map(opt => (
                                             <button
                                                 key={opt}
                                                 className={`filter-grid-pill ${selectedFilters['Frame Shape']?.includes(opt) ? 'active' : ''}`}
                                                 onClick={() => toggleFilterOption('Frame Shape', opt)}
                                             >
-                                                {opt}
+                                                {opt.replace(/\b\w/g, m => m.toUpperCase())}
                                             </button>
                                         ))}
                                     </div>
