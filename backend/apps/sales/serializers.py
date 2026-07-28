@@ -64,9 +64,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
     def get_brand_name(self, obj):
         if obj.variant and obj.variant.product:
             p = obj.variant.product
-            if p.brand:
-                return p.brand.name
-            return p.brand_name or None
+            return p.brand.name if p.brand else None
         return None
     prescription = PrescriptionSerializer(read_only=True)
     lens = LensSerializer(read_only=True)
@@ -471,21 +469,53 @@ class OrderSerializer(serializers.ModelSerializer):
             except (ValueError, TypeError):
                 return None
 
+        # Price is ALWAYS derived server-side from the catalog, never trusted from the
+        # request — a client-supplied price_at_purchase/unit_price would let anyone
+        # buy anything for whatever they choose to send.
+        from apps.catalog.models import FrameVariant, Lens, ContactLens
+
+        total_tax = Decimal('0')
         for item_data in items_data:
-            qty = item_data.get('quantity', 1)
-            unit_p = _d(item_data.get('price_at_purchase', 0))
+            qty = max(1, safe_int(item_data.get('quantity')) or 1)
+            variant_id = safe_int(item_data.get('variant') or item_data.get('variant_id'))
+            lens_id = safe_int(item_data.get('lens_id'))
+            contact_lens_id = safe_int(item_data.get('contact_lens'))
+
+            variant = FrameVariant.objects.filter(pk=variant_id).first() if variant_id else None
+            base_unit_price = _d(variant.selling_price or variant.base_price or 0) if variant else Decimal('0')
+
+            if lens_id:
+                lens = Lens.objects.filter(pk=lens_id).first()
+                if lens:
+                    base_unit_price += _d(lens.price)
+            if contact_lens_id:
+                contact_lens = ContactLens.objects.filter(pk=contact_lens_id).first()
+                if contact_lens:
+                    base_unit_price += _d(contact_lens.price)
+
+            # BOGO: every 2nd unit of a bogo-eligible variant is free.
+            paid_qty = qty
+            if variant is not None and getattr(variant, 'is_bogo', False) and qty >= 2:
+                paid_qty = qty - (qty // 2)
+            item_total = (base_unit_price * paid_qty).quantize(Decimal('0.01'))
+
+            # Tax is tracked as its own order-level line (Order.tax_amount below),
+            # computed from the variant's own tax_percent rather than folded into price.
+            tax_percent = _d(getattr(variant, 'tax_percent', 0)) if variant is not None else Decimal('0')
+            total_tax += (item_total * tax_percent / Decimal('100')).quantize(Decimal('0.01'))
+
             OrderItem.objects.create(
                 order=order,
-                variant_id=safe_int(item_data.get('variant') or item_data.get('variant_id')),
-                lens_id=safe_int(item_data.get('lens_id')),
-                contact_lens_id=safe_int(item_data.get('contact_lens')),
+                variant_id=variant_id,
+                lens_id=lens_id,
+                contact_lens_id=contact_lens_id,
                 contact_lens_power=item_data.get('contact_lens_power') or {},
                 prescription_id=safe_int(item_data.get('prescription_id')),
                 patient_name=item_data.get('patient_name'),
                 quantity=qty,
-                unit_price=unit_p,
-                item_total=unit_p * qty,
-                price_at_purchase=unit_p,
+                unit_price=base_unit_price,
+                item_total=item_total,
+                price_at_purchase=base_unit_price,
                 lens_prescription_text=item_data.get('lens_prescription_text'),
                 lens_pd=item_data.get('lens_pd'),
             )
@@ -503,15 +533,20 @@ class OrderSerializer(serializers.ModelSerializer):
                 discount_amount = (applicable_subtotal * Decimal(str(order.coupon.discount_percentage)) / Decimal('100')).quantize(Decimal('0.01'))
             else:
                 discount_amount = (subtotal * Decimal(str(order.coupon.discount_percentage)) / Decimal('100')).quantize(Decimal('0.01'))
+        # Discount can never exceed the subtotal it's discounting — closes the
+        # negative/below-cost total risk from a misconfigured >100% coupon.
+        discount_amount = min(discount_amount, subtotal)
         shipping = order.shipping_cost or Decimal('0')
-        total_amount = subtotal - discount_amount + shipping
+        total_amount = subtotal - discount_amount + total_tax + shipping
         Order.objects.filter(pk=order.pk).update(
             subtotal=subtotal,
             discount_amount=discount_amount,
+            tax_amount=total_tax,
             total_amount=total_amount,
         )
         order.subtotal = subtotal
         order.discount_amount = discount_amount
+        order.tax_amount = total_tax
         order.total_amount = total_amount
         return order
 
@@ -734,7 +769,7 @@ class OrderItemListSerializer(serializers.ModelSerializer):
     def get_brand_name(self, obj):
         if obj.variant and obj.variant.product:
             p = obj.variant.product
-            return p.brand.name if p.brand else p.brand_name
+            return p.brand.name if p.brand else None
         return None
 
     def get_variant_name(self, obj):

@@ -6,16 +6,68 @@ import ReviewSubmit from './ReviewSubmit';
 import '../../../styles/product_form.css';
 
 const STEPS = [
-  { id: 1, label: 'Product Details / Variant & Pricing' },
+  { id: 1, label: 'Product Details' },
   { id: 2, label: 'Review & Submit' },
 ];
 
-const FRAME_WIDTH_OPTIONS = [
-  { value: '', label: 'Select frame width' },
-  { value: 'Small (115mm)', label: 'Small (115mm)' },
-  { value: 'Medium (130mm)', label: 'Medium (130mm)' },
-  { value: 'Large (140mm)', label: 'Large (140mm)' },
+const GENDER_OPTIONS = [
+  { value: 'Men', label: 'Men' },
+  { value: 'Women', label: 'Women' },
+  { value: 'Unisex', label: 'Unisex' },
+  { value: 'Kids', label: 'Kids' },
 ];
+
+// Dropdown with an inline "+ Add more..." option — mirrors the one in
+// VariantsPricingForm so Frame Type / Frame Shape stay consistent everywhere.
+const SelectWithAdd = ({ value, onChange, options, onAddOption, placeholder }) => {
+  const [adding, setAdding] = useState(false);
+  const [draft, setDraft] = useState('');
+
+  const confirm = () => {
+    const t = draft.trim();
+    if (t) { onAddOption(t); onChange(t); }
+    setAdding(false);
+    setDraft('');
+  };
+
+  if (adding) {
+    return (
+      <div style={{ display: 'flex', gap: 6 }}>
+        <input
+          autoFocus
+          type="text"
+          className="form-field-input"
+          style={{ flex: 1 }}
+          value={draft}
+          onChange={e => setDraft(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === 'Enter') { e.preventDefault(); confirm(); }
+            if (e.key === 'Escape') { setAdding(false); setDraft(''); }
+          }}
+          placeholder="Type new option..."
+        />
+        <button type="button" onClick={confirm} className="vp-add-option-confirm-btn">Add</button>
+        <button type="button" onClick={() => { setAdding(false); setDraft(''); }} className="vp-add-option-cancel-btn">
+          <ChevronDown size={14} style={{ transform: 'rotate(45deg)' }} />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="form-field-select-wrapper">
+      <select
+        value={value || ''}
+        onChange={e => e.target.value === '__add__' ? setAdding(true) : onChange(e.target.value)}
+      >
+        <option value="">{placeholder || 'Select...'}</option>
+        {options.map(o => <option key={o} value={o}>{o}</option>)}
+        <option value="__add__">+ Add more...</option>
+      </select>
+      <span className="select-chevron"><ChevronDown size={14} /></span>
+    </div>
+  );
+};
 
 const DEFAULT_VARIANT = () => ({
   id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
@@ -25,9 +77,7 @@ const DEFAULT_VARIANT = () => ({
   colorName: '',
   quantity: 0,
   stock_by_size: {
-    'Small': { bridge_length: '', lens_width: '', temple_length: '', quantity: 0 },
-    'Medium': { bridge_length: '', lens_width: '', temple_length: '', quantity: 0 },
-    'Large': { bridge_length: '', lens_width: '', temple_length: '', quantity: 0 }
+    'Small': { bridge_length: '', lens_width: '', temple_length: '', hinge_width: '', quantity: 0 },
   },
   colorMethod: 'code',
   colorCode: '#000000',
@@ -40,99 +90,98 @@ const DEFAULT_VARIANT = () => ({
   meta_title: '',
   meta_description: '',
   meta_auto: true,
-  frame_width: '',
-  frame_type: '',
-  frame_shape: '',
-  gender: 'Unisex',
-  frame_only_mode: false,
   frame_material: '',
-  frame_size: 'Medium',
-  frame_weight: 'Standard',
+  frame_weight: '',
   is_listed: true,
-  is_warranty_eligible: true,
-  is_return_eligible: true,
-  // sunglasses-specific / extra specs
   barcode: '',
-  frame_dimensions: '',
   lens_color_name: '',
   lens_color_code: '#000000',
-  sg_palette_image: null,
   weight: '',
   lens_material: '',
   uv_protection: '',
-  polarized: '',
+  polarized: false,
   country_of_origin: '',
+  // Per-variant promo fields — kept independent per variant so editing one
+  // variant (or the whole product) can never silently overwrite another
+  // variant's own tax/BOGO/discount-window values.
+  tax_percent: '0',
+  is_bogo: false,
+  discount_start_date: '',
+  discount_end_date: '',
 });
 
-const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglasses' }) => {
+const ProductDetailsForm = ({ onBack, editProduct = null }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
-  const [allBrands, setAllBrands] = useState([]);
-  const [catalogBrands, setCatalogBrands] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [errors, setErrors] = useState({});
   const [confirmed, setConfirmed] = useState(false);
   const [globalTemplates, setGlobalTemplates] = useState(null);
-  const [brandSource, setBrandSource] = useState('cms');
   const variantFormRef = useRef(null);
-
-  const useCmsBrandLogos = productType === 'eyeglasses' || productType === 'sunglasses';
-
-  const getBrandFilterForCategory = (categoryName = '', selectedProductType = productType) => {
-    const name = (categoryName || '').toLowerCase();
-    const selectedType = (selectedProductType || '').toLowerCase();
-
-    const isFrameContext = ['frame', 'frames', 'eyeglass', 'eyeglasses', 'sunglass', 'sunglasses'].some(keyword =>
-      selectedType.includes(keyword) || name.includes(keyword)
-    );
-    const isLensContext = ['lens', 'lenses', 'contact', 'contact lens', 'contact lenses', 'frame lens', 'frame lenses'].some(keyword =>
-      selectedType.includes(keyword) || name.includes(keyword)
-    );
-    const isAccessoryContext = ['accessory', 'accessories', 'case', 'cases', 'cloth', 'cloths', 'solution', 'solutions'].some(keyword =>
-      selectedType.includes(keyword) || name.includes(keyword)
-    );
-
-    if (isFrameContext) return ['Frame'];
-    if (isLensContext) return ['Lens', 'Contact'];
-    if (isAccessoryContext) {
-      if (name.includes('case')) return ['Cases'];
-      if (name.includes('cloth')) return ['Cloths'];
-      if (name.includes('solution')) return ['Solutions'];
-      return ['Cases', 'Cloths', 'Solutions', 'Accessory'];
-    }
-    return null;
-  };
-
-  const filterBrandsForCategory = (brandList = [], categoryName = '', selectedProductType = productType) => {
-    const brandFilters = getBrandFilterForCategory(categoryName, selectedProductType);
-    if (!brandFilters) return brandList;
-    return brandList.filter(b => brandFilters.includes(b.brand_type));
-  };
-
-  const normalizeName = (value) =>
-    (value || '').trim().toLowerCase().replace(/\s+/g, ' ');
 
   // Track DB-side items removed in edit mode so we can DELETE them on submit
   const [deletedVariantIds, setDeletedVariantIds] = useState([]);
   const [deletedImageIds, setDeletedImageIds] = useState([]);
 
+  // Track rows created by a PREVIOUS (partially-failed) submit attempt, so retrying
+  // after an error patches them instead of POSTing duplicates.
+  const [createdProductId, setCreatedProductId] = useState(null);
+  const [createdVariantIdMap, setCreatedVariantIdMap] = useState({}); // tempId -> real DB id
+
   const [formData, setFormData] = useState({
     title: '',
+    title_input: '',
     description: '',
     category: '',
-    brand: '', // brand name
-    brand_id: null, // brand ID for lookup
-    brand_logo: '',
-    short_description: '',
+    brand: '',
+    frame_type: '',
+    frame_shape: '',
+    gender: 'Unisex',
+    frame_only_mode: false,
+    is_warranty_eligible: true,
+    is_return_eligible: true,
+    low_stock_threshold: '10',
     variants: [DEFAULT_VARIANT()],
+    // Tax % is shown once in General Information as a bulk-apply control — changing
+    // it explicitly pushes the new rate to every variant (see handleInputChange).
+    // is_bogo/discount dates have no such shared control: each variant keeps its
+    // own value so this form never silently overwrites another variant's promo data.
     taxPercent: '0',
-    isBogo: false,
-    discountStartDate: '',
-    discountEndDate: '',
   });
+
+  // Frame types come from the Lens Constraints so the frame ↔ lens wiring always matches
+  // (a frame's type filters the customer lens drawer by the same-named constraint).
+  const [frameTypeOptions, setFrameTypeOptions] = useState(['Rimless', 'Half Rim', 'Full Rim']);
+  // Frame shapes are managed entirely in the CMS ("Homepage → Explore Frame Styles").
+  const [frameShapeOptions, setFrameShapeOptions] = useState([]);
+
+  useEffect(() => {
+    apiClient.get('/catalog/lens-constraints/', { cache: false })
+      .then(res => {
+        const names = (res.data.results || res.data || []).map(c => c.name).filter(Boolean);
+        if (names.length) setFrameTypeOptions(names);
+      })
+      .catch(() => { /* keep defaults */ });
+
+    apiClient.get('/cms/section-cards/?section=explore_frame_styles', { cache: false })
+      .then(res => {
+        const names = (res.data.results || res.data || [])
+          .filter(c => c.is_active !== false)
+          .map(c => c.name)
+          .filter(Boolean);
+        if (names.length) setFrameShapeOptions(names);
+      })
+      .catch(() => { /* keep defaults */ });
+  }, []);
+
+  const addFrameTypeOption = async (opt) => {
+    setFrameTypeOptions(prev => prev.includes(opt) ? prev : [...prev, opt]);
+    // Keep Lens Constraints in sync so the new frame type actually filters lenses.
+    try { await apiClient.post('/catalog/lens-constraints/', { name: opt, description: '' }); } catch { /* may already exist */ }
+  };
 
   // BUG 4 FIX — single merged effect; both categories/brands and product data load together
   // so setLoading(false) only fires once everything is ready.
@@ -141,9 +190,8 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
       setLoading(true);
       try {
         const requests = [
-          apiClient.get('/catalog/categories/'),
-          apiClient.get('/catalog/brands/'),
-          apiClient.get('/catalog/brands/'),
+          apiClient.get('/catalog/categories/?group=frame'),
+          apiClient.get('/catalog/brands/?brand_type=Frame'),
           apiClient.get('/cms/site-settings/'),
         ];
         if (editProduct?.id) {
@@ -151,47 +199,15 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
         }
 
         const results = await Promise.allSettled(requests);
-        const [catResult, brandResult, catalogBrandResult, settingsResult, productResult] = results;
-
-        let categoryList = [];
-        let brandList = [];
-        let catalogBrandList = [];
+        const [catResult, brandResult, settingsResult, productResult] = results;
 
         if (catResult.status === 'fulfilled') {
           const d = catResult.value.data;
-          categoryList = Array.isArray(d) ? d : (d.results || []);
-          setCategories(categoryList);
-          // Auto-lock category for eyeglasses/sunglasses forms
-          if (!editProduct?.id) {
-            const term = productType === 'sunglasses' ? 'sunglass' : 'eyeglass';
-            const matched = categoryList.find(c => c.name.toLowerCase().includes(term));
-            if (matched) {
-              setFormData(prev => ({
-                ...prev,
-                category: String(matched.id),
-                taxPercent: productType === 'sunglasses' ? '18' : '5',
-              }));
-            }
-          }
+          setCategories(Array.isArray(d) ? d : (d.results || []));
         }
         if (brandResult.status === 'fulfilled') {
           const d = brandResult.value.data;
-          brandList = Array.isArray(d) ? d : (d.results || []);
-          const normalizedBrandList = brandList.map(b => ({
-            id: b.id,
-            name: b.name,
-            logo: b.logo || null,
-            is_published: b.is_published,
-            brand_type: b.brand_type,
-          }));
-          setAllBrands(normalizedBrandList);
-          setBrands(filterBrandsForCategory(normalizedBrandList, '', productType));
-          setBrandSource('cms');
-        }
-        if (catalogBrandResult.status === 'fulfilled') {
-          const d = catalogBrandResult.value.data;
-          catalogBrandList = Array.isArray(d) ? d : (d.results || []);
-          setCatalogBrands(catalogBrandList);
+          setBrands(Array.isArray(d) ? d : (d.results || []));
         }
         if (settingsResult.status === 'fulfilled') {
           setGlobalTemplates(settingsResult.value.data);
@@ -209,15 +225,19 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
             return {
               id: v.id,
               sku: v.sku,
-              variantName: v.name || '',
+              variantName: v.variant_name || '',
               colorName: v.color || '',
               quantity: v.stock || 0,
               stock_by_size: v.stock_by_size || {
-                'Small': { bridge_length: '', lens_width: '', temple_length: '', quantity: 0 },
-                'Medium': { bridge_length: '', lens_width: '', temple_length: '', quantity: 0 },
-                'Large': { bridge_length: '', lens_width: '', temple_length: '', quantity: 0 }
+                'Small': { bridge_length: '', lens_width: '', temple_length: '', hinge_width: '', quantity: 0 },
+                'Medium': { bridge_length: '', lens_width: '', temple_length: '', hinge_width: '', quantity: 0 },
+                'Large': { bridge_length: '', lens_width: '', temple_length: '', hinge_width: '', quantity: 0 },
               },
-              colorMethod: v.color_selection_method || 'code',
+              // Infer the method for data saved before this toggle existed: if no
+              // method was ever recorded but a palette image is already there,
+              // show that (the richer asset) rather than defaulting to Solid Color
+              // and silently hiding an image the admin already uploaded.
+              colorMethod: v.color_selection_method || (v.palette_image ? 'palette' : 'code'),
               colorCode: v.color_code || '#000000',
               paletteImage: v.palette_image
                 ? { preview: v.palette_image, file: null, name: 'Existing image' }
@@ -235,56 +255,54 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
               meta_description: v.meta_description || '',
               meta_auto: !v.meta_title,
               expanded: true,
-              frame_width: p.frame_width || '',
-              frame_type: p.frame_type || '',
-              frame_shape: p.frame_shape || '',
-              gender: p.gender || 'Unisex',
-              frame_only_mode: p.frame_only_mode || false,
               frame_material: v.frame_material || '',
-              frame_size: v.frame_size || 'Medium',
-              frame_weight: v.frame_weight || 'Standard',
+              frame_weight: v.frame_weight || '',
               is_listed: v.is_listed !== undefined ? v.is_listed : true,
-              is_warranty_eligible: v.is_warranty_eligible !== undefined ? v.is_warranty_eligible : true,
-              is_return_eligible: v.is_return_eligible !== undefined ? v.is_return_eligible : true,
-              // map new technical spec fields if present on the variant
               barcode: v.barcode || '',
-              lens_color_name: v.lens_color_name || v.lens_color || '',
-              lens_color_code: v.lens_color_code || v.lens_color_code || '#000000',
-              sg_palette_image: v.sg_palette_image ? { preview: v.sg_palette_image, file: null, name: 'Existing image' } : null,
+              lens_color_name: v.lens_color_name || '',
+              lens_color_code: v.lens_color_code || '#000000',
               weight: v.weight || '',
               lens_material: v.lens_material || '',
               uv_protection: v.uv_protection || '',
-              polarized: v.polarized || '',
+              polarized: !!v.polarized,
               country_of_origin: v.country_of_origin || '',
+              // Kept per-variant — see DEFAULT_VARIANT comment. Loading each
+              // variant's own saved value (instead of only variants[0]'s) is
+              // what stops a resave from overwriting a diverging variant.
+              tax_percent: v.tax_percent != null ? String(v.tax_percent) : '0',
+              is_bogo: !!v.is_bogo,
+              discount_start_date: v.discount_start_date || '',
+              discount_end_date: v.discount_end_date || '',
             };
           };
 
-          // BUG 1 & 7 FIX — read product-level variant fields from first variant so the
-          // Step 2 form is pre-filled with the values that were saved last time.
           const firstVariant = (p.variants || [])[0] || {};
 
-          const selectedBrandName = p.brand_name || p.brand?.name || '';
-          const selectedCatalogBrand = selectedBrandName
-            ? catalogBrandList.find(b => b.name.toLowerCase() === selectedBrandName.toLowerCase())
-            : null;
-          const selectedBrand = selectedBrandName
-            ? brandList.find(b => b.name.toLowerCase() === selectedBrandName.toLowerCase())
-            : null;
+          // Product Title is stored as "{Brand} {input}" — strip the brand prefix
+          // back off so the input box only shows the part the admin actually typed.
+          const savedBrandName = (p.brand_display_name || '').trim();
+          const savedTitle = p.title || '';
+          const titleInput = (savedBrandName && savedTitle.toLowerCase().startsWith(savedBrandName.toLowerCase()))
+            ? savedTitle.slice(savedBrandName.length).trim()
+            : savedTitle;
 
           setFormData({
             title: p.title || '',
+            title_input: titleInput,
             description: p.description || '',
             category: p.category?.id || p.category || '',
-            brand: selectedBrandName,
-            brand_id: selectedCatalogBrand?.id || null,
-            brand_logo: selectedBrand?.logo || selectedCatalogBrand?.logo || '',
-            brand_name: selectedBrandName,
-            short_description: p.short_description || '',
+            brand: p.brand?.id || p.brand || '',
+            frame_type: p.frame_type || '',
+            frame_shape: p.frame_shape || '',
+            gender: p.gender || 'Unisex',
+            frame_only_mode: p.frame_only_mode || false,
+            is_warranty_eligible: p.is_warranty_eligible !== undefined ? p.is_warranty_eligible : true,
+            is_return_eligible: p.is_return_eligible !== undefined ? p.is_return_eligible : true,
+            low_stock_threshold: p.low_stock_threshold != null ? String(p.low_stock_threshold) : '10',
             variants: (p.variants || []).map(mapVariant),
+            // Display default only — each variant's own tax_percent (loaded above)
+            // is what actually gets submitted unless the admin edits this field.
             taxPercent: firstVariant.tax_percent != null ? String(firstVariant.tax_percent) : '0',
-            isBogo: firstVariant.is_bogo || false,
-            discountStartDate: firstVariant.discount_start_date || '',
-            discountEndDate: firstVariant.discount_end_date || '',
           });
         }
       } catch (err) {
@@ -298,47 +316,8 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
 
   const handleInputChange = (field, value) => {
     setFormData(prev => {
-      let updatedData = { ...prev, [field]: value };
-
-      if (field === 'category') {
-        const selectedCategory = categories.find(c => String(c.id) === String(value));
-        const categoryName = selectedCategory?.name || '';
-        const requestedBrandTypes = getBrandFilterForCategory(categoryName);
-        const filteredBrands = filterBrandsForCategory(allBrands, categoryName);
-        setBrands(filteredBrands);
-        if (requestedBrandTypes && !filteredBrands.some(b => b.name === prev.brand)) {
-          updatedData.brand = '';
-          updatedData.brand_id = null;
-          updatedData.brand_logo = '';
-        }
-      }
-
-      // Auto-update the product title when the admin selects a brand.
-      if (field === 'brand') {
-        const selectedBrand = allBrands.find(b => b.name === value || String(b.id) === String(value));
-        const selectedCatalogBrand = catalogBrands.find(b => b.name === value || String(b.id) === String(value));
-        const selectedLogo = selectedBrand?.logo || selectedCatalogBrand?.logo || '';
-        updatedData.brand_logo = selectedLogo;
-        updatedData.brand_id = selectedCatalogBrand?.id || null;
-
-        if (selectedBrand || selectedCatalogBrand) {
-          const currentTitle = prev.title || '';
-          const previousBrand = brands.find(b => b.name === prev.brand || String(b.id) === String(prev.brand))
-            || catalogBrands.find(b => b.name === prev.brand || String(b.id) === String(prev.brand));
-          const previousBrandName = previousBrand?.name || '';
-          const trimmedTitle = currentTitle.trimStart();
-          const titleHasPreviousBrandPrefix = previousBrandName && trimmedTitle.toLowerCase().startsWith(previousBrandName.toLowerCase());
-
-          const brandLabel = selectedBrand?.name || selectedCatalogBrand?.name || value || '';
-          if (!trimmedTitle) {
-            updatedData.title = `${brandLabel} `;
-          } else if (titleHasPreviousBrandPrefix) {
-            const suffix = trimmedTitle.slice(previousBrandName.length).trimStart();
-            updatedData.title = suffix ? `${brandLabel} ${suffix}` : `${brandLabel} `;
-          }
-        }
-      }
-
+      const updatedData = { ...prev, [field]: value };
+      
       // Auto-update tax based on category selection
       if (field === 'category') {
         const selectedCategory = categories.find(c => String(c.id) === String(value));
@@ -351,6 +330,27 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
           }
         }
       }
+
+      // Tax % is a single bulk-apply control (one rate for the whole product) —
+      // whenever it actually changes (typed directly, or derived from category
+      // above), push it onto every variant explicitly. Variants are otherwise
+      // never touched here, so a resave can't silently overwrite a variant's
+      // own tax_percent with someone else's.
+      if (updatedData.taxPercent !== prev.taxPercent) {
+        updatedData.variants = (updatedData.variants || prev.variants || []).map(v => ({
+          ...v, tax_percent: updatedData.taxPercent,
+        }));
+      }
+
+      // Product Title is always composed as "{Brand} {input}" — recompute it
+      // whenever either the brand or the typed part changes.
+      if (field === 'brand' || field === 'title_input') {
+        const brandId = field === 'brand' ? value : prev.brand;
+        const brandName = brands.find(b => String(b.id) === String(brandId))?.name || '';
+        const inputPart = field === 'title_input' ? value : (prev.title_input || '');
+        updatedData.title = [brandName, inputPart].filter(Boolean).join(' ').trim();
+      }
+
       return updatedData;
     });
 
@@ -363,31 +363,46 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
     }
   };
 
+  // Full category tree for this group (frame) — every subcategory listed right
+  // under its parent, so nothing is hidden in a flat unstructured dropdown.
+  const orderedCategories = (() => {
+    const topLevel = categories.filter(c => !c.parent).sort((a, b) => a.name.localeCompare(b.name));
+    const ordered = [];
+    topLevel.forEach(parent => {
+      ordered.push(parent);
+      categories
+        .filter(c => c.parent === parent.id)
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .forEach(child => ordered.push({ ...child, __isChild: true }));
+    });
+    const seenIds = new Set(ordered.map(c => c.id));
+    categories.filter(c => c.parent && !seenIds.has(c.id)).forEach(c => ordered.push(c));
+    return ordered;
+  })();
+
+  // Derives the eyeglasses/sunglasses distinction from the selected category so
+  // VariantsPricingForm and ReviewSubmit show the right labels/fields (e.g. "Frame
+  // Color name" + lens color instead of plain "Color name").
+  const selectedCategoryObj = categories.find(c => String(c.id) === String(formData.category));
+  const isSunglassesCategory = (selectedCategoryObj?.name || '').toLowerCase().includes('sunglass');
+  const resolvedProductType = isSunglassesCategory ? 'sunglasses' : 'eyeglasses';
+
+  const validateStep1 = () => {
+    const newErrors = {};
+    if (!formData.title?.trim()) newErrors.title = 'Product title is required.';
+    if (!formData.category) newErrors.category = 'Please select a category.';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleNext = () => {
+    if (currentStep === 1 && !validateStep1()) return;
     if (currentStep < 2) setCurrentStep(prev => prev + 1);
   };
 
   const handleBack = () => {
     if (currentStep > 1) setCurrentStep(prev => prev - 1);
     else if (onBack) onBack();
-  };
-
-  const handleReset = () => {
-    setFormData({
-      title: '',
-      description: '',
-      category: '',
-      brand: '',
-      brand_id: null,
-      brand_logo: '',
-      short_description: '',
-      variants: [DEFAULT_VARIANT()],
-      taxPercent: '0',
-      isBogo: false,
-      discountStartDate: '',
-      discountEndDate: '',
-    });
-    setErrors({});
   };
 
   // Callbacks passed to VariantsPricingForm so it can report DB-side removals (BUG 2 FIX)
@@ -400,38 +415,23 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
 
   const buildProductPayload = (isActive = true) => {
     const firstVariant = formData.variants?.[0];
-    // Use the stored catalog brand id when available; otherwise fall back to a name match
-    const brandId = formData.brand_id || (catalogBrands.find(b => b.name === formData.brand || String(b.id) === String(formData.brand))?.id || null);
-
-    return {
-      title: formData.title,
-      description: formData.description || formData.short_description || '',
-      short_description: formData.short_description,
-      category: parseInt(formData.category) || formData.category,
-      brand: brandId, // Save the Brand FK
-      brand_name: formData.brand || '', // Also save brand_name for legacy compat
-      product_type: 'frame',
-      sku: firstVariant?.sku || '',
-      meta_title: firstVariant?.meta_title || '',
-      meta_description: firstVariant?.meta_description || '',
-      frame_type: firstVariant?.frame_type || '',
-      frame_shape: firstVariant?.frame_shape || '',
-      frame_width: firstVariant?.frame_width || '',
-      frame_style: firstVariant?.frame_style || '',
-      frame_material: firstVariant?.frame_material || '',
-      frame_size: firstVariant?.frame_size || '',
-      frame_color: firstVariant?.colorName || '',
-      gender: firstVariant?.gender || 'Unisex',
-      base_price: parseFloat(firstVariant?.base_price) || 0,
-      selling_price: parseFloat(firstVariant?.selling_price) || parseFloat(firstVariant?.base_price) || 0,
-      cost_price: parseFloat(firstVariant?.cost_price) || 0,
-      discount_percentage: parseFloat(firstVariant?.discount_percentage) || 0,
-      stock_quantity: parseInt(firstVariant?.quantity) || 0,
-      frame_only_mode: !!firstVariant?.frame_only_mode,
-      is_active: isActive,
-      is_featured: firstVariant?.is_featured || false,
-      is_bestseller: firstVariant?.is_bestseller !== undefined ? firstVariant.is_bestseller : true,
-    };
+    const data = new FormData();
+    data.append('title', formData.title || '');
+    data.append('description', formData.description || '');
+    data.append('category', parseInt(formData.category) || formData.category);
+    data.append('brand', formData.brand ? parseInt(formData.brand) : '');
+    data.append('product_type', 'frame');
+    data.append('frame_type', formData.frame_type || '');
+    data.append('frame_shape', formData.frame_shape || '');
+    data.append('gender', formData.gender || 'Unisex');
+    data.append('frame_only_mode', formData.frame_only_mode ? 'true' : 'false');
+    data.append('is_warranty_eligible', formData.is_warranty_eligible !== false ? 'true' : 'false');
+    data.append('is_return_eligible', formData.is_return_eligible !== false ? 'true' : 'false');
+    data.append('frame_tax_percent', parseFloat(formData.taxPercent) || 0);
+    const threshold = parseInt(formData.low_stock_threshold, 10);
+    data.append('low_stock_threshold', Number.isNaN(threshold) ? 10 : threshold);
+    data.append('is_active', isActive ? 'true' : 'false');
+    return data;
   };
 
   const handleFinalSubmit = async () => {
@@ -439,15 +439,34 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
     setErrors({});
     let phase = 'Initializing';
     try {
+      if (!formData.variants || formData.variants.length === 0) {
+        throw new Error('At least one color variant is required before submission.');
+      }
+
+      // Catch duplicate SKUs across variants BEFORE any network call — otherwise the
+      // first variant commits, the second throws on the SKU uniqueness check, and the
+      // first is left orphaned with no automatic cleanup.
+      const skusSeen = new Set();
+      for (const v of formData.variants) {
+        const skuTrim = (v.sku || '').trim().toLowerCase();
+        if (!skuTrim) continue;
+        if (skusSeen.has(skuTrim)) {
+          throw new Error(`Duplicate SKU "${v.sku.trim()}" is used by more than one variant in this product. Each variant needs a unique SKU.`);
+        }
+        skusSeen.add(skuTrim);
+      }
+
       phase = 'Saving Product Information';
       const productPayload = buildProductPayload(true);
-      let productId = editProduct?.id;
+      // Resume from a prior partial failure instead of creating a second product.
+      let productId = editProduct?.id || createdProductId;
 
       if (productId) {
         await apiClient.patch(`/catalog/products/${productId}/`, productPayload);
       } else {
         const res = await apiClient.post('/catalog/products/', productPayload);
         productId = res.data.id;
+        setCreatedProductId(productId);
       }
 
       // BUG 2 FIX — delete variants and images that the user removed in the UI
@@ -473,10 +492,17 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
         const variantPayload = new FormData();
         variantPayload.append('product', productId);
 
-        variantPayload.append('sku', v.sku?.trim() || '');
-        variantPayload.append('name', v.variantName?.trim() || '');
+        if (!v.sku?.trim()) {
+          throw new Error(`SKU is required for variant "${v.colorName || `Variant ${variantIndex}`}".`);
+        }
+        variantPayload.append('sku', v.sku.trim());
+        variantPayload.append('variant_name', v.variantName || '');
         variantPayload.append('color', v.colorName || 'Default');
-        variantPayload.append('lens_color', v.colorName || '');
+        // lens_color is the sunglasses LENS tint (model max_length=10) — was wrongly
+        // fed the frame color name here, which crashed variant creation the moment
+        // a frame color name exceeded 10 characters. Use the actual lens color field
+        // and truncate defensively so a long admin-typed name can never fail this again.
+        variantPayload.append('lens_color', (v.lens_color_name || '').slice(0, 10));
         variantPayload.append('frame_color', v.colorName || '');
         variantPayload.append('color_selection_method', v.colorMethod || 'code');
         variantPayload.append('color_code', v.colorCode || '#000000');
@@ -487,34 +513,49 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
           variantPayload.append('palette_image', v.paletteImage.file);
         } else if (v.paletteImage instanceof File) {
           variantPayload.append('palette_image', v.paletteImage);
+        } else if ((v.colorMethod || 'code') !== 'palette') {
+          // Solid Color is the active method — explicitly clear any palette image
+          // saved from before this toggle existed (or from switching modes), so
+          // the two representations of this color slot can never both be set.
+          variantPayload.append('palette_image', '');
         }
 
         variantPayload.append('frame_material', v.frame_material || '');
-        variantPayload.append('frame_size', v.frame_size || '');
+        // Frame size isn't a separate input — it's derived from whichever size
+        // rows the admin actually configured in Stock Update, so it always
+        // reflects this variant's real sizes instead of a fixed placeholder.
+        variantPayload.append('frame_size', Object.keys(v.stock_by_size || {}).join(', '));
         variantPayload.append('frame_weight', v.frame_weight || '');
-        // Append new technical-spec fields
-        variantPayload.append('barcode', v.barcode || '');
-        variantPayload.append('lens_color_name', v.lens_color_name || '');
-        variantPayload.append('lens_color_code', v.lens_color_code || '');
-        if (v.sg_palette_image?.file instanceof File) variantPayload.append('sg_palette_image', v.sg_palette_image.file);
-        variantPayload.append('weight', v.weight || '');
-        variantPayload.append('lens_material', v.lens_material || '');
-        variantPayload.append('uv_protection', v.uv_protection || '');
-        variantPayload.append('polarized', v.polarized || '');
-        variantPayload.append('country_of_origin', v.country_of_origin || '');
         variantPayload.append('stock', parseInt(v.quantity) || 0);
         variantPayload.append('stock_by_size', JSON.stringify(v.stock_by_size || {}));
         variantPayload.append('base_price', parseFloat(v.base_price) || 0);
         variantPayload.append('selling_price', parseFloat(v.selling_price) || parseFloat(v.base_price) || 0);
         variantPayload.append('cost_price', parseFloat(v.cost_price) || 0);
-        variantPayload.append('tax_percent', parseFloat(formData.taxPercent) || 0);
+        // Own value per variant — see DEFAULT_VARIANT comment on why these are no
+        // longer read from the shared formData fields.
+        variantPayload.append('tax_percent', parseFloat(v.tax_percent) || 0);
         variantPayload.append('discount_percent', parseFloat(v.discount_percentage) || 0);
-        variantPayload.append('is_bogo', formData.isBogo ? 'true' : 'false');
+        variantPayload.append('is_bogo', v.is_bogo ? 'true' : 'false');
         variantPayload.append('is_listed', v.is_listed !== false ? 'true' : 'false');
-        variantPayload.append('is_warranty_eligible', v.is_warranty_eligible !== false ? 'true' : 'false');
-        variantPayload.append('is_return_eligible', v.is_return_eligible !== false ? 'true' : 'false');
-        if (formData.discountStartDate) variantPayload.append('discount_start_date', formData.discountStartDate);
-        if (formData.discountEndDate) variantPayload.append('discount_end_date', formData.discountEndDate);
+        if (v.discount_start_date) variantPayload.append('discount_start_date', v.discount_start_date);
+        if (v.discount_end_date) variantPayload.append('discount_end_date', v.discount_end_date);
+
+        // Technical specs captured in Step 2 (Variants & Pricing) — these used to be
+        // silently dropped here even though the form collected them.
+        variantPayload.append('barcode', v.barcode || '');
+        // Frame type/shape/gender/frame-only-mode are product-level (Step 1) —
+        // every variant of the same product shares the same value.
+        variantPayload.append('frame_type', formData.frame_type || '');
+        variantPayload.append('frame_shape', formData.frame_shape || '');
+        variantPayload.append('gender', formData.gender || 'Unisex');
+        variantPayload.append('frame_only_mode', formData.frame_only_mode ? 'true' : 'false');
+        variantPayload.append('lens_color_name', v.lens_color_name || '');
+        variantPayload.append('lens_color_code', v.lens_color_code || '#000000');
+        variantPayload.append('weight', v.weight || '');
+        variantPayload.append('lens_material', v.lens_material || '');
+        variantPayload.append('uv_protection', v.uv_protection || '');
+        variantPayload.append('polarized', v.polarized ? 'true' : 'false');
+        variantPayload.append('country_of_origin', v.country_of_origin || '');
 
         const resolveTemplate = (tpl) => (tpl || '')
           .replace(/{product_name}/g, formData.title || '')
@@ -528,13 +569,17 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
         variantPayload.append('meta_description', v.meta_auto !== false ? autoMetaDesc : (v.meta_description?.trim() || autoMetaDesc));
 
         let variantId;
-        const isExisting = v.id && typeof v.id === 'number';
-        if (isExisting) {
-          await apiClient.patch(`/catalog/variants/${v.id}/`, variantPayload);
-          variantId = v.id;
+        // Resume-safe: a variant already saved by a prior (partially-failed) submit
+        // attempt gets PATCHed on retry instead of POSTed again as a duplicate.
+        const alreadyCreatedId = createdVariantIdMap[v.id];
+        const targetId = typeof v.id === 'number' ? v.id : alreadyCreatedId;
+        if (targetId) {
+          await apiClient.patch(`/catalog/variants/${targetId}/`, variantPayload);
+          variantId = targetId;
         } else {
           const vRes = await apiClient.post('/catalog/variants/', variantPayload);
           variantId = vRes.data.id;
+          setCreatedVariantIdMap(prev => ({ ...prev, [v.id]: variantId }));
         }
 
         // Upload only new images (file !== null)
@@ -563,7 +608,9 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
       console.error(`Submission failed at phase: ${phase}`, err);
       const serverErrors = err.response?.data;
       let errorSummary = `[Failed in ${phase}] `;
-      if (serverErrors && typeof serverErrors === 'object') {
+      if (err.message?.includes('variant is required')) {
+        errorSummary += err.message;
+      } else if (serverErrors && typeof serverErrors === 'object') {
         errorSummary += Object.keys(serverErrors)
           .map(key => `${key}: ${Array.isArray(serverErrors[key]) ? serverErrors[key].join(', ') : serverErrors[key]}`)
           .join(' | ');
@@ -580,6 +627,16 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
 
   // BUG 9 FIX — Save as Draft actually saves the product with is_active: false
   const handleSaveDraft = async () => {
+    if (!formData.title?.trim()) {
+      setErrors({ title: 'Product title is required to save a draft.' });
+      setCurrentStep(1);
+      return;
+    }
+    if (!formData.category) {
+      setErrors({ category: 'Please select a category to save a draft.' });
+      setCurrentStep(1);
+      return;
+    }
     setSaving(true);
     setErrors({});
     try {
@@ -687,8 +744,8 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
           <div className="section-title-row">
             <h2>{currentStep}. {STEPS[currentStep - 1].label}</h2>
             <p>
-              {currentStep === 1 && "Enter the primary information for your eyewear product."}
-              {currentStep === 2 && "Enter the primary information for your eyewear product."}
+              {currentStep === 1 && "Enter the primary information for your eyewear product, then configure its color variants, stock, and pricing below."}
+              {currentStep === 2 && "Review all specifications before submitting to catalog."}
             </p>
           </div>
         </div>
@@ -696,100 +753,199 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
         <div className="product-form-body">
           <div className="product-form-content">
             {currentStep === 1 && (
-              <>
-                {/* General Information */}
-                <div className="form-sub-section">
-                  <div className="form-sub-section-title">
-                    <h3>General Information</h3>
-                    <hr className="title-divider" />
+              <div className="form-sub-section">
+                <div className="form-sub-section-title">
+                  <h3>General Information</h3>
+                  <hr className="title-divider" />
+                </div>
+
+                <div className="form-field-row-3">
+                  <div className="form-field">
+                    <label className="form-field-label">
+                      Product Title <span className="required-star">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className={`form-field-input ${errors.title ? 'has-error' : ''}`}
+                      placeholder="e.g. Aviator Classic"
+                      value={formData.title_input}
+                      onChange={(e) => handleInputChange('title_input', e.target.value)}
+                    />
+                    <p style={{ fontSize: 11, color: '#9ca3af', margin: '4px 0 0' }}>
+                      Saved as: <strong>{formData.title || '—'}</strong>
+                    </p>
+                    {errors.title && <span className="form-field-error"><AlertCircle size={12} /> {errors.title}</span>}
                   </div>
 
-                  <div className="form-field-row-4">
-                    <div className="form-field">
-                      <label className="form-field-label">
-                        Product Title                      </label>
-                      <input
-                        type="text"
-                        className={`form-field-input ${errors.title ? 'has-error' : ''}`}
-                        placeholder="e.g. Ray-Ban Aviator Classic"
-                        value={formData.title}
-                        onChange={(e) => handleInputChange('title', e.target.value)}
-                      />
-                      {errors.title && <span className="form-field-error"><AlertCircle size={12} /> {errors.title}</span>}
+                  <div className="form-field">
+                    <label className="form-field-label">Category <span className="required-star">*</span></label>
+                    <div className="form-field-select-wrapper">
+                      <select
+                        value={formData.category}
+                        onChange={(e) => handleInputChange('category', e.target.value)}
+                        className={errors.category ? 'has-error' : ''}
+                      >
+                        <option value="">Select Category</option>
+                        {orderedCategories.map(c => (
+                          <option key={c.id} value={c.id}>{c.__isChild ? `— ${c.name}` : c.name}</option>
+                        ))}
+                      </select>
+                      <span className="select-chevron"><ChevronDown size={16} /></span>
                     </div>
+                    {errors.category && <span className="form-field-error"><AlertCircle size={12} /> {errors.category}</span>}
+                  </div>
 
-                    <div className="form-field">
-                      <label className="form-field-label">Category</label>
-                      <div className="form-field-select-wrapper">
-                        <select
-                          value={formData.category}
-                          onChange={(e) => handleInputChange('category', e.target.value)}
-                          className={errors.category ? 'has-error' : ''}
-                          disabled={!!productType}
-                          style={productType ? { background: '#F9FAFB', color: '#344054', cursor: 'not-allowed' } : {}}
-                        >
-                          <option value="">Select Category</option>
-                          {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                        </select>
-                        <span className="select-chevron"><ChevronDown size={16} /></span>
-                      </div>
-                      {errors.category && <span className="form-field-error"><AlertCircle size={12} /> {errors.category}</span>}
+                  <div className="form-field">
+                    <label className="form-field-label">Manufacturer / Brand</label>
+                    <div className="form-field-select-wrapper">
+                      <select
+                        value={formData.brand}
+                        onChange={(e) => handleInputChange('brand', e.target.value)}
+                      >
+                        <option value="">Select Brand</option>
+                        {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                      </select>
+                      <span className="select-chevron"><ChevronDown size={16} /></span>
                     </div>
+                  </div>
 
-                    <div className="form-field">
-                      <label className="form-field-label">Manufacturer / Brand</label>
-                      <div className="form-field-select-wrapper">
-                        <select
-                          value={formData.brand}
-                          onChange={(e) => handleInputChange('brand', e.target.value)}
-                        >
-                          <option value="">Select Brand</option>
-                          {brands.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
-                        </select>
-                        <span className="select-chevron"><ChevronDown size={16} /></span>
-                      </div>
-                      {formData.brand_logo && (
-                        <div className="form-field-brand-preview" style={{ marginTop: 10 }}>
-                          <img
-                            src={formData.brand_logo}
-                            alt={`${formData.brand} logo`}
-                            style={{ maxHeight: 40, maxWidth: 120, objectFit: 'contain', borderRadius: 4 }}
-                          />
-                        </div>
-                      )}
-                    </div>
+                  <div className="form-field">
+                    <label className="form-field-label">Tax %</label>
+                    <input
+                      type="number"
+                      className="form-field-input"
+                      placeholder="0"
+                      value={formData.taxPercent || '0'}
+                      onChange={(e) => handleInputChange('taxPercent', e.target.value)}
+                    />
+                  </div>
 
-                    <div className="form-field">
-                      <label className="form-field-label">Tax</label>
-                      <input
-                        type="number"
-                        className="form-field-input"
-                        placeholder="0%"
-                        value={formData.taxPercent || '0'}
-                        onChange={(e) => handleInputChange('taxPercent', e.target.value)}
-                      />
+                  <div className="form-field">
+                    <label className="form-field-label">Low Stock Threshold</label>
+                    <input
+                      type="number"
+                      className="form-field-input"
+                      placeholder="10"
+                      value={formData.low_stock_threshold}
+                      onChange={(e) => handleInputChange('low_stock_threshold', e.target.value)}
+                    />
+                  </div>
+
+                  <div className="form-field">
+                    <label className="form-field-label">Description</label>
+                    <textarea
+                      className="form-field-textarea"
+                      style={{ minHeight: 44 }}
+                      placeholder="Optional product description..."
+                      value={formData.description}
+                      onChange={(e) => handleInputChange('description', e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-sub-section-title">
+                  <h3>Frame Specifications</h3>
+                  <hr className="title-divider" />
+                </div>
+
+                <div className="form-field-row-3">
+                  <div className="form-field">
+                    <label className="form-field-label">Frame Type</label>
+                    <SelectWithAdd
+                      value={formData.frame_type}
+                      onChange={(val) => handleInputChange('frame_type', val)}
+                      options={frameTypeOptions}
+                      onAddOption={addFrameTypeOption}
+                      placeholder="Select frame type"
+                    />
+                  </div>
+                  <div className="form-field">
+                    <label className="form-field-label">Frame Shape</label>
+                    <SelectWithAdd
+                      value={formData.frame_shape}
+                      onChange={(val) => handleInputChange('frame_shape', val)}
+                      options={frameShapeOptions}
+                      onAddOption={(opt) => setFrameShapeOptions(prev => [...prev, opt])}
+                      placeholder="Select frame shape"
+                    />
+                  </div>
+                  <div className="form-field">
+                    <label className="form-field-label">Gender Target</label>
+                    <div className="form-field-select-wrapper">
+                      <select
+                        value={formData.gender}
+                        onChange={(e) => handleInputChange('gender', e.target.value)}
+                      >
+                        {GENDER_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                      </select>
+                      <span className="select-chevron"><ChevronDown size={16} /></span>
                     </div>
                   </div>
                 </div>
 
-                {/* Variant and Pricing */}
-                <div className="form-sub-section" style={{ marginTop: '24px' }}>
-                  <div className="form-sub-section-title">
-                    <h3>variant and Pricing</h3>
-                    <hr className="title-divider" />
+                <div className="form-field-row-3" style={{ marginTop: '16px' }}>
+                  <div className="form-switch-row">
+                    <div className="form-switch-content">
+                      <span className="switch-label">Frame Only Mode</span>
+                      <span className="switch-description">Purchasable without lenses</span>
+                    </div>
+                    <label className="toggle-switch">
+                      <input
+                        type="checkbox"
+                        checked={!!formData.frame_only_mode}
+                        onChange={(e) => handleInputChange('frame_only_mode', e.target.checked)}
+                      />
+                      <span className="toggle-slider" />
+                    </label>
                   </div>
-                  <VariantsPricingForm
-                    ref={variantFormRef}
-                    formData={formData}
-                    onFormDataChange={setFormData}
-                    saving={saving}
-                    onVariantRemoved={handleVariantRemoved}
-                    onImageRemoved={handleImageRemoved}
-                    globalTemplates={globalTemplates}
-                    productType={productType}
-                  />
+
+                  <div className="form-switch-row">
+                    <div className="form-switch-content">
+                      <span className="switch-label">Warranty Eligible</span>
+                      <span className="switch-description">Enable warranty claims</span>
+                    </div>
+                    <label className="toggle-switch">
+                      <input
+                        type="checkbox"
+                        checked={formData.is_warranty_eligible !== false}
+                        onChange={(e) => handleInputChange('is_warranty_eligible', e.target.checked)}
+                      />
+                      <span className="toggle-slider" />
+                    </label>
+                  </div>
+
+                  <div className="form-switch-row">
+                    <div className="form-switch-content">
+                      <span className="switch-label">Return Eligible</span>
+                      <span className="switch-description">Allow returns (window set in Store Settings)</span>
+                    </div>
+                    <label className="toggle-switch">
+                      <input
+                        type="checkbox"
+                        checked={formData.is_return_eligible !== false}
+                        onChange={(e) => handleInputChange('is_return_eligible', e.target.checked)}
+                      />
+                      <span className="toggle-slider" />
+                    </label>
+                  </div>
                 </div>
-              </>
+
+                <div className="form-sub-section-title" style={{ marginTop: '24px' }}>
+                  <h3>Variants &amp; Pricing</h3>
+                  <hr className="title-divider" />
+                </div>
+
+                <VariantsPricingForm
+                  ref={variantFormRef}
+                  formData={formData}
+                  onFormDataChange={setFormData}
+                  saving={saving}
+                  onVariantRemoved={handleVariantRemoved}
+                  onImageRemoved={handleImageRemoved}
+                  globalTemplates={globalTemplates}
+                  productType={resolvedProductType}
+                />
+              </div>
             )}
 
             {currentStep === 2 && (
@@ -800,22 +956,16 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
                 confirmed={confirmed}
                 setConfirmed={setConfirmed}
                 errors={errors}
-                productType={productType}
+                productType={resolvedProductType}
               />
             )}
           </div>
         </div>
 
         <div className="product-form-footer">
-          {currentStep === 1 ? (
-            <button className="pf-btn pf-btn-ghost" onClick={handleReset} disabled={saving}>
-              Reset
-            </button>
-          ) : (
-            <button className="pf-btn pf-btn-ghost" onClick={handleBack} disabled={saving}>
-              Cancels changes
-            </button>
-          )}
+          <button className="pf-btn pf-btn-ghost" onClick={handleBack} disabled={saving}>
+            {currentStep === 1 ? 'Cancel' : 'Back'}
+          </button>
 
           <div className="product-form-footer-right">
             {currentStep === 1 && (
@@ -825,7 +975,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
                 disabled={saving}
               >
                 <Plus size={18} />
-                Add Color Variant
+                Add Variant
               </button>
             )}
             <button className="pf-btn pf-btn-outline" onClick={handleSaveDraft} disabled={saving}>
@@ -837,7 +987,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null, productType = 'eyeglas
               disabled={saving || (currentStep === 2 && !confirmed)}
             >
               {saving ? 'Processing...' : (
-                currentStep === 1 ? 'Next: Variants & Pricing' : 'Submit'
+                currentStep === 1 ? 'Next: Review & Submit' : 'Submit'
               )}
             </button>
           </div>

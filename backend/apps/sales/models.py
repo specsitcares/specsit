@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from decimal import Decimal
 # pyrefly: ignore [missing-import]
-from apps.catalog.models import Variant, Lens, Prescription, BrandLogo
+from apps.catalog.models import FrameVariant, Lens, Prescription, BrandLogo
 # pyrefly: ignore [missing-import]
 from apps.catalog.core.models import MetadataItem
 
@@ -193,7 +193,7 @@ class Order(models.Model):
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
-    variant = models.ForeignKey(Variant, on_delete=models.CASCADE, null=True, blank=True)
+    variant = models.ForeignKey(FrameVariant, on_delete=models.CASCADE, null=True, blank=True)
     lens = models.ForeignKey(Lens, on_delete=models.SET_NULL, null=True, blank=True)
     contact_lens = models.ForeignKey('catalog.ContactLens', on_delete=models.SET_NULL, null=True, blank=True, related_name='order_items')
     contact_lens_power = models.JSONField(default=dict, blank=True)
@@ -224,7 +224,7 @@ class OrderItem(models.Model):
 
 class Cart(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='cart_items')
-    variant = models.ForeignKey(Variant, on_delete=models.CASCADE)
+    variant = models.ForeignKey(FrameVariant, on_delete=models.CASCADE)
     quantity = models.IntegerField(default=1)
     added_at = models.DateTimeField(auto_now_add=True)
 
@@ -240,7 +240,7 @@ class Cart(models.Model):
 
 class Wishlist(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='wishlist_items')
-    variant = models.ForeignKey(Variant, on_delete=models.CASCADE)
+    variant = models.ForeignKey(FrameVariant, on_delete=models.CASCADE)
     added_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -410,7 +410,7 @@ class ReturnRequest(models.Model):
     # Razorpay payment reference for the difference the customer paid inline at exchange time
     replacement_payment_ref = models.CharField(max_length=120, blank=True)
     # The catalog variant the customer chose as the replacement (browse flow)
-    replacement_variant = models.ForeignKey('catalog.Variant', null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
+    replacement_variant = models.ForeignKey('catalog.FrameVariant', null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
     # The fresh order spawned when the admin ships the replacement (enters normal lifecycle)
     replacement_order = models.ForeignKey('Order', null=True, blank=True, on_delete=models.SET_NULL, related_name='source_returns')
 

@@ -18,7 +18,7 @@ import logging
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from .models import Order, Cart, ReturnRequest, LiveSession, SiteVisit, Shipment, OrderTracking
-from apps.catalog.models import Prescription, Variant
+from apps.catalog.models import Prescription, FrameVariant
 from .analytics_events import announce_change
 
 logger = logging.getLogger(__name__)
@@ -145,7 +145,7 @@ def prescription_saved_handler(sender, instance, created, **kwargs):
     _invalidate_and_recompute()
 
 
-@receiver(post_save, sender=Variant)
+@receiver(post_save, sender=FrameVariant)
 def variant_saved_handler(sender, instance, created, **kwargs):
     # Triggers background refresh when stock levels update
     _invalidate_and_recompute()

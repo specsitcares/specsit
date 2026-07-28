@@ -462,7 +462,7 @@ class HomeBundleView(APIView):
             blogs_qs = blogs_qs[:blog_sec.max_visible]
 
         # Testimonials = featured + approved reviews (catalog app)
-        from apps.catalog.models import Review, Product
+        from apps.catalog.models import Review, FrameProduct as Product
         from apps.catalog.serializers import ReviewSerializer, ProductSerializer
         reviews = Review.objects.filter(is_featured=True, is_approved=True).select_related('user', 'product').order_by('-updated_at')[:12]
         products = (Product.objects.filter(is_active=True)

@@ -1,4 +1,4 @@
-from django.db import models
+from django.db import models #type: ignore
 
 class SiteSettings(models.Model):
     store_name = models.CharField(max_length=100, default='SpecsIt')
@@ -103,6 +103,9 @@ class BrandLogo(models.Model):
 
     class Meta:
         ordering = ['order', 'id']
+        indexes = [
+            models.Index(fields=['brand_type', 'is_published'], name='brand_type_published_idx'),
+        ]
 
     def __str__(self):
         return self.name
@@ -198,7 +201,7 @@ class Blog(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.slug and self.title:
-            from django.utils.text import slugify
+            from django.utils.text import slugify #type: ignore
             base = slugify(self.title)[:200] or 'post'
             slug, n = base, 2
             while Blog.objects.filter(slug=slug).exclude(pk=self.pk).exists():
@@ -351,7 +354,7 @@ class NewsletterSettings(models.Model):
         return 'Newsletter Settings'
 
 
-class sizesettings(models.Model):
+class Sizesettings(models.Model):
     sizes_choices = [
         ()
     ]

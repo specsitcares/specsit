@@ -244,9 +244,9 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
   const paginated = filtered.slice((page - 1) * perPage, page * perPage);
 
   // ── Helpers ──
-  const getStockDot = (stock) => {
+  const getStockDot = (stock, threshold = 10) => {
     if (stock <= 0) return '#D92D20';
-    if (stock <= 20) return '#F79009';
+    if (stock <= threshold) return '#F79009';
     return '#34C759';
   };
 
@@ -275,8 +275,8 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
 
   const renderRow = (v) => {
     const imgSrc = getImage(v);
-    const dot = getStockDot(v.stock ?? 0);
-    const threshold = v.low_stock_threshold ?? 20;
+    const threshold = v.low_stock_threshold ?? 10;
+    const dot = getStockDot(v.stock ?? 0, threshold);
     const isSelected = selectedIds.has(v.id);
     const isExpanded = expandedRows.includes(v.id);
 
@@ -490,7 +490,7 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
               {/* Current Stock */}
               <td style={{ ...CELL, minWidth: 96 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ width: 16, height: 16, borderRadius: '50%', background: getStockDot(qty), flexShrink: 0, display: 'inline-block' }} />
+                  <span style={{ width: 16, height: 16, borderRadius: '50%', background: getStockDot(qty, threshold), flexShrink: 0, display: 'inline-block' }} />
                   <span style={{ ...TXT, fontWeight: 600 }}>{qty}</span>
                 </div>
               </td>

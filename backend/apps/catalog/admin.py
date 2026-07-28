@@ -1,16 +1,24 @@
-r"""
-File: apps/catalog/admin.py
-Module: Catalog
-Description: Product management, categories, brands, and inventory catalog. Registers models with the Django Admin interface for easy management.
-"""
+
 from django.contrib import admin
 from django.utils.html import format_html
 import json
 from .models import (
-    Category, Product, BrandLogo, 
-    Variant, VariantImage, Collection,
-    LensPackage, Lens, ContactLens, Prescription, UserFace, Review, LensConstraint
+    Category, FrameProduct, BrandLogo, 
+    FrameVariant, AccessoriesVariants, VariantImage, Collection, 
+    AccessoriesProduct, LensPackage, Lens, ContactLens, Prescription, UserFace, Review, LensConstraint
 )
+
+@admin.register(AccessoriesProduct)
+class AccessoryProductsAdmin(admin.ModelAdmin):
+    list_display = ('accessory_product_type', 'accessory_name', 'accessory_brand', 
+                    'accessory_tax_percent', 'accessory_material', 'accessory_notes',
+                    'features', 'warranty_period', 'AccessoryCaseType',
+                    'AccessorySolution_ml', 'Accessory_case_dimensions', 'Accessory_cloth_dimensions')
+
+@admin.register(AccessoriesVariants)
+class AccessoryVariantsAdmin(admin.ModelAdmin):
+    list_display = ('product', 'AccessoryesVariantName', 'AccessoryesSKU', 'AccessoryesColorName',
+                    'AccessoryColorCode', 'stock', 'selling_price', 'is_listed')
 
 @admin.register(ContactLens)
 class ContactLensAdmin(admin.ModelAdmin):
@@ -24,45 +32,25 @@ class CategoryAdmin(admin.ModelAdmin):
     search_fields = ('name',)
 
 
-
 class VariantImageInline(admin.TabularInline):
     model = VariantImage
     extra = 1
 
-@admin.register(Variant)
-class VariantAdmin(admin.ModelAdmin):
-    list_display = ('sku', 'product', 'color', 'stock', 'price_adjustment', 'stock_by_size_summary')
-    list_filter = ('color',)
-    search_fields = ('sku', 'product__title')
-    inlines = [VariantImageInline]
-    readonly_fields = ('stock_by_size_display',)
-    
-    fieldsets = (
-        ('Product Info', {
-            'fields': ('product', 'sku')
-        }),
-        ('Color & Material', {
-            'fields': ('lens_color', 'frame_color', 'color', 'color_selection_method', 'color_code', 'palette_image')
-        }),
-        ('Frame Details', {
-            'fields': ('frame_material', 'frame_size', 'frame_weight')
-        }),
-        ('Pricing', {
-            'fields': ('base_price', 'selling_price', 'cost_price', 'price_adjustment', 'tax_percent', 'discount_percent')
-        }),
-        ('Stock & Inventory', {
-            'fields': ('stock', 'stock_by_size', 'stock_by_size_display', 'is_listed', 'last_restocked', 'last_sold')
-        }),
-        ('Promotions', {
-            'fields': ('is_bogo', 'discount_start_date', 'discount_end_date')
-        }),
-        ('SEO & VTO', {
-            'fields': ('meta_title', 'meta_description', 'vto_image_front', 'vto_video')
-        }),
-        ('Additional', {
-            'fields': ('is_warranty_eligible',)
-        }),
-    )
+@admin.register(VariantImage)
+class VariantImageAdmin(admin.ModelAdmin):
+    list_display = ('variant', 'image',
+                    'order', 'created_at')
+
+
+@admin.register(FrameVariant)
+class FrameVariantAdmin(admin.ModelAdmin):
+    list_display = ('product', 'variant_name', 'sku', 'barcode',
+                    'frame_weight', 'uv_protection', 'polarized',
+                    'gender', 'color', 'frame_color',
+                    'stock', 'base_price', 'selling_price', 'cost_price',
+                    'discount_percent', 'is_listed')
+    list_filter = ('is_listed', 'gender')
+    search_fields = ('sku', 'barcode', 'product__title')
 
     def stock_by_size_display(self, obj):
         """Display stock_by_size in a formatted table"""
@@ -75,6 +63,7 @@ class VariantAdmin(admin.ModelAdmin):
         html += '<th style="border: 1px solid #ddd; padding: 8px;">Bridge Length</th>'
         html += '<th style="border: 1px solid #ddd; padding: 8px;">Temple Length</th>'
         html += '<th style="border: 1px solid #ddd; padding: 8px;">Lens Width</th>'
+        html += '<th style="border: 1px solid #ddd; padding: 8px;">Hinge-Hinge Width</th>'
         html += '<th style="border: 1px solid #ddd; padding: 8px;">Quantity</th>'
         html += '</tr></thead><tbody>'
         
@@ -85,6 +74,7 @@ class VariantAdmin(admin.ModelAdmin):
                 html += f'<td style="border: 1px solid #ddd; padding: 8px;">{data.get("bridge_length", "—")}</td>'
                 html += f'<td style="border: 1px solid #ddd; padding: 8px;">{data.get("temple_length", "—")}</td>'
                 html += f'<td style="border: 1px solid #ddd; padding: 8px;">{data.get("lens_width", "—")}</td>'
+                html += f'<td style="border: 1px solid #ddd; padding: 8px;">{data.get("hinge_width", "—")}</td>'
                 html += f'<td style="border: 1px solid #ddd; padding: 8px;"><strong>{data.get("quantity", 0)}</strong></td>'
                 html += f'</tr>'
         
@@ -102,16 +92,14 @@ class VariantAdmin(admin.ModelAdmin):
     
     stock_by_size_summary.short_description = "Sizes"
 
-class VariantInline(admin.TabularInline):
-    model = Variant
-    extra = 1
-
-@admin.register(Product)
+@admin.register(FrameProduct)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('title', 'category', 'brand', 'base_price', 'is_active', 'created_at')
-    list_filter = ('category', 'brand', 'is_active')
-    search_fields = ('title', 'description')
-    inlines = [VariantInline]
+    list_display = ('title', 'product_type', 'category',
+                    'brand', 'frame_material', 'lens_material',
+                    'frame_shape', 'frame_country_of_origin', 'frame_tax_percent',
+                    'is_active', 'is_bestseller')
+    list_filter = ('is_active', 'is_bestseller', 'product_type', 'gender')
+    search_fields = ('title',)
 
 @admin.register(LensPackage)
 class LensPackageAdmin(admin.ModelAdmin):

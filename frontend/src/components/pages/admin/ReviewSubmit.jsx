@@ -48,8 +48,17 @@ const ReadOnlyToggle = ({ checked }) => (
   </div>
 );
 
-const ColorDot = ({ code }) =>
-  code ? (
+// `image` (a palette-image preview URL) takes over from the flat `code` swatch
+// when Palette Image is the active method — otherwise the review page would show
+// a misleading black/default dot instead of the actual texture that'll be saved.
+const ColorDot = ({ code, image }) =>
+  image ? (
+    <div style={{
+      width: 12, height: 12, borderRadius: '50%',
+      backgroundImage: `url(${image})`, backgroundSize: 'cover', backgroundPosition: 'center',
+      border: '1px solid #E4E7EC', flexShrink: 0,
+    }} />
+  ) : code ? (
     <div style={{
       width: 12, height: 12, borderRadius: '50%',
       background: code, border: '1px solid #E4E7EC', flexShrink: 0,
@@ -69,17 +78,10 @@ const ReviewSubmit = ({ formData, categories, brands, confirmed, setConfirmed, e
 
   const getCategoryName = (id) => categories.find(c => c.id?.toString() === id?.toString())?.name || '—';
   
-  // Get brand by ID first, fall back to finding by name string
+  // formData.brand holds the selected brand's id (as set by the Manufacturer / Brand select).
   const getBrandInfo = () => {
-    const id = formData.brand_id;
-    let brand = null;
-    if (id) {
-      brand = brands.find(b => b.id?.toString() === id?.toString());
-    }
-    if (!brand && formData.brand) {
-      brand = brands.find(b => b.name?.toLowerCase() === formData.brand?.toLowerCase());
-    }
-    return brand || { name: formData.brand || '—', logo: null };
+    const brand = formData.brand ? brands.find(b => b.id?.toString() === formData.brand?.toString()) : null;
+    return brand || { name: '—', logo: null };
   };
 
   const brandInfo = getBrandInfo();
@@ -139,6 +141,25 @@ const ReviewSubmit = ({ formData, categories, brands, confirmed, setConfirmed, e
           <Field label="Category"             value={getCategoryName(formData.category)} />
           <Field label="Tax %"                value={formData.taxPercent ? String(formData.taxPercent) : null} />
         </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '16px', marginTop: '16px' }}>
+          <Field label="Frame Type"    value={formData.frame_type} />
+          <Field label="Frame Shape"   value={formData.frame_shape} />
+          <Field label="Gender Target" value={formData.gender} />
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginTop: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <span style={{ fontFamily: "'Roboto', sans-serif", fontSize: '12px', fontWeight: 400, color: '#667085' }}>Frame Only Mode</span>
+            <ReadOnlyToggle checked={formData.frame_only_mode || false} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <span style={{ fontFamily: "'Roboto', sans-serif", fontSize: '12px', fontWeight: 400, color: '#667085' }}>Warranty Eligible</span>
+            <ReadOnlyToggle checked={formData.is_warranty_eligible !== false} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <span style={{ fontFamily: "'Roboto', sans-serif", fontSize: '12px', fontWeight: 400, color: '#667085' }}>Return Eligible</span>
+            <ReadOnlyToggle checked={formData.is_return_eligible !== false} />
+          </div>
+        </div>
       </div>
 
       {/* ── Inventory Stock table ── */}
@@ -148,7 +169,7 @@ const ReviewSubmit = ({ formData, categories, brands, confirmed, setConfirmed, e
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', fontFamily: "'Roboto', sans-serif" }}>
             <thead>
               <tr style={{ background: '#F9FAFB', borderBottom: '1px solid #EAECF0' }}>
-                {['SKU', 'Frame name', 'Frame Color', ...(isSunglasses ? ['Lens Color'] : []), 'Stock', 'Selling Price'].map(h => (
+                {['SKU', 'Frame name', 'Frame Color', 'Lens Color', 'Stock', 'Selling Price'].map(h => (
                   <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 500, color: '#344054', fontSize: '12px' }}>
                     {h}
                   </th>
@@ -162,18 +183,16 @@ const ReviewSubmit = ({ formData, categories, brands, confirmed, setConfirmed, e
                   <td style={td}>{v.variantName || v.colorName || `Variant ${i + 1}`}</td>
                   <td style={td}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <ColorDot code={v.colorCode} />
+                      <ColorDot code={v.colorCode} image={v.colorMethod === 'palette' ? v.paletteImage?.preview : null} />
                       <span>{v.colorName || '—'}</span>
                     </div>
                   </td>
-                  {isSunglasses && (
-                    <td style={td}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <ColorDot code={v.lens_color_code} />
-                        <span>{v.lens_color_name || '—'}</span>
-                      </div>
-                    </td>
-                  )}
+                  <td style={td}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <ColorDot code={v.lens_color_code} />
+                      <span>{v.lens_color_name || '—'}</span>
+                    </div>
+                  </td>
                   <td style={td}>{v.quantity != null ? v.quantity : '—'}</td>
                   <td style={td}>
                     {v.selling_price
@@ -232,7 +251,7 @@ const ReviewSubmit = ({ formData, categories, brands, confirmed, setConfirmed, e
                         value={
                           v.colorName ? (
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <ColorDot code={v.colorCode} />
+                              <ColorDot code={v.colorCode} image={v.colorMethod === 'palette' ? v.paletteImage?.preview : null} />
                               <span>{v.colorName}</span>
                             </div>
                           ) : null
@@ -311,32 +330,17 @@ const ReviewSubmit = ({ formData, categories, brands, confirmed, setConfirmed, e
                         <Field label="Weight" value={v.weight} />
                       </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '16px', marginBottom: '14px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '14px' }}>
                         <Field label="Frame Material" value={v.frame_material} />
                         <Field label="Lens Material" value={v.lens_material} />
-                        <Field label="Frame Shape" value={v.frame_shape} />
                         <Field label="UV Protection" value={v.uv_protection} />
                       </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '16px' }}>
-                        <Field label="Polarized" value={v.polarized} />
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
                         <Field label="Country of Origin" value={v.country_of_origin} />
-                        <Field label="Frame Type" value={v.frame_type} />
-                        <Field label="Gender Target" value={v.gender} />
-                      </div>
-
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '12px', marginTop: '12px', alignItems: 'end' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                          <span style={{ fontFamily: "'Roboto', sans-serif", fontSize: '12px', fontWeight: 400, color: '#667085' }}>Frame Only Mode</span>
-                          <ReadOnlyToggle checked={v.frame_only_mode || false} />
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                          <span style={{ fontFamily: "'Roboto', sans-serif", fontSize: '12px', fontWeight: 400, color: '#667085' }}>Warranty</span>
-                          <ReadOnlyToggle checked={v.is_warranty_eligible !== false} />
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                          <span style={{ fontFamily: "'Roboto', sans-serif", fontSize: '12px', fontWeight: 400, color: '#667085' }}>Return Eligible</span>
-                          <ReadOnlyToggle checked={v.is_return_eligible !== false} />
+                          <span style={{ fontFamily: "'Roboto', sans-serif", fontSize: '12px', fontWeight: 400, color: '#667085' }}>Polarized</span>
+                          <ReadOnlyToggle checked={!!v.polarized} />
                         </div>
                       </div>
                     </div>

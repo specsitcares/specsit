@@ -1,18 +1,20 @@
 from django.shortcuts import render
 from rest_framework import status, viewsets
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
+from apps.core_utils.throttling import LoginThrottle, RegisterThrottle
 from .models import MetadataGroup, MetadataItem, AnalyticsLog, SystemConfig
 from .serializers import (
-    UserRegistrationSerializer, MetadataGroupSerializer, 
+    UserRegistrationSerializer, MetadataGroupSerializer,
     MetadataItemSerializer, AnalyticsLogSerializer, SystemConfigSerializer
 )
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([RegisterThrottle])
 def register_view(request):
     """
     Custom user registration endpoint.
@@ -35,6 +37,7 @@ def register_view(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([LoginThrottle])
 def login_view(request):
     """
     Custom login endpoint. Accepts username or email + password.
@@ -60,8 +63,10 @@ def login_view(request):
         except User.DoesNotExist:
             pass
 
-    # Authenticate user
-    user = authenticate(username=username, password=password)
+    # Authenticate user — axes' backend requires `request` to be passed through so
+    # it can track failed attempts per IP/username; omitting it raises
+    # AxesBackendRequestParameterRequired (a 500) on every single login attempt.
+    user = authenticate(request, username=username, password=password)
 
     if user is None:
         return Response(
