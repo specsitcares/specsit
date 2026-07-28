@@ -160,9 +160,18 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
     const newVal = !v.is_listed;
     setVariants(prev => prev.map(x => x.id === v.id ? { ...x, is_listed: newVal } : x));
     try {
-      await apiClient.patch(`/catalog/variants/${v.id}/`, { is_listed: newVal });
+      const res = await apiClient.patch(`/catalog/variants/${v.id}/`, { is_listed: newVal });
+      // The backend force-clears is_listed for a 0-stock variant regardless of what
+      // was requested — resync from the actual saved value instead of trusting the
+      // optimistic one, so trying to re-list an empty variant doesn't leave the
+      // toggle showing ON here while it's still actually hidden from customers.
+      const actualVal = res?.data?.is_listed;
+      if (actualVal !== undefined && actualVal !== newVal) {
+        setVariants(prev => prev.map(x => x.id === v.id ? { ...x, is_listed: actualVal } : x));
+      }
     } catch (err) {
       // Roll back on failure
+      setVariants(prev => prev.map(x => x.id === v.id ? { ...x, is_listed: v.is_listed } : x));
     }
   };
 

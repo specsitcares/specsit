@@ -150,6 +150,33 @@ const ProductDetailPage = () => {
         fetchDetails();
     }, [id]);
 
+    // Push the admin-set (or auto-generated) SEO meta tags into the actual document
+    // head — previously meta_title/meta_description were only ever collected in the
+    // admin form and saved to the DB, never consumed anywhere, so "View Source" on a
+    // product page always showed the static index.html title with no description tag
+    // at all. Restores the prior title/description on cleanup so navigating to
+    // another page (or away from this product) doesn't leave a stale product title.
+    useEffect(() => {
+        if (!product) return;
+        const defaultTitle = document.title;
+        document.title = product.meta_title || `${product.title} | SPECSIT`;
+
+        let descMeta = document.querySelector('meta[name="description"]');
+        if (!descMeta) {
+            descMeta = document.createElement('meta');
+            descMeta.setAttribute('name', 'description');
+            document.head.appendChild(descMeta);
+        }
+        const prevDescription = descMeta.getAttribute('content');
+        descMeta.setAttribute('content', product.meta_description || product.description || '');
+
+        return () => {
+            document.title = defaultTitle;
+            if (prevDescription !== null) descMeta.setAttribute('content', prevDescription);
+            else descMeta.removeAttribute('content');
+        };
+    }, [product]);
+
     const handleApplyCoupon = async () => {
         if (!couponCode.trim()) return;
         setCouponLoading(true);
@@ -246,8 +273,11 @@ const ProductDetailPage = () => {
     //    only keep fields that actually carry a value so the grid never shows blanks ──
     const v = selectedVariantObj || {};
     const productSpecs = [
-        // Admin-configured variant name (variant.name)
-        { label: 'Variant Name', value: v.name },
+        // Admin-configured variant name — the model/API field is `variant_name`
+        // (this used to read the nonexistent `v.name`, so the row was always
+        // dropped by the blank-value filter below and never actually rendered).
+        // Falls back to the resolved color label so it's never blank.
+        { label: 'Variant Name', value: v.variant_name || variantColorLabel(v) || product.title },
         { label: 'SKU', value: v.sku || product.sku },
         { label: 'Brand', value: product.brand_name },
         { label: 'Gender', value: product.gender },
@@ -483,8 +513,19 @@ const ProductDetailPage = () => {
                             <div className="pd-size-row">
                                 <div className="pd-size-btns">
                                     {(variantSizes.length > 0 ? variantSizes : [product.frame_width]).map(size => {
-                                        const sizeStock = stockBySize[size];
-                                        const isOos = sizeStock !== undefined && Number(sizeStock) === 0;
+                                        // stock_by_size entries are objects ({quantity, ...}), so comparing
+                                        // Number(sizeEntry) === 0 (the old check) was always false — a
+                                        // size at 0 stock never actually got disabled. Read .quantity
+                                        // directly, and also respect the per-size is_listed flag (auto-
+                                        // cleared server-side the moment a size's quantity hits zero).
+                                        const sizeEntry = stockBySize[size];
+                                        const sizeQty = sizeEntry && typeof sizeEntry === 'object'
+                                            ? Number(sizeEntry.quantity) || 0
+                                            : Number(sizeEntry) || 0;
+                                        const sizeListed = sizeEntry && typeof sizeEntry === 'object'
+                                            ? sizeEntry.is_listed !== false
+                                            : true;
+                                        const isOos = sizeQty <= 0 || !sizeListed;
                                         return (
                                             <button
                                                 key={size}

@@ -1,6 +1,6 @@
 from rest_framework import serializers # type: ignore
 from decimal import Decimal
-from .models import Category, BrandLogo, FrameProduct, FrameVariant, VariantImage, Collection, LensPackage, Lens, ContactLens, Prescription, UserFace, Review, LensConstraint, MetadataItem
+from .models import Category, BrandLogo, FrameProduct, FrameVariant, VariantImage, Collection, LensPackage, Lens, ContactLens, Prescription, UserFace, Review, LensConstraint, MetadataItem, SEO
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -107,10 +107,23 @@ class VariantSerializer(serializers.ModelSerializer):
                     total += int(entry.get('quantity') or 0)
         return total
 
+    @staticmethod
+    def _auto_unlist_zero_sizes(value):
+        # A size that's down to 0 units auto-clears its own is_listed flag — mirrors
+        # the variant-level auto-unlist in FrameVariant.save(), just at per-size
+        # granularity. Only clears it; a size coming back in stock does NOT
+        # auto-relist (same "admin re-enables manually" rule as the variant level).
+        if isinstance(value, dict):
+            for entry in value.values():
+                if isinstance(entry, dict) and int(entry.get('quantity') or 0) <= 0:
+                    entry['is_listed'] = False
+        return value
+
     def create(self, validated_data):
         # A brand-new variant has no order history yet, so stock is simply whatever
         # the size breakdown adds up to.
         if 'stock_by_size' in validated_data:
+            self._auto_unlist_zero_sizes(validated_data['stock_by_size'])
             validated_data['stock'] = self._sum_stock_by_size(validated_data.get('stock_by_size'))
         return super().create(validated_data)
 
@@ -122,6 +135,7 @@ class VariantSerializer(serializers.ModelSerializer):
         # between page-load and save. This also guarantees stock and stock_by_size
         # can never drift apart via this path.
         if 'stock_by_size' in validated_data:
+            self._auto_unlist_zero_sizes(validated_data['stock_by_size'])
             from django.db import transaction
             with transaction.atomic():
                 # Row-lock before reading `stock` so a concurrent order placement/
@@ -162,6 +176,25 @@ class ProductSerializer(serializers.ModelSerializer):
     # queryset is annotated with `units_sold_90d` (storefront listing / home bundle);
     # defaults to 0 elsewhere. Used to justify bestseller status with real sales data.
     units_sold = serializers.SerializerMethodField()
+    # SEO lives on a separate one-to-one `SEO` row (one per product page, since
+    # variants share the same /product/:id URL) rather than as plain model fields,
+    # so these are read via SerializerMethodField and written back manually in
+    # create()/update() below instead of DRF's normal field validation path.
+    meta_title = serializers.SerializerMethodField()
+    meta_description = serializers.SerializerMethodField()
+    use_meta_template = serializers.SerializerMethodField()
+
+    def get_meta_title(self, obj):
+        seo = getattr(obj, 'seo', None)
+        return seo.meta_title if seo else ''
+
+    def get_meta_description(self, obj):
+        seo = getattr(obj, 'seo', None)
+        return seo.meta_description if seo else ''
+
+    def get_use_meta_template(self, obj):
+        seo = getattr(obj, 'seo', None)
+        return seo.use_meta_template if seo else True
 
     def get_stock_quantity(self, obj):
         return obj.stock_quantity
@@ -258,11 +291,35 @@ class ProductSerializer(serializers.ModelSerializer):
         model = FrameProduct
         fields = '__all__'
 
+    def _sync_seo(self, product):
+        # meta_title/meta_description/use_meta_template aren't validated_data (they're
+        # SerializerMethodFields, read-only by default) — read them off the raw
+        # incoming request data instead. Only touches the SEO row if the caller
+        # actually sent one of these keys, so a plain product save doesn't blow
+        # away an existing SEO override the admin set separately.
+        data = self.initial_data
+        if not hasattr(data, 'get'):
+            return
+        meta_title = data.get('meta_title')
+        meta_description = data.get('meta_description')
+        use_meta_template = data.get('use_meta_template')
+        if meta_title is None and meta_description is None and use_meta_template is None:
+            return
+        seo, _ = SEO.objects.get_or_create(product=product)
+        if meta_title is not None:
+            seo.meta_title = meta_title
+        if meta_description is not None:
+            seo.meta_description = meta_description
+        if use_meta_template is not None:
+            seo.use_meta_template = str(use_meta_template).lower() in ('true', '1', 'yes')
+        seo.save()
+
     def create(self, validated_data):
         variants_data = validated_data.pop('variants', [])
         product = FrameProduct.objects.create(**validated_data)
         for variant_data in variants_data:
             FrameVariant.objects.create(product=product, **variant_data)
+        self._sync_seo(product)
         return product
 
     def update(self, instance, validated_data):
@@ -282,6 +339,7 @@ class ProductSerializer(serializers.ModelSerializer):
                     variant.save()
                 else:
                     FrameVariant.objects.create(product=instance, **v_data)
+        self._sync_seo(instance)
         return instance
 
 class CollectionSerializer(serializers.ModelSerializer):

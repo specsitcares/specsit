@@ -87,9 +87,6 @@ const DEFAULT_VARIANT = () => ({
   cost_price: '',
   discount_percentage: '',
   images: [],
-  meta_title: '',
-  meta_description: '',
-  meta_auto: true,
   frame_material: '',
   frame_weight: '',
   is_listed: true,
@@ -150,6 +147,11 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
     // is_bogo/discount dates have no such shared control: each variant keeps its
     // own value so this form never silently overwrites another variant's promo data.
     taxPercent: '0',
+    // SEO is one-per-product (colorway variants all share the same /product/:id
+    // page — see the SEO model), so these live at the product level, not per-variant.
+    meta_title: '',
+    meta_description: '',
+    meta_auto: true,
   });
 
   // Frame types come from the Lens Constraints so the frame ↔ lens wiring always matches
@@ -251,9 +253,6 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
                 preview: img.image,
                 file: null,
               })),
-              meta_title: v.meta_title || '',
-              meta_description: v.meta_description || '',
-              meta_auto: !v.meta_title,
               expanded: true,
               frame_material: v.frame_material || '',
               frame_weight: v.frame_weight || '',
@@ -303,6 +302,9 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
             // Display default only — each variant's own tax_percent (loaded above)
             // is what actually gets submitted unless the admin edits this field.
             taxPercent: firstVariant.tax_percent != null ? String(firstVariant.tax_percent) : '0',
+            meta_title: p.meta_title || '',
+            meta_description: p.meta_description || '',
+            meta_auto: p.use_meta_template !== false,
           });
         }
       } catch (err) {
@@ -380,6 +382,18 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
     return ordered;
   })();
 
+  // Live preview of the auto-generated meta title/description shown in the "Meta
+  // Tags" section below (and what actually gets submitted when "pre-defined" is
+  // selected) — mirrors the resolution in buildProductPayload so the preview
+  // never drifts from what's saved.
+  const resolveMetaTemplate = (tpl) => (tpl || '')
+    .replace(/{product_name}/g, formData.title_input || formData.title || '')
+    .replace(/{store_name}/g, globalTemplates?.store_name || 'SPECSIT')
+    .replace(/{brand}/g, '')
+    .replace(/{category}/g, '');
+  const resolvedMetaTitle = resolveMetaTemplate(globalTemplates?.meta_title_template || '{product_name} | {store_name}');
+  const resolvedMetaDescription = resolveMetaTemplate(globalTemplates?.meta_description_template || 'Buy {product_name} at {store_name}. Shop premium eyewear online.');
+
   // Derives the eyeglasses/sunglasses distinction from the selected category so
   // VariantsPricingForm and ReviewSubmit show the right labels/fields (e.g. "Frame
   // Color name" + lens color instead of plain "Color name").
@@ -431,6 +445,13 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
     const threshold = parseInt(formData.low_stock_threshold, 10);
     data.append('low_stock_threshold', Number.isNaN(threshold) ? 10 : threshold);
     data.append('is_active', isActive ? 'true' : 'false');
+
+    // SEO — one meta title/description per product page. "pre-defined" fills them
+    // in from the site-wide template (CMS → Site Settings); "edit" lets the admin
+    // override with their own text, falling back to the template if left blank.
+    data.append('meta_title', formData.meta_auto !== false ? resolvedMetaTitle : (formData.meta_title?.trim() || resolvedMetaTitle));
+    data.append('meta_description', formData.meta_auto !== false ? resolvedMetaDescription : (formData.meta_description?.trim() || resolvedMetaDescription));
+    data.append('use_meta_template', formData.meta_auto !== false ? 'true' : 'false');
     return data;
   };
 
@@ -556,17 +577,6 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
         variantPayload.append('uv_protection', v.uv_protection || '');
         variantPayload.append('polarized', v.polarized ? 'true' : 'false');
         variantPayload.append('country_of_origin', v.country_of_origin || '');
-
-        const resolveTemplate = (tpl) => (tpl || '')
-          .replace(/{product_name}/g, formData.title || '')
-          .replace(/{variant_name}/g, v.colorName || 'Default')
-          .replace(/{store_name}/g, globalTemplates?.store_name || 'SPECSIT')
-          .replace(/{brand}/g, '')
-          .replace(/{category}/g, '');
-        const autoMetaTitle = resolveTemplate(globalTemplates?.meta_title_template || '{product_name} | {variant_name} | {store_name}');
-        const autoMetaDesc  = resolveTemplate(globalTemplates?.meta_description_template || 'Buy {product_name} in {variant_name} at {store_name}. Shop premium eyewear online.');
-        variantPayload.append('meta_title', v.meta_auto !== false ? autoMetaTitle : (v.meta_title?.trim() || autoMetaTitle));
-        variantPayload.append('meta_description', v.meta_auto !== false ? autoMetaDesc : (v.meta_description?.trim() || autoMetaDesc));
 
         let variantId;
         // Resume-safe: a variant already saved by a prior (partially-failed) submit
@@ -843,6 +853,75 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
                   </div>
                 </div>
 
+                {/* ── Meta Tags (SEO) — one per product page (/product/:id); the
+                    page itself pulls these into <title>/<meta name="description">. */}
+                <div className="vp-meta-section">
+                  <div className="vp-sub-section-label-row">
+                    <span className="vp-sub-section-label">Meta Tags</span>
+                    <hr className="vp-color-divider" />
+                  </div>
+                  <div className="vp-row">
+                    <div className="form-field">
+                      <label className="form-field-label">Meta title</label>
+                      {formData.meta_auto !== false ? (
+                        <input
+                          readOnly
+                          className="form-field-input"
+                          style={{ color: '#697177', cursor: 'default', background: '#F9FAFB' }}
+                          value={resolvedMetaTitle}
+                        />
+                      ) : (
+                        <input
+                          type="text"
+                          className="form-field-input"
+                          placeholder={resolvedMetaTitle}
+                          value={formData.meta_title || ''}
+                          onChange={(e) => handleInputChange('meta_title', e.target.value)}
+                        />
+                      )}
+                    </div>
+                    <div className="form-field">
+                      <label className="form-field-label">Meta description</label>
+                      {formData.meta_auto !== false ? (
+                        <input
+                          readOnly
+                          className="form-field-input"
+                          style={{ color: '#697177', cursor: 'default', background: '#F9FAFB' }}
+                          value={resolvedMetaDescription}
+                        />
+                      ) : (
+                        <input
+                          type="text"
+                          className="form-field-input"
+                          placeholder="Write here..."
+                          value={formData.meta_description || ''}
+                          onChange={(e) => handleInputChange('meta_description', e.target.value)}
+                        />
+                      )}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleInputChange('meta_auto', true)}
+                      style={{
+                        padding: '4px 12px', borderRadius: '5px', fontSize: '11px', fontWeight: 500, cursor: 'pointer',
+                        border: formData.meta_auto !== false ? '1.5px solid #344054' : '1.5px solid #D0D5DD',
+                        background: '#fff', color: formData.meta_auto !== false ? '#344054' : '#98A2B3',
+                      }}
+                    >pre-defined</button>
+                    <button
+                      type="button"
+                      onClick={() => handleInputChange('meta_auto', false)}
+                      style={{
+                        padding: '4px 12px', borderRadius: '5px', fontSize: '11px', fontWeight: 500, cursor: 'pointer',
+                        border: formData.meta_auto === false ? '1.5px solid #344054' : '1.5px solid #D0D5DD',
+                        background: '#fff', color: formData.meta_auto === false ? '#344054' : '#98A2B3',
+                      }}
+                    >edit</button>
+                  </div>
+                </div>
+
                 <div className="form-sub-section-title">
                   <h3>Frame Specifications</h3>
                   <hr className="title-divider" />
@@ -942,7 +1021,6 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
                   saving={saving}
                   onVariantRemoved={handleVariantRemoved}
                   onImageRemoved={handleImageRemoved}
-                  globalTemplates={globalTemplates}
                   productType={resolvedProductType}
                 />
               </div>
@@ -957,6 +1035,8 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
                 setConfirmed={setConfirmed}
                 errors={errors}
                 productType={resolvedProductType}
+                resolvedMetaTitle={resolvedMetaTitle}
+                resolvedMetaDescription={resolvedMetaDescription}
               />
             )}
           </div>
