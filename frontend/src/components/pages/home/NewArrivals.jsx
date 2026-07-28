@@ -250,15 +250,25 @@ const ProductCard = ({ product, replaceCtx = null, initialVariantId = null }) =>
             )}
             {productVariants.length > 0 && (
               <div className="product-card__colors">
-                {productVariants.slice(0, 4).map((v, vIdx) => (
-                  <span
-                    key={v.id || vIdx}
-                    className={`product-card__color-dot${activeVariantIdx === vIdx ? ' active' : ''}`}
-                    style={{ background: v.color_code || '#ccc' }}
-                    onClick={(e) => handleColorClick(e, vIdx)}
-                    title={v.color || v.frame_color || `Color ${vIdx + 1}`}
-                  />
-                ))}
+                {productVariants.slice(0, 4).map((v, vIdx) => {
+                  // Palette Image and flat Color Code are mutually-exclusive swatch
+                  // methods (admin toggle) — a palette-mode variant's color_code is
+                  // just whatever default was left behind (often black), so showing
+                  // it instead of the actual palette texture is just wrong.
+                  const isPalette = v.color_selection_method === 'palette' && v.palette_image;
+                  const dotStyle = isPalette
+                    ? { backgroundImage: `url(${v.palette_image})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+                    : { background: v.color_code || '#ccc' };
+                  return (
+                    <span
+                      key={v.id || vIdx}
+                      className={`product-card__color-dot${activeVariantIdx === vIdx ? ' active' : ''}`}
+                      style={dotStyle}
+                      onClick={(e) => handleColorClick(e, vIdx)}
+                      title={v.color || v.frame_color || `Color ${vIdx + 1}`}
+                    />
+                  );
+                })}
                 {productVariants.length > 4 && (
                   <span className="product-card__color-more">+{productVariants.length - 4}</span>
                 )}
