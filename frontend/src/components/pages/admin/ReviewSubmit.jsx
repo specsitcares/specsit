@@ -73,7 +73,7 @@ const normalizeSizeEntry = (entry) => {
   return { lens_width: '', bridge_length: '', temple_length: '', quantity: qty };
 };
 
-const ReviewSubmit = ({ formData, categories, brands, confirmed, setConfirmed, errors, productType = 'eyeglasses' }) => {
+const ReviewSubmit = ({ formData, categories, brands, confirmed, setConfirmed, errors, productType = 'eyeglasses', resolvedMetaTitle, resolvedMetaDescription }) => {
   const isSunglasses = productType === 'sunglasses';
 
   const getCategoryName = (id) => categories.find(c => c.id?.toString() === id?.toString())?.name || '—';
@@ -92,19 +92,9 @@ const ReviewSubmit = ({ formData, categories, brands, confirmed, setConfirmed, e
   const toggleVariant = (idx) =>
     setExpandedVariants(prev => ({ ...prev, [idx]: !prev[idx] }));
 
-  const getResolvedMeta = (v) => {
-    const base  = formData.title || '—';
-    const color = v.variantName || v.colorName || 'Default';
-    if (v.meta_auto !== false) {
-      return {
-        title:       `${base} | ${color} | SPECSIT`,
-        description: `Buy ${base} in ${color} at Specsit. Shop premium eyewear online.`,
-      };
-    }
-    return {
-      title:       v.meta_title?.trim()       || `${base} | ${color} | SPECSIT`,
-      description: v.meta_description?.trim() || `Buy ${base} in ${color} at Specsit. Shop premium eyewear online.`,
-    };
+  const resolvedMeta = {
+    title: formData.meta_auto !== false ? resolvedMetaTitle : (formData.meta_title?.trim() || resolvedMetaTitle),
+    description: formData.meta_auto !== false ? resolvedMetaDescription : (formData.meta_description?.trim() || resolvedMetaDescription),
   };
 
   const variants = formData.variants || [];
@@ -160,6 +150,15 @@ const ReviewSubmit = ({ formData, categories, brands, confirmed, setConfirmed, e
             <ReadOnlyToggle checked={formData.is_return_eligible !== false} />
           </div>
         </div>
+
+        {/* META TAGS — one per product page (/product/:id), not per-variant */}
+        <div style={{ marginTop: '16px' }}>
+          <SubLabel>Meta Tags</SubLabel>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <Field label="Meta Title" value={resolvedMeta.title} />
+            <Field label="Meta Description" value={resolvedMeta.description} />
+          </div>
+        </div>
       </div>
 
       {/* ── Inventory Stock table ── */}
@@ -212,7 +211,6 @@ const ReviewSubmit = ({ formData, categories, brands, confirmed, setConfirmed, e
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {variants.map((v, i) => {
             const isExpanded      = expandedVariants[i] !== false;
-            const meta            = getResolvedMeta(v);
             const sizeKeys        = getSizeKeys(v.stock_by_size);
             const activeSize      = activeSizeTabs[i] || sizeKeys[0] || 'Small';
             const activeSizeEntry = normalizeSizeEntry(v.stock_by_size?.[activeSize]);
@@ -258,15 +256,6 @@ const ReviewSubmit = ({ formData, categories, brands, confirmed, setConfirmed, e
                         }
                       />
                       <Field label="Total Stock" value={v.quantity != null ? String(v.quantity) : null} />
-                    </div>
-
-                    {/* META TAGS */}
-                    <div>
-                      <SubLabel>Meta Tags</SubLabel>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                        <Field label="Meta Title"       value={meta.title} />
-                        <Field label="Meta Description" value={meta.description} />
-                      </div>
                     </div>
 
                     {/* STOCK BY SIZE */}

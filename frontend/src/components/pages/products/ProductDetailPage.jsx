@@ -150,6 +150,33 @@ const ProductDetailPage = () => {
         fetchDetails();
     }, [id]);
 
+    // Push the admin-set (or auto-generated) SEO meta tags into the actual document
+    // head — previously meta_title/meta_description were only ever collected in the
+    // admin form and saved to the DB, never consumed anywhere, so "View Source" on a
+    // product page always showed the static index.html title with no description tag
+    // at all. Restores the prior title/description on cleanup so navigating to
+    // another page (or away from this product) doesn't leave a stale product title.
+    useEffect(() => {
+        if (!product) return;
+        const defaultTitle = document.title;
+        document.title = product.meta_title || `${product.title} | SPECSIT`;
+
+        let descMeta = document.querySelector('meta[name="description"]');
+        if (!descMeta) {
+            descMeta = document.createElement('meta');
+            descMeta.setAttribute('name', 'description');
+            document.head.appendChild(descMeta);
+        }
+        const prevDescription = descMeta.getAttribute('content');
+        descMeta.setAttribute('content', product.meta_description || product.description || '');
+
+        return () => {
+            document.title = defaultTitle;
+            if (prevDescription !== null) descMeta.setAttribute('content', prevDescription);
+            else descMeta.removeAttribute('content');
+        };
+    }, [product]);
+
     const handleApplyCoupon = async () => {
         if (!couponCode.trim()) return;
         setCouponLoading(true);

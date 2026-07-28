@@ -333,7 +333,7 @@ class ProductPagination(PageNumberPagination):
 
 
 class ProductViewSet(CachedReadMixin, viewsets.ModelViewSet):
-    queryset = FrameProduct.objects.select_related('category', 'brand', ).prefetch_related('variants', 'reviews').all()
+    queryset = FrameProduct.objects.select_related('category', 'brand', 'seo').prefetch_related('variants', 'reviews').all()
     serializer_class = ProductSerializer
     permission_classes = [IsStaffOrReadOnly]
     pagination_class = ProductPagination
@@ -498,7 +498,7 @@ class ProductViewSet(CachedReadMixin, viewsets.ModelViewSet):
         # Staff performing write operations (update/delete) need access to ALL products
         # regardless of is_active or variant status, otherwise destroy/update will 404.
         if self.request.user.is_staff and self.action in ('retrieve', 'update', 'partial_update', 'destroy'):
-            return Product.objects.select_related('category', 'brand').prefetch_related('variants').all()
+            return Product.objects.select_related('category', 'brand', 'seo').prefetch_related('variants').all()
 
         # Base filter: Always hide inactive products unless explicitly requested by staff
         is_active_filter = params.get('is_active')
@@ -523,7 +523,7 @@ class ProductViewSet(CachedReadMixin, viewsets.ModelViewSet):
         else:
             queryset = queryset.prefetch_related('variants')
 
-        queryset = queryset.select_related('category', 'brand')
+        queryset = queryset.select_related('category', 'brand', 'seo')
 
         # Filter by product_type
         product_type = params.get('product_type')

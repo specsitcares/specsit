@@ -40,12 +40,16 @@ const RSectionTitle = ({ title }) => (
 const RColorDot = ({ code }) =>
     code ? <div style={{ width: 12, height: 12, borderRadius: '50%', background: code, border: '1px solid #E4E7EC', flexShrink: 0 }} /> : null;
 
-const AccessoryReview = ({ p, variants, categories, brands, confirmed, setConfirmed, isSolution, isCase }) => {
+const AccessoryReview = ({ p, variants, categories, brands, confirmed, setConfirmed, isSolution, isCase, resolvedMetaTitle, resolvedMetaDescription }) => {
     const [expanded, setExpanded] = useState({ 0: true });
     const productName = categories.find(c => String(c.id) === String(p.category))?.name || '—';
     const brandName = brands.find(b => String(b.id) === String(p.brand))?.name || '—';
     const isReady = !!(p.title && p.category && variants.length &&
         variants.every(v => v.base_price !== '' && v.base_price != null));
+    const resolvedMeta = {
+        title: p.meta_auto !== false ? resolvedMetaTitle : (p.meta_title?.trim() || resolvedMetaTitle),
+        description: p.meta_auto !== false ? resolvedMetaDescription : (p.meta_description?.trim() || resolvedMetaDescription),
+    };
 
     const td = { padding: '12px 16px', color: '#344054', fontFamily: "'Roboto', sans-serif", fontSize: 13 };
 
@@ -60,6 +64,13 @@ const AccessoryReview = ({ p, variants, categories, brands, confirmed, setConfir
                     <RField label="Manufacturer / Brand" value={brandName} />
                     <RField label="Category" value="Accessories" />
                     <RField label="Tax %" value={p.tax ? String(p.tax) : null} />
+                </div>
+                <div style={{ marginTop: 16 }}>
+                    <RSubLabel>Meta Tags</RSubLabel>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                        <RField label="Meta Title" value={resolvedMeta.title} />
+                        <RField label="Meta Description" value={resolvedMeta.description} />
+                    </div>
                 </div>
             </div>
 
@@ -128,14 +139,6 @@ const AccessoryReview = ({ p, variants, categories, brands, confirmed, setConfir
                                                 ) : null} />
                                             )}
                                             <RField label="Total Stock" value={v.stock !== '' && v.stock != null ? String(v.stock) : null} />
-                                        </div>
-
-                                        <div>
-                                            <RSubLabel>Meta Tags</RSubLabel>
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                                                <RField label="Meta Title" value={v.meta_title} />
-                                                <RField label="Meta Description" value={v.meta_description} />
-                                            </div>
                                         </div>
 
                                         <div>
@@ -216,7 +219,6 @@ const emptyVariant = () => ({
     features: [], featureInput: '',
     warranty: false, warranty_period: '',
     base_price: '', selling_price: '', cost_price: '', discount: '',
-    meta_title: '', meta_description: '',
     images: [], deletedImageIds: [],
 });
 
@@ -229,7 +231,8 @@ const AccessoryForm = () => {
 
     const [categories, setCategories] = useState([]);
     const [brands, setBrands] = useState([]);
-    const [p, setP] = useState({ category: '', title: '', brand: '', tax: '0' });
+    const [p, setP] = useState({ category: '', title: '', brand: '', tax: '0', meta_title: '', meta_description: '', meta_auto: true });
+    const [globalTemplates, setGlobalTemplates] = useState(null);
     const [variants, setVariants] = useState([emptyVariant()]);
     const [loading, setLoading] = useState(isEdit);
     const [saving, setSaving] = useState(false);
@@ -252,6 +255,9 @@ const AccessoryForm = () => {
         apiClient.get('/catalog/brands/?product_type=accessory')
             .then(res => setBrands(res.data.results || res.data || []))
             .catch(() => { });
+        apiClient.get('/cms/site-settings/')
+            .then(res => setGlobalTemplates(res.data))
+            .catch(() => { });
     }, [isEdit, presetCategory]);
 
     useEffect(() => {
@@ -265,6 +271,9 @@ const AccessoryForm = () => {
                     title: prod.title || '',
                     brand: prod.brand ? String(prod.brand) : '',
                     tax: '0',
+                    meta_title: prod.meta_title || '',
+                    meta_description: prod.meta_description || '',
+                    meta_auto: prod.use_meta_template !== false,
                 });
                 const vRes = await apiClient.get(`/catalog/variants/?product_type=accessory&admin=true&page_size=100`);
                 const all = vRes.data.results || vRes.data || [];
@@ -281,7 +290,6 @@ const AccessoryForm = () => {
                         warranty: !!v.is_warranty_eligible, warranty_period: v.warranty_period || '',
                         base_price: v.base_price ?? '', selling_price: v.selling_price ?? '', cost_price: v.cost_price ?? '',
                         discount: v.discount_percent ?? '',
-                        meta_title: v.meta_title || '', meta_description: v.meta_description || '',
                         images: (v.images || []).map(img => ({ id: img.id, preview: img.image })),
                     })));
                 }
@@ -303,6 +311,16 @@ const AccessoryForm = () => {
                 ? ['Cloths']
                 : ['Cases', 'Cloths', 'Solutions'];
     const brandOptions = brands.filter(b => accessoryBrandTypes.includes(b.brand_type));
+
+    // Live preview of the auto-generated meta title/description — one per product
+    // page, same as frames (see ProductDetailsForm.jsx's identical resolveMetaTemplate).
+    const resolveMetaTemplate = (tpl) => (tpl || '')
+        .replace(/{product_name}/g, p.title || '')
+        .replace(/{store_name}/g, globalTemplates?.store_name || 'SPECSIT')
+        .replace(/{brand}/g, '')
+        .replace(/{category}/g, '');
+    const resolvedMetaTitle = resolveMetaTemplate(globalTemplates?.meta_title_template || '{product_name} | {store_name}');
+    const resolvedMetaDescription = resolveMetaTemplate(globalTemplates?.meta_description_template || 'Buy {product_name} at {store_name}. Shop premium eyewear online.');
 
     const setProd = (f, v) => setP(prev => ({ ...prev, [f]: v }));
     const setVar = (key, f, v) => setVariants(prev => prev.map(x => x._key === key ? { ...x, [f]: v } : x));
@@ -358,7 +376,7 @@ const AccessoryForm = () => {
         }
         setVariants(prev => prev.length > 1 ? prev.filter(x => x._key !== key) : prev);
     };
-    const reset = () => { setVariants([emptyVariant()]); setP(prev => ({ ...prev, title: '', brand: '', tax: '0' })); setError(''); };
+    const reset = () => { setVariants([emptyVariant()]); setP(prev => ({ ...prev, title: '', brand: '', tax: '0', meta_title: '', meta_description: '', meta_auto: true })); setError(''); };
 
     /* ── save ── */
     const save = async (publish) => {
@@ -377,8 +395,9 @@ const AccessoryForm = () => {
                 cost_price: parseFloat(v1.cost_price) || 0,
                 discount_percentage: parseFloat(v1.discount) || 0,
                 stock_quantity: totalStock,
-                meta_title: v1.meta_title || '',
-                meta_description: v1.meta_description || '',
+                meta_title: p.meta_auto !== false ? resolvedMetaTitle : (p.meta_title?.trim() || resolvedMetaTitle),
+                meta_description: p.meta_auto !== false ? resolvedMetaDescription : (p.meta_description?.trim() || resolvedMetaDescription),
+                use_meta_template: p.meta_auto !== false,
                 gender: 'Unisex',
                 is_active: publish,
             };
@@ -409,8 +428,6 @@ const AccessoryForm = () => {
                 fd.append('cost_price', parseFloat(v.cost_price) || 0);
                 fd.append('discount_percent', parseFloat(v.discount) || 0);
                 fd.append('tax_percent', parseFloat(p.tax) || 0);
-                fd.append('meta_title', v.meta_title);
-                fd.append('meta_description', v.meta_description);
                 fd.append('is_listed', 'true');
 
                 let variantId = v.id;
@@ -539,6 +556,36 @@ const AccessoryForm = () => {
                                 <div className="form-field">
                                     <label className="form-field-label">Tax <span className="required-star">*</span></label>
                                     <input type="number" min="0" className="form-field-input" value={p.tax} onChange={e => setProd('tax', e.target.value)} placeholder="0%" />
+                                </div>
+                            </div>
+
+                            {/* Meta Tags — one per product page (/product/:id), not per-variant */}
+                            <div className="vp-meta-section">
+                                <div className="vp-sub-section-label-row">
+                                    <span className="vp-sub-section-label">Meta Tags</span>
+                                    <hr className="vp-color-divider" />
+                                </div>
+                                <div className="vp-row">
+                                    <div className="form-field">
+                                        <label className="form-field-label">Meta title</label>
+                                        {p.meta_auto !== false ? (
+                                            <input readOnly className="form-field-input" style={{ color: '#697177', cursor: 'default', background: '#F9FAFB' }} value={resolvedMetaTitle} />
+                                        ) : (
+                                            <input className="form-field-input" placeholder={resolvedMetaTitle} value={p.meta_title || ''} onChange={e => setProd('meta_title', e.target.value)} />
+                                        )}
+                                    </div>
+                                    <div className="form-field">
+                                        <label className="form-field-label">Meta description</label>
+                                        {p.meta_auto !== false ? (
+                                            <input readOnly className="form-field-input" style={{ color: '#697177', cursor: 'default', background: '#F9FAFB' }} value={resolvedMetaDescription} />
+                                        ) : (
+                                            <input className="form-field-input" placeholder="Write here…" value={p.meta_description || ''} onChange={e => setProd('meta_description', e.target.value)} />
+                                        )}
+                                    </div>
+                                </div>
+                                <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                                    <button type="button" onClick={() => setProd('meta_auto', true)} style={{ padding: '4px 12px', borderRadius: 5, fontSize: 11, fontWeight: 500, cursor: 'pointer', border: p.meta_auto !== false ? '1.5px solid #344054' : '1.5px solid #D0D5DD', background: '#fff', color: p.meta_auto !== false ? '#344054' : '#98A2B3' }}>pre-defined</button>
+                                    <button type="button" onClick={() => setProd('meta_auto', false)} style={{ padding: '4px 12px', borderRadius: 5, fontSize: 11, fontWeight: 500, cursor: 'pointer', border: p.meta_auto === false ? '1.5px solid #344054' : '1.5px solid #D0D5DD', background: '#fff', color: p.meta_auto === false ? '#344054' : '#98A2B3' }}>edit</button>
                                 </div>
                             </div>
                         </div>
@@ -780,23 +827,6 @@ const AccessoryForm = () => {
                                                     </div>
                                                 </div>
 
-                                                {/* Meta Tags */}
-                                                <div className="vp-meta-section">
-                                                    <div className="vp-sub-section-label-row">
-                                                        <span className="vp-sub-section-label">Meta Tags</span>
-                                                        <hr className="vp-color-divider" />
-                                                    </div>
-                                                    <div className="vp-row">
-                                                        <div className="form-field">
-                                                            <label className="form-field-label">Meta title</label>
-                                                            <input className="form-field-input" value={v.meta_title} onChange={e => setVar(v._key, 'meta_title', e.target.value)} placeholder={isCase ? 'Ray-Ban Aviator Classic Hard Case' : isSolution ? 'Lens Cleaning Solution 60ml' : 'Premium Microfiber Cleaning Cloth'} />
-                                                        </div>
-                                                        <div className="form-field">
-                                                            <label className="form-field-label">Meta description</label>
-                                                            <input className="form-field-input" value={v.meta_description} onChange={e => setVar(v._key, 'meta_description', e.target.value)} placeholder="Write here…" />
-                                                        </div>
-                                                    </div>
-                                                </div>
                                             </div>
                                         )}
                                     </div>
@@ -805,7 +835,7 @@ const AccessoryForm = () => {
                         </div>
 
                         </>) : (
-                            <AccessoryReview p={p} variants={variants} categories={categories} brands={brands} confirmed={confirmed} setConfirmed={setConfirmed} isSolution={isSolution} isCase={isCase} />
+                            <AccessoryReview p={p} variants={variants} categories={categories} brands={brands} confirmed={confirmed} setConfirmed={setConfirmed} isSolution={isSolution} isCase={isCase} resolvedMetaTitle={resolvedMetaTitle} resolvedMetaDescription={resolvedMetaDescription} />
                         )}
 
                         {error && (

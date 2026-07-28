@@ -136,18 +136,11 @@ class FrameVariant(models.Model):
     is_bogo = models.BooleanField(default=False)
     discount_start_date = models.DateField(null=True, blank=True)
     discount_end_date = models.DateField(null=True, blank=True)
-
-    # SEO
-    meta_title = models.CharField(max_length=255, blank=True)
-    meta_description = models.TextField(blank=True)
-    use_meta_template = models.BooleanField(default=True)
-
+    
     # Storefront visibility — auto-cleared when stock hits 0; manually re-enabled by admin
     is_listed = models.BooleanField(default=True)
     last_restocked = models.DateTimeField(null=True, blank=True)
     last_sold = models.DateTimeField(null=True, blank=True)
-
-
 
     class Meta:
         indexes = [
@@ -173,6 +166,18 @@ class FrameVariant(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self): return f"{self.product.title} [{self.sku}]"
+
+
+class SEO(models.Model):
+    # One product page (/product/:id) → one set of meta tags. Variants share the
+    # same URL (colorway switching is client-side), so SEO lives on the product,
+    # not per-variant.
+    product = models.OneToOneField(FrameProduct, on_delete=models.CASCADE, related_name='seo')
+    meta_title = models.CharField(max_length=255, blank=True)
+    meta_description = models.TextField(blank=True)
+    use_meta_template = models.BooleanField(default=True)
+
+    def __str__(self): return self.meta_title or f"SEO for {self.product_id}"
 
 
 class VariantImage(models.Model):

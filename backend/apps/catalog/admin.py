@@ -5,8 +5,13 @@ import json
 from .models import (
     Category, FrameProduct, BrandLogo, 
     FrameVariant, AccessoriesVariants, VariantImage, Collection, 
-    AccessoriesProduct, LensPackage, Lens, ContactLens, Prescription, UserFace, Review, LensConstraint
+    AccessoriesProduct, SEO, LensPackage, Lens, ContactLens, Prescription, UserFace, Review, LensConstraint
 )
+
+@admin.register(SEO)
+class SEOAdmin(admin.ModelAdmin):
+    list_display = ('product', 'meta_title', 'meta_description', 'use_meta_template')
+    search_fields = ('product__title', 'meta_title')
 
 @admin.register(AccessoriesProduct)
 class AccessoryProductsAdmin(admin.ModelAdmin):
