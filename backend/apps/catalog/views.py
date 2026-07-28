@@ -2,6 +2,7 @@ from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.pagination import PageNumberPagination
 from .models import Category, BrandLogo, FrameProduct, FrameVariant, VariantImage, Collection, LensPackage, Lens, ContactLens, Prescription, UserFace, Review, LensConstraint
 # Short aliases kept for the rest of this module — the catalog was split into
 # FrameProduct/FrameVariant (frames) + AccessoriesProduct/AccessoriesVariants (accessories).
@@ -320,10 +321,22 @@ class BrandViewSet(CachedReadMixin, viewsets.ModelViewSet):
         return qs.order_by('id')
     
 
+class ProductPagination(PageNumberPagination):
+    # The storefront listing page asks for a specific page_size (12, to match its
+    # grid) — the default PageNumberPagination silently ignores that param unless
+    # page_size_query_param is set, which left the frontend's page-count math
+    # (based on 12/page) out of sync with the server's actual 20/page, causing
+    # clicks into "pages" that don't really exist on the backend.
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 48
+
+
 class ProductViewSet(CachedReadMixin, viewsets.ModelViewSet):
     queryset = FrameProduct.objects.select_related('category', 'brand', ).prefetch_related('variants', 'reviews').all()
     serializer_class = ProductSerializer
     permission_classes = [IsStaffOrReadOnly]
+    pagination_class = ProductPagination
     cache_namespace = 'catalog_products'
     cache_ttl = TTL_PRODUCT_LIST
 
@@ -543,6 +556,14 @@ class ProductViewSet(CachedReadMixin, viewsets.ModelViewSet):
             except (ValueError, TypeError):
                 pass
 
+        # New Arrivals — created in the last 30 days. Filtered server-side (not by the
+        # client on whatever page happened to be fetched) so pagination counts stay
+        # accurate and later pages don't silently drop items already counted.
+        if params.get('new_arrivals') in ('1', 'true', 'True'):
+            from django.utils import timezone as _timezone
+            from datetime import timedelta as _timedelta
+            queryset = queryset.filter(created_at__gte=_timezone.now() - _timedelta(days=30))
+
         # Stock status filter — compares the aggregated variant stock to the product's threshold
         stock_status = params.get('stock_status')
         if stock_status == 'in_stock':
@@ -744,10 +765,28 @@ class ProductViewSet(CachedReadMixin, viewsets.ModelViewSet):
             active_products.values_list('gender', flat=True).distinct()
         )
 
+        # Distinct frame colors — admins type a free-text color name + pick a hex
+        # code per variant (VariantsPricingForm.jsx), there's no fixed color enum
+        # anywhere, so this (like shapes above) has to be derived from real listed
+        # variants rather than hardcoded, or any color name an admin actually uses
+        # is permanently unreachable via the storefront's color filter.
+        color_rows = (
+            Variant.objects.filter(product__in=active_products, is_listed=True, stock__gt=0)
+            .exclude(color__exact='')
+            .values_list('color', 'color_code')
+            .order_by('color')
+        )
+        colors_by_name = {}
+        for name, code in color_rows:
+            if name not in colors_by_name:
+                colors_by_name[name] = code or '#CCCCCC'
+        colors = [{'name': name, 'color': code} for name, code in sorted(colors_by_name.items())]
+
         return {
             'brands': brands,
             'shapes': shapes,
             'genders': genders,
+            'colors': colors,
         }
 
     @action(detail=False, methods=['get'], permission_classes=[permissions.IsAdminUser])

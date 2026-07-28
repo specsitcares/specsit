@@ -1,14 +1,14 @@
 import logging
 import uuid
-from rest_framework import viewsets, permissions, status, views, filters, parsers
-from rest_framework.response import Response
-from rest_framework.pagination import PageNumberPagination
-from django.db.models import Sum, Count, Q, F
-from django.utils import timezone
-from django.db import transaction
+from rest_framework import viewsets, permissions, status, views, filters, parsers # type:ignore
+from rest_framework.response import Response # type:ignore
+from rest_framework.pagination import PageNumberPagination # type:ignore
+from django.db.models import Sum, Count, Q, F # type:ignore
+from django.utils import timezone # type:ignore
+from django.db import transaction # type:ignore
 import time
 from datetime import timedelta, datetime
-from .models import Order, OrderItem, Cart, Wishlist, Coupon, Shipment, LiveSession, SiteVisit, OrderTracking, Payment, ReturnRequest, WarrantyClaim
+from .models import Order, OrderItem, Cart, Wishlist, Coupon, Shipment, LiveSession, SiteVisit, OrderTracking, Payment, ReturnRequest, WarrantyClaim, FrameVariant, FrameProduct
 from apps.catalog.models import Prescription, FrameVariant
 from apps.core_utils.idempotency import idempotent_endpoint
 from .serializers import (
@@ -20,8 +20,8 @@ from .serializers import (
 )
 
 import csv
-from django.http import HttpResponse
-from rest_framework.decorators import action
+from django.http import HttpResponse # type:ignore
+from rest_framework.decorators import action  # type:ignore
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +50,7 @@ class OrderViewSet(viewsets.ModelViewSet):
         return None
 
     def get_queryset(self):
-        from django.db.models import Prefetch
+        from django.db.models import Prefetch # type:ignore
         from apps.catalog.models import Review
 
         # Pre-build the review prefetch scoped to this user so has_review/review_rating
@@ -130,7 +130,7 @@ class OrderViewSet(viewsets.ModelViewSet):
         # Hide online orders that were never paid — payment failed at the gateway or the
         # customer abandoned it. These should not appear as placed orders anywhere.
         # COD orders legitimately stay payment-pending, so they are not excluded.
-        from django.db.models import Q
+        from django.db.models import Q # type:ignore
         ONLINE_METHODS = ['complete_online', 'partial_payment', 'ONLINE', 'online']
         qs = qs.exclude(Q(payment_status__in=['pending', 'failed']) & Q(payment_method__in=ONLINE_METHODS))
 
@@ -352,9 +352,9 @@ class OrderViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def analytics(self, request):
-        from django.utils import timezone
+        from django.utils import timezone # type:ignore
         from datetime import timedelta
-        from django.db.models import Count, Q
+        from django.db.models import Count, Q # type:ignore
 
         # 1. Base Queryset — mirrors get_queryset() filtering (no prefetch needed for counts)
         qs = Order.objects.all()
@@ -506,8 +506,8 @@ class OrderViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         self._invalidate_order_cache()
-        from django.db import transaction
-        from rest_framework.exceptions import ValidationError
+        from django.db import transaction #type:ignore
+        from rest_framework.exceptions import ValidationError #type:ignore
         from apps.catalog.core.models import MetadataItem
         from apps.catalog.models import FrameVariant as Variant, Lens
 
@@ -687,7 +687,7 @@ class OrderViewSet(viewsets.ModelViewSet):
                 if mapped == 'cancelled' and old_order_status != 'cancelled':
                     # Only restore stock when transitioning INTO cancelled (old_order_status checked
                     # before save to prevent the always-false guard that was here previously)
-                    from django.db import transaction
+                    from django.db import transaction # type:ignore
                     with transaction.atomic():
                         # Row-lock the variants (and their products) being restocked so this
                         # can't race with a concurrent admin stock edit or another order's
@@ -695,13 +695,13 @@ class OrderViewSet(viewsets.ModelViewSet):
                         # matches the select_for_update() order placement already uses).
                         variant_ids = [item.variant_id for item in instance.items.all() if item.variant_id]
                         locked_variants = {
-                            v.id: v for v in Variant.objects.select_for_update()
+                            v.id: v for v in FrameVariant.objects.select_for_update()
                                 .filter(id__in=variant_ids).select_related('product')
                         }
                         locked_products = {}
                         for v in locked_variants.values():
                             if v.product_id not in locked_products:
-                                locked_products[v.product_id] = Product.objects.select_for_update().get(pk=v.product_id)
+                                locked_products[v.product_id] = FrameProduct.objects.select_for_update().get(pk=v.product_id)
 
                         for item in instance.items.all():
                             variant = locked_variants.get(item.variant_id)
@@ -1734,7 +1734,8 @@ class RecordLiveActivityView(views.APIView):
             return Response({'error': 'Missing session_id'}, status=400)
 
         # 1. Update LiveSession (live-dashboard counter)
-        from django.db.utils import OperationalError
+        from django.db.utils import OperationalError # type:ignore
+
         for attempt in range(3):
             try:
                 LiveSession.objects.update_or_create(
@@ -1780,8 +1781,10 @@ class PrescriptionUploadView(views.APIView):
 
     def post(self, request):
         from apps.catalog.core.models import MetadataGroup, MetadataItem as MI
-        from django.db import transaction
-        from rest_framework.exceptions import ValidationError
+        from django.db import transaction # type:ignore
+
+        from rest_framework.exceptions import ValidationError # type:ignore
+
 
         order_id = request.data.get('order_id')
         prescription_file = request.FILES.get('prescription_file')
@@ -2082,12 +2085,14 @@ class DeliveryCheckView(views.APIView):
                 'message': "We don't deliver to this area yet.",
             })
 
+from django.views import View # type:ignore
 
-from django.views import View
-from django.http import StreamingHttpResponse, JsonResponse
+from django.http import StreamingHttpResponse, JsonResponse # type:ignore
+
 import queue
 import json
-from rest_framework.authtoken.models import Token
+from rest_framework.authtoken.models import Token # type:ignore
+
 from .analytics_events import register_queue, unregister_queue
 
 class AnalyticsLiveStreamView(View):

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import apiClient from '../../../services/api';
 import { ProductCard } from '../home/NewArrivals';
@@ -8,35 +8,27 @@ import '../../../styles/products.css';
 import '../../../styles/ProductCard.css';
 
 /* ── Filter option definitions (Figma node 153:2160) ── */
-const PRICE_RANGES = {
-    'Under ₹2000': { min: 0, max: 2000 },
-    '₹2000 - ₹5000': { min: 2000, max: 5000 },
-    '₹5000 - ₹10000': { min: 5000, max: 10000 },
-    'Over ₹10000': { min: 10000, max: null },
-};
+// Price Range is a continuous drag slider (not discrete bins) — bounds match
+// the "no filter applied" ceiling used everywhere else on this page.
+const PRICE_MIN = 0;
+const PRICE_MAX = 50000;
 
 const FILTER_OPTIONS = {
-    // Frame Shape is intentionally NOT hardcoded here — it's fetched from the same
-    // CMS-driven list the admin form uses (see the frameShapeOptions effect below),
-    // since the old hardcoded list ('Round', 'Aviator', 'Wayfarer') didn't match any
-    // real shape ever selectable in the admin, so those options always matched zero
-    // products, while real shapes (circle, pentagon, hexagon) weren't offered at all.
-    'Frame Type': ['Full Rim', 'Half Rim', 'Rimless'],
-    'Frame Color': [
-        { name: 'Black', color: '#000000' },
-        { name: 'Brown', color: '#78350F' },
-        { name: 'Yellow', color: '#EAB308' },
-        { name: 'White', color: '#F1F1F1' },
-        { name: 'Navy', color: '#1E3A8A' },
-        { name: 'Purple', color: '#68408D' },
-        { name: 'Grey', color: '#71717A' }
-    ],
+    // Frame Shape, Frame Type and Frame Color are intentionally NOT hardcoded here
+    // — they're fetched from real product/admin data (see the frameShapeOptions/
+    // frameTypeOptions/frameColorOptions effects below), since a hardcoded list
+    // here can silently drift from what the admin can actually set (as happened
+    // before: 'Round'/'Aviator'/'Wayfarer' matched zero real products, custom
+    // admin-added frame types had no matching checkbox, and admins can type any
+    // color name at all — there's no fixed color enum anywhere to hardcode from).
     // Matches the only sizes actually used anywhere else in the app (admin Stock
     // Update rows) — 'Extra Small'/'Extra Large' never existed in real data.
     'Size / Width': ['Small', 'Medium', 'Large'],
-    'Material': ['Acetate', 'Titanium', 'Stainless Steel', 'TR90', 'Wood', 'Metal'],
+    // Matches the admin's frame-material dropdown (VariantsPricingForm.jsx) exactly
+    // — 'Carbon Fiber' and 'Nylon' are real, admin-selectable values that were
+    // previously missing here, making products set to either permanently unfilterable.
+    'Material': ['Acetate', 'Titanium', 'Stainless Steel', 'TR90', 'Wood', 'Metal', 'Carbon Fiber', 'Nylon'],
     'Gender': ['Men', 'Women', 'Unisex', 'Kids'],
-    'Price Range': Object.keys(PRICE_RANGES),
     'Discount': ['10% or more', '20% or more', '30% or more', '50% or more'],
     // 'Gradient'/'Mirrored' removed — there's no field anywhere in the schema that
     // could back them (only polarized + uv_protection exist on the variant).
@@ -52,6 +44,14 @@ const FILTER_OPTIONS = {
 const ProductListingPage = () => {
     const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
+
+    // Navbar category slug from the URL, e.g. "eyeglasses", "sunglasses", "contact-lens".
+    // Read up front (not just where it's used lower down) so the effects below can
+    // skip their fetches entirely when this page is only going to hand off to
+    // ContactLensListingPage — those fetches used to run unconditionally on every
+    // render, even though contact-lens routes throw the results away.
+    const categorySlug = searchParams.get('category') || '';
+    const isContactLensRoute = /contact/.test(categorySlug);
 
     // Replacement (exchange) mode — arrived here from the Return & Exchange flow.
     // Only items priced at/above the original may be chosen, and each card shows a Replace button.
@@ -84,15 +84,22 @@ const ProductListingPage = () => {
     // Saved bank account is a prerequisite for any return/exchange — if it's missing,
     // send the customer to add one first, then return to this exact page.
     const [bankInfo, setBankInfo] = useState(null);
+    // Distinguishes "we checked and there's really no bank account" from "the check
+    // itself failed" (e.g. a dropped request) — these used to look identical (both
+    // just left hasBank false), so a transient network error showed the exact same
+    // "add a bank account" message as actually having none, with no way to retry.
+    const [bankInfoError, setBankInfoError] = useState(false);
+    const [bankInfoAttempt, setBankInfoAttempt] = useState(0);
     useEffect(() => {
         if (!replaceMode) return;
+        setBankInfoError(false);
         apiClient.get('/accounts/me/').then(r => {
             setBankInfo(r.data);
             if (!r.data.has_bank_account) {
                 navigate(`/account-info?next=${encodeURIComponent(window.location.pathname + window.location.search)}&reason=exchange`, { replace: true });
             }
-        }).catch(() => {});
-    }, [replaceMode]);
+        }).catch(() => setBankInfoError(true));
+    }, [replaceMode, bankInfoAttempt]);
     const hasBank = !!bankInfo?.has_bank_account;
 
     // Collect the price difference via Razorpay (mock-aware). Resolves with the full proof.
@@ -115,6 +122,7 @@ const ProductListingPage = () => {
     const confirmReplace = async () => {
         if (!replaceModal) return;
         if (!hasBank) { setReplaceError('Add a bank account in your profile before exchanging.'); return; }
+        if (!replaceModal.variant?.id) { setReplaceError('This item has no purchasable option available. Please pick another.'); return; }
         const diff = Math.max(0, replaceModal.price - replaceMinPrice);
         setReplaceError('');
         setReplaceStage('processing');
@@ -154,10 +162,54 @@ const ProductListingPage = () => {
     const [selectedCategory, setSelectedCategory] = useState('');
     const [productType, setProductType] = useState('frame');
     const [selectedBrand, setSelectedBrand] = useState(searchParams.get('brand_name') || '');
-    const [maxPrice, setMaxPrice] = useState(searchParams.get('max_price') || 50000);
+    // NOTE: in replace/exchange mode the URL's `min_price` is the exchange floor
+    // price (see replaceMinPrice above), not a price filter the shopper set — so
+    // the slider must not seed itself from it there, or the exchange floor shows
+    // up as if the customer had manually dragged the price filter.
+    const [minPrice, setMinPrice] = useState(() => replaceMode ? PRICE_MIN : (Number(searchParams.get('min_price')) || PRICE_MIN));
+    const [maxPrice, setMaxPrice] = useState(Number(searchParams.get('max_price')) || PRICE_MAX);
+    // Slider handles update this instantly for a live-dragging feel; it's
+    // debounced into minPrice/maxPrice (which actually triggers the product
+    // fetch) so a fast drag doesn't fire a request per pixel.
+    const [priceDraft, setPriceDraft] = useState([minPrice, maxPrice]);
+    // Tracks which handle was most recently grabbed, so it renders above the other
+    // one. Two overlaid range inputs is the standard way to build a dual-handle
+    // slider, but a static z-index only helps at the extreme ends of the track —
+    // if both handles are dragged close together anywhere in the middle, whichever
+    // one has the lower fixed z-index becomes impossible to grab again.
+    const [activePriceThumb, setActivePriceThumb] = useState(null);
+    const priceDebounceRef = useRef(null);
+    const cancelPendingPriceCommit = () => {
+        if (priceDebounceRef.current) { clearTimeout(priceDebounceRef.current); priceDebounceRef.current = null; }
+    };
+    const updatePriceDraft = (next) => {
+        setPriceDraft(next);
+        cancelPendingPriceCommit();
+        priceDebounceRef.current = setTimeout(() => {
+            setMinPrice(next[0]);
+            setMaxPrice(next[1]);
+        }, 200);
+    };
+    // Commits a price range immediately (used by Clear/pill-remove) — must cancel
+    // any pending drag-debounce first, otherwise a drag that was mid-flight when
+    // the user hit "Clear all" would silently overwrite the clear a moment later.
+    const commitPriceRange = (min, max) => {
+        cancelPendingPriceCommit();
+        setMinPrice(min);
+        setMaxPrice(max);
+        setPriceDraft([min, max]);
+    };
+    useEffect(() => cancelPendingPriceCommit, []);
     const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'newest');
     const [brands, setBrands] = useState([]);
     const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
+    // The navbar's search box always `navigate()`s to /products?search=... — when
+    // this page is already mounted (searching again while browsing results), that
+    // only updates `searchParams`, not this local copy, so a second search from
+    // the navbar was silently ignored. Keep it in sync with the URL.
+    useEffect(() => {
+        setSearchQuery(searchParams.get('search') || '');
+    }, [searchParams]);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalCount, setTotalCount] = useState(0);
@@ -172,6 +224,7 @@ const ProductListingPage = () => {
     // real admin option (and hid real ones that were).
     const [frameShapeOptions, setFrameShapeOptions] = useState([]);
     useEffect(() => {
+        if (isContactLensRoute) return; // this render only hands off to ContactLensListingPage
         apiClient.get('/cms/section-cards/?section=explore_frame_styles')
             .then(res => {
                 const names = (res.data.results || res.data || [])
@@ -181,7 +234,36 @@ const ProductListingPage = () => {
                 setFrameShapeOptions(names);
             })
             .catch(() => {});
-    }, []);
+    }, [isContactLensRoute]);
+
+    // Frame types come from the same Lens Constraints list the admin product form
+    // reads/writes (ProductDetailsForm.jsx) — admins can add custom frame types
+    // there beyond Full/Half Rim/Rimless, so a hardcoded list here would make any
+    // custom type permanently unfilterable on the storefront.
+    const [frameTypeOptions, setFrameTypeOptions] = useState(['Full Rim', 'Half Rim', 'Rimless']);
+    useEffect(() => {
+        if (isContactLensRoute) return;
+        apiClient.get('/catalog/lens-constraints/')
+            .then(res => {
+                const names = (res.data.results || res.data || []).map(c => c.name).filter(Boolean);
+                if (names.length) setFrameTypeOptions(names);
+            })
+            .catch(() => {});
+    }, [isContactLensRoute]);
+
+    // Frame colors have no fixed enum anywhere — admins type any free-text color
+    // name + pick any hex per variant (VariantsPricingForm.jsx). Derived from real
+    // listed variants (same `nav-options` endpoint the navbar uses) instead of a
+    // hardcoded swatch list, whose names/hexes were disconnected from what admins
+    // actually enter and made most real colors (e.g. "Tortoise", "Rose Gold")
+    // permanently unfilterable.
+    const [frameColorOptions, setFrameColorOptions] = useState([]);
+    useEffect(() => {
+        if (isContactLensRoute) return;
+        apiClient.get(`/catalog/products/nav-options/?product_type=${productType}`)
+            .then(res => setFrameColorOptions(res.data?.colors || []))
+            .catch(() => {});
+    }, [isContactLensRoute, productType]);
 
     // Extended filter states
     const [selectedFilters, setSelectedFilters] = useState({});
@@ -214,12 +296,14 @@ const ProductListingPage = () => {
 
     // Load categories once and frame-specific brands when needed.
     useEffect(() => {
+        if (isContactLensRoute) return;
         apiClient.get('/catalog/categories/')
             .then(res => setCategories(res.data.results || res.data))
             .catch(err => console.error('Error loading categories:', err));
-    }, []);
+    }, [isContactLensRoute]);
 
     useEffect(() => {
+        if (isContactLensRoute) return;
         const brandUrl = productType === 'frame'
             ? '/catalog/brands/?brand_type=Frame'
             : '/catalog/brands/';
@@ -227,16 +311,13 @@ const ProductListingPage = () => {
         apiClient.get(brandUrl)
             .then(res => setBrands(res.data.results || res.data))
             .catch(err => console.error('Error loading brands:', err));
-    }, [productType]);
+    }, [productType, isContactLensRoute]);
 
     useEffect(() => {
         if (selectedBrand && brands.length > 0 && !brands.some(b => b.name === selectedBrand)) {
             setSelectedBrand('');
         }
     }, [brands, selectedBrand]);
-
-    // Navbar category slug from the URL, e.g. "eyeglasses", "sunglasses", "contact-lens".
-    const categorySlug = searchParams.get('category') || '';
 
     // Resolve the URL category slug → an actual category id (tolerant of casing,
     // hyphens and minor name typos) and derive the product type. Runs on every
@@ -246,11 +327,20 @@ const ProductListingPage = () => {
         const raw = norm(categorySlug);
         setProductType(raw.startsWith('contact') ? 'lens' : raw.startsWith('accessor') ? 'accessory' : 'frame');
         if (!raw) { setSelectedCategory(''); return; }
-        const match = categories.find(c => {
-            const n = norm(c.name);
-            return n === raw || n.startsWith(raw) || raw.startsWith(n);
-        });
-        setSelectedCategory(match ? String(match.id) : '');
+        // Prefer an exact name match. Only fall back to prefix matching (and even
+        // then, only for names of at least 3 chars) so a slug like "sunglasses"
+        // can't accidentally match a short/unrelated category name like "Sun" —
+        // and among several prefix matches, take the longest (most specific) one
+        // instead of whichever happens to come first in the list.
+        const exact = categories.find(c => norm(c.name) === raw);
+        if (exact) { setSelectedCategory(String(exact.id)); return; }
+        const prefixMatches = categories
+            .filter(c => {
+                const n = norm(c.name);
+                return n.length >= 3 && raw.length >= 3 && (n.startsWith(raw) || raw.startsWith(n));
+            })
+            .sort((a, b) => norm(b.name).length - norm(a.name).length);
+        setSelectedCategory(prefixMatches[0] ? String(prefixMatches[0].id) : '');
     }, [categorySlug, categories]);
 
     // Human-readable page title from the slug, e.g. "contact-lens" → "Contact Lens".
@@ -264,10 +354,11 @@ const ProductListingPage = () => {
     useEffect(() => {
         setCurrentPage(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedCategory, selectedBrand, searchQuery, maxPrice, sortBy, filtersKey]);
+    }, [selectedCategory, selectedBrand, searchQuery, minPrice, maxPrice, sortBy, filtersKey]);
 
     // Load products whenever any filter or page changes
     useEffect(() => {
+        if (isContactLensRoute) return; // this render only hands off to ContactLensListingPage
         setLoading(true);
         setError(null);
 
@@ -278,20 +369,14 @@ const ProductListingPage = () => {
         if (selectedBrand) params.append('brand_name', selectedBrand);
         if (searchQuery) params.append('search', searchQuery);
 
-        // Price Range → min_price / max_price (envelope of selected ranges)
-        const priceRanges = (selectedFilters['Price Range'] || []).map(l => PRICE_RANGES[l]).filter(Boolean);
+        // Price Range slider → min_price / max_price
         if (replaceMode && replaceMinPrice > 0) {
             // Exchange rule: replacement must cost the same as or more than the original.
-            const rangeMin = priceRanges.length > 0 ? Math.min(...priceRanges.map(r => r.min)) : 0;
-            params.append('min_price', Math.max(replaceMinPrice, rangeMin));
-            if (priceRanges.length > 0 && priceRanges.every(r => r.max != null)) {
-                params.append('max_price', Math.max(...priceRanges.map(r => r.max)));
-            }
-        } else if (priceRanges.length > 0) {
-            params.append('min_price', Math.min(...priceRanges.map(r => r.min)));
-            if (priceRanges.every(r => r.max != null)) {
-                params.append('max_price', Math.max(...priceRanges.map(r => r.max)));
-            }
+            params.append('min_price', Math.max(replaceMinPrice, minPrice));
+            if (maxPrice < PRICE_MAX) params.append('max_price', maxPrice);
+        } else {
+            if (minPrice > PRICE_MIN) params.append('min_price', minPrice);
+            if (maxPrice < PRICE_MAX) params.append('max_price', maxPrice);
         }
 
         // Server-side sorting
@@ -344,6 +429,12 @@ const ProductListingPage = () => {
         } else if (avail.includes('Out of Stock') && !avail.includes('In Stock')) {
             params.append('stock_status', 'out_of_stock');
         }
+        // New Arrivals — filtered server-side so the count/pagination this page
+        // is built from already reflects it (a client-side post-filter on just the
+        // current page used to desync the pagination controls from what was shown).
+        if (avail.includes('New Arrivals')) {
+            params.append('new_arrivals', '1');
+        }
 
         // Discount → discount_min (use the most inclusive / lowest selected threshold)
         const discountNums = (selectedFilters['Discount'] || [])
@@ -363,13 +454,6 @@ const ProductListingPage = () => {
                 setTotalCount(count);
                 setTotalPages(Math.ceil(count / 12));
 
-                // New Arrivals: products created in the last 30 days
-                if (avail.includes('New Arrivals')) {
-                    const cutoff = new Date();
-                    cutoff.setDate(cutoff.getDate() - 30);
-                    data = data.filter(p => new Date(p.created_at) >= cutoff);
-                }
-
                 // Best Sellers: admin-flagged AND justified by real sales in the last
                 // 90 days (units_sold is annotated server-side). Keeps the section from
                 // showing products that have never actually sold.
@@ -385,7 +469,7 @@ const ProductListingPage = () => {
                 setLoading(false);
             });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedCategory, productType, selectedBrand, searchQuery, maxPrice, currentPage, sortBy, filtersKey]);
+    }, [selectedCategory, productType, selectedBrand, searchQuery, minPrice, maxPrice, currentPage, sortBy, filtersKey, isContactLensRoute]);
 
     // On-scroll reveal for product cards
     useEffect(() => {
@@ -409,7 +493,7 @@ const ProductListingPage = () => {
     const clearFilters = () => {
         setSelectedCategory('');
         setSelectedBrand('');
-        setMaxPrice(50000);
+        commitPriceRange(PRICE_MIN, PRICE_MAX);
         setSortBy('newest');
         setSearchQuery('');
         setSelectedFilters({});
@@ -435,17 +519,27 @@ const ProductListingPage = () => {
                 onRemove: () => setSelectedBrand(''),
             });
         }
-        if (maxPrice < 50000) {
+        if (minPrice > PRICE_MIN || maxPrice < PRICE_MAX) {
             pills.push({
-                label: `₹0 - ₹${Number(maxPrice).toLocaleString('en-IN')}`,
-                onRemove: () => setMaxPrice(50000),
+                label: `₹${Number(minPrice).toLocaleString('en-IN')} - ₹${Number(maxPrice).toLocaleString('en-IN')}`,
+                onRemove: () => commitPriceRange(PRICE_MIN, PRICE_MAX),
             });
         }
-        // Extended filters
+        // Extended filters — most groups store the human-readable string itself,
+        // but Rating stores the raw numeric threshold and Frame Shape stores the
+        // CMS's as-typed casing, so a plain `option` label would show a bare "4"
+        // or an inconsistently-cased shape name. Format per group instead.
         Object.entries(selectedFilters).forEach(([group, options]) => {
             options.forEach(option => {
+                let label = option;
+                if (group === 'Rating') {
+                    const found = FILTER_OPTIONS['Rating'].find(r => r.value === option);
+                    label = found ? found.label : `${option}★ & above`;
+                } else if (group === 'Frame Shape' && typeof option === 'string') {
+                    label = option.replace(/\b\w/g, m => m.toUpperCase());
+                }
                 pills.push({
-                    label: option,
+                    label,
                     onRemove: () => removeFilterOption(group, option),
                 });
             });
@@ -565,7 +659,7 @@ const ProductListingPage = () => {
                                 </div>
                                 {expandedGroups['Frame Type'] && (
                                     <div className="filter-options">
-                                        {FILTER_OPTIONS['Frame Type'].map(opt => (
+                                        {frameTypeOptions.map(opt => (
                                             <label key={opt} className="filter-checkbox-item">
                                                 <input
                                                     type="checkbox"
@@ -588,19 +682,23 @@ const ProductListingPage = () => {
                                     </svg>
                                 </div>
                                 {expandedGroups['Frame Color'] && (
-                                    <div className="filter-swatch-grid">
-                                        {FILTER_OPTIONS['Frame Color'].map(opt => (
-                                            <button
-                                                key={opt.name}
-                                                className={`filter-color-swatch ${selectedFilters['Frame Color']?.includes(opt.name) ? 'active' : ''}`}
-                                                style={{ backgroundColor: opt.color }}
-                                                onClick={() => toggleFilterOption('Frame Color', opt.name)}
-                                                title={opt.name}
-                                            >
-                                                <span className="sr-only">{opt.name}</span>
-                                            </button>
-                                        ))}
-                                    </div>
+                                    frameColorOptions.length === 0 ? (
+                                        <p className="filter-empty-note">No colors available yet.</p>
+                                    ) : (
+                                        <div className="filter-swatch-grid">
+                                            {frameColorOptions.map(opt => (
+                                                <button
+                                                    key={opt.name}
+                                                    className={`filter-color-swatch ${selectedFilters['Frame Color']?.includes(opt.name) ? 'active' : ''}`}
+                                                    style={{ backgroundColor: opt.color }}
+                                                    onClick={() => toggleFilterOption('Frame Color', opt.name)}
+                                                    title={opt.name}
+                                                >
+                                                    <span className="sr-only">{opt.name}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )
                                 )}
                             </div>
 
@@ -708,17 +806,81 @@ const ProductListingPage = () => {
                                     </svg>
                                 </div>
                                 {expandedGroups['Price Range'] && (
-                                    <div className="filter-options">
-                                        {FILTER_OPTIONS['Price Range'].map(opt => (
-                                            <label key={opt} className="filter-checkbox-item">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={(selectedFilters['Price Range'] || []).includes(opt)}
-                                                    onChange={() => toggleFilterOption('Price Range', opt)}
+                                    <div className="price-range-filter">
+                                        <div className="price-range-values">
+                                            <span className="price-range-value-input">
+                                                ₹<input
+                                                    type="number"
+                                                    min={PRICE_MIN}
+                                                    max={priceDraft[1] - 100}
+                                                    step={100}
+                                                    value={priceDraft[0]}
+                                                    onChange={(e) => {
+                                                        const raw = Number(e.target.value);
+                                                        if (isNaN(raw)) return;
+                                                        const val = Math.min(Math.max(raw, PRICE_MIN), priceDraft[1] - 100);
+                                                        updatePriceDraft([val, priceDraft[1]]);
+                                                    }}
+                                                    aria-label="Minimum price"
                                                 />
-                                                <span>{opt}</span>
-                                            </label>
-                                        ))}
+                                            </span>
+                                            <span className="price-range-value-input">
+                                                ₹<input
+                                                    type="number"
+                                                    min={priceDraft[0] + 100}
+                                                    max={PRICE_MAX}
+                                                    step={100}
+                                                    value={priceDraft[1]}
+                                                    onChange={(e) => {
+                                                        const raw = Number(e.target.value);
+                                                        if (isNaN(raw)) return;
+                                                        const val = Math.max(Math.min(raw, PRICE_MAX), priceDraft[0] + 100);
+                                                        updatePriceDraft([priceDraft[0], val]);
+                                                    }}
+                                                    aria-label="Maximum price"
+                                                />
+                                            </span>
+                                        </div>
+                                        <div className="price-range-slider">
+                                            <div className="price-range-track" />
+                                            <div
+                                                className="price-range-fill"
+                                                style={{
+                                                    left: `${((priceDraft[0] - PRICE_MIN) / (PRICE_MAX - PRICE_MIN)) * 100}%`,
+                                                    right: `${100 - ((priceDraft[1] - PRICE_MIN) / (PRICE_MAX - PRICE_MIN)) * 100}%`,
+                                                }}
+                                            />
+                                            <input
+                                                type="range"
+                                                className="price-range-input price-range-input--min"
+                                                min={PRICE_MIN}
+                                                max={PRICE_MAX}
+                                                step={100}
+                                                value={priceDraft[0]}
+                                                style={{ zIndex: activePriceThumb === 'min' ? 5 : 3 }}
+                                                onPointerDown={() => setActivePriceThumb('min')}
+                                                onChange={(e) => {
+                                                    const val = Math.min(Number(e.target.value), priceDraft[1] - 100);
+                                                    updatePriceDraft([val, priceDraft[1]]);
+                                                }}
+                                                aria-label="Minimum price"
+                                            />
+                                            <input
+                                                type="range"
+                                                className="price-range-input price-range-input--max"
+                                                min={PRICE_MIN}
+                                                max={PRICE_MAX}
+                                                step={100}
+                                                value={priceDraft[1]}
+                                                style={{ zIndex: activePriceThumb === 'min' ? 4 : 5 }}
+                                                onPointerDown={() => setActivePriceThumb('max')}
+                                                onChange={(e) => {
+                                                    const val = Math.max(Number(e.target.value), priceDraft[0] + 100);
+                                                    updatePriceDraft([priceDraft[0], val]);
+                                                }}
+                                                aria-label="Maximum price"
+                                            />
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -1034,7 +1196,16 @@ const ProductListingPage = () => {
                                         </div>
 
                                         {/* Bank account is required for any return/exchange */}
-                                        {!hasBank && (
+                                        {!hasBank && bankInfoError && (
+                                            <div style={{ marginTop: 16, background: '#FEF3F2', border: '1px solid #FECDCA', borderRadius: 12, padding: '12px 14px' }}>
+                                                <div style={{ fontSize: 13, fontWeight: 700, color: '#B42318' }}>Couldn't check your bank account</div>
+                                                <div style={{ fontSize: 12, color: '#B42318', marginTop: 2, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                                    <span>Something went wrong loading your account details.</span>
+                                                    <button onClick={() => setBankInfoAttempt(n => n + 1)} style={{ background: 'none', border: 'none', padding: 0, color: '#68408D', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>Try again</button>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {!hasBank && !bankInfoError && (
                                             <div style={{ marginTop: 16, background: '#FFFAEB', border: '1px solid #FEDF89', borderRadius: 12, padding: '12px 14px' }}>
                                                 <div style={{ fontSize: 13, fontWeight: 700, color: '#B54708' }}>Add a bank account to continue</div>
                                                 <div style={{ fontSize: 12, color: '#B54708', marginTop: 2 }}>Returns &amp; exchanges need a bank account on file (used for refunds). <Link to="/account-info" style={{ color: '#68408D', fontWeight: 700 }}>Add bank account →</Link></div>
