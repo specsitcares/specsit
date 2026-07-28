@@ -8,8 +8,8 @@ from django.utils import timezone # type:ignore
 from django.db import transaction # type:ignore
 import time
 from datetime import timedelta, datetime
-from .models import Order, OrderItem, Cart, Wishlist, Coupon, Shipment, LiveSession, SiteVisit, OrderTracking, Payment, ReturnRequest, WarrantyClaim, FrameVariant, FrameProduct
-from apps.catalog.models import Prescription, FrameVariant
+from .models import Order, OrderItem, Cart, Wishlist, Coupon, Shipment, LiveSession, SiteVisit, OrderTracking, Payment, ReturnRequest, WarrantyClaim
+from apps.catalog.models import Prescription, FrameVariant, FrameProduct
 from apps.core_utils.idempotency import idempotent_endpoint
 from .serializers import (
     OrderSerializer, OrderItemSerializer, CartSerializer,
