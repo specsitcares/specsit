@@ -549,6 +549,31 @@ const ProductListingPage = () => {
 
     const appliedPills = getAppliedPills();
 
+    // Each colorway shows as its own card (not nested/selectable within one card
+    // per product) — flatten every product's listed variants into individual
+    // {product, variant} entries, then interleave them round-robin across
+    // products so same-product colorways are spread across the grid instead of
+    // sitting next to each other.
+    const variantCards = (() => {
+        const groups = products.map(p => (
+            (p.variants && p.variants.length > 0)
+                ? p.variants.map(v => ({ product: p, variant: v }))
+                : [{ product: p, variant: null }]
+        ));
+        const cards = [];
+        for (let idx = 0; ; idx++) {
+            let addedAny = false;
+            for (const group of groups) {
+                if (idx < group.length) {
+                    cards.push(group[idx]);
+                    addedAny = true;
+                }
+            }
+            if (!addedAny) break;
+        }
+        return cards;
+    })();
+
     // Contact lenses are a separate product line (Lens objects, not frame Products).
     // Hand off to the dedicated page so they never mix with spectacle lenses/frames.
     if (/contact/.test(categorySlug)) {
@@ -1068,9 +1093,9 @@ const ProductListingPage = () => {
                     ) : (
                         <>
                             <div className="plp-product-grid">
-                                {products.map((p) => (
-                                    <div key={p.id} className="reveal-on-scroll">
-                                        <ProductCard product={p} replaceCtx={replaceMode ? { minPrice: replaceMinPrice, submitting: replaceSubmitting, onReplace: openReplaceModal } : null} />
+                                {variantCards.map(({ product: p, variant }) => (
+                                    <div key={variant ? `${p.id}-${variant.id}` : p.id} className="reveal-on-scroll">
+                                        <ProductCard product={p} initialVariantId={variant?.id ?? null} replaceCtx={replaceMode ? { minPrice: replaceMinPrice, submitting: replaceSubmitting, onReplace: openReplaceModal } : null} />
                                     </div>
                                 ))}
                             </div>

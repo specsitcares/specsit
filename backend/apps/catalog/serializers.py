@@ -107,10 +107,23 @@ class VariantSerializer(serializers.ModelSerializer):
                     total += int(entry.get('quantity') or 0)
         return total
 
+    @staticmethod
+    def _auto_unlist_zero_sizes(value):
+        # A size that's down to 0 units auto-clears its own is_listed flag — mirrors
+        # the variant-level auto-unlist in FrameVariant.save(), just at per-size
+        # granularity. Only clears it; a size coming back in stock does NOT
+        # auto-relist (same "admin re-enables manually" rule as the variant level).
+        if isinstance(value, dict):
+            for entry in value.values():
+                if isinstance(entry, dict) and int(entry.get('quantity') or 0) <= 0:
+                    entry['is_listed'] = False
+        return value
+
     def create(self, validated_data):
         # A brand-new variant has no order history yet, so stock is simply whatever
         # the size breakdown adds up to.
         if 'stock_by_size' in validated_data:
+            self._auto_unlist_zero_sizes(validated_data['stock_by_size'])
             validated_data['stock'] = self._sum_stock_by_size(validated_data.get('stock_by_size'))
         return super().create(validated_data)
 
@@ -122,6 +135,7 @@ class VariantSerializer(serializers.ModelSerializer):
         # between page-load and save. This also guarantees stock and stock_by_size
         # can never drift apart via this path.
         if 'stock_by_size' in validated_data:
+            self._auto_unlist_zero_sizes(validated_data['stock_by_size'])
             from django.db import transaction
             with transaction.atomic():
                 # Row-lock before reading `stock` so a concurrent order placement/

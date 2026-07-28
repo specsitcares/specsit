@@ -163,6 +163,13 @@ class FrameVariant(models.Model):
                 pass
         elif self.stock > 0:
             self.last_restocked = timezone.now()
+        # Storefront visibility auto-clears the moment total stock hits zero, so the
+        # admin's "Listed" toggle never lies about whether customers can actually see
+        # it (previously is_listed could stay ON with 0 stock — the storefront query
+        # already hides it via stock__gt=0, but the inventory toggle looked wrong).
+        # Coming back in stock does NOT auto re-list — that's a deliberate admin call.
+        if self.stock <= 0:
+            self.is_listed = False
         super().save(*args, **kwargs)
 
     def __str__(self): return f"{self.product.title} [{self.sku}]"

@@ -33,17 +33,24 @@ const HeartIcon = ({ filled }) => (
   </svg>
 );
 
-const ProductCard = ({ product, replaceCtx = null }) => {
+const ProductCard = ({ product, replaceCtx = null, initialVariantId = null }) => {
   if (!product) return null;
 
   const { user } = useAuth();
   const { isWishlisted, toggleWishlist } = useWishlist();
   const navigate = useNavigate();
   const [wishlistPending, setWishlistPending] = useState(false);
-  const [activeVariantIdx, setActiveVariantIdx] = useState(0);
-  const [resolvedBrandLogo, setResolvedBrandLogo] = useState(product?.brand_logo || null);
 
   const productVariants = product.variants || [];
+  // Each card can be anchored to a specific colorway (the listing page shows one
+  // card per variant) — falls back to the first variant when none is given, same
+  // as before, so callers that don't care about a specific colorway are unaffected.
+  const initialVariantIdx = initialVariantId != null
+    ? Math.max(0, productVariants.findIndex(v => v.id === initialVariantId))
+    : 0;
+  const [activeVariantIdx, setActiveVariantIdx] = useState(initialVariantIdx);
+  const [resolvedBrandLogo, setResolvedBrandLogo] = useState(product?.brand_logo || null);
+
   const selectedVariant = productVariants[activeVariantIdx] || productVariants[0] || null;
 
   // Variant-aware image (up to 5, normalised to URLs)
@@ -143,8 +150,15 @@ const ProductCard = ({ product, replaceCtx = null }) => {
     setActiveVariantIdx(idx);
   };
 
+  // Link to the exact colorway shown on this card (ProductDetailPage reads
+  // ?variant= to preselect it) — without this every card for the same product
+  // would land on the same default variant regardless of which one was clicked.
+  const cardHref = selectedVariantId
+    ? `/product/${product.id}?variant=${selectedVariantId}`
+    : `/product/${product.id}`;
+
   return (
-    <Link to={`/product/${product.id}`} className="product-card" id={`product-card-${product.id}`}>
+    <Link to={cardHref} className="product-card" id={`product-card-${product.id}-${selectedVariantId || 'default'}`}>
 
       {/* ── Image area ── */}
       <div
