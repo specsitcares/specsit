@@ -132,8 +132,6 @@ const BrandLogosManager = () => {
     const [editingBrand, setEditingBrand] = useState(null);
     const fileRef = useRef(null);
 
-    const MAX_LOGOS = 20;
-
     const pickFile = (f) => {
         setErr(''); setFile(f);
     };
@@ -260,11 +258,9 @@ const BrandLogosManager = () => {
                     <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: '#101828' }}>Brand Logos</h1>
                     <p style={{ margin: '4px 0 0', fontSize: 13, color: '#667085' }}>Manage and publish the homepage brand strip.</p>
                 </div>
-                {filteredLogos.length < MAX_LOGOS && (
-                    <button onClick={openAddModal} style={{ display: 'flex', alignItems: 'center', gap: 6, background: PURPLE, color: '#fff', border: 'none', borderRadius: 8, padding: '10px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-                        <Plus size={16} /> Add New Brand
-                    </button>
-                )}
+                <button onClick={openAddModal} style={{ display: 'flex', alignItems: 'center', gap: 6, background: PURPLE, color: '#fff', border: 'none', borderRadius: 8, padding: '10px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                    <Plus size={16} /> Add New Brand
+                </button>
             </div>
 
             {/* Tab strip */}
