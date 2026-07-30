@@ -349,3 +349,9 @@ EMAIL_USE_TLS = env('EMAIL_USE_TLS', default=True)
 GOOGLE_CLIENT_ID = env('GOOGLE_CLIENT_ID', default='')
 GOOGLE_CLIENT_SECRET = env('GOOGLE_CLIENT_SECRET', default='')
 GOOGLE_REDIRECT_URI = env('GOOGLE_REDIRECT_URI', default='http://localhost:5174/auth/callback')
+
+# Razorpay: single, explicit switch for going live (apps/sales/payment_views.py).
+# Defaults to False everywhere (dev AND prod) so checkout always uses the mock
+# payment flow until this is deliberately flipped on — real gateway calls are never
+# a side effect of DEBUG, an admin-panel checkbox, or having live-looking keys saved.
+RAZORPAY_LIVE_MODE = env.bool('RAZORPAY_LIVE_MODE', default=False)

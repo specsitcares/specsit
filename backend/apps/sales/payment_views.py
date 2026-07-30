@@ -73,10 +73,12 @@ logger = logging.getLogger(__name__)
 
 def _get_razorpay_client():
     config = PaymentGatewayConfig.objects.filter(name='razorpay', is_active=True).first()
-    # Dev bypass: in DEBUG, never hit the real gateway — online payments auto-succeed
-    # (mock), so checkout works even with no/invalid card details. Set
-    # PAYMENTS_FORCE_LIVE=True to test real payments while in DEBUG.
-    if getattr(settings, 'DEBUG', False) and not getattr(settings, 'PAYMENTS_FORCE_LIVE', False):
+    # Single switch for going live, independent of DEBUG/admin-panel state: until
+    # RAZORPAY_LIVE_MODE=True is set in the environment, every payment — dev or
+    # prod — uses the mock flow (online payments auto-succeed). This means checkout
+    # can never accidentally start hitting the real gateway just because DEBUG is
+    # off in production or someone saved live-looking keys in the admin panel.
+    if not getattr(settings, 'RAZORPAY_LIVE_MODE', False):
         return config, False
     return config, (config and config.key_id and config.key_secret and not config.is_sandbox)
 
