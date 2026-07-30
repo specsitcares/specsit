@@ -316,9 +316,15 @@ const AccessoryForm = () => {
     // page, same as frames (see ProductDetailsForm.jsx's identical resolveMetaTemplate).
     const resolveMetaTemplate = (tpl) => (tpl || '')
         .replace(/{product_name}/g, p.title || '')
+        // Leftover placeholder from when SEO was per-variant — stripped, not left
+        // as literal "{variant_name}" text (see ProductDetailsForm.jsx for why).
+        .replace(/{variant_name}/g, '')
         .replace(/{store_name}/g, globalTemplates?.store_name || 'SPECSIT')
         .replace(/{brand}/g, '')
-        .replace(/{category}/g, '');
+        .replace(/{category}/g, '')
+        .replace(/\s*\|\s*\|\s*/g, ' | ')
+        .replace(/^\s*\|\s*|\s*\|\s*$/g, '')
+        .trim();
     const resolvedMetaTitle = resolveMetaTemplate(globalTemplates?.meta_title_template || '{product_name} | {store_name}');
     const resolvedMetaDescription = resolveMetaTemplate(globalTemplates?.meta_description_template || 'Buy {product_name} at {store_name}. Shop premium eyewear online.');
 

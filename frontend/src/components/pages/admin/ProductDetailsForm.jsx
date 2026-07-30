@@ -388,9 +388,17 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
   // never drifts from what's saved.
   const resolveMetaTemplate = (tpl) => (tpl || '')
     .replace(/{product_name}/g, formData.title_input || formData.title || '')
+    // {variant_name} is a leftover placeholder from when SEO was per-variant —
+    // SEO is one row per product now, so it's stripped (not left as literal
+    // "{variant_name}" text); the PDP prepends the actually-viewed colorway's
+    // name on top of this at render time instead.
+    .replace(/{variant_name}/g, '')
     .replace(/{store_name}/g, globalTemplates?.store_name || 'SPECSIT')
     .replace(/{brand}/g, '')
-    .replace(/{category}/g, '');
+    .replace(/{category}/g, '')
+    .replace(/\s*\|\s*\|\s*/g, ' | ')
+    .replace(/^\s*\|\s*|\s*\|\s*$/g, '')
+    .trim();
   const resolvedMetaTitle = resolveMetaTemplate(globalTemplates?.meta_title_template || '{product_name} | {store_name}');
   const resolvedMetaDescription = resolveMetaTemplate(globalTemplates?.meta_description_template || 'Buy {product_name} at {store_name}. Shop premium eyewear online.');
 
