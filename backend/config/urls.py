@@ -11,6 +11,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import TemplateView
 from django.views.static import serve
+from django.views.decorators.cache import never_cache
 from rest_framework.authtoken.views import obtain_auth_token
 from apps.catalog.core.views import login_view, logout_view, register_view
 from apps.catalog.views import MeasurePDView
@@ -42,8 +43,12 @@ urlpatterns = [
 
     # React Static Assets (Served via Django staticfiles now)
 
-    # Monolithic Catch-All for React Router
-    re_path(r'^((?!api|admin-django|api-auth|api-token-auth|static|media).)*$', TemplateView.as_view(template_name='index.html')),
+    # Monolithic Catch-All for React Router.
+    # never_cache: this HTML shell references the current deploy's hashed JS/CSS
+    # filenames (e.g. CheckoutPage-C1qkVh5z.js). Every deploy renames those files
+    # and deletes the old ones, so a cached copy of this page would keep pointing
+    # at chunks that 404 on the next visit — hence no caching on the shell itself.
+    re_path(r'^((?!api|admin-django|api-auth|api-token-auth|static|media).)*$', never_cache(TemplateView.as_view(template_name='index.html'))),
 ]
 
 # Serve static and media files in development

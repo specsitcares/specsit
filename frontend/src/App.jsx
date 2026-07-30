@@ -10,44 +10,68 @@ import Layout from './components/pages/layout/Layout';
 import HomePage from './components/pages/home/HomePage';
 import LoginPage from './components/pages/auth/LoginPage';
 import RegisterPage from './components/pages/auth/RegisterPage';
+
+// Each deploy renames every hashed chunk (e.g. CheckoutPage-C1qkVh5z.js), and the
+// old ones are gone from the server the moment the new build goes live. A tab left
+// open from before the deploy — or one that loaded a briefly-cached index.html —
+// still has the OLD hash wired into its lazy() import, so navigating to that route
+// 404s with no React error boundary to catch it, leaving a blank/broken page.
+// Retry once via a hard reload so the tab picks up the current index.html + hashes.
+const lazyRetry = (importer) => lazy(() =>
+    importer()
+        .then((mod) => {
+            sessionStorage.removeItem('lazy-chunk-reloaded'); // a chunk loaded fine — re-arm for future deploys
+            return mod;
+        })
+        .catch((error) => {
+            const key = 'lazy-chunk-reloaded';
+            if (!sessionStorage.getItem(key)) {
+                sessionStorage.setItem(key, '1');
+                window.location.reload();
+                return new Promise(() => {}); // suspend forever — the reload takes over
+            }
+            throw error;
+        })
+);
+
 // Non-critical — code-split into separate async chunks
-const ProductListingPage       = lazy(() => import('./components/pages/products/ProductListingPage'));
-const ContactLensDetailPage    = lazy(() => import('./components/pages/products/ContactLensDetailPage'));
-const ProductDetailPage        = lazy(() => import('./components/pages/products/ProductDetailPage'));
-const CartPage                 = lazy(() => import('./components/pages/cart/CartPage'));
-const CheckoutPage             = lazy(() => import('./components/pages/checkout/CheckoutPage'));
-const OrderConfirmationPage    = lazy(() => import('./components/pages/checkout/OrderConfirmationPage'));
-const ConfirmationErrorBoundary= lazy(() => import('./components/pages/checkout/ConfirmationErrorBoundary'));
-const AdminDashboard           = lazy(() => import('./components/pages/admin/AdminDashboard'));
-const FaceCapture              = lazy(() => import('./components/FaceCapture/FaceCapture'));
-const AuthCallbackPage         = lazy(() => import('./components/pages/auth/AuthCallbackPage'));
-const MyOrdersPage             = lazy(() => import('./components/pages/account/MyOrdersPage'));
-const AddressBookPage          = lazy(() => import('./components/pages/account/AddressBookPage'));
-const AccountInfoPage          = lazy(() => import('./components/pages/account/AccountInfoPage'));
-const PrescriptionPage         = lazy(() => import('./components/pages/account/PrescriptionPage'));
-const SavedModelsPage          = lazy(() => import('./components/pages/account/SavedModelsPage'));
-const NotificationsPage        = lazy(() => import('./components/pages/account/NotificationsPage'));
-const WishlistPage             = lazy(() => import('./components/pages/account/WishlistPage'));
-const CustomerOrderDetailPage  = lazy(() => import('./components/pages/account/CustomerOrderDetailPage'));
-const ReturnExchangePage       = lazy(() => import('./components/pages/account/ReturnExchangePage'));
-const WarrantyClaimPage        = lazy(() => import('./components/pages/account/WarrantyClaimPage'));
-const ThankYouPage             = lazy(() => import('./components/pages/checkout/ThankYouPage'));
-const OrderConfirmedPage       = lazy(() => import('./components/pages/checkout/OrderConfirmedPage'));
-const OrderTrackingPage        = lazy(() => import('./components/pages/account/OrderTrackingPage'));
-const ReviewCreatePage         = lazy(() => import('./components/pages/account/ReviewCreatePage'));
-const ReviewPage               = lazy(() => import('./components/pages/account/ReviewPage'));
-const OrderReviewPage          = lazy(() => import('./components/pages/account/OrderReviewPage'));
-const WriteReviewPage          = lazy(() => import('./components/pages/account/WriteReviewPage'));
-const AboutPage                = lazy(() => import('./components/pages/about/AboutPage'));
-const BlogListingPage          = lazy(() => import('./components/pages/blog/BlogListingPage'));
-const BlogDetailPage           = lazy(() => import('./components/pages/blog/BlogDetailPage'));
-const DeliveryTimelinePage     = lazy(() => import('./components/pages/support/DeliveryTimelinePage'));
-const ReturnPolicyPage         = lazy(() => import('./components/pages/support/ReturnPolicyPage'));
-const WarrantyPage             = lazy(() => import('./components/pages/support/WarrantyPage'));
-const FAQPage                  = lazy(() => import('./components/pages/support/FAQPage'));
-const ContactPage              = lazy(() => import('./components/pages/support/ContactPage'));
-const TermsPage                = lazy(() => import('./components/pages/support/TermsPage'));
-const PrivacyPolicyPage        = lazy(() => import('./components/pages/support/PrivacyPolicyPage'));
+const ProductListingPage       = lazyRetry(() => import('./components/pages/products/ProductListingPage'));
+const ContactLensDetailPage    = lazyRetry(() => import('./components/pages/products/ContactLensDetailPage'));
+const ProductDetailPage        = lazyRetry(() => import('./components/pages/products/ProductDetailPage'));
+const CartPage                 = lazyRetry(() => import('./components/pages/cart/CartPage'));
+const CheckoutPage             = lazyRetry(() => import('./components/pages/checkout/CheckoutPage'));
+const OrderConfirmationPage    = lazyRetry(() => import('./components/pages/checkout/OrderConfirmationPage'));
+const ConfirmationErrorBoundary= lazyRetry(() => import('./components/pages/checkout/ConfirmationErrorBoundary'));
+const AdminDashboard           = lazyRetry(() => import('./components/pages/admin/AdminDashboard'));
+const FaceCapture              = lazyRetry(() => import('./components/FaceCapture/FaceCapture'));
+const AuthCallbackPage         = lazyRetry(() => import('./components/pages/auth/AuthCallbackPage'));
+const MyOrdersPage             = lazyRetry(() => import('./components/pages/account/MyOrdersPage'));
+const AddressBookPage          = lazyRetry(() => import('./components/pages/account/AddressBookPage'));
+const AccountInfoPage          = lazyRetry(() => import('./components/pages/account/AccountInfoPage'));
+const PrescriptionPage         = lazyRetry(() => import('./components/pages/account/PrescriptionPage'));
+const SavedModelsPage          = lazyRetry(() => import('./components/pages/account/SavedModelsPage'));
+const NotificationsPage        = lazyRetry(() => import('./components/pages/account/NotificationsPage'));
+const WishlistPage             = lazyRetry(() => import('./components/pages/account/WishlistPage'));
+const CustomerOrderDetailPage  = lazyRetry(() => import('./components/pages/account/CustomerOrderDetailPage'));
+const ReturnExchangePage       = lazyRetry(() => import('./components/pages/account/ReturnExchangePage'));
+const WarrantyClaimPage        = lazyRetry(() => import('./components/pages/account/WarrantyClaimPage'));
+const ThankYouPage             = lazyRetry(() => import('./components/pages/checkout/ThankYouPage'));
+const OrderConfirmedPage       = lazyRetry(() => import('./components/pages/checkout/OrderConfirmedPage'));
+const OrderTrackingPage        = lazyRetry(() => import('./components/pages/account/OrderTrackingPage'));
+const ReviewCreatePage         = lazyRetry(() => import('./components/pages/account/ReviewCreatePage'));
+const ReviewPage               = lazyRetry(() => import('./components/pages/account/ReviewPage'));
+const OrderReviewPage          = lazyRetry(() => import('./components/pages/account/OrderReviewPage'));
+const WriteReviewPage          = lazyRetry(() => import('./components/pages/account/WriteReviewPage'));
+const AboutPage                = lazyRetry(() => import('./components/pages/about/AboutPage'));
+const BlogListingPage          = lazyRetry(() => import('./components/pages/blog/BlogListingPage'));
+const BlogDetailPage           = lazyRetry(() => import('./components/pages/blog/BlogDetailPage'));
+const DeliveryTimelinePage     = lazyRetry(() => import('./components/pages/support/DeliveryTimelinePage'));
+const ReturnPolicyPage         = lazyRetry(() => import('./components/pages/support/ReturnPolicyPage'));
+const WarrantyPage             = lazyRetry(() => import('./components/pages/support/WarrantyPage'));
+const FAQPage                  = lazyRetry(() => import('./components/pages/support/FAQPage'));
+const ContactPage              = lazyRetry(() => import('./components/pages/support/ContactPage'));
+const TermsPage                = lazyRetry(() => import('./components/pages/support/TermsPage'));
+const PrivacyPolicyPage        = lazyRetry(() => import('./components/pages/support/PrivacyPolicyPage'));
 import { GoogleOAuthProvider } from '@react-oauth/google';
 
 import { useLocation } from 'react-router-dom';
