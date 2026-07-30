@@ -480,18 +480,9 @@
   flex-direction: column;
   gap: 14px;
   min-width: 0;
-  /* The products column is the scrollable pane. It scrolls on its own (the page
-     and the filters stay put). Scrollbar hidden on all browsers. */
-  position: sticky;
-  top: 88px;
-  align-self: flex-start;
-  max-height: calc(100vh - 104px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-width: none;       /* Firefox */
-  -ms-overflow-style: none;    /* IE/Edge */
+  /* Standard listing-page scroll: the page itself scrolls; only the
+     filters sidebar is pinned (position: sticky). No inner scroll pane. */
 }
-.plp-main-content::-webkit-scrollbar { display: none; }  /* Chrome/Safari */
 
 /* ── Sorting & Actions Row ───────────────────────────── */
 .sorting-actions-wrapper {

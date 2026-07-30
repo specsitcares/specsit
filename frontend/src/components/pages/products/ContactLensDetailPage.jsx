@@ -13,6 +13,12 @@ import '../../../styles/ProductDetailPage.css';
 
 const inr = (v) => `₹${Number(v || 0).toLocaleString('en-IN')}`;
 const REPLACEMENT_LABEL = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' };
+// Falls back to title-casing so custom lens types (anything an admin adds beyond the
+// four defaults above) still display correctly.
+const replacementLabel = (r) => {
+  if (!r) return null;
+  return REPLACEMENT_LABEL[r] || r.replace(/[_-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+};
 
 const ContactLensDetailPage = () => {
   const { id } = useParams();
@@ -54,7 +60,7 @@ const ContactLensDetailPage = () => {
 
   const specs = [
     { label: 'Power Type', value: lens.power_type },
-    { label: 'Replacement', value: REPLACEMENT_LABEL[lens.replacement] || lens.replacement },
+    { label: 'Replacement', value: replacementLabel(lens.replacement) },
     { label: 'Power Range (SPH)', value: powerRange },
     bc ? { label: 'Base Curve', value: bc } : null,
     { label: 'Material', value: lens.material },
@@ -109,7 +115,7 @@ const ContactLensDetailPage = () => {
             </div>
             <h1 className="pd-title">{name}</h1>
             <div className="pd-subtitle-tags" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
-              {[lens.power_type, REPLACEMENT_LABEL[lens.replacement]].filter(Boolean).map((t, i) => (
+              {[lens.power_type, replacementLabel(lens.replacement)].filter(Boolean).map((t, i) => (
                 <span key={i} style={{ fontSize: 12, fontWeight: 600, color: '#6941C6', background: '#F4EBFF', borderRadius: 20, padding: '4px 12px' }}>{t}</span>
               ))}
             </div>

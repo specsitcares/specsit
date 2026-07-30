@@ -10,6 +10,12 @@ import '../../../styles/ProductCard.css';
    frames listing (same header, sidebar, grid + product-card styling) but adds working
    Add-to-Cart / Buy-Now buttons that route through the power-selection modal + cart. */
 const REPLACEMENT_LABEL = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' };
+// Falls back to title-casing so custom lens types (anything an admin adds beyond the
+// four defaults above) still show up as a Usage Duration filter option / product tag.
+const replacementLabel = (r) => {
+  if (!r) return null;
+  return REPLACEMENT_LABEL[r] || r.replace(/[_-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+};
 
 const CL_PRICE_RANGES = {
   'Under ₹500': { min: 0, max: 500 },
@@ -34,7 +40,7 @@ const waterBucket = (wc) => {
 /* Which lens field each filter group reads. Returns a single value or an array of values. */
 const ACCESSOR = {
   'Lens Type':      (l) => l.power_type,
-  'Usage Duration': (l) => REPLACEMENT_LABEL[l.replacement],
+  'Usage Duration': (l) => replacementLabel(l.replacement),
   'Brand':          (l) => l.brand_name,
   'Pack Size':      (l) => (l.lenses_per_box != null ? `${l.lenses_per_box} lenses` : null),
   'Water Content':  (l) => waterBucket(l.water_content),
@@ -91,7 +97,7 @@ const ContactLensListingPage = () => {
       if (t) {
         const cap = t.charAt(0).toUpperCase() + t.slice(1);
         if (['Spherical', 'Toric', 'Multifocal', 'Bifocal'].includes(cap)) next['Lens Type'] = [cap];
-        else if (['daily', 'weekly', 'monthly', 'yearly'].includes(t.toLowerCase())) next['Usage Duration'] = [REPLACEMENT_LABEL[t.toLowerCase()]];
+        else next['Usage Duration'] = [replacementLabel(t.toLowerCase())];
       }
       if (b) next['Brand'] = [b];
       return next;
@@ -336,7 +342,7 @@ const ContactLensListingPage = () => {
                   const price = priceOf(l);
                   const mrp = mrpOf(l);
                   const off = mrp > price && mrp > 0 ? Math.round((1 - price / mrp) * 100) : 0;
-                  const tag = l.power_type || REPLACEMENT_LABEL[l.replacement];
+                  const tag = l.power_type || replacementLabel(l.replacement);
                   return (
                     <div key={l.id} className="reveal-on-scroll">
                       <div className="product-card" onClick={() => navigate(`/contact-lenses/${l.id}`)}>
