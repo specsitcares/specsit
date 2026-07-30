@@ -184,13 +184,30 @@ class ProductSerializer(serializers.ModelSerializer):
     meta_description = serializers.SerializerMethodField()
     use_meta_template = serializers.SerializerMethodField()
 
+    @staticmethod
+    def _clean_meta_text(text):
+        # Defensive cleanup for stale saved values: meta_title/meta_description
+        # used to be resolved from a template containing a {variant_name} token
+        # (back when SEO was per-variant); once SEO moved to one row per product,
+        # the resolver stopped substituting that token, so any row saved with the
+        # old template text still has the literal "{variant_name}" baked in.
+        # Strip any leftover {token} placeholder here so it self-heals on every
+        # read instead of requiring every product to be manually re-saved.
+        if not text:
+            return text
+        import re
+        cleaned = re.sub(r'\{[a-zA-Z_]+\}', '', text)
+        cleaned = re.sub(r'\s*\|\s*\|\s*', ' | ', cleaned)
+        cleaned = re.sub(r'^\s*\|\s*|\s*\|\s*$', '', cleaned)
+        return cleaned.strip()
+
     def get_meta_title(self, obj):
         seo = getattr(obj, 'seo', None)
-        return seo.meta_title if seo else ''
+        return self._clean_meta_text(seo.meta_title) if seo else ''
 
     def get_meta_description(self, obj):
         seo = getattr(obj, 'seo', None)
-        return seo.meta_description if seo else ''
+        return self._clean_meta_text(seo.meta_description) if seo else ''
 
     def get_use_meta_template(self, obj):
         seo = getattr(obj, 'seo', None)

@@ -6,7 +6,12 @@
 import axios from 'axios';
 import { getAuthToken, setAuthToken, clearAuthToken } from '../utils/auth';
 
-const API_BASE_URL = '/api';
+// When the frontend is deployed as its own service (separate from the Django
+// backend, e.g. the standalone "specsit-frontend" Render static site), a bare
+// relative '/api' resolves against the frontend's own origin, which has no
+// backend behind it. VITE_API_URL (already provisioned in render.yaml for that
+// deployment) lets it point at the real backend origin instead.
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 // Create axios instance with defaults
 const apiClient = axios.create({
