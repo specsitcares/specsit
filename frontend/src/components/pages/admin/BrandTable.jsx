@@ -22,14 +22,14 @@ const BRAND_TYPE_OPTIONS = [
   { value: 'Solutions', label: 'Cleaning Solutions' },
 ];
 
-const BrandTable = () => {
+const BrandTable = ({ fixedType = null, title = 'Brand Management' }) => {
   const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [selectedBrand, setSelectedBrand] = useState(null);
   const [formMode, setFormMode] = useState('create');
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState('Frame');
+  const [activeTab, setActiveTab] = useState(fixedType || 'Frame');
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
   const [showFilters, setShowFilters] = useState(false);
@@ -39,7 +39,8 @@ const BrandTable = () => {
 
   const fetchBrands = async () => {
     try {
-      const res = await apiClient.get('/catalog/brands/');
+      const url = fixedType ? `/catalog/brands/?brand_type=${encodeURIComponent(fixedType)}` : '/catalog/brands/';
+      const res = await apiClient.get(url);
       const data = res.data;
       setBrands(Array.isArray(data) ? data : (data.results || []));
     } catch { /* silent */ } finally { setLoading(false); }
@@ -68,6 +69,10 @@ const BrandTable = () => {
         data.append(k, formData[k]);
       }
     });
+    // The type selector is hidden in fixedType mode, so `fields` never carries
+    // brand_type into a fresh create's formData — pin it explicitly or new
+    // brands silently fall back to the model's 'Frame' default.
+    if (fixedType) data.set('brand_type', fixedType);
     // Let errors propagate to FormModal (which shows them) and let the modal
     // close itself only on a real success — keeps the table in sync with the DB.
     if (formMode === 'create') await apiClient.post('/catalog/brands/', data);
@@ -151,29 +156,31 @@ const BrandTable = () => {
   return (
     <>
       {/* Tab strip */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 16, background: '#F9FAFB', border: '1px solid #EAECF0', borderRadius: 8, padding: 4, width: 'fit-content' }}>
-        {BRAND_TABS.map(tab => (
-          <button
-            key={tab.key}
-            onClick={() => { setActiveTab(tab.key); setPage(1); setSearchQuery(''); }}
-            style={{
-              padding: '7px 16px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
-              background: activeTab === tab.key ? '#fff' : 'transparent',
-              color: activeTab === tab.key ? '#7F56D9' : '#667085',
-              boxShadow: activeTab === tab.key ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
-              display: 'flex', alignItems: 'center', gap: 6,
-            }}
-          >
-            {tab.label}
-            <span style={{ background: activeTab === tab.key ? '#F4EBFF' : '#F2F4F7', color: activeTab === tab.key ? '#7F56D9' : '#667085', borderRadius: 10, padding: '1px 7px', fontSize: 10 }}>
-              {tabCounts[tab.key]}
-            </span>
-          </button>
-        ))}
-      </div>
+      {!fixedType && (
+        <div style={{ display: 'flex', gap: 4, marginBottom: 16, background: '#F9FAFB', border: '1px solid #EAECF0', borderRadius: 8, padding: 4, width: 'fit-content' }}>
+          {BRAND_TABS.map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => { setActiveTab(tab.key); setPage(1); setSearchQuery(''); }}
+              style={{
+                padding: '7px 16px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+                background: activeTab === tab.key ? '#fff' : 'transparent',
+                color: activeTab === tab.key ? '#7F56D9' : '#667085',
+                boxShadow: activeTab === tab.key ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                display: 'flex', alignItems: 'center', gap: 6,
+              }}
+            >
+              {tab.label}
+              <span style={{ background: activeTab === tab.key ? '#F4EBFF' : '#F2F4F7', color: activeTab === tab.key ? '#7F56D9' : '#667085', borderRadius: 10, padding: '1px 7px', fontSize: 10 }}>
+                {tabCounts[tab.key]}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
 
       <BaseAdminTable
-        title="Brand Management"
+        title={title}
         count={filtered.length}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
@@ -206,11 +213,11 @@ const BrandTable = () => {
         onDelete={handleFormDelete} mode={formMode} title="Brand"
         fields={[
           { name: 'name',         label: 'Brand Name',  type: 'text' },
-          { name: 'brand_type',   label: 'Brand Type',  type: 'select',   options: BRAND_TYPE_OPTIONS },
+          ...(fixedType ? [] : [{ name: 'brand_type', label: 'Brand Type', type: 'select', options: BRAND_TYPE_OPTIONS }]),
           { name: 'logo',         label: 'Brand Logo',  type: 'file' },
           { name: 'is_published', label: 'Published',   type: 'checkbox', defaultValue: true },
         ]}
-        initialData={selectedBrand || {}} />
+        initialData={selectedBrand || (fixedType ? { brand_type: fixedType } : {})} />
     </>
   );
 };
