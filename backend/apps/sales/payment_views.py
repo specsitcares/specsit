@@ -186,10 +186,6 @@ class PaymentVerifyView(APIView):
                         if item.variant:
                             item.variant.stock += item.quantity
                             item.variant.save(update_fields=['stock'])
-                            product = item.variant.product
-                            if product:
-                                product.stock_quantity += item.quantity
-                                product.save(update_fields=['stock_quantity'])
 
                     # Mark order as failed
                     order.payment_status = 'failed'
@@ -327,10 +323,6 @@ class PaymentCancelView(APIView):
                 if item.variant:
                     item.variant.stock += item.quantity
                     item.variant.save(update_fields=['stock'])
-                    product = item.variant.product
-                    if product:
-                        product.stock_quantity += item.quantity
-                        product.save(update_fields=['stock_quantity'])
 
             order.payment_status = 'pending'
             order.order_status = 'cancelled'
