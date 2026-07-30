@@ -15,18 +15,24 @@ const Toggle = ({ on, onChange, disabled }) => (
 const BRAND_TABS = [
     { key: 'Frame', label: 'Frames', group: 'frame' },
     { key: 'Lens', label: 'Lenses', group: 'lens' },
+    { key: 'Contact', label: 'Contact Lenses', group: 'contact' },
     { key: 'Accessory', label: 'Accessories', group: 'accessory' },
 ];
 
+// 'Lens' brand_type = spectacle/frame lens brands (LensManagement.jsx);
+// 'Contact' brand_type = contact lens brands (ContactLensManagement.jsx).
+// Two different product lines — never merge them into one group again.
 const groupToBrandType = {
     frame: 'Frame',
-    lens: 'Contact',
+    lens: 'Lens',
+    contact: 'Contact',
     accessory: 'Cases',
 };
 
 const getGroupKeyForBrandType = (brandType) => {
     if (!brandType) return 'frame';
-    if (['Lens', 'Contact'].includes(brandType)) return 'lens';
+    if (brandType === 'Contact') return 'contact';
+    if (brandType === 'Lens') return 'lens';
     if (['Cases', 'Cloths', 'Solutions'].includes(brandType)) return 'accessory';
     return 'frame';
 };
@@ -35,10 +41,17 @@ const getBrandTypeOptions = (groups) => {
     const options = groups
         .filter(g => ['frame', 'lens', 'accessory'].includes(g.key))
         .map(g => ({ key: g.key, label: g.label, group: g.key }));
-    if (!options.length) {
-        return BRAND_TABS.map(tab => ({ key: tab.group, label: tab.label, group: tab.group }));
-    }
-    return options;
+    const base = options.length
+        ? options
+        : BRAND_TABS.filter(tab => tab.key !== 'Contact').map(tab => ({ key: tab.group, label: tab.label, group: tab.group }));
+    // Contact lenses have no Category rows of their own (ContactLens uses metadata
+    // groups, not Category) — so this option is synthetic, not derived from
+    // /catalog/categories/groups/ like the other three.
+    const contactOption = { key: 'contact', label: 'Contact Lenses', group: 'contact' };
+    const lensIdx = base.findIndex(o => o.key === 'lens');
+    const withContact = [...base];
+    withContact.splice(lensIdx >= 0 ? lensIdx + 1 : withContact.length, 0, contactOption);
+    return withContact;
 };
 
 const MODAL = {
@@ -226,24 +239,15 @@ const BrandLogosManager = () => {
         } finally { setSaving(false); }
     };
 
-    const filteredLogos = logos.filter(b => {
-        if (activeTab === 'Accessory') {
-            return ['Cases', 'Cloths', 'Solutions'].includes(b.brand_type);
-        }
-        if (activeTab === 'Lens') {
-            return ['Lens', 'Contact'].includes(b.brand_type);
-        }
+    const matchesTab = (b, tabKey) => {
+        if (tabKey === 'Accessory') return ['Cases', 'Cloths', 'Solutions'].includes(b.brand_type);
+        if (tabKey === 'Contact') return b.brand_type === 'Contact';
+        if (tabKey === 'Lens') return b.brand_type === 'Lens';
         return (b.brand_type || 'Frame') === 'Frame';
-    });
-    const tabCounts = Object.fromEntries(BRAND_TABS.map(t => [t.key, logos.filter(b => {
-        if (t.key === 'Accessory') {
-            return ['Cases', 'Cloths', 'Solutions'].includes(b.brand_type);
-        }
-        if (t.key === 'Lens') {
-            return ['Lens', 'Contact'].includes(b.brand_type);
-        }
-        return (b.brand_type || 'Frame') === 'Frame';
-    }).length]));
+    };
+
+    const filteredLogos = logos.filter(b => matchesTab(b, activeTab));
+    const tabCounts = Object.fromEntries(BRAND_TABS.map(t => [t.key, logos.filter(b => matchesTab(b, t.key)).length]));
 
     return (
         
@@ -364,6 +368,7 @@ const BrandLogosManager = () => {
                                 </div>
                             </div>
 
+                            {selectedBrandGroup !== 'contact' && (
                             <div style={MODAL.section}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                                     <div>
@@ -407,6 +412,7 @@ const BrandLogosManager = () => {
                                     ))}
                                 </div>
                             </div>
+                            )}
 
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 14px', border: '1px solid #EAECF0', borderRadius: 12, background: '#F8FAFC' }}>
                                 <div>
