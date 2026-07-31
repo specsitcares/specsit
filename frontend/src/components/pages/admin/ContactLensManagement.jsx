@@ -52,6 +52,8 @@ const ContactLensManagement = () => {
     min_power: '-6.00', max_power: '+4.00', power_type: '', base_curve: [], replacement: '',
     material: '', water_content: '', dkt: '', colors: [], lenses_per_box: '',
     power_type_id: '', lens_type_id: '', new_lens_type: '',
+    image: null,        // newly picked File
+    image_url: '',      // existing image URL (edit mode preview)
   };
   const [editFormData, setEditFormData] = useState({ ...EMPTY_PKG_FORM });
 
@@ -165,6 +167,8 @@ const ContactLensManagement = () => {
       power_type_id: lt ? String(lt.parent) : '',
       lens_type_id: lt ? String(lt.id) : '',
       new_lens_type: '',
+      image: null,
+      image_url: pkg.image || '',
     };
   };
 
@@ -230,8 +234,28 @@ const ContactLensManagement = () => {
       lenses_per_box: editFormData.lenses_per_box ? Number(editFormData.lenses_per_box) : null,
     };
     try {
-      if (isCreatingPkg) await apiClient.post('/catalog/contact-lenses/', payload);
-      else await apiClient.put(`/catalog/contact-lenses/${selectedPkg.id}/`, { ...selectedPkg, ...payload });
+      let pkgId;
+      if (isCreatingPkg) {
+        pkgId = (await apiClient.post('/catalog/contact-lenses/', payload)).data.id;
+      } else {
+        pkgId = selectedPkg.id;
+        // selectedPkg.image is an absolute URL string (from the last GET) — sending
+        // it back on a plain JSON PUT makes DRF's ImageField reject it ("submitted
+        // data was not a file"). The image itself is handled separately below.
+        const { image: _existingImage, ...selectedPkgWithoutImage } = selectedPkg;
+        await apiClient.put(`/catalog/contact-lenses/${pkgId}/`, { ...selectedPkgWithoutImage, ...payload });
+      }
+      // Image is a file, so it goes in its own multipart request rather than
+      // the JSON payload above.
+      if (editFormData.image instanceof File) {
+        const fd = new FormData();
+        fd.append('image', editFormData.image);
+        await apiClient.patch(`/catalog/contact-lenses/${pkgId}/`, fd);
+      } else if (!isCreatingPkg && selectedPkg?.image && !editFormData.image_url) {
+        // Existing image was explicitly removed in the form — clear it (JSON null
+        // is fine here; only a non-null, non-file string trips up ImageField).
+        await apiClient.patch(`/catalog/contact-lenses/${pkgId}/`, { image: null });
+      }
       handleClosePkgForm();
       await fetchData();
       // Jump the tree to where the package now lives.
