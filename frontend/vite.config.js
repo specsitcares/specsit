@@ -25,9 +25,13 @@ export default defineConfig({
         port: 5174,
         strictPort: true,
         headers: {
-            // Required for MediaPipe WASM to use SharedArrayBuffer (multi-threaded inference)
+            // Required for MediaPipe WASM to use SharedArrayBuffer (multi-threaded inference).
+            // 'credentialless' (not 'require-corp') achieves cross-origin isolation without
+            // requiring every cross-origin resource (product/contact-lens images served
+            // straight from the Django backend on :8000) to carry a Cross-Origin-Resource-Policy
+            // header — 'require-corp' silently blocked those image loads in the browser.
             'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
-            'Cross-Origin-Embedder-Policy': 'require-corp',
+            'Cross-Origin-Embedder-Policy': 'credentialless',
         },
         proxy: {
             // SSE live-stream endpoint — must NOT buffer, must NOT compress

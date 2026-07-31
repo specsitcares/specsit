@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, ChevronDown, ChevronUp, Plus } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { X, ChevronDown, ChevronUp, Plus, ImagePlus } from 'lucide-react';
 import '../../../styles/cl_package_form.css';
 
 const POWER_TYPES = ['Spherical', 'Toric', 'Multifocal', 'Bifocal'];
@@ -51,8 +51,22 @@ const ContactLensPackageForm = ({
   const [addingBc,      setAddingBc]      = useState(false);
   const [addingColor,   setAddingColor]   = useState(false);
   const [newColor,      setNewColor]      = useState('#000000');
+  const imageInputRef = useRef(null);
 
   const field = (name, value) => onChange(name, value);
+
+  // Object URLs are created once per File (not per render) and revoked on
+  // cleanup, so the preview doesn't flicker/reload on unrelated keystrokes.
+  const [localPreview, setLocalPreview] = useState('');
+  useEffect(() => {
+    if (!(formData.image instanceof File)) { setLocalPreview(''); return; }
+    const url = URL.createObjectURL(formData.image);
+    setLocalPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [formData.image]);
+  const imagePreviewUrl = localPreview || formData.image_url || '';
+
+  const pickImage = (f) => { if (f) field('image', f); };
 
   /* base curve helpers */
   const addBc = () => {
@@ -143,6 +157,38 @@ const ContactLensPackageForm = ({
               value={formData.package_name || ''}
               onChange={e => field('package_name', e.target.value)}
             />
+          </div>
+
+          <div className="clpf-row clpf-row--top">
+            <label className="clpf-label">Product Image</label>
+            <div className="clpf-image-wrap">
+              <div className="clpf-image-dropzone" onClick={() => imageInputRef.current?.click()}>
+                {imagePreviewUrl ? (
+                  <img src={imagePreviewUrl} alt="Contact lens" className="clpf-image-preview" />
+                ) : (
+                  <>
+                    <ImagePlus size={22} className="clpf-image-icon" />
+                    <span className="clpf-image-text">Choose a file</span>
+                  </>
+                )}
+              </div>
+              {imagePreviewUrl && (
+                <button
+                  type="button"
+                  className="clpf-image-remove"
+                  onClick={() => { field('image', null); field('image_url', ''); }}
+                >
+                  <X size={12} /> Remove
+                </button>
+              )}
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={e => { pickImage(e.target.files?.[0] || null); e.target.value = ''; }}
+              />
+            </div>
           </div>
 
           <div className="clpf-row">

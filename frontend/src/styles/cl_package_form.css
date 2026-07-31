@@ -140,6 +140,56 @@
   line-height: 1.5;
 }
 
+/* ── Product image upload ── */
+.clpf-image-wrap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.clpf-image-dropzone {
+  width: 100%;
+  height: 110px;
+  border: 1px dashed #d2d2d2;
+  border-radius: 8px;
+  background: #fafafa;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 0.15s, background 0.15s;
+}
+.clpf-image-dropzone:hover { border-color: #6b46c1; background: #f5f3ff; }
+.clpf-image-icon { color: #9ca3af; }
+.clpf-image-text {
+  font-family: 'Roboto', sans-serif;
+  font-size: 12px;
+  color: #6b7280;
+}
+.clpf-image-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #fff;
+}
+.clpf-image-remove {
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: none;
+  color: #c02828;
+  font-family: 'Roboto', sans-serif;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0;
+}
+
 /* ── Select with custom chevron ── */
 .clpf-select-wrap {
   flex: 1;
