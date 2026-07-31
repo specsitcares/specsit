@@ -27,13 +27,9 @@
   /* Reliability backstop: no child may cause page-level horizontal scroll.
      `clip` leaves the vertical axis untouched (fixed sheet still overlays). */
   overflow-x: clip;
-  /* Header + sidebar are fixed chrome: this whole box is pinned to fill the
-     viewport below the sticky navbar, and only .plp-main-content (the product
-     grid) scrolls inside it. Reset to normal document flow on mobile below. */
-  position: sticky;
-  top: 88px;
-  height: calc(100vh - 88px);
-  overflow-y: hidden;
+  /* The page scrolls with the rest of the document, like every other page —
+     no inner boxed scroll pane (that read as an embedded iframe). The filter
+     sidebar uses `position: sticky` below so it still tracks the viewport. */
   display: flex;
   flex-direction: column;
 }
@@ -137,10 +133,12 @@
   background: var(--plp-card-bg);
   padding: 24px 28px;
   border-radius: 4px;
-  /* Filters are strictly fixed — the sidebar frame never scrolls, because it
-     lives inside the pinned .product-listing-page pane. Only the product
-     grid (.plp-main-content) and, if the filter list itself is tall, the
-     inner .filter-groups-container scroll. */
+  /* The page scrolls normally now, so pin the filters in view with sticky
+     positioning instead of the old fixed-height pane. If the filter list is
+     taller than the available space, .filter-groups-container scrolls on its own. */
+  position: sticky;
+  top: 108px;
+  max-height: calc(100vh - 128px);
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -500,16 +498,7 @@
   flex-direction: column;
   gap: 14px;
   min-width: 0;
-  /* The product grid is the one scrollable pane — header and sidebar are
-     fixed chrome around it (see .product-listing-page). Scrollbar hidden
-     on all browsers for a cleaner look; scrolling still works normally. */
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-width: none;       /* Firefox */
-  -ms-overflow-style: none;    /* IE/Edge */
 }
-.plp-main-content::-webkit-scrollbar { display: none; }  /* Chrome/Safari */
 
 /* ── Sorting & Actions Row ───────────────────────────── */
 .sorting-actions-wrapper {

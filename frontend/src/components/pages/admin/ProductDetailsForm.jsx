@@ -107,7 +107,7 @@ const DEFAULT_VARIANT = () => ({
   discount_end_date: '',
 });
 
-const ProductDetailsForm = ({ onBack, editProduct = null }) => {
+const ProductDetailsForm = ({ onBack, editProduct = null, presetCategory = '' }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
@@ -205,7 +205,15 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
 
         if (catResult.status === 'fulfilled') {
           const d = catResult.value.data;
-          setCategories(Array.isArray(d) ? d : (d.results || []));
+          const cats = Array.isArray(d) ? d : (d.results || []);
+          setCategories(cats);
+          // Came from a specific category tab's "+ Add" button (e.g. Eyeglasses) —
+          // lock the product to that category instead of leaving it pickable, so it
+          // can't accidentally land under the wrong tab.
+          if (!editProduct?.id && presetCategory) {
+            const match = cats.find(c => c.name.toLowerCase() === presetCategory.toLowerCase());
+            if (match) setFormData(prev => ({ ...prev, category: String(match.id) }));
+          }
         }
         if (brandResult.status === 'fulfilled') {
           const d = brandResult.value.data;
@@ -408,6 +416,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
   const selectedCategoryObj = categories.find(c => String(c.id) === String(formData.category));
   const isSunglassesCategory = (selectedCategoryObj?.name || '').toLowerCase().includes('sunglass');
   const resolvedProductType = isSunglassesCategory ? 'sunglasses' : 'eyeglasses';
+  const categoryLocked = !editProduct?.id && !!presetCategory;
 
   const validateStep1 = () => {
     const newErrors = {};
@@ -802,6 +811,7 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
                         value={formData.category}
                         onChange={(e) => handleInputChange('category', e.target.value)}
                         className={errors.category ? 'has-error' : ''}
+                        disabled={categoryLocked}
                       >
                         <option value="">Select Category</option>
                         {orderedCategories.map(c => (
@@ -810,6 +820,11 @@ const ProductDetailsForm = ({ onBack, editProduct = null }) => {
                       </select>
                       <span className="select-chevron"><ChevronDown size={16} /></span>
                     </div>
+                    {categoryLocked && (
+                      <p style={{ fontSize: 11, color: '#9ca3af', margin: '4px 0 0' }}>
+                        Locked to <strong>{selectedCategoryObj?.name || presetCategory}</strong> — go back and use "+ Add" from a different tab to change it.
+                      </p>
+                    )}
                     {errors.category && <span className="form-field-error"><AlertCircle size={12} /> {errors.category}</span>}
                   </div>
 

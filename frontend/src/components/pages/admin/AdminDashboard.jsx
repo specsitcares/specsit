@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, useNavigate, useParams } from 'react-router-dom';
+import { Routes, Route, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import apiClient from '../../../services/api';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
@@ -75,10 +75,12 @@ const LensFormRoute = () => {
 const FrameFormRoute = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   return (
     <ProductDetailsForm
       onBack={() => navigate('/admin/products')}
       editProduct={id ? { id: parseInt(id) } : null}
+      presetCategory={searchParams.get('category') || ''}
     />
   );
 };
