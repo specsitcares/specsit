@@ -27,6 +27,11 @@
   /* Reliability backstop: no child may cause page-level horizontal scroll.
      `clip` leaves the vertical axis untouched (fixed sheet still overlays). */
   overflow-x: clip;
+  /* The page scrolls with the rest of the document, like every other page —
+     no inner boxed scroll pane (that read as an embedded iframe). The filter
+     sidebar uses `position: sticky` below so it still tracks the viewport. */
+  display: flex;
+  flex-direction: column;
 }
 
 /* Border-box everywhere on the page so fixed paddings/borders never push
@@ -47,6 +52,7 @@
   gap: 12px;
   padding: 40px 0 24px;
   margin-bottom: 32px;
+  flex-shrink: 0;
 }
 
 .plp-header-left {
@@ -110,7 +116,9 @@
 .plp-layout {
   display: flex;
   gap: 32px;
-  align-items: flex-start;
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -125,11 +133,15 @@
   background: var(--plp-card-bg);
   padding: 24px 28px;
   border-radius: 4px;
-  /* Filters are strictly fixed (pinned below the sticky navbar) — they never
-     scroll. Only the product grid scrolls. */
+  /* The page scrolls normally now, so pin the filters in view with sticky
+     positioning instead of the old fixed-height pane. If the filter list is
+     taller than the available space, .filter-groups-container scrolls on its own. */
   position: sticky;
-  top: 88px;
-  align-self: flex-start;
+  top: 108px;
+  max-height: calc(100vh - 128px);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 /* ── Sidebar Header ──────────────────────────────────── */
@@ -163,7 +175,13 @@
 /* ── Filter Groups Container ─────────────────────────── */
 .filter-groups-container {
   padding-top: 20px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
+.filter-groups-container::-webkit-scrollbar { display: none; }
 
 .filter-groups-list {
   display: flex;
@@ -480,18 +498,7 @@
   flex-direction: column;
   gap: 14px;
   min-width: 0;
-  /* The products column is the scrollable pane. It scrolls on its own (the page
-     and the filters stay put). Scrollbar hidden on all browsers. */
-  position: sticky;
-  top: 88px;
-  align-self: flex-start;
-  max-height: calc(100vh - 104px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-width: none;       /* Firefox */
-  -ms-overflow-style: none;    /* IE/Edge */
 }
-.plp-main-content::-webkit-scrollbar { display: none; }  /* Chrome/Safari */
 
 /* ── Sorting & Actions Row ───────────────────────────── */
 .sorting-actions-wrapper {
@@ -891,6 +898,16 @@
 }
 
 @media (max-width: 1024px) {
+  /* The fixed-chrome pane is a desktop-only trick — on mobile the whole
+     page just scrolls normally (filters become the bottom sheet below). */
+  .product-listing-page {
+    position: static;
+    top: auto;
+    height: auto;
+    overflow-y: visible;
+    display: block;
+  }
+
   .plp-layout { flex-direction: column; gap: 0; align-items: stretch; }
 
   /* Main content flows normally — no inner scroll pane on mobile */

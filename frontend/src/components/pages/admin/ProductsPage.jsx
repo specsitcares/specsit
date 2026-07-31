@@ -352,7 +352,7 @@ const ProductsPage = ({ onAddNew, onEdit }) => {
         <CategoryTab
           title={activeCategory || 'Category'}
           categoryName={activeCategory}
-          onAdd={() => onAddNew('frame')}
+          onAdd={() => onAddNew(`frame?category=${encodeURIComponent(activeCategory || '')}`)}
           onEdit={onEdit}
         />
       )}

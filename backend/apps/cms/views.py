@@ -124,10 +124,8 @@ class BrandLogoSerializer(serializers.ModelSerializer):
 
 
 class BrandLogoViewSet(viewsets.ModelViewSet):
-    """Homepage brand-logo strip. Public reads see published logos.
-    Capped at 6 logos."""
+    """Homepage brand-logo strip. Public reads see published logos."""
     serializer_class = BrandLogoSerializer
-    MAX_LOGOS = 6
 
     def get_queryset(self):
         qs = BrandLogo.objects.all().order_by('order', 'id')
@@ -139,14 +137,6 @@ class BrandLogoViewSet(viewsets.ModelViewSet):
         if self.action in ('list', 'retrieve'):
             return [AllowAny()]
         return [IsAdminUser()]
-
-    def create(self, request, *args, **kwargs):
-        if BrandLogo.objects.count() >= self.MAX_LOGOS:
-            return Response({'detail': 'You can have at most 6 brand logos.'}, status=status.HTTP_400_BAD_REQUEST)
-        return super().create(request, *args, **kwargs)
-
-    def update(self, request, *args, **kwargs):
-        return super().update(request, *args, **kwargs)
 
 
 class FrameRangeCardSerializer(serializers.ModelSerializer):

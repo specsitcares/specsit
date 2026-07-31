@@ -585,9 +585,6 @@ class OrderViewSet(viewsets.ModelViewSet):
                     continue
                 variant.stock = max(0, variant.stock - item.quantity)
                 variant.save(update_fields=['stock'])
-                product = variant.product
-                product.stock_quantity = max(0, product.stock_quantity - item.quantity)
-                product.save(update_fields=['stock_quantity'])
 
             # Auto-confirm frame-only orders (no lens, no prescription needed)
             has_lens = order.items.filter(lens__isnull=False).exists()
@@ -698,19 +695,12 @@ class OrderViewSet(viewsets.ModelViewSet):
                             v.id: v for v in FrameVariant.objects.select_for_update()
                                 .filter(id__in=variant_ids).select_related('product')
                         }
-                        locked_products = {}
-                        for v in locked_variants.values():
-                            if v.product_id not in locked_products:
-                                locked_products[v.product_id] = FrameProduct.objects.select_for_update().get(pk=v.product_id)
 
                         for item in instance.items.all():
                             variant = locked_variants.get(item.variant_id)
                             if variant:
                                 variant.stock += item.quantity
                                 variant.save(update_fields=['stock'])
-                                product = locked_products[variant.product_id]
-                                product.stock_quantity += item.quantity
-                                product.save(update_fields=['stock_quantity'])
 
         # PIPELINE SYNC: Update Shipment Status based on Order Status
         if instance.status:

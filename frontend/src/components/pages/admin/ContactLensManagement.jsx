@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import apiClient from '../../../services/api';
 import FormModal from './FormModal';
 import ContactLensPackageForm from './ContactLensPackageForm';
+import BrandTable from './BrandTable';
 import {
   Plus, Search, AlertCircle, Edit2, Copy, X, Layers, ChevronDown, ArrowLeftRight, Trash2,
 } from 'lucide-react';
@@ -43,6 +44,7 @@ const ContactLensManagement = () => {
   const [addLensFor, setAddLensFor] = useState(null);   // power type object when adding a lens type
   const [isCreatingPkg, setIsCreatingPkg] = useState(false);
   const [isEditingPkg, setIsEditingPkg] = useState(false);
+  const [activeView, setActiveView] = useState('catalog'); // 'catalog' | 'brands'
   const seededRef = useRef(false);
 
   const EMPTY_PKG_FORM = {
@@ -323,11 +325,36 @@ const ContactLensManagement = () => {
           <h1 className="lm-page-title">Contact Lens Catalog</h1>
           <p className="lm-page-sub">Power types &rarr; lens types &rarr; packages, grouped by brand.</p>
         </div>
-        <button className="cl-add-type-btn" onClick={() => setShowAddPower(true)}>
-          <Plus size={15} /> Add Power Type
-        </button>
+        {activeView === 'catalog' && (
+          <button className="cl-add-type-btn" onClick={() => setShowAddPower(true)}>
+            <Plus size={15} /> Add Power Type
+          </button>
+        )}
       </div>
 
+      <div style={{ display: 'flex', gap: 4, marginBottom: 16, background: '#F9FAFB', border: '1px solid #EAECF0', borderRadius: 8, padding: 4, width: 'fit-content' }}>
+        {[{ key: 'catalog', label: 'Catalog' }, { key: 'brands', label: 'Brand Logos' }].map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => {
+              setActiveView(tab.key);
+              if (tab.key === 'catalog') fetchData(); // brand edits made in the other tab should show up here
+            }}
+            style={{
+              padding: '7px 16px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+              background: activeView === tab.key ? '#fff' : 'transparent',
+              color: activeView === tab.key ? '#7F56D9' : '#667085',
+              boxShadow: activeView === tab.key ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {activeView === 'brands' ? (
+        <BrandTable fixedType="Contact" title="Contact Lens Brands" />
+      ) : (
       <div className="lm-grid">
         {/* ── Left: Power types → Lens types ── */}
         <div className="lm-left-panel">
@@ -480,6 +507,7 @@ const ContactLensManagement = () => {
           </div>
         </div>
       </div>
+      )}
 
       {/* Add Power Type modal */}
       <FormModal isOpen={showAddPower} onClose={() => setShowAddPower(false)} onSubmit={handleAddPower}

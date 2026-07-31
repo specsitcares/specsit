@@ -420,7 +420,7 @@ class LensSerializer(serializers.ModelSerializer):
             data['package_warranty_months'] = instance.package.warranty_months
         if instance.brand:
             data['brand_name'] = instance.brand.name
-            data['brand_tagline'] = instance.brand.label or instance.brand.description or ''
+            data['brand_tagline'] = ''
             try:
                 data['brand_logo'] = instance.brand.logo.url if instance.brand.logo else None
             except Exception:
@@ -516,7 +516,7 @@ class ContactLensSerializer(serializers.ModelSerializer):
             data['package_selling_price'] = float(instance.package.selling_price or 0)
         if instance.brand:
             data['brand_name'] = instance.brand.name
-            data['brand_tagline'] = instance.brand.label or instance.brand.description or ''
+            data['brand_tagline'] = ''
             try:
                 data['brand_logo'] = instance.brand.logo.url if instance.brand.logo else None
             except Exception:

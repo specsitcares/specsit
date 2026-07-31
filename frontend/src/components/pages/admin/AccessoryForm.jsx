@@ -302,15 +302,9 @@ const AccessoryForm = () => {
     // Cleaning solutions have no colour/palette per variant; cases use a Type dropdown + warranty-period field.
     const isSolution = /solution/i.test(categoryLabel);
     const isCase = /case/i.test(categoryLabel);
-    // Brands are scoped per accessory category — only show brands of the matching type.
-    const accessoryBrandTypes = isCase
-        ? ['Cases']
-        : isSolution
-            ? ['Solutions']
-            : /cloth/i.test(categoryLabel)
-                ? ['Cloths']
-                : ['Cases', 'Cloths', 'Solutions'];
-    const brandOptions = brands.filter(b => accessoryBrandTypes.includes(b.brand_type));
+    // Brands are already scoped to accessory types server-side (Cases/Cloths/Solutions)
+    // by the `?product_type=accessory` fetch below — no need to re-filter client-side.
+    const brandOptions = brands;
 
     // Live preview of the auto-generated meta title/description — one per product
     // page, same as frames (see ProductDetailsForm.jsx's identical resolveMetaTemplate).

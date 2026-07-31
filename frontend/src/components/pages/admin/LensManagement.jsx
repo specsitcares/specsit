@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../../../services/api';
 import FormModal from './FormModal';
+import BrandTable from './BrandTable';
 import {
   Plus, Search, AlertCircle, Edit2, Copy, X, Layers, ChevronDown, Trash2, Zap, Ruler, SkipForward,
 } from 'lucide-react';
@@ -76,6 +77,7 @@ const LensManagement = ({ editLensId = null }) => {
   const [newConstraintText,    setNewConstraintText]    = useState('');
   const [addingIndex,          setAddingIndex]          = useState(false);
   const [newIndexText,         setNewIndexText]         = useState('');
+  const [activeView,           setActiveView]           = useState('catalog'); // 'catalog' | 'brands'
 
   const EMPTY_PACKAGE_FORM = {
     name: '', description: '', index: '1.5', is_active: true,
@@ -596,7 +598,30 @@ const LensManagement = ({ editLensId = null }) => {
         </div>
       </div>
 
-      {/* Two-column layout */}
+      <div style={{ display: 'flex', gap: 4, marginBottom: 16, background: '#F9FAFB', border: '1px solid #EAECF0', borderRadius: 8, padding: 4, width: 'fit-content' }}>
+        {[{ key: 'catalog', label: 'Catalog' }, { key: 'brands', label: 'Brand Logos' }].map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => {
+              setActiveView(tab.key);
+              if (tab.key === 'catalog') fetchData(); // brand edits made in the other tab should show up here
+            }}
+            style={{
+              padding: '7px 16px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+              background: activeView === tab.key ? '#fff' : 'transparent',
+              color: activeView === tab.key ? '#7F56D9' : '#667085',
+              boxShadow: activeView === tab.key ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {activeView === 'brands' ? (
+        <BrandTable fixedType="Lens" title="Frame Lens Brands" />
+      ) : (
+      /* Two-column layout */
       <div className="lm-grid">
 
         {/* ── Left: Lens Types (accordion by category) ── */}
@@ -946,6 +971,7 @@ const LensManagement = ({ editLensId = null }) => {
           </div>
         </div>
       </div>
+      )}
 
       {/* ── Add Lens Type modal ── */}
       <FormModal

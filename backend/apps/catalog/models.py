@@ -322,8 +322,9 @@ class Lens(models.Model):
     # Contact-lens-specific fields
     power_type = models.CharField(max_length=50, blank=True, null=True)
     base_curve = models.JSONField(default=list, blank=True)
-    replacement = models.CharField(max_length=20, blank=True, null=True,
-        choices=[('daily', 'Daily'), ('weekly', 'Weekly'), ('monthly', 'Monthly'), ('yearly', 'Yearly')])
+    # Free text, not a fixed choice list — admins can define custom lens types
+    # (beyond Daily/Weekly/Monthly/Yearly) via the 'Contact Lens Type' metadata group.
+    replacement = models.CharField(max_length=50, blank=True, null=True)
     material = models.CharField(max_length=100, blank=True, null=True)
     water_content = models.CharField(max_length=20, blank=True, null=True)
     dkt = models.CharField(max_length=20, blank=True, null=True)
@@ -357,8 +358,9 @@ class ContactLens(models.Model):
     # Contact-lens-specific specs
     power_type = models.CharField(max_length=50, blank=True, null=True)
     base_curve = models.JSONField(default=list, blank=True)
-    replacement = models.CharField(max_length=20, blank=True, null=True,
-        choices=[('daily', 'Daily'), ('weekly', 'Weekly'), ('monthly', 'Monthly'), ('yearly', 'Yearly')])
+    # Free text, not a fixed choice list — admins can define custom lens types
+    # (beyond Daily/Weekly/Monthly/Yearly) via the 'Contact Lens Type' metadata group.
+    replacement = models.CharField(max_length=50, blank=True, null=True)
     material = models.CharField(max_length=100, blank=True, null=True)
     water_content = models.CharField(max_length=20, blank=True, null=True)
     dkt = models.CharField(max_length=20, blank=True, null=True)
