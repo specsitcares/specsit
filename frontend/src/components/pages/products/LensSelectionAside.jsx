@@ -204,9 +204,6 @@ const LensPackageCard = ({ pkg, selected, onSelect, productBasePrice = 0 }) => {
         ? `${Math.round(months / 12)} Year Warranty`
         : months > 0 ? `${months} Month Warranty` : null;
 
-    // Power ranges (SPH/CYL min-max) are an admin-only detail — not shown to customers.
-    const lensIndex = pkg.index || pkg.index_value || null;
-
     return (
         <button
             className={`lsa-pkg${selected ? ' lsa-pkg--selected' : ''}`}
@@ -226,11 +223,6 @@ const LensPackageCard = ({ pkg, selected, onSelect, productBasePrice = 0 }) => {
                             </ul>
                         )}
                     </div>
-                    {lensIndex && (
-                        <div className="lsa-pkg__side">
-                            <span className="lsa-pkg__index">Index {lensIndex}</span>
-                        </div>
-                    )}
                 </div>
                 <div className="lsa-pkg__price-row">
                     <div className="lsa-pkg__price-stack">
