@@ -1219,7 +1219,7 @@ class CouponViewSet(viewsets.ModelViewSet):
             return Response({'valid': False, 'message': 'Please enter a coupon code.'})
 
         try:
-            coupon = Coupon.objects.prefetch_related('brands', 'categories').get(code=code, is_active=True)
+            coupon = Coupon.objects.prefetch_related('brands', 'categories').get(code__iexact=code, is_active=True)
         except Coupon.DoesNotExist:
             return Response({'valid': False, 'message': 'Invalid coupon code. Please try again.'})
 

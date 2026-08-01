@@ -73,7 +73,7 @@ const CartPage = () => {
             .catch(() => {});
     }, []);
 
-    const sanitizePromoCode = (code) => String(code || '').replace(/[^A-Z0-9\-]/g, '').slice(0, 50);
+    const sanitizePromoCode = (code) => String(code || '').trim().toUpperCase().slice(0, 50);
 
     const handleApplyPromo = async () => {
         const code = sanitizePromoCode(promoCode);
@@ -408,7 +408,7 @@ const CartPage = () => {
                                     className="ck-promo__input"
                                     placeholder="Enter Promo Code"
                                     value={promoCode}
-                                    onChange={e => { setPromoCode(e.target.value); setPromoError(''); }}
+                                    onChange={e => { setPromoCode(e.target.value.toUpperCase()); setPromoError(''); }}
                                     onKeyDown={e => e.key === 'Enter' && handleApplyPromo()}
                                 />
                                 <button className="ck-promo__apply" onClick={handleApplyPromo} disabled={promoLoading}>

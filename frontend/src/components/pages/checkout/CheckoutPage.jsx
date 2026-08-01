@@ -99,7 +99,7 @@ const CheckoutPage = () => {
         : resolveProductPrice(item.product, item.variant) + (item.lens ? parseFloat(item.lens.price || 0) : 0);
 
     const handleApplyPromo = async () => {
-        const code = String(promoCode || '').replace(/[^A-Z0-9\-]/g, '').slice(0, 50);
+        const code = String(promoCode || '').trim().toUpperCase().slice(0, 50);
         if (!code) { setPromoError('Please enter a valid promo code'); return; }
         setPromoLoading(true); setPromoError('');
         try {
