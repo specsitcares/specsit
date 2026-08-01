@@ -97,17 +97,13 @@ const Sidebar = ({ onClose, isMobile, badges = {} }) => {
 
   const activeParent = getActiveParent();
 
-  const [expanded, setExpanded] = useState(() => {
-    const initial = {};
-    for (const item of menuItems) initial[item.key] = item.key === activeParent;
-    return initial;
-  });
+  const [expandedKey, setExpandedKey] = useState(activeParent);
 
   useEffect(() => {
-    setExpanded(prev => ({ ...prev, [activeParent]: true }));
+    setExpandedKey(activeParent);
   }, [activeParent]);
 
-  const toggle = (key) => setExpanded(prev => ({ ...prev, [key]: !prev[key] }));
+  const toggle = (key) => setExpandedKey(prev => (prev === key ? null : key));
 
   const activeSub = (() => {
     let best = null;
@@ -192,13 +188,13 @@ const Sidebar = ({ onClose, isMobile, badges = {} }) => {
                   {!isSingle && (
                     <ChevronDown
                       size={16} color="#697177"
-                      style={{ flexShrink: 0, transform: expanded[item.key] ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
+                      style={{ flexShrink: 0, transform: expandedKey === item.key ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
                     />
                   )}
                 </div>
 
                 {/* Sub-items — only rendered for multi-sub sections */}
-                {!isSingle && expanded[item.key] && (
+                {!isSingle && expandedKey === item.key && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 1, marginTop: 1 }}>
                     {item.subs.map(sub => {
                       const subActive = isSubActive(sub);
