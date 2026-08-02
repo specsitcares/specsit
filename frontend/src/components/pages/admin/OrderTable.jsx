@@ -172,6 +172,23 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewReplac
   const toggleRow = (id) =>
     setExpandedRows(prev => prev.includes(id) ? prev.filter(r => r !== id) : [...prev, id]);
 
+  // Prefer the request matching the active mode; fall back to whatever request the row does have
+  // so a mode/data mismatch never silently drops the user on the order lifecycle page.
+  const resolveReturnRequest = (o) => {
+    const wantType = returnMode === 'replacements' ? 'replacement' : 'refund';
+    return o.return_requests?.find(r => r.request_type === wantType) || o.return_requests?.[0] || null;
+  };
+
+  // Routes to the return/replacement detail page. Returns false only when the order
+  // genuinely has no request yet (e.g. the "Return Window" tab).
+  const openReturnRequest = (o) => {
+    const rr = resolveReturnRequest(o);
+    if (!rr) return false;
+    if (rr.request_type === 'replacement' && onViewReplacement) { onViewReplacement(rr.id); return true; }
+    if (rr.request_type === 'refund' && onViewReturn) { onViewReturn(rr.id); return true; }
+    return false;
+  };
+
   const handleEdit = (o) => {
     if (category === 'returns' || category === 'warranty') {
       onViewDetails(o.id);
@@ -661,13 +678,8 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewReplac
                   {/* Main Order Row */}
                   <tr
                     onClick={() => {
-                      const wantType = returnMode === 'replacements' ? 'replacement' : 'refund';
-                      const rr = o.return_requests?.find(r => r.request_type === wantType);
                       const wc = o.warranty_claims?.[0];
-                      if (category === 'returns' && rr) {
-                        if (rr.request_type === 'replacement' && onViewReplacement) { onViewReplacement(rr.id); return; }
-                        if (rr.request_type === 'refund' && onViewReturn) { onViewReturn(rr.id); return; }
-                      }
+                      if (category === 'returns' && openReturnRequest(o)) return;
                       if (category === 'warranty' && wc && onViewWarranty) { onViewWarranty(wc.id); return; }
                       o.items?.length > 1 ? toggleRow(o.id) : onViewDetails(o.id);
                     }}
@@ -852,14 +864,18 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewReplac
                         <div
                           onClick={(e) => {
                             e.stopPropagation();
-                            const wantType = returnMode === 'replacements' ? 'replacement' : 'refund';
-                            const rr = o.return_requests?.find(r => r.request_type === wantType);
                             const wc = o.warranty_claims?.[0];
-                            if (category === 'returns' && rr) {
-                              if (rr.request_type === 'replacement' && onViewReplacement) { onViewReplacement(rr.id); return; }
-                              if (rr.request_type === 'refund' && onViewReturn) { onViewReturn(rr.id); return; }
+                            if (category === 'returns') {
+                              if (openReturnRequest(o)) return;
+                              // No request raised yet (Return Window tab) — never open the Rx flow here
+                              onViewDetails(o.id);
+                              return;
                             }
-                            if (category === 'warranty' && wc && onViewWarranty) { onViewWarranty(wc.id); return; }
+                            if (category === 'warranty') {
+                              if (wc && onViewWarranty) { onViewWarranty(wc.id); return; }
+                              onViewDetails(o.id);
+                              return;
+                            }
                             const hasApproved = o.items?.some(item => (item.prescription_status || '').toLowerCase() === 'approved');
                             const isFrameOnly = o.items?.every(item => (item.prescription_status || 'Frame Only').toLowerCase() === 'frame only');
                             if (hasApproved || isFrameOnly) {
