@@ -5,6 +5,9 @@ import Sidebar from './Sidebar';
 import TopBar from './TopBar';
 import DashboardHome from './DashboardHome';
 import OrderTable from './OrderTable';
+import ReturnRequestDetail from './ReturnRequestDetail';
+import ReplacementRequestDetail from './ReplacementRequestDetail';
+import WarrantyClaimDetail from './WarrantyClaimDetail';
 import CustomerTable from './CustomerTable';
 import PrescriptionTable from './PrescriptionTable';
 import UserFaceTable from './UserFaceTable';
@@ -163,9 +166,17 @@ const AdminDashboard = () => {
 
               {/* Orders */}
               <Route path="orders"          element={<OrderTable category={null}       onViewDetails={id => navigate(`/admin/orders/${id}`)} />} />
-              <Route path="orders/returns"  element={<OrderTable category="returns"    onViewDetails={id => navigate(`/admin/orders/${id}`)} />} />
-              <Route path="orders/warranty" element={<OrderTable category="warranty"   onViewDetails={id => navigate(`/admin/orders/${id}`)} />} />
+              <Route path="orders/returns"  element={<OrderTable category="returns"    onViewDetails={id => navigate(`/admin/orders/${id}`)}
+                                                                                       onViewReturn={id => navigate(`/admin/returns/${id}`)}
+                                                                                       onViewReplacement={id => navigate(`/admin/replacements/${id}`)} />} />
+              <Route path="orders/warranty" element={<OrderTable category="warranty"   onViewDetails={id => navigate(`/admin/orders/${id}`)}
+                                                                                       onViewWarranty={id => navigate(`/admin/warranty-claims/${id}`)} />} />
               <Route path="orders/:orderId" element={<OrderDetailRoute />} />
+
+              {/* Targets of the green tick on the Returns & Warranty tables */}
+              <Route path="returns/:returnId"          element={<ReturnRequestDetail />} />
+              <Route path="replacements/:returnId"     element={<ReplacementRequestDetail />} />
+              <Route path="warranty-claims/:claimId"   element={<WarrantyClaimDetail />} />
 
               {/* Products */}
               <Route path="products"                  element={<ProductsRoute />} />
