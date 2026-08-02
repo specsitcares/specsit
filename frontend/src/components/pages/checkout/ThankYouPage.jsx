@@ -156,6 +156,13 @@ const ThankYouPage = () => {
   const [order, setOrder] = useState(null);
   const [reviews, setReviews] = useState({});
   const [loading, setLoading] = useState(true);
+  const [siteSettings, setSiteSettings] = useState(null);
+
+  useEffect(() => {
+    apiClient.get('/cms/site-settings/')
+      .then(res => setSiteSettings(res.data))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -193,6 +200,37 @@ const ThankYouPage = () => {
     };
     fetchData();
   }, [orderId, user, navigate]);
+
+  useEffect(() => {
+    const defaultTitle = document.title;
+    document.title = order ? `Order #LO-${String(order.id).padStart(7, '0')} Delivered | SPECSIT` : 'Order Delivered | SPECSIT';
+
+    let descMeta = document.querySelector('meta[name="description"]');
+    if (!descMeta) {
+      descMeta = document.createElement('meta');
+      descMeta.setAttribute('name', 'description');
+      document.head.appendChild(descMeta);
+    }
+    const prevDescription = descMeta.getAttribute('content');
+    descMeta.setAttribute('content', 'Your SPECSIT order has been delivered. View your order summary, delivery details, and share feedback on your purchase.');
+
+    let robotsMeta = document.querySelector('meta[name="robots"]');
+    if (!robotsMeta) {
+      robotsMeta = document.createElement('meta');
+      robotsMeta.setAttribute('name', 'robots');
+      document.head.appendChild(robotsMeta);
+    }
+    const prevRobots = robotsMeta.getAttribute('content');
+    robotsMeta.setAttribute('content', 'noindex, nofollow');
+
+    return () => {
+      document.title = defaultTitle;
+      if (prevDescription !== null) descMeta.setAttribute('content', prevDescription);
+      else descMeta.removeAttribute('content');
+      if (prevRobots !== null) robotsMeta.setAttribute('content', prevRobots);
+      else robotsMeta.removeAttribute('content');
+    };
+  }, [order]);
 
   if (loading) return (
     <div style={{ textAlign: 'center', padding: 80, color: '#9ca3af', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
@@ -327,7 +365,7 @@ const ThankYouPage = () => {
               </div>
               <div style={S.contactText}>
                 <p style={S.contactTitle}>Questions about your order?</p>
-                <p style={S.contactSub}>1800-266-0123 · Available 7 days a week</p>
+                <p style={S.contactSub}>{siteSettings?.contact_number || 'Support'} · Available 7 days a week</p>
               </div>
               <button style={S.contactBtn} onClick={() => navigate('/support/contact')}>
                 Contact Us

@@ -897,7 +897,10 @@ const LensManagement = ({ editLensId = null }) => {
                             >
                               {/* Top row: name + actions */}
                               <div className="lm-pkg-top">
-                                <span className="lm-pkg-name">{lens.package_name || lens.name}</span>
+                                <span className="lm-pkg-name">
+                                  {lens.package_name || lens.name}
+                                  {lens.index && <span className="lm-pkg-index">Index {lens.index}</span>}
+                                </span>
                                 <div className="lm-pkg-actions">
                                   <button
                                     type="button"
@@ -1002,7 +1005,9 @@ const LensManagement = ({ editLensId = null }) => {
 
       {/* ── Create / Edit Package offcanvas ── */}
       {(isCreatingNewPackage || isEditingPackage) && (
-        <div className="lm-backdrop" onClick={handleClosePackageForm}>
+        // Clicking the backdrop no longer closes the form — it was too easy to lose
+        // unsaved edits by clicking just outside the panel. Use the X or Cancel instead.
+        <div className="lm-backdrop">
           <div className="lm-offcanvas" onClick={e => e.stopPropagation()}>
 
             <div className="lm-oc-header">

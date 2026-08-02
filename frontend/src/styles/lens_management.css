@@ -482,6 +482,20 @@
   font-family: 'Inter', 'Roboto', sans-serif;
 }
 .lm-pkg-card.selected .lm-pkg-name { color: white; }
+.lm-pkg-index {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: 'Roboto', sans-serif;
+  color: #6941C6;
+  background: #F4EBFF;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.lm-pkg-card.selected .lm-pkg-index { background: rgba(255,255,255,0.25); color: #ffffff; }
 
 /* Action icons */
 .lm-pkg-actions {

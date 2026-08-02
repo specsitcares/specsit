@@ -94,17 +94,19 @@ const CheckoutPage = () => {
     const [promoError, setPromoError] = useState('');
     const [promoLoading, setPromoLoading] = useState(false);
 
+    const checkoutItemPrice = (item) => item.type === 'contactlens'
+        ? (parseFloat(item.price) || 0)
+        : resolveProductPrice(item.product, item.variant) + (item.lens ? parseFloat(item.lens.price || 0) : 0);
+
     const handleApplyPromo = async () => {
-        const code = String(promoCode || '').replace(/[^A-Z0-9\-]/g, '').slice(0, 50);
+        const code = String(promoCode || '').trim().toUpperCase().slice(0, 50);
         if (!code) { setPromoError('Please enter a valid promo code'); return; }
         setPromoLoading(true); setPromoError('');
         try {
             const items = cart.map(item => ({
                 variant: item.variant?.id ?? null,
                 quantity: item.quantity,
-                price: item.type === 'contactlens'
-                    ? (parseFloat(item.price) || 0)
-                    : resolveProductPrice(item.product, item.variant) + (item.lens ? parseFloat(item.lens.price || 0) : 0),
+                price: checkoutItemPrice(item),
             }));
             const res = await apiClient.post('/sales/coupons/validate/', { code, cartValue: cartTotal, items });
             if (res.data.valid) { applyCoupon({ code, discount: res.data.savings || 0, message: res.data.message }); setCouponOpen(false); setPromoCode(''); }
@@ -112,6 +114,40 @@ const CheckoutPage = () => {
         } catch (err) {
             setPromoError(err.response?.data?.message || 'Invalid promo code');
         } finally { setPromoLoading(false); }
+    };
+
+    /* ── Available offers popup (search + browse coupons) ── */
+    const [offersOpen, setOffersOpen] = useState(false);
+    const [offers, setOffers] = useState([]);
+    const [offersLoading, setOffersLoading] = useState(false);
+    const [offerSearch, setOfferSearch] = useState('');
+
+    const handleViewOffers = async () => {
+        setOffersOpen(true);
+        setOffersLoading(true);
+        setOfferSearch('');
+        try {
+            const itemsPayload = cart.map(item => ({
+                variant: item.variant?.id ?? null,
+                quantity: item.quantity,
+                price: checkoutItemPrice(item),
+            }));
+            const res = await apiClient.post('/sales/coupons/available/', { cartValue: cartTotal, items: itemsPayload });
+            setOffers(res.data.coupons || []);
+        } catch (e) {
+            setOffers([]);
+        } finally {
+            setOffersLoading(false);
+        }
+    };
+
+    const handleSelectOffer = (offer) => {
+        if (!offer.eligible) return;
+        applyCoupon({ code: offer.code, discount: offer.savings || 0, message: `Coupon '${offer.code}' applied! You saved ₹${offer.savings}` });
+        setPromoCode('');
+        setPromoError('');
+        setCouponOpen(false);
+        setOffersOpen(false);
     };
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -1082,6 +1118,12 @@ const CheckoutPage = () => {
                                         </div>
                                     )}
                                     {promoError && <p className="pay2-coupon-error">{promoError}</p>}
+                                    {couponOpen && (
+                                        <button type="button" className="ck-offers" onClick={handleViewOffers}>
+                                            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1L8.09 4.76L12.25 5.11L9.13 7.84L10.11 12L6.5 9.75L2.89 12L3.87 7.84L0.75 5.11L4.91 4.76L6.5 1Z" stroke="#68408D" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                                            View Available Offers
+                                        </button>
+                                    )}
                                 </div>
                             )}
                         </section>
@@ -1348,6 +1390,73 @@ const CheckoutPage = () => {
                     mobile Figma without touching the desktop layout. */}
                 <OrderSummary />
             </main>
+
+            {/* ── Available Offers popup ── */}
+            {offersOpen && (
+                <div className="ck-offers-modal" onClick={() => setOffersOpen(false)}>
+                    <div className="ck-offers-modal__box" onClick={e => e.stopPropagation()}>
+                        <div className="ck-offers-modal__head">
+                            <h3>Available Offers</h3>
+                            <button className="ck-offers-modal__close" onClick={() => setOffersOpen(false)} aria-label="Close">
+                                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="#71717A" strokeWidth="1.5" strokeLinecap="round" /></svg>
+                            </button>
+                        </div>
+
+                        <div className="ck-offers-modal__search">
+                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="5" stroke="#71717A" strokeWidth="1.3" /><path d="M10 10L13 13" stroke="#71717A" strokeWidth="1.3" strokeLinecap="round" /></svg>
+                            <input
+                                type="text"
+                                placeholder="Search coupons…"
+                                value={offerSearch}
+                                onChange={e => setOfferSearch(e.target.value)}
+                                autoFocus
+                            />
+                            {offerSearch && (
+                                <button onClick={() => setOfferSearch('')} aria-label="Clear search">
+                                    <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="#71717A" strokeWidth="1.5" strokeLinecap="round" /></svg>
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="ck-offers-modal__list">
+                            {(() => {
+                                const q = offerSearch.trim().toLowerCase();
+                                const filtered = q
+                                    ? offers.filter(o => o.code.toLowerCase().includes(q) || (o.scope || '').toLowerCase().includes(q))
+                                    : offers;
+                                if (offersLoading) return <p className="ck-offers-modal__empty">Loading offers…</p>;
+                                if (offers.length === 0) return <p className="ck-offers-modal__empty">No offers available right now.</p>;
+                                if (filtered.length === 0) return <p className="ck-offers-modal__empty">No coupons match "{offerSearch}".</p>;
+                                return filtered.map(o => {
+                                    const isApplied = appliedCoupon?.code === o.code;
+                                    return (
+                                        <div key={o.id} className={`ck-offer${o.eligible ? '' : ' ck-offer--disabled'}`}>
+                                            <div className="ck-offer__left">
+                                                <div className="ck-offer__code-row">
+                                                    <span className="ck-offer__code">{o.code}</span>
+                                                    <span className="ck-offer__pct">{o.discount_percentage}% OFF</span>
+                                                </div>
+                                                <span className="ck-offer__meta">
+                                                    {o.eligible
+                                                        ? (o.savings > 0 ? `You save ₹${Number(o.savings).toLocaleString('en-IN')}` : (o.scope ? `For ${o.scope}` : 'Applicable to your cart'))
+                                                        : o.reason}
+                                                </span>
+                                            </div>
+                                            <button
+                                                className="ck-offer__add"
+                                                disabled={!o.eligible || isApplied}
+                                                onClick={() => handleSelectOffer(o)}
+                                            >
+                                                {isApplied ? 'Added' : 'Add'}
+                                            </button>
+                                        </div>
+                                    );
+                                });
+                            })()}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

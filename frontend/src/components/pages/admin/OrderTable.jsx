@@ -852,6 +852,14 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewReplac
                         <div
                           onClick={(e) => {
                             e.stopPropagation();
+                            const wantType = returnMode === 'replacements' ? 'replacement' : 'refund';
+                            const rr = o.return_requests?.find(r => r.request_type === wantType);
+                            const wc = o.warranty_claims?.[0];
+                            if (category === 'returns' && rr) {
+                              if (rr.request_type === 'replacement' && onViewReplacement) { onViewReplacement(rr.id); return; }
+                              if (rr.request_type === 'refund' && onViewReturn) { onViewReturn(rr.id); return; }
+                            }
+                            if (category === 'warranty' && wc && onViewWarranty) { onViewWarranty(wc.id); return; }
                             const hasApproved = o.items?.some(item => (item.prescription_status || '').toLowerCase() === 'approved');
                             const isFrameOnly = o.items?.every(item => (item.prescription_status || 'Frame Only').toLowerCase() === 'frame only');
                             if (hasApproved || isFrameOnly) {
@@ -861,7 +869,7 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewReplac
                             }
                           }}
                           style={{ width: '36px', height: '36px', backgroundColor: '#22C55E', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#ffffff', boxShadow: '0 1px 3px rgba(34,197,94,0.3)' }}
-                          title="Review Prescription"
+                          title={category === 'returns' ? (returnMode === 'replacements' ? 'View Replacement Request' : 'View Return Request') : category === 'warranty' ? 'View Warranty Claim' : 'Review Prescription'}
                         >
                           <Check size={18} strokeWidth={3} />
                         </div>
