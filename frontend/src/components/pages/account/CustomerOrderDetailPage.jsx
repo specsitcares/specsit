@@ -209,6 +209,15 @@ const CustomerOrderDetailPage = () => {
   const returnBlockedReason = !isDelivered
     ? 'Available once your order is delivered'
     : `The ${returnWindowDays}-day return window closed${returnWindowEnd ? ` on ${fmtDate(returnWindowEnd)}` : ''}`;
+  // Carrier portal link saved by admin on the Order Lifecycle (dispatch) page.
+  const trackingLink = (tracking.tracking_link || '').trim();
+  const canTrack = !!trackingLink;
+  const openTracking = () => {
+    if (!canTrack) return;
+    const url = /^https?:\/\//i.test(trackingLink) ? trackingLink : `https://${trackingLink}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
   const showPartial = order.payment_method === 'partial_payment' && order.payment_status === 'partial_paid';
   const deferredItems = items.filter(item =>
     (!item.prescription && item.lens && item.lens_prescription_text?.toLowerCase().includes('later')) ||
@@ -407,6 +416,12 @@ const CustomerOrderDetailPage = () => {
                       Return / Exchange
                     </button>
                   )}
+                  <button type="button" className="od-btn od-btn--ghost" disabled={!canTrack}
+                    title={canTrack ? 'Open the carrier tracking page' : 'Tracking link will appear once your order is dispatched'}
+                    style={canTrack ? undefined : { background: '#f2f4f7', color: '#98a2b3', cursor: 'not-allowed' }}
+                    onClick={openTracking}>
+                    Track package
+                  </button>
                   {isDelivered && (
                     <button type="button" className="od-btn od-btn--ghost"
                       onClick={() => navigate(`/orders/${orderId}/warranty`)}>
