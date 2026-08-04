@@ -689,8 +689,8 @@ const ManualPowerForm = ({ rx, onRxChange, rxMeta, onMetaChange, isProgressive, 
                 <div className="lsa-power-grid__header">
                     <div className="lsa-power-grid__hcell lsa-power-grid__hcell--eye">EYE</div>
                     <div className="lsa-power-grid__hcell">SPH</div>
-                    {hasCyl && <div className="lsa-power-grid__hcell">CYL</div>}
-                    {/* Axis only means something alongside a cylinder value. */}
+                    <div className="lsa-power-grid__hcell">CYL</div>
+                    {/* Only AXIS is tied to the cylindrical toggle; CYL always shows. */}
                     {hasCyl && <div className="lsa-power-grid__hcell lsa-power-grid__hcell--axis">AXIS</div>}
                 </div>
 
@@ -711,18 +711,16 @@ const ManualPowerForm = ({ rx, onRxChange, rxMeta, onMetaChange, isProgressive, 
                                 {sphValues.map(v => <option key={v} value={v}>{v}</option>)}
                             </select>
                         </div>
-                        {hasCyl && (
-                            <div className="lsa-power-grid__cell">
-                                <select
-                                    className="lsa-power-grid__select"
-                                    value={rx[row.key]?.cyl || ''}
-                                    onChange={e => handlePowerChange(row.key, 'cyl', e.target.value)}
-                                >
-                                    <option value="">—</option>
-                                    {cylValues.map(v => <option key={v} value={v}>{v}</option>)}
-                                </select>
-                            </div>
-                        )}
+                        <div className="lsa-power-grid__cell">
+                            <select
+                                className="lsa-power-grid__select"
+                                value={rx[row.key]?.cyl || ''}
+                                onChange={e => handlePowerChange(row.key, 'cyl', e.target.value)}
+                            >
+                                <option value="">—</option>
+                                {cylValues.map(v => <option key={v} value={v}>{v}</option>)}
+                            </select>
+                        </div>
                         {hasCyl && (
                             <div className="lsa-power-grid__cell lsa-power-grid__cell--axis">
                                 <input
@@ -1111,13 +1109,13 @@ const LensSelectionAside = ({ isOpen, onClose, product, onAddToCart }) => {
 
     const handleMetaChange = (field, value) => {
         setRxMeta(prev => ({ ...prev, [field]: value }));
-        // Turning cylindrical power off hides CYL/AXIS — drop anything already typed
-        // there so a stale axis can't ride along with the order.
+        // Turning the toggle off hides AXIS — drop anything already typed there so a
+        // stale axis can't ride along with the order. CYL stays visible and untouched.
         if (field === 'hasCyl' && !value) {
             setRx(prev => ({
                 ...prev,
-                od: { ...prev.od, cyl: '', axis: '' },
-                os: { ...prev.os, cyl: '', axis: '' },
+                od: { ...prev.od, axis: '' },
+                os: { ...prev.os, axis: '' },
             }));
         }
     };

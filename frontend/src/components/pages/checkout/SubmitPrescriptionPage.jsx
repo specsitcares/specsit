@@ -130,21 +130,21 @@ const ManualPowerForm = ({ rx, setRx, rxMeta, setRxMeta }) => {
         });
     };
 
-    // Turning cylindrical power off hides CYL/AXIS — drop anything already typed
-    // there so a stale axis can't ride along with the prescription.
+    // Turning the toggle off hides AXIS — drop anything already typed there so a stale
+    // axis can't ride along with the prescription. CYL stays visible and untouched.
     const handleCylToggle = (checked) => {
         setRxMeta(p => ({ ...p, hasCyl: checked }));
         if (!checked) {
             setRx(prev => ({
                 ...prev,
-                od: { ...prev.od, cyl: '', axis: '' },
-                os: { ...prev.os, cyl: '', axis: '' },
+                od: { ...prev.od, axis: '' },
+                os: { ...prev.os, axis: '' },
             }));
         }
     };
 
-    // Axis only means something alongside a cylinder value, so it shares the CYL toggle.
-    const gridCols = `100px 1fr${hasCyl ? ' 1fr' : ''}${hasAdd ? ' 1fr' : ''}${hasCyl ? ' 1fr' : ''}`;
+    // Only the AXIS track is tied to the toggle; CYL always occupies a column.
+    const gridCols = `100px 1fr 1fr${hasAdd ? ' 1fr' : ''}${hasCyl ? ' 1fr' : ''}`;
 
     const rows = samePower
         ? [{ key: 'od', label: 'BOTH', sub: null }]
@@ -194,7 +194,7 @@ const ManualPowerForm = ({ rx, setRx, rxMeta, setRxMeta }) => {
                 <div className="spp-grid-header" style={{ gridTemplateColumns: gridCols }}>
                     <div className="spp-grid-hcell spp-grid-hcell--eye">Eye</div>
                     <div className="spp-grid-hcell">SPH</div>
-                    {hasCyl && <div className="spp-grid-hcell">CYL</div>}
+                    <div className="spp-grid-hcell">CYL</div>
                     {hasAdd && <div className="spp-grid-hcell">ADD</div>}
                     {hasCyl && <div className="spp-grid-hcell">Axis</div>}
                 </div>
@@ -213,16 +213,14 @@ const ManualPowerForm = ({ rx, setRx, rxMeta, setRxMeta }) => {
                                 {SPH_VALUES.map(v => <option key={v} value={v}>{v}</option>)}
                             </select>
                         </div>
-                        {hasCyl && (
-                            <div className="spp-grid-cell">
-                                <select className="spp-grid-select"
-                                    value={rx[row.key]?.cyl || ''}
-                                    onChange={e => handlePowerChange(row.key, 'cyl', e.target.value)}>
-                                    <option value="">—</option>
-                                    {CYL_VALUES.map(v => <option key={v} value={v}>{v}</option>)}
-                                </select>
-                            </div>
-                        )}
+                        <div className="spp-grid-cell">
+                            <select className="spp-grid-select"
+                                value={rx[row.key]?.cyl || ''}
+                                onChange={e => handlePowerChange(row.key, 'cyl', e.target.value)}>
+                                <option value="">—</option>
+                                {CYL_VALUES.map(v => <option key={v} value={v}>{v}</option>)}
+                            </select>
+                        </div>
                         {hasAdd && (
                             <div className="spp-grid-cell">
                                 <select className="spp-grid-select"
