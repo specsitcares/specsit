@@ -690,7 +690,8 @@ const ManualPowerForm = ({ rx, onRxChange, rxMeta, onMetaChange, isProgressive, 
                     <div className="lsa-power-grid__hcell lsa-power-grid__hcell--eye">EYE</div>
                     <div className="lsa-power-grid__hcell">SPH</div>
                     {hasCyl && <div className="lsa-power-grid__hcell">CYL</div>}
-                    <div className="lsa-power-grid__hcell lsa-power-grid__hcell--axis">AXIS</div>
+                    {/* Axis only means something alongside a cylinder value. */}
+                    {hasCyl && <div className="lsa-power-grid__hcell lsa-power-grid__hcell--axis">AXIS</div>}
                 </div>
 
                 {/* Data rows */}
@@ -722,18 +723,20 @@ const ManualPowerForm = ({ rx, onRxChange, rxMeta, onMetaChange, isProgressive, 
                                 </select>
                             </div>
                         )}
-                        <div className="lsa-power-grid__cell lsa-power-grid__cell--axis">
-                            <input
-                                type="number"
-                                min="0"
-                                max="180"
-                                step="1"
-                                placeholder="0"
-                                className="lsa-power-grid__axis-input"
-                                value={rx[row.key]?.axis || ''}
-                                onChange={e => handlePowerChange(row.key, 'axis', e.target.value)}
-                            />
-                        </div>
+                        {hasCyl && (
+                            <div className="lsa-power-grid__cell lsa-power-grid__cell--axis">
+                                <input
+                                    type="number"
+                                    min="0"
+                                    max="180"
+                                    step="1"
+                                    placeholder="0"
+                                    className="lsa-power-grid__axis-input"
+                                    value={rx[row.key]?.axis || ''}
+                                    onChange={e => handlePowerChange(row.key, 'axis', e.target.value)}
+                                />
+                            </div>
+                        )}
                     </div>
                 ))}
 
@@ -1108,6 +1111,15 @@ const LensSelectionAside = ({ isOpen, onClose, product, onAddToCart }) => {
 
     const handleMetaChange = (field, value) => {
         setRxMeta(prev => ({ ...prev, [field]: value }));
+        // Turning cylindrical power off hides CYL/AXIS — drop anything already typed
+        // there so a stale axis can't ride along with the order.
+        if (field === 'hasCyl' && !value) {
+            setRx(prev => ({
+                ...prev,
+                od: { ...prev.od, cyl: '', axis: '' },
+                os: { ...prev.os, cyl: '', axis: '' },
+            }));
+        }
     };
 
     const handleClose = () => {

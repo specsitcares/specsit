@@ -758,17 +758,19 @@ const OrderConfirmationPage = () => {
                             </select>
                         </td>
                     )}
-                    <td className="conf-power-cell conf-power-cell--axis">
-                        <input
-                            className="conf-power-input"
-                            type="number"
-                            min="1"
-                            max="180"
-                            value={axisVal}
-                            disabled={disabled || !hasCyl}
-                            onChange={e => updatePower(`${side}_axis`, e.target.value)}
-                        />
-                    </td>
+                    {hasCyl && (
+                        <td className="conf-power-cell conf-power-cell--axis">
+                            <input
+                                className="conf-power-input"
+                                type="number"
+                                min="1"
+                                max="180"
+                                value={axisVal}
+                                disabled={disabled}
+                                onChange={e => updatePower(`${side}_axis`, e.target.value)}
+                            />
+                        </td>
+                    )}
                 </tr>
             );
         };
@@ -820,7 +822,7 @@ const OrderConfirmationPage = () => {
                                             <th className="conf-power-th">EYE</th>
                                             <th className="conf-power-th">SPH</th>
                                             {hasCyl && <th className="conf-power-th">CYL</th>}
-                                            <th className="conf-power-th">AXIS</th>
+                                            {hasCyl && <th className="conf-power-th">AXIS</th>}
                                         </tr>
                                     </thead>
                                     <tbody>
