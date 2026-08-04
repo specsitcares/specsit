@@ -861,34 +861,46 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewReplac
                     </td>
                     <td style={{ padding: '12px 16px', backgroundColor: expandedRows.includes(o.id) ? '#F5F3FF' : 'inherit' }}>
                       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
-                        <div
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const wc = o.warranty_claims?.[0];
-                            if (category === 'returns') {
-                              if (openReturnRequest(o)) return;
-                              // No request raised yet (Return Window tab) — never open the Rx flow here
-                              onViewDetails(o.id);
-                              return;
-                            }
-                            if (category === 'warranty') {
-                              if (wc && onViewWarranty) { onViewWarranty(wc.id); return; }
-                              onViewDetails(o.id);
-                              return;
-                            }
-                            const hasApproved = o.items?.some(item => (item.prescription_status || '').toLowerCase() === 'approved');
-                            const isFrameOnly = o.items?.every(item => (item.prescription_status || 'Frame Only').toLowerCase() === 'frame only');
-                            if (hasApproved || isFrameOnly) {
-                              onViewDetails(o.id);
-                            } else {
-                              setRxOffcanvasOrder(o);
-                            }
-                          }}
-                          style={{ width: '36px', height: '36px', backgroundColor: '#22C55E', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#ffffff', boxShadow: '0 1px 3px rgba(34,197,94,0.3)' }}
-                          title={category === 'returns' ? (returnMode === 'replacements' ? 'View Replacement Request' : 'View Return Request') : category === 'warranty' ? 'View Warranty Claim' : 'Review Prescription'}
-                        >
-                          <Check size={18} strokeWidth={3} />
-                        </div>
+                        {(() => {
+                          // On the returns/warranty tables the tick opens the request itself.
+                          // Rows in the "Window" tabs often have nothing raised yet — there is no
+                          // detail page for those, so show the tick as disabled rather than
+                          // silently dropping the user on the order lifecycle page.
+                          const returnRr = category === 'returns' ? resolveReturnRequest(o) : null;
+                          const warrantyWc = category === 'warranty' ? o.warranty_claims?.[0] : null;
+                          const disabled = (category === 'returns' && !returnRr) ||
+                                           (category === 'warranty' && !warrantyWc);
+                          return (
+                            <div
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (disabled) return;
+                                if (category === 'returns') { openReturnRequest(o); return; }
+                                if (category === 'warranty') {
+                                  if (onViewWarranty) { onViewWarranty(warrantyWc.id); return; }
+                                  onViewDetails(o.id);
+                                  return;
+                                }
+                                const hasApproved = o.items?.some(item => (item.prescription_status || '').toLowerCase() === 'approved');
+                                const isFrameOnly = o.items?.every(item => (item.prescription_status || 'Frame Only').toLowerCase() === 'frame only');
+                                if (hasApproved || isFrameOnly) {
+                                  onViewDetails(o.id);
+                                } else {
+                                  setRxOffcanvasOrder(o);
+                                }
+                              }}
+                              style={{ width: '36px', height: '36px', backgroundColor: disabled ? '#E4E7EC' : '#22C55E', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: disabled ? 'not-allowed' : 'pointer', color: disabled ? '#98A2B3' : '#ffffff', boxShadow: disabled ? 'none' : '0 1px 3px rgba(34,197,94,0.3)' }}
+                              title={
+                                disabled ? (category === 'warranty' ? 'No warranty claim raised for this order' : 'No return or replacement request raised for this order')
+                                  : category === 'returns' ? (returnRr.request_type === 'replacement' ? 'View Replacement Request' : 'View Return Request')
+                                  : category === 'warranty' ? 'View Warranty Claim'
+                                  : 'Review Prescription'
+                              }
+                            >
+                              <Check size={18} strokeWidth={3} />
+                            </div>
+                          );
+                        })()}
                         <div
                           onClick={(e) => { e.stopPropagation(); handleDelete(o); }}
                           style={{ width: '36px', height: '36px', backgroundColor: '#ffffff', border: '1px solid #EAECF0', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#F04438', boxShadow: '0 1px 2px rgba(16,24,40,0.05)' }}

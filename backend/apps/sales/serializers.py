@@ -244,7 +244,40 @@ class WarrantyClaimSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['claimed_at', 'created_at', 'updated_at']
 
-class OrderSerializer(serializers.ModelSerializer):
+class ReturnWindowMixin:
+    """Return/exchange eligibility — delivered AND still inside the configurable
+    return window (Store Settings → return_window_days), measured from delivery.
+    Subclasses must declare the three SerializerMethodFields (DRF's metaclass only
+    collects declared fields from serializer bases, not from plain mixins)."""
+
+    def _window_days(self):
+        # Cached on the serializer instance so a list of orders costs one query.
+        days = getattr(self, '_rw_days', None)
+        if days is None:
+            from apps.cms.models import SiteSettings
+            days = SiteSettings.get().return_window_days or 7
+            self._rw_days = days
+        return days
+
+    def get_return_window_days(self, obj):
+        return self._window_days()
+
+    def get_return_window_ends_at(self, obj):
+        if obj.order_status == 'cancelled' or not obj.is_delivered:
+            return None
+        ref_date = obj.delivery_date or obj.created_at
+        if not ref_date:
+            return None
+        from datetime import timedelta
+        return ref_date + timedelta(days=self._window_days())
+
+    def get_can_request_return(self, obj):
+        from django.utils import timezone
+        ends_at = self.get_return_window_ends_at(obj)
+        return bool(ends_at and timezone.now() <= ends_at)
+
+
+class OrderSerializer(ReturnWindowMixin, serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
     return_requests = ReturnRequestSerializer(many=True, read_only=True)
     warranty_claims = WarrantyClaimSerializer(many=True, read_only=True)
@@ -253,6 +286,9 @@ class OrderSerializer(serializers.ModelSerializer):
     order_number = serializers.CharField(read_only=True)
     exchange_info = serializers.SerializerMethodField(read_only=True)
     status_label = serializers.SerializerMethodField(read_only=True)
+    return_window_days = serializers.SerializerMethodField(read_only=True)
+    return_window_ends_at = serializers.SerializerMethodField(read_only=True)
+    can_request_return = serializers.SerializerMethodField(read_only=True)
 
     def get_exchange_info(self, obj):
         """For a spawned replacement order (LO-…-R): the exchange context —
@@ -416,6 +452,7 @@ class OrderSerializer(serializers.ModelSerializer):
             'return_requests', 'warranty_claims',
             'razorpay_order_id', 'razorpay_payment_id',
             'has_review', 'review_rating', 'is_delivered',
+            'return_window_days', 'return_window_ends_at', 'can_request_return',
         ]
         read_only_fields = ['created_at', 'updated_at', 'order_date']
 
@@ -822,7 +859,7 @@ class OrderItemListSerializer(serializers.ModelSerializer):
         ]
 
 
-class OrderListSerializer(serializers.ModelSerializer):
+class OrderListSerializer(ReturnWindowMixin, serializers.ModelSerializer):
     items = OrderItemListSerializer(many=True, read_only=True)
     return_requests = ReturnRequestSerializer(many=True, read_only=True)
     warranty_claims = WarrantyClaimSerializer(many=True, read_only=True)
@@ -839,6 +876,9 @@ class OrderListSerializer(serializers.ModelSerializer):
     has_review = serializers.SerializerMethodField(read_only=True)
     review_rating = serializers.SerializerMethodField(read_only=True)
     is_delivered = serializers.ReadOnlyField()
+    return_window_days = serializers.SerializerMethodField(read_only=True)
+    return_window_ends_at = serializers.SerializerMethodField(read_only=True)
+    can_request_return = serializers.SerializerMethodField(read_only=True)
 
     def get_exchange_info(self, obj):
         if not getattr(obj, 'is_replacement', False):
@@ -981,4 +1021,5 @@ class OrderListSerializer(serializers.ModelSerializer):
             'return_requests', 'warranty_claims',
             'razorpay_order_id', 'razorpay_payment_id',
             'has_review', 'review_rating', 'is_delivered',
+            'return_window_days', 'return_window_ends_at', 'can_request_return',
         ]
