@@ -46,6 +46,7 @@ const CustomerOrderDetailPage = () => {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const [qcNoticeOpen, setQcNoticeOpen] = useState(false);
 
   // Prescription reupload state (critical flow — preserved)
   const [reuploadModal, setReuploadModal] = useState(null);
@@ -73,6 +74,24 @@ const CustomerOrderDetailPage = () => {
     } finally {
       if (!silent) setLoading(false);
     }
+  };
+
+  // A failed QC recorded by the admin pops up once per check, so the customer sees
+  // why their order went back into production. Re-opens if a later QC also fails.
+  const qcNoticeKey = (t) => `qc-notice-seen:${orderId}:${t.qc_checked_at || t.qc_issue_note}`;
+  useEffect(() => {
+    const t = order?.tracking;
+    if (!t || t.qc_status !== 'fail' || !t.qc_issue_note) return;
+    try {
+      if (localStorage.getItem(qcNoticeKey(t))) return;
+    } catch { /* private mode — just show it */ }
+    setQcNoticeOpen(true);
+  }, [order]);
+
+  const dismissQcNotice = () => {
+    const t = order?.tracking;
+    try { if (t) localStorage.setItem(qcNoticeKey(t), '1'); } catch { /* ignore */ }
+    setQcNoticeOpen(false);
   };
 
   useEffect(() => {
@@ -209,6 +228,9 @@ const CustomerOrderDetailPage = () => {
   const returnBlockedReason = !isDelivered
     ? 'Available once your order is delivered'
     : `The ${returnWindowDays}-day return window closed${returnWindowEnd ? ` on ${fmtDate(returnWindowEnd)}` : ''}`;
+  // QC failure recorded by admin in the QC modal — surfaced as a popup + banner.
+  const qcIssueNote = tracking.qc_status === 'fail' ? (tracking.qc_issue_note || '').trim() : '';
+
   // Carrier portal link saved by admin on the Order Lifecycle (dispatch) page.
   const trackingLink = (tracking.tracking_link || '').trim();
   const canTrack = !!trackingLink;
@@ -298,6 +320,19 @@ const CustomerOrderDetailPage = () => {
                 <button className="od-btn od-btn--ghost" onClick={() => openReupload(deferredItems[0], !deferredItems[0].prescription)}>
                   Upload now
                 </button>
+              </div>
+            )}
+
+            {/* QC issue banner — keeps the message available after the popup is dismissed */}
+            {qcIssueNote && (
+              <div className="od-alert" style={{ background: '#fffbfa', border: '1px solid #fecdca' }}>
+                <div>
+                  <p className="od-alert-title" style={{ color: '#b42318' }}>⚠️ Quality check found an issue</p>
+                  <p className="od-alert-sub" style={{ color: '#912018', whiteSpace: 'pre-wrap' }}>{qcIssueNote}</p>
+                  <p className="od-alert-sub" style={{ color: '#b42318' }}>
+                    Your order is being remade{tracking.qc_checked_at ? ` · checked on ${fmtDateTime(tracking.qc_checked_at)}` : ''}.
+                  </p>
+                </div>
               </div>
             )}
 
@@ -487,6 +522,40 @@ const CustomerOrderDetailPage = () => {
           </div>
         </div>
       </div>
+
+      {/* ── QC issue popup (admin marked this order's quality check as failed) ── */}
+      {qcNoticeOpen && qcIssueNote && (
+        <div onClick={(e) => e.target === e.currentTarget && dismissQcNotice()}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 9100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 460, boxShadow: '0 25px 50px rgba(0,0,0,0.25)', overflow: 'hidden' }}>
+            <div style={{ background: 'linear-gradient(135deg, #b42318 0%, #d92d20 100%)', padding: '18px 20px' }}>
+              <p style={{ margin: 0, fontWeight: 800, fontSize: 16, color: '#fff' }}>
+                ⚠️ We found an issue during quality check
+              </p>
+              <p style={{ margin: '4px 0 0', fontSize: 13, color: 'rgba(255,255,255,0.88)' }}>
+                Your order is being remade — we won't ship anything that doesn't pass QC.
+              </p>
+            </div>
+            <div style={{ padding: 20 }}>
+              <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 700, color: '#667085', textTransform: 'uppercase', letterSpacing: 0.3 }}>
+                What we found
+              </p>
+              <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: '#344054', whiteSpace: 'pre-wrap' }}>
+                {qcIssueNote}
+              </p>
+              {tracking.qc_checked_at && (
+                <p style={{ margin: '12px 0 0', fontSize: 12, color: '#98a2b3' }}>
+                  Checked on {fmtDateTime(tracking.qc_checked_at)}
+                </p>
+              )}
+            </div>
+            <div style={{ padding: '0 20px 20px', display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <Link to="/support/contact" className="od-btn od-btn--ghost">Contact support</Link>
+              <button type="button" className="od-btn od-btn--primary" onClick={dismissQcNotice}>Got it</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Prescription Reupload Modal ── */}
       {reuploadModal && (

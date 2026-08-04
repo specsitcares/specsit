@@ -270,6 +270,11 @@ class OrderTracking(models.Model):
     delivery_agent_name = models.CharField(max_length=100, blank=True)
     delivery_agent_phone = models.CharField(max_length=20, blank=True)
     qc_image = models.ImageField(upload_to='qc/', null=True, blank=True)
+    # QC outcome recorded in the admin QC modal. On a fail the item goes back to
+    # "preparing" and qc_issue_note is surfaced to the customer on their order page.
+    qc_status = models.CharField(max_length=10, blank=True, default='')  # '' | 'pass' | 'fail'
+    qc_issue_note = models.TextField(blank=True, default='')
+    qc_checked_at = models.DateTimeField(null=True, blank=True)
     delivery_cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     delivery_rate_charged = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
     last_updated = models.DateTimeField(auto_now=True)
