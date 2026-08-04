@@ -195,6 +195,20 @@ const CustomerOrderDetailPage = () => {
 
   const returnRequests = order.return_requests || [];
   const existingReturn = returnRequests.length ? returnRequests[returnRequests.length - 1] : null;
+
+  // Return / Exchange is offered only for delivered orders still inside the return
+  // window (configurable in Store Settings). The server decides; the local fallback
+  // keeps older payloads working.
+  const returnWindowDays = order.return_window_days ?? 7;
+  const returnRefDate = order.delivery_date || tracking.actual_delivery_date || order.created_at;
+  const returnWindowEnd = order.return_window_ends_at
+    ? new Date(order.return_window_ends_at)
+    : (returnRefDate ? new Date(new Date(returnRefDate).getTime() + returnWindowDays * 86400000) : null);
+  const returnWindowOpen = !!returnWindowEnd && Date.now() <= returnWindowEnd.getTime();
+  const canReturn = order.can_request_return ?? (isDelivered && returnWindowOpen);
+  const returnBlockedReason = !isDelivered
+    ? 'Available once your order is delivered'
+    : `The ${returnWindowDays}-day return window closed${returnWindowEnd ? ` on ${fmtDate(returnWindowEnd)}` : ''}`;
   const showPartial = order.payment_method === 'partial_payment' && order.payment_status === 'partial_paid';
   const deferredItems = items.filter(item =>
     (!item.prescription && item.lens && item.lens_prescription_text?.toLowerCase().includes('later')) ||
@@ -386,8 +400,10 @@ const CustomerOrderDetailPage = () => {
                       {existingReturn.request_type === 'replacement' ? 'Exchange' : 'Return'}: {RR_STATUS_LABEL[existingReturn.status] || existingReturn.status}
                     </span>
                   ) : (
-                    <button type="button" className="od-btn od-btn--ghost"
-                      onClick={() => navigate(`/orders/${orderId}/return`)}>
+                    <button type="button" className="od-btn od-btn--ghost" disabled={!canReturn}
+                      title={canReturn ? undefined : returnBlockedReason}
+                      style={canReturn ? undefined : { opacity: 0.5, cursor: 'not-allowed' }}
+                      onClick={() => canReturn && navigate(`/orders/${orderId}/return`)}>
                       Return / Exchange
                     </button>
                   )}

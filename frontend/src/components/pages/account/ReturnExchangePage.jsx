@@ -155,6 +155,19 @@ const ReturnExchangePage = () => {
     || !!order.delivery_date
     || ((order.items || []).length > 0 && (order.items || []).every(it => norm(it.status) === 'delivered'));
   const existing = (order.return_requests || [])[0];
+  // Return / exchange is allowed only inside the return window (Store Settings),
+  // measured from delivery. The server is authoritative; the local computation is a
+  // fallback for payloads without the field.
+  const returnWindowDays = order.return_window_days ?? 7;
+  const returnRefDate = order.delivery_date || order.tracking?.actual_delivery_date || order.created_at;
+  const returnWindowEnd = order.return_window_ends_at
+    ? new Date(order.return_window_ends_at)
+    : (returnRefDate ? new Date(new Date(returnRefDate).getTime() + returnWindowDays * 86400000) : null);
+  const returnWindowOpen = !!returnWindowEnd && Date.now() <= returnWindowEnd.getTime();
+  const canReturn = order.can_request_return ?? (isDelivered && returnWindowOpen);
+  const returnBlockedReason = !isDelivered
+    ? 'Returns and exchanges can be requested only after your order is delivered.'
+    : `The ${returnWindowDays}-day return window for this order closed${returnWindowEnd ? ` on ${fmtDate(returnWindowEnd)}` : ''}.`;
 
   const productName = item.variant_name || 'Product';
   const brandName = item.brand_name || product?.brand_display_name || '';
@@ -202,7 +215,7 @@ const ReturnExchangePage = () => {
   const removePhoto = (idx) => setPhotos(photos.filter((_, i) => i !== idx));
 
   const handleSubmit = async () => {
-    if (!isDelivered) { setError('Returns & exchanges are available only after delivery.'); return; }
+    if (!canReturn) { setError(returnBlockedReason); return; }
     if (!hasBankAccount) {
       setError('Please add a bank account in your Account Information before requesting a return or exchange.');
       return;
@@ -331,6 +344,18 @@ const ReturnExchangePage = () => {
                   </div>
                 )}
 
+                {/* Outside the return window (or not delivered yet) — nothing can be raised */}
+                {!canReturn && (
+                  <div className="rx-policy" style={{ background: '#fef3f2', borderColor: '#fecdca' }}>
+                    <p className="rx-policy-title" style={{ color: '#b42318' }}>
+                      {isDelivered ? 'Return window closed' : 'Not delivered yet'}
+                    </p>
+                    <p className="rx-policy-text" style={{ color: '#b42318' }}>
+                      {returnBlockedReason} <Link to="/support/contact" style={{ color: '#68408d', fontWeight: 600 }}>Contact support →</Link>
+                    </p>
+                  </div>
+                )}
+
                 {/* Bank account is required for any return or exchange */}
                 {!hasBankAccount && (
                   <div className="rx-policy" style={{ background: '#fffaeb', borderColor: '#fedf89' }}>
@@ -346,7 +371,10 @@ const ReturnExchangePage = () => {
                   <h3 className="rx-card-title">What would you like to do?</h3>
                   <p className="rx-card-sub">Choose return for refund or exchange for a different product.</p>
                   <div className="rx-choices">
-                    <button type="button" className={`rx-choice ${type === 'refund' ? 'active' : ''}`} onClick={() => setType('refund')}>
+                    <button type="button" className={`rx-choice ${type === 'refund' ? 'active' : ''}`}
+                      disabled={!canReturn} title={canReturn ? undefined : returnBlockedReason}
+                      style={canReturn ? undefined : { opacity: 0.5, cursor: 'not-allowed' }}
+                      onClick={() => canReturn && setType('refund')}>
                       <span className="rx-radio" />
                       <span>
                         <span className="rx-choice-label">Return for Refund</span>
@@ -354,12 +382,15 @@ const ReturnExchangePage = () => {
                         <span className="rx-choice-note">Refund in 5–7 business days</span>
                       </span>
                     </button>
-                    <button type="button" className={`rx-choice ${type === 'replacement' ? 'active' : ''}`} onClick={() => setType('replacement')}>
+                    <button type="button" className={`rx-choice ${type === 'replacement' ? 'active' : ''}`}
+                      disabled={!canReturn} title={canReturn ? undefined : returnBlockedReason}
+                      style={canReturn ? undefined : { opacity: 0.5, cursor: 'not-allowed' }}
+                      onClick={() => canReturn && setType('replacement')}>
                       <span className="rx-radio" />
                       <span>
                         <span className="rx-choice-label">Exchange for Another Product</span>
                         <span className="rx-choice-desc">Swap for a different colour, frame size, or lens type</span>
-                        <span className="rx-choice-note">Exchange within 15 days of delivery</span>
+                        <span className="rx-choice-note">Exchange within {returnWindowDays} days of delivery</span>
                       </span>
                     </button>
                   </div>
@@ -564,11 +595,6 @@ const ReturnExchangePage = () => {
                 {/* Policy */}
                 <div className="rx-policy">
                   <p className="rx-policy-title">{isExchange ? 'Exchange' : 'Return'} Policy</p>
-                  <p className="rx-policy-text">
-                    {isExchange
-                      ? 'Exchanges are allowed within 15 days of delivery. Items must be unused, in their original packaging, and include all accessories. Prescription lenses can only be exchanged if they are defective.'
-                      : 'Returns are accepted within 10 days of delivery. Items must be unused and in their original packaging. Refunds are issued to your original payment method within 5–7 business days.'}
-                  </p>
                 </div>
 
                 {/* Summary */}
@@ -588,7 +614,9 @@ const ReturnExchangePage = () => {
                 {/* Actions */}
                 <div className="rx-actions">
                   {error && <span className="rx-error">{error}</span>}
-                  <button className="rx-btn rx-btn--primary" onClick={handleSubmit} disabled={submitting || !hasBankAccount}>
+                  <button className="rx-btn rx-btn--primary" onClick={handleSubmit}
+                    disabled={submitting || !hasBankAccount || !canReturn}
+                    title={canReturn ? undefined : returnBlockedReason}>
                     {submitting ? 'Submitting…' : `Confirm ${isExchange ? 'Exchange' : 'Return'} Request`}
                   </button>
                   <button className="rx-btn rx-btn--ghost" onClick={() => navigate(`/orders/${orderId}`)}>Cancel</button>

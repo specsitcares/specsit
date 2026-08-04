@@ -819,6 +819,16 @@ class OrderViewSet(viewsets.ModelViewSet):
             return Response({'detail': 'Returns can only be requested for delivered orders.'},
                             status=status.HTTP_400_BAD_REQUEST)
 
+        # Return window (configurable in Store Settings), measured from delivery
+        # (fall back to order date).
+        from apps.cms.models import SiteSettings
+        return_days = SiteSettings.get().return_window_days or 7
+        ref_date = order.delivery_date or order.created_at
+        if ref_date and (timezone.now() - ref_date) > timedelta(days=return_days):
+            return Response({'detail': f'The {return_days}-day return window for this order has closed.',
+                             'code': 'return_window_closed'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
         # A saved bank account is required for ANY return or exchange: refunds are paid
         # to it, and an exchange may still need a refund fallback if the swap is rejected.
         from apps.accounts.models import UserProfile
