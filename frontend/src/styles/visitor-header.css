@@ -6,7 +6,9 @@
     justify-content: space-between;
     gap: 20px;
     padding: 0 40px;
-    min-height: 58px;
+    height: var(--nav-height, 58px);
+    min-height: var(--nav-height, 58px);
+    box-sizing: border-box;
     border-bottom: 1px solid #E4E4E4;
     position: relative;
     z-index: 1000;
@@ -22,9 +24,15 @@
     align-items: center;
 }
 
+/* Same fixed slot as the logged-in header, so the logo does not change size
+   when a visitor signs in. */
 .visitor-brand .brand-logo-img {
-    height: 22px;
+    height: var(--brand-logo-height, 26px);
+    max-height: var(--brand-logo-height, 26px);
     width: auto;
+    max-width: var(--brand-logo-max-width, 150px);
+    object-fit: contain;
+    object-position: left center;
     display: block;
 }
 
@@ -198,6 +206,7 @@
         align-items: center;
         gap: 12px;
         padding: 12px 16px;
+        height: auto;
         min-height: 0;
         position: relative;
     }

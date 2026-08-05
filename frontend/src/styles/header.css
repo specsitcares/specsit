@@ -9,7 +9,9 @@
   justify-content: space-between;
   gap: 20px;
   padding: 0 40px;
-  min-height: 58px;
+  height: var(--nav-height, 58px);
+  min-height: var(--nav-height, 58px);
+  box-sizing: border-box;
   border-bottom: 1px solid #E4E4E4;
   position: relative;
   z-index: 999;
@@ -32,9 +34,15 @@
   align-items: center;
 }
 
+/* Fixed slot: a CMS-uploaded logo of any aspect ratio lands at the same optical
+   size and can never widen the header or push the nav links. */
 .brand-logo-img {
-  height: 22px;
+  height: var(--brand-logo-height, 26px);
+  max-height: var(--brand-logo-height, 26px);
   width: auto;
+  max-width: var(--brand-logo-max-width, 150px);
+  object-fit: contain;
+  object-position: left center;
   display: block;
 }
 
@@ -227,6 +235,7 @@
     align-items: center;
     padding: 12px 16px;
     gap: 12px;
+    height: auto;
     min-height: 0;
     position: relative;
   }

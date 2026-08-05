@@ -46,10 +46,10 @@ const Layout = () => {
 
     return (
         <div className={`layout-wrapper${isAccountPage ? ' is-account' : ''}`}>
-            {/* Announcement Bar: scrolling marquee (hidden on blog pages, and when
-                the CMS has the announcement bar switched off) */}
-            {!isBlogPage && !isEmbed && headerCms?.announcement_enabled !== false && (
-                <AnnouncementBar message={headerCms?.announcement_text || undefined} link={headerCms?.announcement_link} />
+            {/* Announcement Bar: scrolling marquee, entirely CMS-driven (hidden on
+                blog pages, and whenever the CMS has it switched off or empty) */}
+            {!isBlogPage && !isEmbed && headerCms?.announcement_enabled && (
+                <AnnouncementBar message={headerCms.announcement_text} link={headerCms.announcement_link} />
             )}
 
             {/* Header: Hidden on Auth pages AND Product Detail pages */}

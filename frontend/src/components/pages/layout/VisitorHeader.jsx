@@ -7,20 +7,13 @@ import '../../../styles/nav-dropdown.css';
 import SunglassesDropdown from './SunglassesDropdown';
 import ContactLensDropdown from './ContactLensDropdown';
 
-const navLinks = [
-    { name: 'Eyeglasses',    path: '/products?category=eyeglasses',   dropdown: null },
-    { name: 'Sunglasses',    path: '/products?category=sunglasses',   dropdown: 'sunglasses' },
-    { name: 'Contact Lenses',path: '/products?category=contact-lens', dropdown: 'contact-lens' },
-    { name: 'Accessories',   path: '/products?category=accessories',  dropdown: null },
-];
-
-// Only these two categories have a mega-menu, so a CMS link opens one when its
-// ?category= param matches.
+// Every link comes from the Header CMS (admin → Header Management). Only these
+// two categories have a mega-menu, so a CMS link opens one when the ?category=
+// param of its URL matches.
 const DROPDOWN_CATEGORIES = ['sunglasses', 'contact-lens'];
-const cmsNavLinks = (cms) => {
-    const links = (cms?.nav_links || []).filter(l => (l.label || '').trim());
-    if (!links.length) return null;
-    return links.map(l => {
+const cmsNavLinks = (cms) => (cms?.nav_links || [])
+    .filter(l => (l.label || '').trim())
+    .map(l => {
         const category = new URLSearchParams((l.url || '').split('?')[1] || '').get('category');
         return {
             name: l.label,
@@ -28,7 +21,6 @@ const cmsNavLinks = (cms) => {
             dropdown: DROPDOWN_CATEGORIES.includes(category) ? category : null,
         };
     });
-};
 
 const SearchIcon = () => (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#71717A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -56,13 +48,14 @@ const VisitorHeader = ({ cms = null }) => {
 
     const cartCount = cart?.reduce((acc, item) => acc + item.quantity, 0) || 0;
 
-    // Header CMS (admin → Header Management); falls back to the built-in header.
-    const links = cmsNavLinks(cms) || navLinks;
-    const logoSrc = cms?.logo || specsitFullLogo;
+    // Header CMS (admin → Header Management) is the only source for the menu,
+    // the logo and the utility icons — nothing here is hard-coded.
+    const links = cmsNavLinks(cms);
+    const logoSrc = cms?.logo || specsitFullLogo;   // bundled brand mark until a logo is uploaded
     const logoAlt = cms?.logo_alt || 'SPECSIT';
-    const showSearch = cms?.show_search !== false;
-    const showCart = cms?.show_cart !== false;
-    const showAccount = cms?.show_account !== false;
+    const showSearch = !!cms?.show_search;
+    const showCart = !!cms?.show_cart;
+    const showAccount = !!cms?.show_account;
 
     const handleSearch = (e) => {
         if (e.key === 'Enter' && searchQuery.trim()) {

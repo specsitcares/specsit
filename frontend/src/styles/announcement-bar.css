@@ -5,7 +5,11 @@
 
 .announcement-bar {
   background: #0f0915;
-  padding: 10px 0;
+  /* Fixed height (not padding-derived) so the strip is exactly the same depth
+     whatever text the CMS holds, and never nudges the header below it. */
+  height: var(--announcement-height, 40px);
+  padding: 0;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   position: relative;
@@ -38,7 +42,7 @@
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 700;
   font-size: 13px;
-  line-height: 22px;
+  line-height: 20px;
   letter-spacing: 0.13px;
   text-transform: uppercase;
   color: #FEFCFF;
@@ -52,8 +56,12 @@
 }
 
 @media (max-width: 768px) {
+  .announcement-bar {
+    height: 34px;
+  }
   .announcement-text {
     font-size: 11px;
+    line-height: 18px;
     letter-spacing: 0.4px;
   }
   .announcement-marquee {
