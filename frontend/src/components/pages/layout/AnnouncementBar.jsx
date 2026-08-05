@@ -2,9 +2,9 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import '../../../styles/announcement-bar.css';
 
-const DEFAULT_MESSAGE = '⚡ Get your eyewear delivered in 2 hours across Hyderabad';
-
-const AnnouncementBar = ({ message = DEFAULT_MESSAGE, link = '', repeat = 8 }) => {
+// Text comes from the Header CMS (admin → Header Management); with nothing
+// configured there is no bar.
+const AnnouncementBar = ({ message = '', link = '', repeat = 8 }) => {
   const items = Array.from({ length: repeat });
 
   const Track = ({ ariaHidden }) => (
@@ -14,6 +14,8 @@ const AnnouncementBar = ({ message = DEFAULT_MESSAGE, link = '', repeat = 8 }) =
       ))}
     </div>
   );
+
+  if (!message) return null;
 
   const marquee = (
     <div className="announcement-marquee">

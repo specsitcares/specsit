@@ -8,24 +8,16 @@ import '../../../styles/header.css';
 import '../../../styles/nav-dropdown.css';
 import NavDropdown from './NavDropdown';
 
-const navLinks = [
-  { name: 'Eyeglasses',     path: '/products?category=eyeglasses',   category: 'eyeglasses' },
-  { name: 'Sunglasses',     path: '/products?category=sunglasses',   category: 'sunglasses' },
-  { name: 'Contact Lenses', path: '/products?category=contact-lens', category: 'contact-lens' },
-  { name: 'Accessories',    path: '/products?category=accessories',  category: 'accessories' },
-];
-
-// CMS-managed links carry only a label + URL; the mega-menu keys off the
-// ?category= param, so derive it from the URL the admin entered.
-const cmsNavLinks = (cms) => {
-  const links = (cms?.nav_links || []).filter(l => (l.label || '').trim());
-  if (!links.length) return null;
-  return links.map(l => ({
+// Every link comes from the Header CMS (admin → Header Management). The links
+// carry only a label + URL, so the mega-menu category is derived from the
+// ?category= param of the URL the admin entered.
+const cmsNavLinks = (cms) => (cms?.nav_links || [])
+  .filter(l => (l.label || '').trim())
+  .map(l => ({
     name: l.label,
     path: l.url || '/',
     category: new URLSearchParams((l.url || '').split('?')[1] || '').get('category'),
   }));
-};
 
 const SearchIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#71717A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -68,13 +60,14 @@ const Header = ({ showUserProfile = false, user = null, onLogout = null, cms = n
 
   const cartCount = cart?.reduce((acc, item) => acc + item.quantity, 0) || 0;
 
-  // Header CMS (admin → Header Management); falls back to the built-in header.
-  const links = cmsNavLinks(cms) || navLinks;
-  const logoSrc = cms?.logo || specsitFullLogo;
+  // Header CMS (admin → Header Management) is the only source for the menu,
+  // the logo and the utility icons — nothing here is hard-coded.
+  const links = cmsNavLinks(cms);
+  const logoSrc = cms?.logo || specsitFullLogo;   // bundled brand mark until a logo is uploaded
   const logoAlt = cms?.logo_alt || 'SPECSIT';
-  const showSearch = cms?.show_search !== false;
-  const showCart = cms?.show_cart !== false;
-  const showAccount = cms?.show_account !== false;
+  const showSearch = !!cms?.show_search;
+  const showCart = !!cms?.show_cart;
+  const showAccount = !!cms?.show_account;
 
   // On customer-account pages the account sidebar has its own hamburger, so the
   // header's mobile hamburger is hidden there to avoid two competing menu toggles.
