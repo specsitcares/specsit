@@ -170,10 +170,11 @@ const OrderConfirmationPage = () => {
         setSubmitError('');
         try {
             const rightSph = parseFloat(powerForm.right_sph);
-            const rightCyl = hasCyl ? parseFloat(powerForm.right_cyl) : 0;
+            // CYL is always captured; only AXIS is gated by the cylindrical toggle.
+            const rightCyl = parseFloat(powerForm.right_cyl);
             const rightAxis = hasCyl ? parseInt(powerForm.right_axis, 10) : 0;
             const leftSph = samePower ? rightSph : parseFloat(powerForm.left_sph);
-            const leftCyl = samePower ? rightCyl : (hasCyl ? parseFloat(powerForm.left_cyl) : 0);
+            const leftCyl = samePower ? rightCyl : parseFloat(powerForm.left_cyl);
             const leftAxis = samePower ? rightAxis : (hasCyl ? parseInt(powerForm.left_axis, 10) : 0);
 
             await apiClient.post('/sales/prescriptions/manual/', {
@@ -744,31 +745,31 @@ const OrderConfirmationPage = () => {
                             ))}
                         </select>
                     </td>
+                    <td className="conf-power-cell">
+                        <select
+                            className="conf-power-select"
+                            value={cylVal}
+                            disabled={disabled}
+                            onChange={e => updatePower(`${side}_cyl`, e.target.value)}
+                        >
+                            {CYL_OPTIONS.map(o => (
+                                <option key={o.value} value={o.value}>{o.label}</option>
+                            ))}
+                        </select>
+                    </td>
                     {hasCyl && (
-                        <td className="conf-power-cell">
-                            <select
-                                className="conf-power-select"
-                                value={cylVal}
+                        <td className="conf-power-cell conf-power-cell--axis">
+                            <input
+                                className="conf-power-input"
+                                type="number"
+                                min="1"
+                                max="180"
+                                value={axisVal}
                                 disabled={disabled}
-                                onChange={e => updatePower(`${side}_cyl`, e.target.value)}
-                            >
-                                {CYL_OPTIONS.map(o => (
-                                    <option key={o.value} value={o.value}>{o.label}</option>
-                                ))}
-                            </select>
+                                onChange={e => updatePower(`${side}_axis`, e.target.value)}
+                            />
                         </td>
                     )}
-                    <td className="conf-power-cell conf-power-cell--axis">
-                        <input
-                            className="conf-power-input"
-                            type="number"
-                            min="1"
-                            max="180"
-                            value={axisVal}
-                            disabled={disabled || !hasCyl}
-                            onChange={e => updatePower(`${side}_axis`, e.target.value)}
-                        />
-                    </td>
                 </tr>
             );
         };
@@ -819,8 +820,8 @@ const OrderConfirmationPage = () => {
                                         <tr>
                                             <th className="conf-power-th">EYE</th>
                                             <th className="conf-power-th">SPH</th>
-                                            {hasCyl && <th className="conf-power-th">CYL</th>}
-                                            <th className="conf-power-th">AXIS</th>
+                                            <th className="conf-power-th">CYL</th>
+                                            {hasCyl && <th className="conf-power-th">AXIS</th>}
                                         </tr>
                                     </thead>
                                     <tbody>

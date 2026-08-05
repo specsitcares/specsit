@@ -24,6 +24,9 @@ const OrderDetail = ({ orderId, onBack }) => {
   const [deliveredResult, setDeliveredResult] = useState(null);
   const [qcModalOpen, setQcModalOpen] = useState(false);
   const [qcOutcome, setQcOutcome] = useState('pass');
+  const [qcIssueNote, setQcIssueNote] = useState('');
+  const [qcNoteError, setQcNoteError] = useState(false);
+  const [qcSaving, setQcSaving] = useState(false);
   const [qcImageFile, setQcImageFile] = useState(null);
   const [qcImagePreview, setQcImagePreview] = useState(null);
   const [qcDragging, setQcDragging] = useState(false);
@@ -130,27 +133,43 @@ const OrderDetail = ({ orderId, onBack }) => {
 
   const handleQcComplete = async () => {
     if (!activeItemForAction) return;
-    if (qcImageFile) {
-      try {
-        const fd = new FormData();
-        fd.append('qc_image', qcImageFile);
-        await apiClient.post(`/sales/orders/${orderId}/update_tracking/`, fd);
-        setQcFileName(qcImageFile.name);
-      } catch (err) {
-        console.error('Failed to upload QC image:', err);
+    // A failed QC must explain itself — the note is what the customer sees.
+    if (qcOutcome === 'fail' && !qcIssueNote.trim()) {
+      setQcNoteError(true);
+      return;
+    }
+    setQcSaving(true);
+    try {
+      if (qcImageFile) {
+        try {
+          const fd = new FormData();
+          fd.append('qc_image', qcImageFile);
+          await apiClient.post(`/sales/orders/${orderId}/update_tracking/`, fd);
+          setQcFileName(qcImageFile.name);
+        } catch (err) {
+          console.error('Failed to upload QC image:', err);
+        }
       }
+
+      await apiClient.post(`/sales/orders/${orderId}/update_tracking/`, {
+        qc_status: qcOutcome,
+        qc_issue_note: qcOutcome === 'fail' ? qcIssueNote.trim() : '',
+        qc_checked_at: new Date().toISOString(),
+      });
+
+      if (qcOutcome === 'pass') {
+        await handleItemStatusUpdate(activeItemForAction.id, 'ready_to_dispatch');
+      } else {
+        await handleItemStatusUpdate(activeItemForAction.id, 'preparing');
+      }
+      handleQcClose();
+      fetchOrder();
+    } catch (err) {
+      console.error('Failed to save QC outcome:', err);
+      alert('Failed to save the QC outcome. Please check your connection and try again.');
+    } finally {
+      setQcSaving(false);
     }
-    if (qcOutcome === 'pass') {
-      await handleItemStatusUpdate(activeItemForAction.id, 'ready_to_dispatch');
-    } else {
-      await handleItemStatusUpdate(activeItemForAction.id, 'preparing');
-    }
-    setQcModalOpen(false);
-    setQcImageFile(null);
-    setQcImagePreview(null);
-    setQcOutcome('pass');
-    setActiveItemForAction(null);
-    fetchOrder();
   };
 
   const handleQcClose = () => {
@@ -158,6 +177,8 @@ const OrderDetail = ({ orderId, onBack }) => {
     setQcImageFile(null);
     setQcImagePreview(null);
     setQcOutcome('pass');
+    setQcIssueNote('');
+    setQcNoteError(false);
     setActiveItemForAction(null);
   };
 
@@ -1279,7 +1300,7 @@ const OrderDetail = ({ orderId, onBack }) => {
 
                   <div
                     className={`qc-radio-option ${qcOutcome === 'pass' ? 'selected' : ''}`}
-                    onClick={() => setQcOutcome('pass')}
+                    onClick={() => { setQcOutcome('pass'); setQcNoteError(false); }}
                   >
                     <div className={`qc-radio-circle ${qcOutcome === 'pass' ? 'selected' : ''}`}>
                       {qcOutcome === 'pass' && <div className="qc-radio-dot" />}
@@ -1291,10 +1312,43 @@ const OrderDetail = ({ orderId, onBack }) => {
                   </div>
 
                   <div
-                    className={`qc-radio-option ${qcOutcome === 'send_back' ? 'selected' : ''}`}
-                    onClick={() => setQcOutcome('send_back')}
-                  > 
+                    className={`qc-radio-option ${qcOutcome === 'fail' ? 'selected' : ''}`}
+                    onClick={() => setQcOutcome('fail')}
+                  >
+                    <div className={`qc-radio-circle ${qcOutcome === 'fail' ? 'selected' : ''}`}>
+                      {qcOutcome === 'fail' && <div className="qc-radio-dot" />}
+                    </div>
+                    <div className="qc-radio-body">
+                      <span className="qc-radio-label">Issues found — fail</span>
+                      <span className="qc-radio-desc">Order goes back to Preparing and the customer is notified</span>
+                    </div>
                   </div>
+
+                  {qcOutcome === 'fail' && (
+                    <div className="qc-issue-note">
+                      <label className="qc-issue-note__label" htmlFor="qc-issue-note-input">
+                        What is the issue?
+                      </label>
+                      <textarea
+                        id="qc-issue-note-input"
+                        className={`qc-issue-note__input ${qcNoteError ? 'has-error' : ''}`}
+                        rows={4}
+                        autoFocus
+                        maxLength={1000}
+                        placeholder="e.g. Lens coating has a scratch on the left lens — being remade."
+                        value={qcIssueNote}
+                        onChange={(e) => { setQcIssueNote(e.target.value); if (e.target.value.trim()) setQcNoteError(false); }}
+                      />
+                      <div className="qc-issue-note__foot">
+                        <span className={`qc-issue-note__help ${qcNoteError ? 'has-error' : ''}`}>
+                          {qcNoteError
+                            ? 'Please describe the issue before completing QC.'
+                            : 'This message is shown to the customer on their order page.'}
+                        </span>
+                        <span className="qc-issue-note__count">{qcIssueNote.length}/1000</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
               </div>
@@ -1304,8 +1358,8 @@ const OrderDetail = ({ orderId, onBack }) => {
                 <button className="qc-btn-secondary" onClick={handleQcClose}>
                   Save &amp; close
                 </button>
-                <button className="qc-btn-primary" onClick={handleQcComplete}>
-                  Complete QC &amp; proceed
+                <button className="qc-btn-primary" onClick={handleQcComplete} disabled={qcSaving}>
+                  {qcSaving ? 'Saving…' : 'Complete QC & proceed'}
                 </button>
               </div>
 

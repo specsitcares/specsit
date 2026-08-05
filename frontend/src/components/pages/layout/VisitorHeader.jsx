@@ -14,6 +14,22 @@ const navLinks = [
     { name: 'Accessories',   path: '/products?category=accessories',  dropdown: null },
 ];
 
+// Only these two categories have a mega-menu, so a CMS link opens one when its
+// ?category= param matches.
+const DROPDOWN_CATEGORIES = ['sunglasses', 'contact-lens'];
+const cmsNavLinks = (cms) => {
+    const links = (cms?.nav_links || []).filter(l => (l.label || '').trim());
+    if (!links.length) return null;
+    return links.map(l => {
+        const category = new URLSearchParams((l.url || '').split('?')[1] || '').get('category');
+        return {
+            name: l.label,
+            path: l.url || '/',
+            dropdown: DROPDOWN_CATEGORIES.includes(category) ? category : null,
+        };
+    });
+};
+
 const SearchIcon = () => (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#71717A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -30,7 +46,7 @@ const CartIcon = () => (
     </svg>
 );
 
-const VisitorHeader = () => {
+const VisitorHeader = ({ cms = null }) => {
     const { cart } = useCart();
     const location = useLocation();
     const [searchQuery, setSearchQuery] = useState('');
@@ -39,6 +55,14 @@ const VisitorHeader = () => {
     const closeTimer = useRef(null);
 
     const cartCount = cart?.reduce((acc, item) => acc + item.quantity, 0) || 0;
+
+    // Header CMS (admin → Header Management); falls back to the built-in header.
+    const links = cmsNavLinks(cms) || navLinks;
+    const logoSrc = cms?.logo || specsitFullLogo;
+    const logoAlt = cms?.logo_alt || 'SPECSIT';
+    const showSearch = cms?.show_search !== false;
+    const showCart = cms?.show_cart !== false;
+    const showAccount = cms?.show_account !== false;
 
     const handleSearch = (e) => {
         if (e.key === 'Enter' && searchQuery.trim()) {
@@ -81,12 +105,12 @@ const VisitorHeader = () => {
             <div className="visitor-header-left">
                 <div className="visitor-brand">
                     <Link to="/" className="brand-logo">
-                        <img src={specsitFullLogo} alt="SPECSIT" className="brand-logo-img" />
+                        <img src={logoSrc} alt={logoAlt} className="brand-logo-img" />
                     </Link>
                 </div>
 
                 <div className={`visitor-nav ${menuOpen ? 'visitor-nav--open' : ''}`}>
-                    {navLinks.map((link) => (
+                    {links.map((link) => (
                         <Link
                             key={link.name}
                             to={link.path}
@@ -119,7 +143,7 @@ const VisitorHeader = () => {
             {/* Trailing Actions (Right) */}
             <div className="visitor-actions" onMouseEnter={scheduleClose}>
                 {/* Search Bar — hidden on the product detail page and order confirmation / thank-you pages */}
-                {!/^\/(product|order-confirmation|order-confirmed|thank-you)\//.test(location.pathname) && (
+                {showSearch && !/^\/(product|order-confirmation|order-confirmed|thank-you)\//.test(location.pathname) && (
                     <div className="visitor-search">
                         <span className="visitor-search-icon"><SearchIcon /></span>
                         <input
@@ -140,15 +164,17 @@ const VisitorHeader = () => {
                     </Link>
 
                     {/* Shopping Cart */}
-                    <Link to="/cart" className="visitor-icon-btn visitor-cart" title="Cart">
-                        <CartIcon />
-                        {cartCount > 0 && (
-                            <span className="visitor-cart-badge">{cartCount}</span>
-                        )}
-                    </Link>
+                    {showCart && (
+                        <Link to="/cart" className="visitor-icon-btn visitor-cart" title="Cart">
+                            <CartIcon />
+                            {cartCount > 0 && (
+                                <span className="visitor-cart-badge">{cartCount}</span>
+                            )}
+                        </Link>
+                    )}
 
                     {/* Login Button (logged-out state) */}
-                    <Link to="/login" className="visitor-login-btn">Login</Link>
+                    {showAccount && <Link to="/login" className="visitor-login-btn">Login</Link>}
                 </div>
             </div>
 

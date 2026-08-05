@@ -3,7 +3,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, serializers, viewsets
 from rest_framework.permissions import AllowAny, IsAdminUser
-from .models import Announcement, HeroSlide, EditorialSection, Benefit, HomeSectionTitle, SiteSettings, HomeSection, BrandLogo, FrameRangeCard, SectionCard, PromoBanner, Blog, Faq, NewsletterSettings
+from .models import Announcement, HeroSlide, EditorialSection, Benefit, HomeSectionTitle, SiteSettings, HomeSection, BrandLogo, FrameRangeCard, SectionCard, PromoBanner, Blog, Faq, NewsletterSettings, HeaderSettings
 
 Category = apps.get_model('catalog', 'Category')
 
@@ -391,6 +391,78 @@ class NewsletterSettingsView(APIView):
             s.save()
             return Response(s.data)
         return Response(s.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class HeaderSettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = HeaderSettings
+        fields = ['logo', 'logo_alt', 'nav_links',
+                  'announcement_enabled', 'announcement_text', 'announcement_link',
+                  'show_search', 'show_cart', 'show_account', 'published_at']
+        read_only_fields = ['published_at']
+
+    def validate_nav_links(self, value):
+        if not isinstance(value, list):
+            raise serializers.ValidationError('Navigation links must be a list.')
+        cleaned = []
+        for link in value[:12]:
+            if not isinstance(link, dict):
+                raise serializers.ValidationError('Each navigation link must be an object.')
+            label = (link.get('label') or '').strip()[:60]
+            if not label:
+                raise serializers.ValidationError('Every navigation link needs a label.')
+            cleaned.append({
+                'label': label,
+                'url': (link.get('url') or '').strip()[:255],
+                'visible': bool(link.get('visible', True)),
+            })
+        return cleaned
+
+
+class HeaderSettingsView(APIView):
+    """Storefront header config (singleton). Public reads get the published
+    snapshot with hidden links stripped; staff get the draft plus what is live."""
+    permission_classes = [AllowAny]
+
+    @staticmethod
+    def _absolute(data, request):
+        data = dict(data or {})
+        if data.get('logo') and request:
+            data['logo'] = request.build_absolute_uri(data['logo'])
+        return data
+
+    def get(self, request):
+        obj = HeaderSettings.get()
+        if request.user and request.user.is_staff:
+            data = HeaderSettingsSerializer(obj, context={'request': request}).data
+            data['published'] = self._absolute(obj.published_data or obj.snapshot(), request)
+            data['matches_live'] = obj.matches_live
+            return Response(data)
+        live = self._absolute(obj.published_data or obj.snapshot(), request)
+        live['nav_links'] = [l for l in live.get('nav_links', []) if l.get('visible', True)]
+        return Response(live)
+
+    def put(self, request):
+        if not request.user.is_staff:
+            return Response({'detail': 'Admin access required.'}, status=status.HTTP_403_FORBIDDEN)
+        # Multipart uploads (a new logo) send nav_links as a JSON string, which
+        # DRF's JSONField decodes for us — no manual parsing needed either way.
+        publish = str(request.data.get('publish', '')).lower() in ('1', 'true', 'yes')
+        payload = request.data.copy()
+        payload.pop('publish', None)
+
+        obj = HeaderSettings.get()
+        s = HeaderSettingsSerializer(obj, data=payload, partial=True, context={'request': request})
+        if not s.is_valid():
+            return Response(s.errors, status=status.HTTP_400_BAD_REQUEST)
+        obj = s.save()
+        if publish:
+            obj.publish()
+
+        data = HeaderSettingsSerializer(obj, context={'request': request}).data
+        data['published'] = self._absolute(obj.published_data or obj.snapshot(), request)
+        data['matches_live'] = obj.matches_live
+        return Response(data)
 
 
 class HomePageCMSView(APIView):

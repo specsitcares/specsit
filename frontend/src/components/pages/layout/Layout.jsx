@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
+import apiClient from '../../../services/api';
 import AnnouncementBar from './AnnouncementBar';
 import Header from './Header';
 import VisitorHeader from './VisitorHeader';
@@ -20,6 +21,15 @@ const Layout = () => {
     const { pathname, search } = useLocation();
     const { user, logout } = useAuth();
 
+    // Published header config from the CMS (admin → Header Management). Until it
+    // arrives the header renders its built-in defaults.
+    const [headerCms, setHeaderCms] = useState(null);
+    useEffect(() => {
+        apiClient.get('/cms/header-settings/')
+            .then(res => setHeaderCms(res.data))
+            .catch(() => { /* keep built-in defaults */ });
+    }, []);
+
     // Embedded mode (e.g. the catalog shown inside the return page's iframe): no chrome.
     const isEmbed = new URLSearchParams(search).get('embed') === '1';
     const isAccountPage = !!user && ACCOUNT_ROUTES.some((r) => pathname.toLowerCase().startsWith(r));
@@ -36,15 +46,18 @@ const Layout = () => {
 
     return (
         <div className={`layout-wrapper${isAccountPage ? ' is-account' : ''}`}>
-            {/* Announcement Bar: scrolling marquee (hidden on blog pages) */}
-            {!isBlogPage && !isEmbed && <AnnouncementBar />}
+            {/* Announcement Bar: scrolling marquee (hidden on blog pages, and when
+                the CMS has the announcement bar switched off) */}
+            {!isBlogPage && !isEmbed && headerCms?.announcement_enabled !== false && (
+                <AnnouncementBar message={headerCms?.announcement_text || undefined} link={headerCms?.announcement_link} />
+            )}
 
             {/* Header: Hidden on Auth pages AND Product Detail pages */}
             {!hideHeader && (
                 user ? (
-                    <Header showUserProfile={true} user={user} onLogout={logout} />
+                    <Header showUserProfile={true} user={user} onLogout={logout} cms={headerCms} />
                 ) : (
-                    <VisitorHeader />
+                    <VisitorHeader cms={headerCms} />
                 )
             )}
             <main>

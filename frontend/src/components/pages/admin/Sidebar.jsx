@@ -34,6 +34,7 @@ const SUB_URLS = {
   'Store Settings':     '/admin/settings',
   'Payment Settings':   '/admin/settings/payment',
   'CMS Management':     '/admin/settings/cms',
+  'Header Management':  '/admin/settings/cms/header',
   'Staff Roles':        '/admin/settings/staff',
 };
 
@@ -75,7 +76,7 @@ const menuItems = [
   { key: 'Shipments',     label: 'Shipments',         icon: Truck,        subs: ['Track Shipments'] },
   { key: 'Customers',     label: 'Customers',         icon: Users,        subs: ['Customer Profiles', 'Reviews', 'Face Captures'] },
   { key: 'Analytics',     label: 'Analytics',         icon: BarChart2,    subs: ['Sales Performance'] },
-  { key: 'Settings',      label: 'Settings',          icon: Settings,     subs: ['Store Settings', 'Payment Settings', 'CMS Management', 'Staff Roles'] },
+  { key: 'Settings',      label: 'Settings',          icon: Settings,     subs: ['Store Settings', 'Payment Settings', 'CMS Management', 'Header Management', 'Staff Roles'] },
 ];
 
 const Sidebar = ({ onClose, isMobile, badges = {} }) => {

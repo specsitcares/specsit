@@ -37,6 +37,7 @@ import BlogPostEditor from './BlogPostEditor';
 import BlogPreview from './BlogPreview';
 import FaqManager from './FaqManager';
 import NewsletterEditor from './NewsletterEditor';
+import HeaderCmsEditor from './HeaderCmsEditor';
 import StoreSettings from './StoreSettings';
 import PaymentSettings from './PaymentSettings';
 import QueryTable from './QueryTable';
@@ -238,6 +239,7 @@ const AdminDashboard = () => {
               <Route path="settings/cms/blogs/:id/preview"     element={<BlogPreview />} />
               <Route path="settings/cms/faqs"                  element={<FaqManager />} />
               <Route path="settings/cms/newsletter"            element={<NewsletterEditor />} />
+              <Route path="settings/cms/header"                element={<HeaderCmsEditor />} />
               <Route path="settings/staff"   element={<EmployeeTable />} />
               <Route path="settings/coupons" element={<CouponTable />} />
 

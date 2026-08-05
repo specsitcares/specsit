@@ -15,6 +15,18 @@ const navLinks = [
   { name: 'Accessories',    path: '/products?category=accessories',  category: 'accessories' },
 ];
 
+// CMS-managed links carry only a label + URL; the mega-menu keys off the
+// ?category= param, so derive it from the URL the admin entered.
+const cmsNavLinks = (cms) => {
+  const links = (cms?.nav_links || []).filter(l => (l.label || '').trim());
+  if (!links.length) return null;
+  return links.map(l => ({
+    name: l.label,
+    path: l.url || '/',
+    category: new URLSearchParams((l.url || '').split('?')[1] || '').get('category'),
+  }));
+};
+
 const SearchIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#71717A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -36,7 +48,7 @@ const PersonIcon = () => (
   </svg>
 );
 
-const Header = ({ showUserProfile = false, user = null, onLogout = null }) => {
+const Header = ({ showUserProfile = false, user = null, onLogout = null, cms = null }) => {
   const { cart } = useCart();
   const location = useLocation();
   const [showAccountMenu, setShowAccountMenu] = useState(false);
@@ -55,6 +67,14 @@ const Header = ({ showUserProfile = false, user = null, onLogout = null }) => {
   }, []);
 
   const cartCount = cart?.reduce((acc, item) => acc + item.quantity, 0) || 0;
+
+  // Header CMS (admin → Header Management); falls back to the built-in header.
+  const links = cmsNavLinks(cms) || navLinks;
+  const logoSrc = cms?.logo || specsitFullLogo;
+  const logoAlt = cms?.logo_alt || 'SPECSIT';
+  const showSearch = cms?.show_search !== false;
+  const showCart = cms?.show_cart !== false;
+  const showAccount = cms?.show_account !== false;
 
   // On customer-account pages the account sidebar has its own hamburger, so the
   // header's mobile hamburger is hidden there to avoid two competing menu toggles.
@@ -112,17 +132,17 @@ const Header = ({ showUserProfile = false, user = null, onLogout = null }) => {
       <div className="header-left">
         <div className="header-brand" data-name="Brand Logo">
           <Link to="/" className="brand-logo">
-            <img src={specsitFullLogo} alt="SPECSIT" className="brand-logo-img" />
+            <img src={logoSrc} alt={logoAlt} className="brand-logo-img" />
           </Link>
         </div>
 
         <div className={`header-nav-links ${menuOpen ? 'header-nav-links--open' : ''}`} data-name="Navigation Links">
-          {navLinks.map((link) => (
+          {links.map((link) => (
             <Link
               key={link.name}
               to={link.path}
               className={`nav-link ${isActive(link.path) ? 'nav-link--active' : ''}`}
-              onMouseEnter={() => openDropdown(link.category)}
+              onMouseEnter={() => link.category ? openDropdown(link.category) : scheduleClose()}
               onClick={() => setMenuOpen(false)}
             >
               {link.name}
@@ -152,7 +172,7 @@ const Header = ({ showUserProfile = false, user = null, onLogout = null }) => {
       {/* Trailing Actions (Right) */}
       <div className="header-actions" data-name="Trailing Actions (Right)" onMouseEnter={scheduleClose}>
         {/* Search Bar — hidden on the product detail page and order confirmation / thank-you pages */}
-        {!/^\/(product|order-confirmation|order-confirmed|thank-you)\//.test(location.pathname) && (
+        {showSearch && !/^\/(product|order-confirmation|order-confirmed|thank-you)\//.test(location.pathname) && (
           <div className="header-search">
             <span className="header-search-icon"><SearchIcon /></span>
             <input
@@ -173,15 +193,17 @@ const Header = ({ showUserProfile = false, user = null, onLogout = null }) => {
           </Link>
 
           {/* Shopping Cart */}
-          <Link to="/cart" className="header-icon-btn cart-button" data-name="Button - Shopping Cart">
-            <CartIcon />
-            {cartCount > 0 && (
-              <span className="cart-badge"><span className="badge-text">{cartCount}</span></span>
-            )}
-          </Link>
+          {showCart && (
+            <Link to="/cart" className="header-icon-btn cart-button" data-name="Button - Shopping Cart">
+              <CartIcon />
+              {cartCount > 0 && (
+                <span className="cart-badge"><span className="badge-text">{cartCount}</span></span>
+              )}
+            </Link>
+          )}
 
           {/* User Profile (person icon — logged-in state) */}
-          {showUserProfile && user ? (
+          {!showAccount ? null : showUserProfile && user ? (
             <div className="header-user-wrap">
               <button
                 className="header-icon-btn"

@@ -59,7 +59,7 @@ const ContactLensSelectModal = ({ lens, onClose, onAdd, asDrawer = false, action
 
   const eyeStr = (sph, cyl, axis, box) => {
     let s = `SPH ${sph || '—'}`;
-    if (hasCyl && cyl) s += ` CYL ${cyl}`;
+    if (cyl) s += ` CYL ${cyl}`;
     if (hasCyl && axis) s += ` AXIS ${axis}`;
     s += ` × ${box} box`;
     return s;
@@ -100,11 +100,9 @@ const ContactLensSelectModal = ({ lens, onClose, onAdd, asDrawer = false, action
         <div className="lsa-power-grid__cell">
           <GSelect value={sph.value} onChange={sph.set} options={sphOpts} disabled={dis} />
         </div>
-        {hasCyl && (
-          <div className="lsa-power-grid__cell">
-            <GSelect value={cyl.value} onChange={cyl.set} options={CYL} disabled={dis} />
-          </div>
-        )}
+        <div className="lsa-power-grid__cell">
+          <GSelect value={cyl.value} onChange={cyl.set} options={CYL} disabled={dis} />
+        </div>
         {hasCyl && (
           <div className="lsa-power-grid__cell lsa-power-grid__cell--axis">
             <GSelect value={axis.value} onChange={axis.set} options={AXIS} disabled={dis} placeholder="0" />
@@ -150,7 +148,7 @@ const ContactLensSelectModal = ({ lens, onClose, onAdd, asDrawer = false, action
             <div className="lsa-power-grid__header">
               <div className="lsa-power-grid__hcell lsa-power-grid__hcell--eye" style={{ flex: '0 0 70px' }}>EYE</div>
               <div className="lsa-power-grid__hcell">SPH</div>
-              {hasCyl && <div className="lsa-power-grid__hcell">CYL</div>}
+              <div className="lsa-power-grid__hcell">CYL</div>
               {hasCyl && <div className="lsa-power-grid__hcell lsa-power-grid__hcell--axis">AXIS</div>}
               <div className="lsa-power-grid__hcell">BOXES</div>
             </div>
