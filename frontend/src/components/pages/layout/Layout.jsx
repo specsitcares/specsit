@@ -38,6 +38,7 @@ const Layout = () => {
     const isCartPage = pathname.toLowerCase().startsWith('/cart');
     const isWishlistPage = pathname.toLowerCase() === '/wishlist';
     const isBlogPage = pathname.toLowerCase().startsWith('/blog');
+    const isHome = pathname === '/';
 
     // Hide header on Auth, Checkout, Cart, Wishlist, and Blog pages (PDP now shows the header)
     const hideHeader = isEmbed || isAuthPage || isCheckoutPage || isCartPage || isWishlistPage || isBlogPage;
@@ -45,7 +46,7 @@ const Layout = () => {
     const hideFooter = isEmbed || isAuthPage || isCheckoutPage || isCartPage;
 
     return (
-        <div className={`layout-wrapper${isAccountPage ? ' is-account' : ''}`}>
+        <div className={`layout-wrapper${isAccountPage ? ' is-account' : ''}${isHome ? ' is-home' : ''}`}>
             {/* Announcement Bar: scrolling marquee, entirely CMS-driven (hidden on
                 blog pages, and whenever the CMS has it switched off or empty) */}
             {!isBlogPage && !isEmbed && headerCms?.announcement_enabled && (

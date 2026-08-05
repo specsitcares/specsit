@@ -27,6 +27,12 @@
   margin-top: 19px; /* Added differentiation from header */
 }
 
+/* The home page opens with a full-bleed hero banner, which must sit flush
+   against the header — no separator gap. */
+.layout-wrapper.is-home main {
+  margin-top: 0;
+}
+
 .navbar {
   height: auto;
   background: rgba(255, 255, 255, 0.99);
