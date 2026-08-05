@@ -354,6 +354,92 @@ class NewsletterSettings(models.Model):
         return 'Newsletter Settings'
 
 
+def default_header_nav_links():
+    """Seed the header menu with the links the storefront already ships with."""
+    return [
+        {'label': 'Home', 'url': '/', 'visible': True},
+        {'label': 'Eyeglasses', 'url': '/products?category=eyeglasses', 'visible': True},
+        {'label': 'Sunglasses', 'url': '/products?category=sunglasses', 'visible': True},
+        {'label': 'Contact Lenses', 'url': '/products?category=contact-lens', 'visible': True},
+        {'label': 'Accessories', 'url': '/products?category=accessories', 'visible': True},
+    ]
+
+
+class HeaderSettings(models.Model):
+    """Singleton config for the storefront header (admin CMS → Header Management).
+
+    The editable fields are the *draft*; `published_data` is the snapshot the
+    storefront actually renders. Saving a draft never changes the live site —
+    only Publish Now copies the draft into `published_data`."""
+    DEFAULT_ANNOUNCEMENT = '⚡ Get your eyewear delivered in 2 hours across Hyderabad'
+
+    # Logo & brand identity
+    logo = models.ImageField(upload_to='cms/header/', null=True, blank=True)
+    logo_alt = models.CharField(max_length=160, default='Specsit Eyewear Logo')
+    # Navigation — list of {"label", "url", "visible"} in display order
+    nav_links = models.JSONField(default=default_header_nav_links, blank=True)
+    # Top announcement bar
+    announcement_enabled = models.BooleanField(default=True)
+    announcement_text = models.CharField(max_length=255, default=DEFAULT_ANNOUNCEMENT)
+    announcement_link = models.CharField(max_length=255, blank=True, default='')
+    # Utility link icons
+    show_search = models.BooleanField(default=True)
+    show_cart = models.BooleanField(default=True)
+    show_account = models.BooleanField(default=True)
+    # Live snapshot
+    published_data = models.JSONField(default=dict, blank=True)
+    published_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Header Settings'
+
+    @classmethod
+    def get(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        # Seed the live snapshot with the defaults so a saved-but-unpublished
+        # draft can never be the thing the storefront falls back to.
+        if not obj.published_data:
+            obj.publish()
+        return obj
+
+    def snapshot(self):
+        """The renderable header config. Media paths stay relative so a snapshot
+        can be compared byte-for-byte with `published_data`."""
+        links = []
+        for link in (self.nav_links or []):
+            links.append({
+                'label': (link.get('label') or '').strip(),
+                'url': (link.get('url') or '').strip(),
+                'visible': bool(link.get('visible', True)),
+            })
+        return {
+            'logo': self.logo.url if self.logo else '',
+            'logo_alt': self.logo_alt,
+            'nav_links': links,
+            'announcement_enabled': self.announcement_enabled,
+            'announcement_text': self.announcement_text,
+            'announcement_link': self.announcement_link,
+            'show_search': self.show_search,
+            'show_cart': self.show_cart,
+            'show_account': self.show_account,
+        }
+
+    def publish(self):
+        from django.utils import timezone  # type: ignore
+        self.published_data = self.snapshot()
+        self.published_at = timezone.now()
+        self.save(update_fields=['published_data', 'published_at', 'updated_at'])
+
+    @property
+    def matches_live(self):
+        """True when the draft is identical to what the storefront is serving."""
+        return bool(self.published_data) and self.published_data == self.snapshot()
+
+    def __str__(self):
+        return 'Header Settings'
+
+
 class Sizesettings(models.Model):
     sizes_choices = [
         ()
