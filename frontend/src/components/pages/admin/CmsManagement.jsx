@@ -65,6 +65,7 @@ const PlaceholderIcon = () => (
 const CmsManagement = () => {
     const navigate = useNavigate();
     const [sections, setSections] = useState([]);
+    const [headerCms, setHeaderCms] = useState(null);
     const [loading, setLoading] = useState(true);
     const [busyId, setBusyId] = useState(null);
     const [editing, setEditing] = useState(null);
@@ -76,8 +77,14 @@ const CmsManagement = () => {
     const load = async () => {
         setLoading(true);
         try {
-            const res = await apiClient.get('/cms/home-sections/', { cache: false });
-            setSections(res.data.results || res.data || []);
+            // The Header has no HomeSection row — it is its own singleton, so its
+            // card is built from the header settings instead.
+            const [secRes, headRes] = await Promise.all([
+                apiClient.get('/cms/home-sections/', { cache: false }),
+                apiClient.get('/cms/header-settings/', { cache: false }).catch(() => null),
+            ]);
+            setSections(secRes.data.results || secRes.data || []);
+            setHeaderCms(headRes?.data || null);
         } catch {
             /* surfaced by global toast */
         } finally {
@@ -133,6 +140,37 @@ const CmsManagement = () => {
                 <div style={{ padding: 60, textAlign: 'center', color: '#667085' }}>Loading sections…</div>
             ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}>
+                    {/* Header — a singleton, not a HomeSection row, so it gets its own card */}
+                    {(() => {
+                        const live = headerCms?.matches_live;
+                        const pill = live ? STATUS_PILL.published : STATUS_PILL.draft;
+                        return (
+                            <div style={{ background: '#fff', border: '1px solid #EAECF0', borderRadius: 12, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                                <div style={{ height: 130, background: '#F2F4F7', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                    {headerCms?.logo
+                                        ? <img src={headerCms.logo} alt="Header logo" style={{ maxHeight: 56, maxWidth: '70%', objectFit: 'contain' }} />
+                                        : <PlaceholderIcon />}
+                                </div>
+                                <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
+                                    <span style={{ fontSize: 15, fontWeight: 600, color: '#101828' }}>Header</span>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, alignSelf: 'flex-start', background: pill.bg, color: pill.color, fontSize: 12, fontWeight: 500, padding: '3px 10px', borderRadius: 12 }}>
+                                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: pill.dot }} />
+                                        {live ? 'Published' : 'Unpublished changes'}
+                                    </span>
+                                    <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingTop: 8 }}>
+                                        <span style={{ fontSize: 12, color: '#98A2B3' }}>Logo · Menu · Announcement</span>
+                                        <button
+                                            title="Open Header Management"
+                                            onClick={() => navigate('/admin/settings/cms/header')}
+                                            style={{ width: 34, height: 34, borderRadius: '50%', background: '#F9F5FF', border: `1px solid ${PURPLE}`, color: PURPLE, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                                            <ArrowRight size={18} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })()}
+
                     {sections.filter(sec => !isHiddenSection(sec)).map(sec => {
                         const pill = STATUS_PILL[sec.status] || STATUS_PILL.draft;
                         return (
