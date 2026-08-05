@@ -51,13 +51,14 @@ const ArrowIcon = () => (
 
 const FrameLounge = () => {
   const home = useHomeData();
-  const title = home?.sections?.frame_range_categories?.title || 'Frame lounge';
+  const section = home?.sections?.frame_range_categories || {};
   const data = (home?.frame_range_cards || []).map(c => ({ label: c.name, link: c.link || '/products', image: c.image, icon: null }));
   if (data.length === 0) return null;
 
   return (
     <section className="frame-lounge" id="frame-lounge">
-      <h2 className="frame-lounge__title">{title}</h2>
+      {section.title && <h2 className="frame-lounge__title">{section.title}</h2>}
+      {section.subtitle && <p className="frame-lounge__subtitle">{section.subtitle}</p>}
       <div className="frame-lounge__grid">
         {data.map((cat, i) => (
           <Link key={cat.label || i} to={cat.link} className="frame-lounge__card">

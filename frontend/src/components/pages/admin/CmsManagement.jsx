@@ -69,7 +69,7 @@ const CmsManagement = () => {
     const [loading, setLoading] = useState(true);
     const [busyId, setBusyId] = useState(null);
     const [editing, setEditing] = useState(null);
-    const [form, setForm] = useState({ title: '', status: 'published', scheduled_at: '' });
+    const [form, setForm] = useState({ title: '', subtitle: '', status: 'published', scheduled_at: '' });
     const [imageFile, setImageFile] = useState(null);
     const [saving, setSaving] = useState(false);
     const fileRef = useRef(null);
@@ -107,7 +107,7 @@ const CmsManagement = () => {
 
     const openEdit = (sec) => {
         setEditing(sec);
-        setForm({ title: sec.title, status: sec.status, scheduled_at: sec.scheduled_at ? sec.scheduled_at.slice(0, 16) : '' });
+        setForm({ title: sec.title, subtitle: sec.subtitle || '', status: sec.status, scheduled_at: sec.scheduled_at ? sec.scheduled_at.slice(0, 16) : '' });
         setImageFile(null);
     };
 
@@ -116,6 +116,7 @@ const CmsManagement = () => {
         try {
             const fd = new FormData();
             fd.append('title', form.title);
+            fd.append('subtitle', form.subtitle);
             fd.append('status', form.status);
             fd.append('is_published', form.status === 'published');
             if (form.status === 'scheduled' && form.scheduled_at) fd.append('scheduled_at', new Date(form.scheduled_at).toISOString());
@@ -209,6 +210,11 @@ const CmsManagement = () => {
                         <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#344054', marginBottom: 6 }}>Title</label>
                         <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
                             style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #D0D5DD', borderRadius: 8, padding: '10px 12px', fontSize: 14, marginBottom: 16, fontFamily: 'inherit' }} />
+
+                        <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#344054', marginBottom: 6 }}>Sub-heading</label>
+                        <textarea rows={2} value={form.subtitle} onChange={e => setForm(f => ({ ...f, subtitle: e.target.value }))}
+                            placeholder="Shown under the section heading on the storefront (leave blank for none)"
+                            style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #D0D5DD', borderRadius: 8, padding: '10px 12px', fontSize: 14, marginBottom: 16, fontFamily: 'inherit', resize: 'vertical' }} />
 
                         <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#344054', marginBottom: 6 }}>Status</label>
                         <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}

@@ -88,6 +88,14 @@ const NewsletterEditor = () => {
                             </div>
                         </div>
 
+                        <Label>Success Message</Label>
+                        <input style={{ ...inputStyle, marginBottom: 16 }} value={s.success_text || ''} onChange={e => set('success_text', e.target.value)}
+                            placeholder="You're in! Watch your inbox for exclusive offers." />
+
+                        <Label>Consent / Disclaimer Text</Label>
+                        <textarea rows={4} style={{ ...inputStyle, marginBottom: 16, resize: 'vertical' }} value={s.consent_text || ''} onChange={e => set('consent_text', e.target.value)}
+                            placeholder="Shown in small print under the signup form (leave blank for none)" />
+
                         <Label>Background Color</Label>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                             <input type="color" value={s.bg_color || '#F3F4F6'} onChange={e => set('bg_color', e.target.value)} style={{ width: 36, height: 36, border: `1px solid ${BORDER}`, borderRadius: 6, padding: 0, cursor: 'pointer' }} />

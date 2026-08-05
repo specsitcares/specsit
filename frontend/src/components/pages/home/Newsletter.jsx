@@ -16,18 +16,20 @@ const Newsletter = ({ data }) => {
     if (email) setDone(true);
   };
 
-  // CMS-managed content (admin → Homepage Management → Newsletter), with fallbacks.
-  const heading = data?.headline || 'Subscribe to our Newsletter and get 20% off';
-  const placeholder = data?.email_placeholder || 'Enter your email address';
-  const ctaText = data?.cta_text || 'Subscribe';
+  // Every string here is CMS-managed (admin → Homepage Management → Newsletter).
+  const heading = data?.headline || '';
+  const placeholder = data?.email_placeholder || '';
+  const ctaText = data?.cta_text || '';
+  const successText = data?.success_text || '';
+  const consentText = data?.consent_text || '';
 
   return (
     <section className="newsletter-v2" id="newsletter" style={data?.bg_color ? { background: data.bg_color } : undefined}>
       <div className="newsletter-v2__inner">
         <div className="newsletter-v2__row">
-          <h2 className="newsletter-v2__heading">{heading}</h2>
+          {heading && <h2 className="newsletter-v2__heading">{heading}</h2>}
           {done ? (
-            <p className="newsletter-v2__success">You're in! Watch your inbox for exclusive offers.</p>
+            <p className="newsletter-v2__success">{successText}</p>
           ) : (
             <form className="newsletter-v2__form" onSubmit={handleSubmit}>
               <div className="newsletter-v2__input-wrap">
@@ -45,9 +47,7 @@ const Newsletter = ({ data }) => {
             </form>
           )}
         </div>
-        <p className="newsletter-v2__disclaimer">
-          By clicking sign up, I confirm that I am over 18 years old and I agree that my email address can be used by Specsit to send me exclusive offers, content, news, and other marketing communications as a member of Specsit (visit Privacy Policy for more information).
-        </p>
+        {consentText && <p className="newsletter-v2__disclaimer">{consentText}</p>}
       </div>
     </section>
   );

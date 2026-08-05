@@ -15,7 +15,9 @@ const ImagePlaceholder = () => (
 const ExploreFrameStyles = ({ styles = null, data }) => {
   const trackRef = useRef(null);
   const home = useHomeData();
-  const title = data?.title || home?.sections?.explore_frame_styles?.title || 'Explore Frame Styles';
+  const section = home?.sections?.explore_frame_styles || {};
+  const title = data?.title || section.title;
+  const subtitle = data?.subtitle || section.subtitle;
   const cms = (home?.explore_frame_styles || []).map(c => ({ name: c.name, image: c.image, link: c.link }));
 
   const items = styles || cms;
@@ -26,7 +28,8 @@ const ExploreFrameStyles = ({ styles = null, data }) => {
   return (
     <section className="frame-styles hp-reveal" id="explore-frame-styles">
       <div className="frame-styles__header">
-        <h2 className="frame-styles__title">{title}</h2>
+        {title && <h2 className="frame-styles__title">{title}</h2>}
+        {subtitle && <p className="frame-styles__subtitle">{subtitle}</p>}
       </div>
 
       <div className="frame-styles__carousel">

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Save, RefreshCw, Plus, Trash2, Store, Phone, Share2,
-  Ruler, Truck, FileText, Search, Eye, RotateCcw,
+  Ruler, Truck, FileText, Search, Eye, RotateCcw, MapPin,
 } from 'lucide-react';
 import apiClient from '../../../services/api';
 import '../../../styles/store_settings.css';
@@ -28,6 +28,12 @@ const DEFAULTS = {
   meta_description_template: '',
   contact_number: '',
   contact_email: '',
+  store_location_label: '',
+  store_address: '',
+  store_timings: '',
+  store_map_link: '',
+  store_map_embed: '',
+  store_delivery_note: '',
   social_links: [],
   frame_sizes: [],
   delivery_charge: '',
@@ -191,6 +197,33 @@ const StoreSettings = () => {
           <div className="ss-field">
             <label className="ss-label">Contact Email</label>
             <input className="ss-input" value={settings.contact_email} onChange={e => handleChange('contact_email', e.target.value)} placeholder="support@specsit.com" />
+          </div>
+        </Card>
+
+        <Card wide icon={<MapPin size={16} />} title="Store Location" sub="Drives the store-location section on the home page. Its heading and lead line are edited in CMS Management → Step Into Better Vision.">
+          <div className="ss-field" style={{ marginBottom: 12 }}>
+            <label className="ss-label">Eyebrow Label</label>
+            <input className="ss-input" value={settings.store_location_label} onChange={e => handleChange('store_location_label', e.target.value)} placeholder="OUR STORE LOCATION" />
+          </div>
+          <div className="ss-field" style={{ marginBottom: 12 }}>
+            <label className="ss-label">Address</label>
+            <textarea rows={2} className="ss-input" value={settings.store_address} onChange={e => handleChange('store_address', e.target.value)} placeholder="Plot No. 42, Road No. 36, Jubilee Hills, Hyderabad, Telangana 500033" />
+          </div>
+          <div className="ss-field" style={{ marginBottom: 12 }}>
+            <label className="ss-label">Timings</label>
+            <input className="ss-input" value={settings.store_timings} onChange={e => handleChange('store_timings', e.target.value)} placeholder="Monday – Sunday: 10:00 AM – 9:00 PM" />
+          </div>
+          <div className="ss-field" style={{ marginBottom: 12 }}>
+            <label className="ss-label">Delivery Note</label>
+            <input className="ss-input" value={settings.store_delivery_note} onChange={e => handleChange('store_delivery_note', e.target.value)} placeholder="GET DELIVERY IN 1 – 2 HOURS ACROSS HYDERABAD" />
+          </div>
+          <div className="ss-field" style={{ marginBottom: 12 }}>
+            <label className="ss-label">Directions Link</label>
+            <input className="ss-input" value={settings.store_map_link} onChange={e => handleChange('store_map_link', e.target.value)} placeholder="https://maps.google.com/…" />
+          </div>
+          <div className="ss-field">
+            <label className="ss-label">Map Embed URL</label>
+            <input className="ss-input" value={settings.store_map_embed} onChange={e => handleChange('store_map_embed', e.target.value)} placeholder="https://www.google.com/maps/embed?pb=… (leave blank to hide the map)" />
           </div>
         </Card>
 

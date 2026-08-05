@@ -22,13 +22,13 @@ const Testimonials = ({ testimonials = null }) => {
   const data = testimonials || featured;
   if (data.length === 0) return null;
 
+  const section = home?.sections?.client_testimonials || {};
+
   return (
     <section className="testimonials-v2" id="testimonials">
       <div className="testimonials-v2__header">
-        <h2 className="testimonials-v2__title">See what our clients are saying</h2>
-        <p className="testimonials-v2__subtitle">
-          Discover the experiences of our satisfied clients across India who trust Specsit for premium eyewear.
-        </p>
+        {section.title && <h2 className="testimonials-v2__title">{section.title}</h2>}
+        {section.subtitle && <p className="testimonials-v2__subtitle">{section.subtitle}</p>}
       </div>
       <div className="testimonials-v2__marquee">
         <div className="testimonials-v2__track">

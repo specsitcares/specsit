@@ -5,6 +5,19 @@ import { useAuth } from '../../../context/AuthContext';
 import apiClient from '../../../services/api';
 import '../../../styles/ProductCard.css';
 
+/* The express-delivery line is store-wide copy (Store Settings → Store Location).
+   Cards render on several pages, so the lookup is memoised at module level and
+   the whole app pays for one request. */
+let deliveryNotePromise = null;
+const fetchDeliveryNote = () => {
+  if (!deliveryNotePromise) {
+    deliveryNotePromise = apiClient.get('/cms/site-settings/')
+      .then(res => res.data?.store_delivery_note || '')
+      .catch(() => '');
+  }
+  return deliveryNotePromise;
+};
+
 /* ── Star SVG (matches Figma node I401:19556;47:1196) ── */
 const StarIcon = () => (
   <svg
@@ -129,6 +142,13 @@ const ProductCard = ({ product, replaceCtx = null, initialVariantId = null }) =>
   const title       = product.title || '';
   const ratingValue = product.average_rating ? parseFloat(product.average_rating).toFixed(1) : null;
   const reviewCount = product.review_count || 0;
+
+  const [deliveryNote, setDeliveryNote] = useState('');
+  useEffect(() => {
+    let alive = true;
+    fetchDeliveryNote().then(note => { if (alive) setDeliveryNote(note); });
+    return () => { alive = false; };
+  }, []);
 
   // Wishlist reflects selected variant
   const selectedVariantId = selectedVariant?.id ?? null;
@@ -281,11 +301,13 @@ const ProductCard = ({ product, replaceCtx = null, initialVariantId = null }) =>
         {/* Divider */}
         <div className="product-card__divider" />
 
-        {/* Express delivery banner */}
-        <div className="product-card__delivery">
-          <span className="product-card__bolt">⚡</span>
-          <span className="product-card__delivery-text">Get delivery in 1-2 hours across Hyderabad</span>
-        </div>
+        {/* Express delivery banner — copy from Store Settings */}
+        {deliveryNote && (
+          <div className="product-card__delivery">
+            <span className="product-card__bolt">⚡</span>
+            <span className="product-card__delivery-text">{deliveryNote}</span>
+          </div>
+        )}
 
         {/* Replace button — only in exchange/replacement browse mode */}
         {replaceCtx && (() => {
@@ -308,9 +330,9 @@ const ProductCard = ({ product, replaceCtx = null, initialVariantId = null }) =>
 
 const ProductSection = ({ title, subtitle, viewAllLink, products = [] }) => {
   return (
-    <section className="product-section hp-reveal" id={`section-${title?.toLowerCase().replace(/\s+/g, '-')}`}>
+    <section className="product-section hp-reveal" id={`section-${(title || 'products').toLowerCase().replace(/\s+/g, '-')}`}>
       <div className="product-section__header">
-        <h2 className="product-section__title">{title}</h2>
+        {title && <h2 className="product-section__title">{title}</h2>}
         {subtitle && <p className="product-section__subtitle">{subtitle}</p>}
       </div>
       <div className="product-section__scroll">
