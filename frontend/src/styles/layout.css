@@ -3,7 +3,13 @@
    ============================================================ */
 
 :root {
+  /* Header strip metrics — the announcement bar, both headers (logged-in and
+     visitor) and the brand logo all size off these, so the top of every page
+     keeps one rhythm. Change them here, not in the individual files. */
   --nav-height: 58px;
+  --announcement-height: 40px;
+  --brand-logo-height: 26px;
+  --brand-logo-max-width: 150px;
   --glass-effect: backdrop-filter: blur(10px) saturate(180%);
 }
 
