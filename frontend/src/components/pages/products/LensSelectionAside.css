@@ -1012,9 +1012,9 @@
 /* ── Lens preview (left square) ──────────────────────── */
 .lsa-lens-preview {
     width: 96px;
-    min-height: 92px;
+    aspect-ratio: var(--ar-thumb);
     flex-shrink: 0;
-    align-self: stretch;
+    align-self: flex-start;
     background: #F5F3F7;
     border-radius: 8px;
     display: flex;
@@ -1828,7 +1828,7 @@
     border-radius: 10px;
     overflow: hidden;
     background: #040205;
-    aspect-ratio: 4 / 3;
+    aspect-ratio: var(--ar-gallery);
 }
 
 .lsa-pd-modal__video {

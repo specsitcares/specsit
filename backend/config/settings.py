@@ -162,14 +162,24 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # library's naming convention, not tied to the actual provider being AWS.
 _supabase_bucket = env('SUPABASE_S3_BUCKET', default='')
 
+# Media goes through a compressing storage backend so every uploaded asset is
+# re-encoded and size-capped on the way in — see apps/core_utils/images.py. The
+# limits are stored on cms.SiteSettings and edited in the admin under
+# Store Settings → Media & Uploads, so they change without a deploy.
 STORAGES = {
     'staticfiles': {
         'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage',
     },
     'default': {
-        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+        'BACKEND': 'apps.core_utils.storage.CompressedFileSystemStorage',
     },
 }
+
+# Reject oversized request bodies before Django buffers them. Well above the
+# per-asset cap because raw phone photos are large and get compressed on write;
+# this is only a memory guard, not the asset policy.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 64 * 1024 * 1024   # 64 MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 8 * 1024 * 1024    # spill to a temp file past 8 MB
 
 if _supabase_bucket:
     AWS_STORAGE_BUCKET_NAME = _supabase_bucket
@@ -184,7 +194,7 @@ if _supabase_bucket:
     AWS_S3_FILE_OVERWRITE = False
     AWS_QUERYSTRING_AUTH = env.bool('AWS_QUERYSTRING_AUTH', default=False)
     AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400'}
-    STORAGES['default'] = {'BACKEND': 'storages.backends.s3boto3.S3Boto3Storage'}
+    STORAGES['default'] = {'BACKEND': 'apps.core_utils.storage.CompressedS3Storage'}
 
 WSGI_APPLICATION = 'config.wsgi.application'
 

@@ -218,7 +218,10 @@ const PrescriptionOffcanvas = ({ order, onClose, onApproved }) => {
                 }}>
                   {hasFile ? (
                     isImage ? (
-                      <img src={fileUrl} alt="Prescription" style={{ width: '100%', maxHeight: 340, objectFit: 'contain' }} />
+                      // Scaled down to fit the 340px viewer, keeping the scan's
+                      // own ratio — `width:100%` + maxHeight let the box height
+                      // vary with whatever each upload happened to be.
+                      <img src={fileUrl} alt="Prescription" style={{ maxWidth: '100%', maxHeight: 340, objectFit: 'contain', display: 'block' }} />
                     ) : isPdf ? (
                       pdfBlobUrl ? (
                         <iframe src={pdfBlobUrl} title="Prescription PDF" style={{ width: '100%', height: 340, border: 'none' }} />

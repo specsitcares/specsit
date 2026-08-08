@@ -147,7 +147,7 @@ const CmsManagement = () => {
                         const pill = live ? STATUS_PILL.published : STATUS_PILL.draft;
                         return (
                             <div style={{ background: '#fff', border: '1px solid #EAECF0', borderRadius: 12, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                                <div style={{ height: 130, background: '#F2F4F7', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                <div style={{ aspectRatio: '16 / 9', background: '#F2F4F7', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                                     {headerCms?.logo
                                         ? <img src={headerCms.logo} alt="Header logo" style={{ maxHeight: 56, maxWidth: '70%', objectFit: 'contain' }} />
                                         : <PlaceholderIcon />}
@@ -176,7 +176,7 @@ const CmsManagement = () => {
                         const pill = STATUS_PILL[sec.status] || STATUS_PILL.draft;
                         return (
                             <div key={sec.id} style={{ background: '#fff', border: '1px solid #EAECF0', borderRadius: 12, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                                <div style={{ height: 130, background: '#F2F4F7', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                <div style={{ aspectRatio: '16 / 9', background: '#F2F4F7', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                                     {sec.image ? <img src={sec.image} alt={sec.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <PlaceholderIcon />}
                                 </div>
                                 <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>

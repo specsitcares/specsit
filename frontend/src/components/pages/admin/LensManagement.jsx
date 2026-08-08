@@ -1038,7 +1038,7 @@ const LensManagement = ({ editLensId = null }) => {
                       <img
                         src={editFormData.image ? URL.createObjectURL(editFormData.image) : editFormData.image_url}
                         alt="Lens preview"
-                        style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8, border: '1px solid #e5e7eb', flexShrink: 0 }}
+                        style={{ width: 64, height: 64, objectFit: 'contain', borderRadius: 8, border: '1px solid #e5e7eb', flexShrink: 0 }}
                       />
                     )}
                     <input

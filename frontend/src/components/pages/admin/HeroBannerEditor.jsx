@@ -32,8 +32,11 @@ const DropZone = ({ label, preview, onFile, hint }) => {
     return (
         <div onClick={() => ref.current?.click()}
             style={{ border: `1.5px dashed ${BORDER}`, borderRadius: 10, padding: preview ? 0 : '28px 16px', textAlign: 'center', cursor: 'pointer', background: '#F9FAFB', overflow: 'hidden' }}>
+            {/* Fixed 36:10 — the ratio the storefront hero band renders at — so the
+                drop zone shows the same crop the shopper will see, and the box
+                stops resizing itself around each upload's own proportions. */}
             {preview ? (
-                <img src={preview} alt="" style={{ width: '100%', maxHeight: 180, objectFit: 'cover', display: 'block' }} />
+                <img src={preview} alt="" style={{ width: '100%', aspectRatio: '36 / 10', objectFit: 'cover', display: 'block' }} />
             ) : (
                 <>
                     <UploadCloud size={22} style={{ color: '#475467' }} />
@@ -224,7 +227,10 @@ const HeroBannerEditor = () => {
                             <Smartphone size={18} onClick={() => setDevice('mobile')} style={{ cursor: 'pointer', color: device === 'mobile' ? PURPLE : '#98A2B3' }} />
                         </div>
                     </div>
-                    <div style={{ margin: '0 auto', width: device === 'mobile' ? 200 : '100%', borderRadius: 10, overflow: 'hidden', background: '#E5E7EB', aspectRatio: device === 'mobile' ? '9/16' : '16/9', position: 'relative' }}>
+                    {/* Desktop preview uses the hero band's real 36:10, not 16:9;
+                        mobile uses ~200×420, the ratio the 420px min-height band
+                        works out to on a phone. */}
+                    <div style={{ margin: '0 auto', width: device === 'mobile' ? 200 : '100%', borderRadius: 10, overflow: 'hidden', background: '#E5E7EB', aspectRatio: device === 'mobile' ? '10 / 21' : '36 / 10', position: 'relative' }}>
                         {(slide.use_custom ? previewCustom : previewBg) && (
                             <img src={slide.use_custom ? previewCustom : previewBg} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
                         )}

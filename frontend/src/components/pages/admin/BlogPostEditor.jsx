@@ -304,7 +304,7 @@ const BlogPostEditor = () => {
                     </SideCard>
 
                     <SideCard title="Featured Image">
-                        <div onClick={() => fileRef.current?.click()} style={{ border: `1px dashed ${thumbPreview ? BORDER : '#D0D5DD'}`, borderRadius: 10, height: 160, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer', overflow: 'hidden', background: '#fff' }}>
+                        <div onClick={() => fileRef.current?.click()} style={{ border: `1px dashed ${thumbPreview ? BORDER : '#D0D5DD'}`, borderRadius: 10, aspectRatio: '16 / 9', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer', overflow: 'hidden', background: '#fff' }}>
                             {thumbPreview ? (
                                 <img src={thumbPreview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                             ) : (

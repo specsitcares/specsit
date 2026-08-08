@@ -54,6 +54,9 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
             'hsn_codes', 'return_window_days', 'warranty_window_days',
             'store_location_label', 'store_address', 'store_timings',
             'store_map_link', 'store_map_embed', 'store_delivery_note',
+            'max_upload_size_mb', 'image_compression_enabled',
+            'image_compression_quality', 'image_max_dimension_px',
+            'image_output_format',
         ]
 
 class HomeSectionSerializer(serializers.ModelSerializer):

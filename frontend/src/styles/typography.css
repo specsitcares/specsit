@@ -43,6 +43,17 @@
   --clr-text-muted: #71717A;
   --clr-text-accent: #68408D;
   --clr-text-white: #FEFCFF;
+
+  /* --- Image Aspect Ratios ---
+     One ratio scale for every image box in the app. Boxes reserve their space
+     from the ratio instead of a fixed pixel height, so a photo is framed the
+     same way at every breakpoint (and the layout never jumps while loading). */
+  --ar-product:   56 / 33;   /* product shots — the 280×165 home-page card image */
+  --ar-thumb:     1;         /* square thumbnails, swatches, avatars */
+  --ar-gallery:   4 / 3;     /* PDP main image, lens + try-on previews */
+  --ar-editorial: 16 / 9;    /* blog cards, showcase + lifestyle tiles */
+  --ar-portrait:  4 / 5;     /* tall side panels (about hero, auth hero) */
+  --ar-hero:      36 / 10;   /* full-bleed hero band */
 }
 
 /* --- Global Tag Overrides --- */

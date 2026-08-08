@@ -14,8 +14,8 @@
 .rev-items { display: flex; flex-direction: column; gap: 16px; margin-bottom: 36px; }
 .rev-item { display: flex; flex-direction: column; gap: 14px; background: #FEFCFF; border: 1px solid #EFEDF0; border-radius: 12px; padding: 18px; }
 .rev-item__top { display: flex; gap: 16px; align-items: flex-start; }
-.rev-item__thumb { width: 64px; height: 64px; flex-shrink: 0; border-radius: 8px; background: #F1F1F1; overflow: hidden; display: flex; align-items: center; justify-content: center; color: #9CA3AF; }
-.rev-item__thumb img { width: 100%; height: 100%; object-fit: cover; }
+.rev-item__thumb { width: 64px; aspect-ratio: var(--ar-thumb); flex-shrink: 0; border-radius: 8px; background: #F1F1F1; overflow: hidden; display: flex; align-items: center; justify-content: center; color: #9CA3AF; }
+.rev-item__thumb img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .rev-item__info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .rev-item__name { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 700; color: #040205; }
 .rev-item__sub { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; color: #71717A; }
@@ -44,8 +44,8 @@
 .rev-drop__icon { width: 36px; height: 36px; border-radius: 50%; background: #EBE3F2; color: #68408D; display: flex; align-items: center; justify-content: center; }
 .rev-drop__text { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 600; color: #68408D; }
 .rev-previews { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
-.rev-preview { position: relative; width: 72px; height: 72px; }
-.rev-preview img { width: 72px; height: 72px; border-radius: 10px; object-fit: cover; border: 1px solid #EFEDF0; }
+.rev-preview { position: relative; width: 72px; aspect-ratio: var(--ar-thumb); flex-shrink: 0; }
+.rev-preview img { width: 100%; height: 100%; display: block; border-radius: 10px; object-fit: cover; border: 1px solid #EFEDF0; }
 .rev-preview__rm { position: absolute; top: -7px; right: -7px; width: 20px; height: 20px; border-radius: 50%; background: #040205; color: #fff; border: none; cursor: pointer; font-size: 13px; line-height: 1; display: flex; align-items: center; justify-content: center; }
 
 /* Tags */

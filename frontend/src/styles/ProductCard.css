@@ -31,9 +31,13 @@
   overflow: hidden;
 }
 
+/* The card stretches to its grid column (280px on the home rails, wider in the
+   3-up PLP grid, ~170px in the 2-up mobile grid) so the image box takes its
+   height from the Figma 280×165 ratio rather than a fixed 165px — the frame is
+   then cropped identically at every card width. */
 .product-card__image-wrap {
   width: 100%;
-  height: 165px;
+  aspect-ratio: var(--ar-product);
   position: relative;
   overflow: hidden;
 }

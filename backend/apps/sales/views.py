@@ -11,6 +11,7 @@ from datetime import timedelta, datetime
 from .models import Order, OrderItem, Cart, Wishlist, Coupon, Shipment, LiveSession, SiteVisit, OrderTracking, Payment, ReturnRequest, WarrantyClaim
 from apps.catalog.models import Prescription, FrameVariant, FrameProduct
 from apps.core_utils.idempotency import idempotent_endpoint
+from apps.core_utils.images import CompressionPolicy
 from .serializers import (
     OrderSerializer, OrderItemSerializer, CartSerializer,
     WishlistSerializer, CouponSerializer, ShipmentSerializer,
@@ -970,9 +971,12 @@ class OrderViewSet(viewsets.ModelViewSet):
             except (ValueError, TypeError):
                 pass
 
-        # Optional supporting photos (multipart "photos") — up to 5, max 5 MB, images only.
+        # Optional supporting photos (multipart "photos") — up to 5, images only.
+        # The intake ceiling is generous because storage compresses on write; it
+        # only guards against reading an absurd file into memory.
+        _intake = CompressionPolicy.from_site_settings().max_bytes * 8
         for ph in request.FILES.getlist('photos')[:5]:
-            if ph.size <= 5 * 1024 * 1024 and (ph.content_type or '').startswith('image/'):
+            if ph.size <= _intake and (ph.content_type or '').startswith('image/'):
                 ReturnRequestImage.objects.create(return_request=rr, image=ph)
 
         return Response(ReturnRequestSerializer(rr, context={'request': request}).data, status=status.HTTP_201_CREATED)
@@ -1011,9 +1015,10 @@ class OrderViewSet(viewsets.ModelViewSet):
             order=order, issue_description=issue, preferred_fix=preferred_fix, status='pending',
         )
 
-        # Optional evidence photos (multipart "photos") — up to 5, max 5 MB, images only.
+        # Optional evidence photos (multipart "photos") — up to 5, images only.
+        _intake = CompressionPolicy.from_site_settings().max_bytes * 8
         for ph in request.FILES.getlist('photos')[:5]:
-            if ph.size <= 5 * 1024 * 1024 and (ph.content_type or '').startswith('image/'):
+            if ph.size <= _intake and (ph.content_type or '').startswith('image/'):
                 WarrantyClaimImage.objects.create(warranty_claim=claim, image=ph)
 
         return Response(WarrantyClaimSerializer(claim, context={'request': request}).data, status=status.HTTP_201_CREATED)
@@ -1614,10 +1619,11 @@ class ReturnRequestViewSet(viewsets.ModelViewSet):
         return Response(self.get_serializer(rr).data)
 
     def _save_stage_images(self, request, model):
-        """Store up to 8 image files (≤10 MB each) from multipart 'photos'."""
+        """Store up to 8 images from multipart 'photos'; storage compresses them."""
         rr = self.get_object()
+        _intake = CompressionPolicy.from_site_settings().max_bytes * 8
         for ph in request.FILES.getlist('photos')[:8]:
-            if ph.size <= 10 * 1024 * 1024 and (ph.content_type or '').startswith('image/'):
+            if ph.size <= _intake and (ph.content_type or '').startswith('image/'):
                 model.objects.create(return_request=rr, image=ph)
         return Response(self.get_serializer(rr, context={'request': request}).data)
 
@@ -1799,8 +1805,15 @@ class PrescriptionUploadView(views.APIView):
         ext = _os.path.splitext(prescription_file.name)[1].lower()
         if ext not in allowed_extensions:
             return Response({'error': 'Invalid file type. Only PDF, JPG, and PNG are allowed.'}, status=status.HTTP_400_BAD_REQUEST)
-        if prescription_file.size > 5 * 1024 * 1024:
-            return Response({'error': 'File exceeds the 5 MB size limit.'}, status=status.HTTP_400_BAD_REQUEST)
+        # PDFs pass through the compressor untouched, so for them the cap is the
+        # real limit; images are re-encoded and only rejected if still over it.
+        _policy = CompressionPolicy.from_site_settings()
+        _ceiling = _policy.max_bytes if ext == '.pdf' else _policy.max_bytes * 8
+        if prescription_file.size > _ceiling:
+            return Response(
+                {'error': f'File exceeds the {_policy.max_size_mb} MB size limit.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         # Bug #4: Parse numeric order ID if display format is sent
         try:

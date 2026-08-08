@@ -243,7 +243,7 @@ const ReplacementRequestDetail = () => {
                                 <div style={{ fontSize: 11, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 }}>Returning</div>
                                 <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                                     <div style={{ width: 56, height: 56, borderRadius: 8, border: '1px solid #E5E7EB', background: '#F3F4F6', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        {first.variant_image ? <img src={first.variant_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: 22 }}>👓</span>}
+                                        {first.variant_image ? <img src={first.variant_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <span style={{ fontSize: 22 }}>👓</span>}
                                     </div>
                                     <div style={{ minWidth: 0 }}>
                                         <div style={{ fontSize: 13, fontWeight: 600, color: '#040205' }}>{first.variant_name || 'Product'}</div>
@@ -259,7 +259,7 @@ const ReplacementRequestDetail = () => {
                                 {newItem ? (
                                     <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                                         <div style={{ width: 56, height: 56, borderRadius: 8, border: '1px solid #E5E7EB', background: '#fff', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                            {newItem.image ? <img src={newItem.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: 22 }}>👓</span>}
+                                            {newItem.image ? <img src={newItem.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <span style={{ fontSize: 22 }}>👓</span>}
                                         </div>
                                         <div style={{ minWidth: 0 }}>
                                             <div style={{ fontSize: 13, fontWeight: 600, color: '#040205' }}>{newItem.name}</div>
@@ -291,7 +291,7 @@ const ReplacementRequestDetail = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12 }}>
                                 {rr.images.map((src, i) => (
                                     <a key={i} href={src} target="_blank" rel="noreferrer">
-                                        <div style={{ height: 130, borderRadius: 8, border: '1px solid #E5E7EB', background: '#F3F4F6', overflow: 'hidden' }}>
+                                        <div style={{ aspectRatio: '4 / 3', borderRadius: 8, border: '1px solid #E5E7EB', background: '#F3F4F6', overflow: 'hidden' }}>
                                             <img src={src} alt={`Evidence ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                         </div>
                                     </a>

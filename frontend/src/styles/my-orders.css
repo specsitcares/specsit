@@ -166,7 +166,7 @@
 
 .reco-card__img-wrap {
   width: 100%;
-  height: 150px;
+  aspect-ratio: var(--ar-product);
   border-radius: 5px;
   overflow: hidden;
   background: var(--specsit-light-grey);
@@ -273,8 +273,12 @@
 /* Body */
 .omc__body { position:relative; display:flex; align-items:stretch; gap:24px; padding:20px; background:#FEFCFF; overflow:hidden; }
 .omc__watermark { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:0.15; pointer-events:none; }
-.omc__thumb { position:relative; z-index:1; width:144px; flex-shrink:0; border:1px solid rgba(205,195,209,0.5); border-radius:8px; background:#FEFCFF; overflow:hidden; display:flex; align-items:center; justify-content:center; color:#9CA3AF; }
-.omc__thumb img { width:100%; height:100%; object-fit:cover; }
+/* Ratio-sized rather than stretched to the row: the thumb narrows to 72px on
+   phones, and without a ratio its height still came from whatever the order
+   meta beside it happened to occupy. `contain` matches the cart/wishlist
+   treatment so a wide frame is never cropped at its temples. */
+.omc__thumb { position:relative; z-index:1; width:144px; aspect-ratio:var(--ar-product); align-self:flex-start; flex-shrink:0; border:1px solid rgba(205,195,209,0.5); border-radius:8px; background:#FEFCFF; overflow:hidden; display:flex; align-items:center; justify-content:center; color:#9CA3AF; }
+.omc__thumb img { width:100%; height:100%; object-fit:contain; display:block; }
 .omc__main { position:relative; z-index:1; flex:1; min-width:0; display:flex; flex-direction:column; gap:12px; }
 .omc__info { display:flex; flex-direction:column; gap:4px; padding-bottom:20px; border-bottom:1px dashed #DADADA; }
 .omc__brand { font-size:12px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:#68408D; line-height:16px; }
@@ -395,7 +399,7 @@
 .ord-card__thumb {
   flex-shrink: 0;
   width: 102px;
-  height: 102px;
+  aspect-ratio: var(--ar-thumb);
   border-radius: 6px;
   background: var(--specsit-bg-white);
   border: 1px solid rgba(205, 195, 209, 0.1);
@@ -410,7 +414,8 @@
 .ord-card__thumb img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  display: block;
   border-radius: 3px;
 }
 

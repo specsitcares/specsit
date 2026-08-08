@@ -22,8 +22,13 @@ const PromoBanner = ({ section = 'promo_banner_1' }) => {
     : { background: banner.bg_color || '#6B5CE7', overflow: 'hidden', borderRadius: 16, margin: '0 auto', maxWidth: 1280, width: WIDTH_MAP[banner.width] || '100%' };
 
   const inner = (
-    <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: align, textAlign: banner.alignment, gap: 14, padding: '56px 48px', minHeight: minH, justifyContent: 'center' }}>
-      {bgImg && <img src={bgImg} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
+    // The band carries the ratio the admin's height choice implies at a 1440px
+    // canvas (small 8:1, medium 4.8:1, large 3.1:1), with that height as the
+    // floor. Narrower viewports keep the floor; wider ones grow proportionally,
+    // so the background art is framed the same way instead of being cropped
+    // harder the wider the screen gets.
+    <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: align, textAlign: banner.alignment, gap: 14, padding: '56px 48px', aspectRatio: `1440 / ${minH}`, minHeight: minH, justifyContent: 'center' }}>
+      {bgImg && <img src={bgImg} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }} />}
       {!banner.use_custom && (
         <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: align, gap: 14, maxWidth: 760 }}>
           <h2 style={{ color: textCol, fontSize: 34, fontWeight: 800, margin: 0, lineHeight: 1.2 }}>{banner.title}</h2>

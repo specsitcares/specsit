@@ -404,7 +404,8 @@ body {
 
 .profile-img-box {
   width: 26px;
-  height: 26px;
+  aspect-ratio: var(--ar-thumb);
+  flex-shrink: 0;
   border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.2);
   overflow: hidden;
@@ -801,7 +802,8 @@ tr.expanded-parent {
 
 .item-thumb-v2 {
   width: 32px;
-  height: 32px;
+  aspect-ratio: var(--ar-thumb);
+  flex-shrink: 0;
   background: white;
   border: 1px solid var(--gray-200);
   border-radius: 6px;
@@ -1555,7 +1557,8 @@ tr.expanded-parent {
 
 .dh-items-thumb {
   width: 32px;
-  height: 32px;
+  aspect-ratio: var(--ar-thumb);
+  flex-shrink: 0;
   border-radius: 6px;
   border: 1px solid var(--gray-200);
   background: var(--gray-50);

@@ -1,3 +1,4 @@
+from django.core.validators import MaxValueValidator, MinValueValidator #type: ignore
 from django.db import models #type: ignore
 
 class SiteSettings(models.Model):
@@ -43,6 +44,39 @@ class SiteSettings(models.Model):
 
     # Warranty — global warranty window in days from delivery
     warranty_window_days = models.PositiveIntegerField(default=365)
+
+    # ── Media & uploads ──
+    # Read by apps.core_utils.images on every upload, so changing these takes
+    # effect immediately for the next file stored — no deploy needed.
+    max_upload_size_mb = models.PositiveSmallIntegerField(
+        default=5,
+        validators=[MinValueValidator(1), MaxValueValidator(100)],
+        help_text='Largest a stored asset may be. Images are compressed first, so '
+                  'the cap only rejects files that still exceed it afterwards.',
+    )
+    image_compression_enabled = models.BooleanField(
+        default=True,
+        help_text='Re-encode uploaded images. Turn off to store originals byte-for-byte.',
+    )
+    image_compression_quality = models.PositiveSmallIntegerField(
+        default=82,
+        validators=[MinValueValidator(40), MaxValueValidator(100)],
+        help_text='Encoder quality, 40–100. 80–85 is visually lossless for photos.',
+    )
+    image_max_dimension_px = models.PositiveIntegerField(
+        default=2000,
+        validators=[MinValueValidator(320), MaxValueValidator(8000)],
+        help_text='Longest edge, in pixels. Larger uploads are downscaled to fit.',
+    )
+    IMAGE_FORMAT_CHOICES = [
+        ('webp', 'WebP — smallest, keeps transparency'),
+        ('jpeg', 'JPEG — widest compatibility, no transparency'),
+        ('original', 'Keep original format'),
+    ]
+    image_output_format = models.CharField(
+        max_length=10, choices=IMAGE_FORMAT_CHOICES, default='webp',
+        help_text='Format uploaded images are re-encoded to.',
+    )
 
     class Meta:
         verbose_name = 'Site Settings'

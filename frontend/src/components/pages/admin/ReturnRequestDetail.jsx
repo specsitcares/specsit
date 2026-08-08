@@ -281,7 +281,7 @@ const ReturnRequestDetail = () => {
                     <Card title="Product">
                         <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
                             <div style={{ width: 72, height: 72, flexShrink: 0, borderRadius: 8, border: '1px solid #E5E7EB', background: '#F3F4F6', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                {first.variant_image ? <img src={first.variant_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: 26 }}>👓</span>}
+                                {first.variant_image ? <img src={first.variant_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <span style={{ fontSize: 26 }}>👓</span>}
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 5, minWidth: 0 }}>
                                 <span style={{ fontSize: 15, fontWeight: 500, color: '#040205' }}>{first.variant_name || 'Product'}</span>
@@ -307,7 +307,7 @@ const ReturnRequestDetail = () => {
                                 {rr.images.map((src, i) => (
                                     <div key={i}>
                                         <a href={src} target="_blank" rel="noopener noreferrer">
-                                            <div style={{ height: 148, borderRadius: 8, border: '1px solid #E5E7EB', background: '#F3F4F6', overflow: 'hidden' }}>
+                                            <div style={{ aspectRatio: '4 / 3', borderRadius: 8, border: '1px solid #E5E7EB', background: '#F3F4F6', overflow: 'hidden' }}>
                                                 <img src={src} alt={`Evidence ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                             </div>
                                         </a>

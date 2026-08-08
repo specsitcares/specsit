@@ -160,7 +160,7 @@ const ContactLensDetailPage = () => {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: 18 }}>
             {similar.map(l => (
               <Link key={l.id} to={`/contact-lenses/${l.id}`} style={{ textDecoration: 'none', border: '1px solid #EFEDF0', borderRadius: 12, overflow: 'hidden', background: '#fff', display: 'block' }}>
-                <div style={{ height: 150, background: '#F7F6F9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ aspectRatio: '56 / 33', background: '#F7F6F9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {l.image ? <img src={l.image} alt={l.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <span style={{ color: '#B7AFC4', fontSize: 12 }}>No image</span>}
                 </div>
                 <div style={{ padding: 12 }}>

@@ -15,7 +15,7 @@
 .face-model-card__preview {
   flex-shrink: 0;
   width: 160px;
-  height: 160px;
+  aspect-ratio: var(--ar-thumb);
   border-radius: 10px;
   overflow: hidden;
   background: var(--specsit-light-grey);
@@ -126,8 +126,9 @@
     padding: 16px;
     gap: 16px;
   }
+  /* Full-width when the card stacks — still square, matching the desktop card,
+     rather than pinning 160px against a now-fluid width. */
   .face-model-card__preview {
     width: 100%;
-    height: 160px;
   }
 }

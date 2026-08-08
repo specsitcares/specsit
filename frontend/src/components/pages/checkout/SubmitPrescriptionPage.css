@@ -136,7 +136,7 @@
 
 .spp-summary-thumb {
   width: 51px;
-  height: 51px;
+  aspect-ratio: var(--ar-thumb);
   border-radius: 6px;
   background: var(--spp-grey);
   overflow: hidden;
@@ -146,7 +146,8 @@
 .spp-summary-thumb img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  display: block;
 }
 
 .spp-thumb-placeholder {

@@ -565,7 +565,7 @@
 
 .summary-item-thumb {
   width: 51px;
-  height: 51px;
+  aspect-ratio: var(--ar-thumb);
   background: var(--specsit-light-grey);
   border-radius: 6px;
   padding: 3px;
@@ -3479,7 +3479,7 @@
 
 .conf-summary-thumb {
   width: 51px;
-  height: 51px;
+  aspect-ratio: var(--ar-thumb);
   background: var(--specsit-bg-white);
   border-radius: 6px;
   overflow: hidden;
@@ -4870,7 +4870,7 @@
 
 .summary-order-item__thumb {
   width: 51px;
-  height: 51px;
+  aspect-ratio: var(--ar-thumb);
   background: var(--specsit-light-grey);
   border-radius: 3px;
   overflow: hidden;
@@ -4883,7 +4883,8 @@
 .summary-order-item__thumb img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  display: block;
 }
 
 .summary-order-item__info {
@@ -5073,7 +5074,7 @@
    full-width detail block (Frame/Lens/Final, specs, Rx, actions). ── */
 .ck-item { display:flex; flex-direction:column; min-width:0; gap:clamp(14px,4vw,18px); padding:clamp(14px,4vw,20px); background:#FEFCFF; border:1px solid #EFEDF0; border-radius:12px; }
 .ck-item__head { display:flex; gap:clamp(12px,3.5vw,20px); align-items:center; }
-.ck-item__thumb { width:clamp(84px,24vw,120px); aspect-ratio:1; flex-shrink:0; display:flex; align-items:center; justify-content:center; padding:8px; background:#F5F3F6; border-radius:8px; box-sizing:border-box; }
+.ck-item__thumb { width:clamp(84px,24vw,120px); aspect-ratio:var(--ar-thumb); flex-shrink:0; display:flex; align-items:center; justify-content:center; padding:8px; background:#F5F3F6; border-radius:8px; box-sizing:border-box; }
 .ck-item__thumb img { max-width:100%; max-height:100%; object-fit:contain; }
 .ck-item__thumb svg { width:100%; height:100%; }
 .ck-item__body { flex:1; min-width:0; display:flex; flex-direction:column; gap:12px; }
@@ -5160,8 +5161,8 @@
 .conf-os-items { border:1px solid #E6E6E6; border-radius:12px; padding:16px; display:flex; flex-direction:column; }
 .conf-os-item { display:flex; align-items:center; gap:12px; padding-bottom:16px; margin-bottom:16px; border-bottom:1px solid #E6E6E6; }
 .conf-os-item:last-child { padding-bottom:0; margin-bottom:0; border-bottom:none; }
-.conf-os-item__thumb { width:56px; height:56px; flex-shrink:0; border-radius:8px; background:#F1F1F1; overflow:hidden; display:flex; align-items:center; justify-content:center; }
-.conf-os-item__thumb img { width:100%; height:100%; object-fit:cover; }
+.conf-os-item__thumb { width:56px; aspect-ratio:var(--ar-thumb); flex-shrink:0; border-radius:8px; background:#F1F1F1; overflow:hidden; display:flex; align-items:center; justify-content:center; }
+.conf-os-item__thumb img { width:100%; height:100%; object-fit:contain; display:block; }
 .conf-os-item__ph { width:100%; height:100%; background:#EFEDF0; }
 .conf-os-item__info { flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; }
 .conf-os-item__name { font-family:'Plus Jakarta Sans',sans-serif; font-size:14px; font-weight:700; color:#040205; line-height:16px; }
@@ -5329,7 +5330,7 @@
 .ck-addon-thumb {
   position:relative;
   width:100%;
-  height:104px;
+  aspect-ratio:var(--ar-product);
   border-radius:10px;
   overflow:hidden;
   background:#F3F0F7;
@@ -5416,7 +5417,7 @@
 
 @media (max-width: 600px) {
   .ck-addon-card { width:132px; padding:10px; }
-  .ck-addon-thumb { height:92px; }
+  /* Thumb height follows the ratio from the base rule as the card narrows. */
 }
 
 /* Discount card */
