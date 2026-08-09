@@ -1,8 +1,8 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './LensSelectionAside.css';
 import apiClient from '../../../services/api';
-import { measurePdFromDataUrl } from '../../../services/faceMeasurement';
+import PdCardMeasure from '../../FaceCapture/PdCardMeasure';
 import rxManualImg from '../../../assets/lens/rx-manual.png';
 import rxUploadImg from '../../../assets/lens/rx-upload.png';
 import rxLaterImg from '../../../assets/lens/rx-later.png';
@@ -385,212 +385,46 @@ const StepLenses = ({ selectedLens, onSelectLens, productBasePrice, lensGroups, 
 };
 
 /* ════════════════════════════════════════════════════════
-   PD MEASURE MODAL — inline camera + AI measurement
+   PD MEASURE MODAL — shell around the shared card measurement
    ════════════════════════════════════════════════════════ */
-const PDMeasureModal = ({ onClose, onPdMeasured }) => {
-    const videoRef = useRef(null);
-    const canvasRef = useRef(null);
-    const streamRef = useRef(null);
+const PDMeasureModal = ({ onClose, onPdMeasured }) => (
+    <div className="lsa-pd-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+        <div className="lsa-pd-modal">
 
-    const [capturedImage, setCapturedImage] = useState(null);
-    const [measuring, setMeasuring] = useState(false);
-    const [result, setResult] = useState(null);
-    const [error, setError] = useState(null);
-    const [camReady, setCamReady] = useState(false);
-
-    const stopCamera = useCallback(() => {
-        if (streamRef.current) {
-            streamRef.current.getTracks().forEach(t => t.stop());
-            streamRef.current = null;
-        }
-    }, []);
-
-    const startCamera = useCallback(async () => {
-        try {
-            const ms = await navigator.mediaDevices.getUserMedia({
-                video: { width: 640, height: 480, facingMode: 'user' },
-            });
-            streamRef.current = ms;
-            if (videoRef.current) {
-                videoRef.current.srcObject = ms;
-                videoRef.current.onloadedmetadata = () => setCamReady(true);
-            }
-        } catch {
-            setError('Camera access denied. Please allow camera permissions and try again.');
-        }
-    }, []);
-
-    useEffect(() => {
-        startCamera();
-        return () => stopCamera();
-    }, [startCamera, stopCamera]);
-
-    const capturePhoto = () => {
-        if (!videoRef.current || !canvasRef.current) return;
-        const ctx = canvasRef.current.getContext('2d');
-        canvasRef.current.width = videoRef.current.videoWidth;
-        canvasRef.current.height = videoRef.current.videoHeight;
-        ctx.drawImage(videoRef.current, 0, 0);
-        const dataUrl = canvasRef.current.toDataURL('image/jpeg');
-        setCapturedImage(dataUrl);
-        stopCamera();
-    };
-
-    const measurePD = async () => {
-        if (!capturedImage) return;
-        setMeasuring(true);
-        setError(null);
-        try {
-            const data = await measurePdFromDataUrl(capturedImage);
-            setResult(data);
-        } catch (err) {
-            setError(err.message);
-        } finally {
-            setMeasuring(false);
-        }
-    };
-
-    const retake = () => {
-        setCapturedImage(null);
-        setResult(null);
-        setError(null);
-        setCamReady(false);
-        startCamera();
-    };
-
-    const usePD = () => {
-        onPdMeasured(String(result.pd_mm));
-        stopCamera();
-        onClose();
-    };
-
-    const confidenceColor = { high: '#16a34a', medium: '#d97706', low: '#dc2626' };
-    const conf = result?.confidence || 'low';
-
-    return (
-        <div className="lsa-pd-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-            <div className="lsa-pd-modal">
-
-                {/* Header */}
-                <div className="lsa-pd-modal__header">
-                    <div className="lsa-pd-modal__header-left">
-                        <div className="lsa-pd-modal__icon">
-                            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                                <circle cx="9" cy="9" r="7.5" stroke="#68408D" strokeWidth="1.3" />
-                                <circle cx="5" cy="9" r="1.2" fill="#68408D" />
-                                <circle cx="13" cy="9" r="1.2" fill="#68408D" />
-                                <line x1="1.5" y1="9" x2="3.5" y2="9" stroke="#68408D" strokeWidth="1.3" strokeLinecap="round" />
-                                <line x1="14.5" y1="9" x2="16.5" y2="9" stroke="#68408D" strokeWidth="1.3" strokeLinecap="round" />
-                                <line x1="5" y1="9" x2="13" y2="9" stroke="#68408D" strokeWidth="1" strokeDasharray="1.5 1.5" />
-                            </svg>
-                        </div>
-                        <div>
-                            <p className="lsa-pd-modal__label">AI Measurement</p>
-                            <p className="lsa-pd-modal__title">Measure Your PD</p>
-                        </div>
+            {/* Header */}
+            <div className="lsa-pd-modal__header">
+                <div className="lsa-pd-modal__header-left">
+                    <div className="lsa-pd-modal__icon">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                            <circle cx="9" cy="9" r="7.5" stroke="#68408D" strokeWidth="1.3" />
+                            <circle cx="5" cy="9" r="1.2" fill="#68408D" />
+                            <circle cx="13" cy="9" r="1.2" fill="#68408D" />
+                            <line x1="1.5" y1="9" x2="3.5" y2="9" stroke="#68408D" strokeWidth="1.3" strokeLinecap="round" />
+                            <line x1="14.5" y1="9" x2="16.5" y2="9" stroke="#68408D" strokeWidth="1.3" strokeLinecap="round" />
+                            <line x1="5" y1="9" x2="13" y2="9" stroke="#68408D" strokeWidth="1" strokeDasharray="1.5 1.5" />
+                        </svg>
                     </div>
-                    <button className="lsa-pd-modal__close" onClick={onClose} aria-label="Close">
-                        <CloseIcon />
-                    </button>
-                </div>
-
-                {/* Instruction */}
-                <p className="lsa-pd-modal__tip">
-                    Position your face in the camera, ensure good lighting, then capture and measure.
-                </p>
-
-                {/* Camera / preview */}
-                <div className="lsa-pd-modal__preview">
-                    {!capturedImage ? (
-                        <>
-                            <video ref={videoRef} autoPlay playsInline muted className="lsa-pd-modal__video" />
-                            {!camReady && (
-                                <div className="lsa-pd-modal__cam-loading">
-                                    <div className="lsa-pd-modal__spinner" />
-                                    <span>Starting camera…</span>
-                                </div>
-                            )}
-                            {/* face guide oval */}
-                            <div className="lsa-pd-modal__oval" />
-                        </>
-                    ) : (
-                        <img src={capturedImage} alt="Captured" className="lsa-pd-modal__video" />
-                    )}
-                    {measuring && (
-                        <div className="lsa-pd-modal__cam-loading">
-                            <div className="lsa-pd-modal__spinner" />
-                            <span>Measuring PD…</span>
-                        </div>
-                    )}
-                    <canvas ref={canvasRef} style={{ display: 'none' }} />
-                </div>
-
-                {/* Result card */}
-                {result && (
-                    <div className="lsa-pd-modal__result" style={{ borderColor: confidenceColor[conf] }}>
-                        <div className="lsa-pd-modal__result-pd" style={{ color: confidenceColor[conf] }}>
-                            {result.pd_mm} <span>mm</span>
-                        </div>
-                        <div className="lsa-pd-modal__result-meta">
-                            <span>Confidence: <strong style={{ color: confidenceColor[conf] }}>{conf}</strong></span>
-                            <span>Range: {result.range?.min}–{result.range?.max} mm</span>
-                        </div>
-                        {conf === 'low' && (
-                            <p className="lsa-pd-modal__result-warn">
-                                Low confidence — try retaking with better lighting.
-                            </p>
-                        )}
+                    <div>
+                        <p className="lsa-pd-modal__label">Card measurement</p>
+                        <p className="lsa-pd-modal__title">Measure Your PD</p>
                     </div>
-                )}
-
-                {error && <p className="lsa-pd-modal__error">{error}</p>}
-
-                {/* Actions */}
-                <div className="lsa-pd-modal__actions">
-                    {!capturedImage ? (
-                        <button
-                            className="lsa-pd-modal__btn lsa-pd-modal__btn--primary"
-                            onClick={capturePhoto}
-                            disabled={!camReady || !!error}
-                        >
-                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                                <circle cx="7" cy="7" r="3" stroke="#FEFCFF" strokeWidth="1.4" />
-                                <path d="M1 5V3C1 2 2 1 3 1H5" stroke="#FEFCFF" strokeWidth="1.3" strokeLinecap="round" />
-                                <path d="M9 1H11C12 1 13 2 13 3V5" stroke="#FEFCFF" strokeWidth="1.3" strokeLinecap="round" />
-                                <path d="M1 9V11C1 12 2 13 3 13H5" stroke="#FEFCFF" strokeWidth="1.3" strokeLinecap="round" />
-                                <path d="M9 13H11C12 13 13 12 13 11V9" stroke="#FEFCFF" strokeWidth="1.3" strokeLinecap="round" />
-                            </svg>
-                            Capture Photo
-                        </button>
-                    ) : result ? (
-                        <>
-                            <button className="lsa-pd-modal__btn lsa-pd-modal__btn--ghost" onClick={retake}>
-                                Retake
-                            </button>
-                            <button className="lsa-pd-modal__btn lsa-pd-modal__btn--primary" onClick={usePD}>
-                                Use {result.pd_mm} mm
-                            </button>
-                        </>
-                    ) : (
-                        <>
-                            <button className="lsa-pd-modal__btn lsa-pd-modal__btn--ghost" onClick={retake}>
-                                Retake
-                            </button>
-                            <button
-                                className="lsa-pd-modal__btn lsa-pd-modal__btn--primary"
-                                onClick={measurePD}
-                                disabled={measuring}
-                            >
-                                {measuring ? 'Measuring…' : 'Measure with AI'}
-                            </button>
-                        </>
-                    )}
                 </div>
-
+                <button className="lsa-pd-modal__close" onClick={onClose} aria-label="Close">
+                    <CloseIcon />
+                </button>
             </div>
+
+            <PdCardMeasure
+                compact
+                onClose={onClose}
+                onMeasured={(result) => {
+                    onPdMeasured(String(result.pd_mm), result);
+                    onClose();
+                }}
+            />
         </div>
-    );
-};
+    </div>
+);
 
 /* ════════════════════════════════════════════════════════
    MANUAL POWER FORM — Figma 401:16362
@@ -762,7 +596,7 @@ const ManualPowerForm = ({ rx, onRxChange, rxMeta, onMetaChange, isProgressive, 
                         type="button"
                         className="lsa-power-grid__pd-measure-btn"
                         onClick={() => setShowPdModal(true)}
-                        title="Measure PD with AI camera"
+                        title="Measure PD with your camera and any ID or bank card"
                     >
                         <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
                             <circle cx="6.5" cy="6.5" r="5.5" stroke="#68408D" strokeWidth="1.2" />

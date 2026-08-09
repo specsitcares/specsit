@@ -14,7 +14,7 @@ from .serializers import (
     LensPackageSerializer, LensSerializer, ContactLensSerializer, PrescriptionSerializer, UserFaceSerializer,
     ReviewSerializer, VariantImageSerializer, LensConstraintSerializer
 )
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 import logging
 import io
 import os
@@ -87,111 +87,311 @@ def _frame_constraint_name(product):
 
 # --- AI Utility Functions ---
 
-def calculate_pd_from_image(image_file):
-    """
-    Core AI logic for PD measurement using MediaPipe Tasks.
-    Optimized for O(1) time complexity post-landmark extraction.
-    Uses Ratio-Based Calibration (Face-Width/Eye-Distance).
+# ISO/IEC 7810 ID-1 — the size of every credit/debit card, and in India also of
+# the Aadhaar card, PAN card and driving licence. Tolerance is ±0.12 mm, which is
+# why a card from the user's wallet makes a trustworthy ruler: the scale of the
+# photo is *measured* rather than assumed from an average face width.
+ID1_LONG_EDGE_MM = 85.60
+ID1_SHORT_EDGE_MM = 53.98
+ID1_ASPECT = ID1_LONG_EDGE_MM / ID1_SHORT_EDGE_MM   # 1.5857…
 
-    NOTE: This requires libGLESv2.so.2 (OpenGL-ES) to be available on the
-    host system. On Render's Python runtime this library is absent, so this
-    function will raise an OSError. Use the client-side MediaPipe WASM path
-    (faceMeasurement.js in the frontend) instead — it has no such dependency.
+# How far a detected quad's aspect ratio may stray from ID-1 before we reject it.
+# Generous because a card on a forehead is always slightly perspective-skewed.
+_CARD_ASPECT_TOLERANCE = 0.22
+# A card held at arm's length covers roughly 8-45% of the frame width. Anything
+# outside that is background clutter (a book, a monitor bezel, a picture frame).
+_CARD_MIN_WIDTH_FRAC = 0.08
+_CARD_MAX_WIDTH_FRAC = 0.60
+
+
+def _order_quad(pts):
+    """Order 4 points as top-left, top-right, bottom-right, bottom-left."""
+    pts = np.asarray(pts, dtype=np.float32).reshape(4, 2)
+    by_y = pts[np.argsort(pts[:, 1])]
+    top, bottom = by_y[:2], by_y[2:]
+    tl, tr = top[np.argsort(top[:, 0])]
+    bl, br = bottom[np.argsort(bottom[:, 0])]
+    return np.array([tl, tr, br, bl], dtype=np.float32)
+
+
+def _quad_edges(quad):
+    """(mean long edge, mean short edge) in pixels for an ordered quad.
+
+    Averaging the two opposite edges cancels most of the perspective skew from a
+    slightly tilted card, which is what makes the long edge a usable ruler.
     """
-    # ── Catch missing native GL lib BEFORE importing mediapipe ────────────────
-    # libGLESv2.so.2 is required by MediaPipe's C++ backend. On servers that
-    # don't have this library (e.g. Render's native Python runtime) we return a
-    # 503 with a human-readable message instead of a raw 500.
-    _GLES_MISSING_HINT = (
-        'PD measurement is not available on this server environment '
-        '(missing libGLESv2.so.2). Please use the in-browser measurement '
-        'instead — it works without any server-side dependencies.'
+    tl, tr, br, bl = quad
+    top = float(np.linalg.norm(tr - tl))
+    bottom = float(np.linalg.norm(br - bl))
+    left = float(np.linalg.norm(bl - tl))
+    right = float(np.linalg.norm(br - tr))
+    horizontal = (top + bottom) / 2.0
+    vertical = (left + right) / 2.0
+    return max(horizontal, vertical), min(horizontal, vertical)
+
+
+def _score_quad(quad, frame_w, frame_h):
+    """0-1 plausibility that this quad is an ID-1 card. 0 = reject."""
+    long_px, short_px = _quad_edges(quad)
+    if short_px <= 1 or long_px <= 1:
+        return 0.0
+
+    # Aspect must look like a card.
+    aspect = long_px / short_px
+    aspect_err = abs(aspect - ID1_ASPECT) / ID1_ASPECT
+    if aspect_err > _CARD_ASPECT_TOLERANCE:
+        return 0.0
+
+    # Size must be plausible for a card held up to the face.
+    width_frac = long_px / float(frame_w)
+    if not (_CARD_MIN_WIDTH_FRAC <= width_frac <= _CARD_MAX_WIDTH_FRAC):
+        return 0.0
+
+    # Convex, and close to a parallelogram — opposite edges similar in length.
+    tl, tr, br, bl = quad
+    top, bottom = np.linalg.norm(tr - tl), np.linalg.norm(br - bl)
+    left, right = np.linalg.norm(bl - tl), np.linalg.norm(br - tr)
+    skew = (abs(top - bottom) / max(top, bottom) + abs(left - right) / max(left, right)) / 2.0
+    if skew > 0.30:
+        return 0.0
+
+    # Prefer the card in the upper half of the frame — it is on the forehead, so
+    # a quad low in the shot is more likely a table edge or a shirt pocket.
+    cy = float(np.mean(quad[:, 1])) / float(frame_h)
+    position = 1.0 if cy < 0.55 else max(0.0, 1.0 - (cy - 0.55) * 2.5)
+
+    aspect_score = 1.0 - (aspect_err / _CARD_ASPECT_TOLERANCE)
+    skew_score = 1.0 - (skew / 0.30)
+    # Bigger is better for precision — a wider card means finer mm-per-pixel.
+    size_score = min(1.0, width_frac / 0.35)
+
+    return round(
+        0.40 * aspect_score + 0.25 * skew_score + 0.20 * size_score + 0.15 * position, 3
     )
 
+
+def _refine_quad_subpixel(gradient_mag, quad, samples=28, search=4.0):
+    """Re-fit the quad's four edges to the sub-pixel gradient ridge.
+
+    Contours traced from a thresholded, morphologically-closed edge map sit about
+    a pixel inside the card's true border. That biases the long edge low, which
+    biases mm-per-pixel high, which inflates the PD by nearly a millimetre — the
+    same order as the error the card is here to remove.
+
+    So instead of trusting the contour, walk the normal of each edge and find the
+    peak of the intensity gradient (parabolic interpolation through the peak and
+    its neighbours), fit a line through ~28 such points, and intersect adjacent
+    lines for the corners. Fitting a line also averages out per-pixel noise, which
+    corner-only refinement cannot do.
+
+    Returns an ordered quad, or None if any edge could not be fitted.
+    """
+    import cv2
+
+    height, width = gradient_mag.shape[:2]
+    offsets = np.arange(-search, search + 0.5, 0.5, dtype=np.float32)
+    # Skip the outer 18% of every edge: ID-1 cards have 3.18mm rounded corners,
+    # which is several pixels at any usable capture size and would drag the fit in.
+    positions = np.linspace(0.18, 0.82, samples, dtype=np.float32)
+
+    lines = []
+    for i in range(4):
+        p0, p1 = quad[i], quad[(i + 1) % 4]
+        edge = p1 - p0
+        length = float(np.linalg.norm(edge))
+        if length < 12.0:
+            return None
+        direction = edge / length
+        normal = np.array([-direction[1], direction[0]], dtype=np.float32)
+
+        base = p0[None, :] + edge[None, :] * positions[:, None]              # (N, 2)
+        grid = base[:, None, :] + normal[None, None, :] * offsets[None, :, None]
+        profile = cv2.remap(
+            gradient_mag,
+            np.ascontiguousarray(grid[..., 0]), np.ascontiguousarray(grid[..., 1]),
+            cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE,
+        )                                                                     # (N, M)
+
+        rows = np.arange(profile.shape[0])
+        peak_idx = np.argmax(profile, axis=1)
+        # Clamp so the 3-point parabola always has both neighbours in range.
+        centre = np.clip(peak_idx, 1, profile.shape[1] - 2)
+        left, mid, right = profile[rows, centre - 1], profile[rows, centre], profile[rows, centre + 1]
+        denom = left - 2.0 * mid + right
+        usable = np.abs(denom) > 1e-6
+        shift = np.zeros_like(denom)
+        np.divide(0.5 * (left - right), denom, out=shift, where=usable)
+        shift = np.clip(shift, -1.0, 1.0)
+        # `shift` is in samples; the profile is sampled every half pixel.
+        found_at = offsets[centre] + shift * 0.5
+
+        keep = profile[rows, peak_idx] > 0
+        points = base[keep] + normal[None, :] * found_at[keep, None]
+        # Drop samples whose ridge fell outside the image.
+        points = points[(points[:, 0] >= 0) & (points[:, 0] < width - 1)
+                        & (points[:, 1] >= 0) & (points[:, 1] < height - 1)]
+        if len(points) < 10:
+            return None
+
+        # Huber rather than plain least squares: a stray gradient from an eyebrow
+        # or a glare streak should not tilt the whole edge.
+        vx, vy, x0, y0 = cv2.fitLine(
+            points.astype(np.float32), cv2.DIST_HUBER, 0, 0.01, 0.01
+        ).ravel()
+        lines.append((np.array([vx, vy], np.float32), np.array([x0, y0], np.float32)))
+
+    corners = []
+    for i in range(4):
+        d0, a0 = lines[i - 1]      # edge arriving at corner i
+        d1, a1 = lines[i]          # edge leaving corner i
+        cross = float(d0[0] * d1[1] - d0[1] * d1[0])
+        if abs(cross) < 1e-6:      # parallel — not a quad
+            return None
+        diff = a1 - a0
+        t = float(diff[0] * d1[1] - diff[1] * d1[0]) / cross
+        corners.append(a0 + d0 * t)
+
+    return _order_quad(np.array(corners, dtype=np.float32))
+
+
+def detect_card_quad(image_file):
+    """Locate an ID-1 card in a photo and return its four corners.
+
+    The client measures pupils and head pose with MediaPipe WASM in the browser;
+    this endpoint supplies the one thing the browser cannot cheaply do — a
+    sub-pixel quad for the card that gives the photo an absolute mm scale.
+
+    Unlike the old MediaPipe-on-the-server path this needs no OpenGL:
+    opencv-python-headless is the no-GUI build, so it runs fine on hosts without
+    libGLESv2 (Render's Python runtime included).
+
+    Returns `({...}, http_status)`. On success the payload carries the ordered
+    quad in pixels, the averaged long edge, and a 0-1 detection score. A miss is
+    a 200 with `found: False` — the client then asks the user to drag the corners
+    manually, which is a normal outcome and not an error.
+    """
     try:
-        import mediapipe as mp
-        from mediapipe.tasks import python
-        from mediapipe.tasks.python import vision
-    except ImportError as exc:
-        err_str = str(exc)
-        if 'libGLESv2' in err_str or 'libGL' in err_str or 'cannot open shared object' in err_str:
-            logger.error(f'AI PD Calculation Error (missing GL lib): {err_str}')
-            return {'error': 'Server GL library missing', 'details': _GLES_MISSING_HINT}, 503
-        return {'error': 'AI measurement unavailable', 'details': 'MediaPipe library not found.'}, 503
+        import cv2
+    except ImportError:
+        logger.error('Card detection unavailable: opencv is not installed')
+        return {
+            'error': 'Card detection unavailable',
+            'details': 'OpenCV is not installed on the server. Place the card corners manually.',
+        }, 503
 
     try:
-        # Load and validate image
-        image_data = Image.open(io.BytesIO(image_file.read()))
-        image_np = np.array(image_data)
+        pil_image = Image.open(io.BytesIO(image_file.read()))
+        pil_image = pil_image.convert('RGB')
+        frame = np.array(pil_image)
+    except Exception as exc:  # noqa: BLE001 — malformed upload, not a server fault
+        return {'error': 'Unreadable image', 'details': str(exc)}, 400
 
-        # Initialize Face Landmarker
-        model_path = os.path.join(os.path.dirname(__file__), 'face_landmarker.task')
-        if not os.path.exists(model_path):
-            return {'error': 'AI model missing', 'details': 'Model asset not found on server.'}, 500
+    h, w = frame.shape[:2]
+    if w < 160 or h < 160:
+        return {'error': 'Image too small', 'details': 'Capture at a higher resolution.'}, 400
 
-        base_options = python.BaseOptions(model_asset_path=model_path)
-        options = vision.FaceLandmarkerOptions(
-            base_options=base_options,
-            output_face_blendshapes=False,
-            output_facial_transformation_matrixes=False,
-            num_faces=1
-        )
+    gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+    # Bilateral smoothing kills sensor noise and skin texture while keeping the
+    # card's border crisp — a plain Gaussian blur softens the very edge we need.
+    gray = cv2.bilateralFilter(gray, 9, 60, 60)
 
-        with vision.FaceLandmarker.create_from_options(options) as landmarker:
-            mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=image_np)
-            results = landmarker.detect(mp_image)
+    # Chroma channels catch the case luminance misses: a card whose brightness
+    # happens to match the forehead behind it but whose colour does not.
+    lab = cv2.cvtColor(frame, cv2.COLOR_RGB2LAB)
+    chroma_a = cv2.medianBlur(lab[:, :, 1], 5)
+    chroma_b = cv2.medianBlur(lab[:, :, 2], 5)
 
-            if not results.face_landmarks:
-                return {'error': 'No face detected', 'details': 'Ensure your face is clearly visible and well-lit.'}, 400
+    candidates = []
+    # A card can be brighter or darker than the forehead behind it, and glare
+    # breaks a single threshold, so sweep a few Canny sensitivities and also try
+    # an adaptive threshold. First pass that yields a good quad usually wins.
+    edge_maps = [
+        cv2.Canny(gray, 30, 90),
+        cv2.Canny(gray, 60, 180),
+        cv2.Canny(gray, 100, 260),
+        cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                              cv2.THRESH_BINARY_INV, 21, 5),
+        cv2.bitwise_or(cv2.Canny(chroma_a, 12, 40), cv2.Canny(chroma_b, 12, 40)),
+    ]
+    kernel = np.ones((3, 3), np.uint8)
 
-            # O(1) calculations using pre-defined indices
-            landmarks = results.face_landmarks[0]
+    for edges in edge_maps:
+        # Close 1px gaps so a partially-lit border still forms a closed contour.
+        closed = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel, iterations=2)
+        contours, _ = cv2.findContours(closed, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+        for contour in sorted(contours, key=cv2.contourArea, reverse=True)[:40]:
+            if cv2.contourArea(contour) < (w * h) * 0.004:
+                continue
+            perimeter = cv2.arcLength(contour, True)
+            approx = cv2.approxPolyDP(contour, 0.02 * perimeter, True)
+            if len(approx) != 4 or not cv2.isContourConvex(approx):
+                continue
+            quad = _order_quad(approx)
+            score = _score_quad(quad, w, h)
+            if score > 0:
+                candidates.append((score, quad))
 
-            # Eye pupils (standard indices)
-            l_pupil = landmarks[468]
-            r_pupil = landmarks[473]
+    if not candidates:
+        return {
+            'found': False,
+            'reason': 'No card-shaped rectangle was found in the photo.',
+            'image_size': {'width': w, 'height': h},
+        }, 200
 
-            # Face boundaries (zygomatic width indices)
-            l_face = landmarks[234]
-            r_face = landmarks[454]
+    best_score = max(score for score, _ in candidates)
+    quad = max(candidates, key=lambda item: item[0])[1]
 
-            h, w = image_np.shape[:2]
+    # Sub-pixel edge refinement. The mm scale is inversely proportional to the
+    # long edge, so a pixel of error on a 150px card is ~0.6mm of PD.
+    # Gradient magnitude combines luminance with chroma so the refinement works on
+    # a colour-only border too, matching the chroma edge map above.
+    try:
+        lum_mag = cv2.magnitude(cv2.Scharr(gray, cv2.CV_32F, 1, 0),
+                                cv2.Scharr(gray, cv2.CV_32F, 0, 1))
+        chroma_mag = cv2.magnitude(cv2.Scharr(chroma_a, cv2.CV_32F, 1, 0),
+                                   cv2.Scharr(chroma_a, cv2.CV_32F, 0, 1))
+        chroma_mag = np.maximum(chroma_mag,
+                                cv2.magnitude(cv2.Scharr(chroma_b, cv2.CV_32F, 1, 0),
+                                              cv2.Scharr(chroma_b, cv2.CV_32F, 0, 1)))
+        gradient_mag = np.maximum(lum_mag, chroma_mag)
 
-            # Convert to actual coordinates
-            pd_px = np.linalg.norm(np.array([r_pupil.x * w, r_pupil.y * h]) - np.array([l_pupil.x * w, l_pupil.y * h]))
-            face_px = np.linalg.norm(np.array([r_face.x * w, r_face.y * h]) - np.array([l_face.x * w, l_face.y * h]))
+        # The edge-map sweep yields several near-duplicate quads for the same card.
+        # Refining all the strong ones and taking the median long edge is markedly
+        # steadier than trusting whichever single map happened to score highest —
+        # one bad contour can otherwise shift the answer by a couple of millimetres.
+        refined = []
+        for score, candidate_quad in candidates:
+            if score < best_score * 0.8:
+                continue
+            fitted = _refine_quad_subpixel(gradient_mag, candidate_quad)
+            if fitted is None:
+                continue
+            # The ridge search can latch onto a nearby stronger edge (an eyebrow, a
+            # glare streak); only accept a fit that stayed near its detection.
+            if float(np.max(np.linalg.norm(fitted - candidate_quad, axis=1))) > 4.0:
+                continue
+            if _score_quad(fitted, w, h) <= 0:
+                continue
+            refined.append(fitted)
 
-            # Calibrate using 140mm average face width
-            pd_mm = (pd_px / face_px) * 140.0 if face_px > 0 else 63.0
+        if refined:
+            long_edges = [_quad_edges(q)[0] for q in refined]
+            median_index = int(np.argsort(long_edges)[len(long_edges) // 2])
+            quad = refined[median_index]
+    except cv2.error:
+        pass
 
-            # Confidence Logic
-            if 58 <= pd_mm <= 72:
-                conf, margin = 'high', 1.0
-            elif 54 <= pd_mm <= 80:
-                conf, margin = 'medium', 2.0
-            else:
-                conf, margin = 'low', 3.5
-
-            return {
-                'pd_mm': round(pd_mm, 1),
-                'confidence': conf,
-                'range': {'min': round(pd_mm - margin, 1), 'max': round(pd_mm + margin, 1)}
-            }, 200
-
-    except OSError as exc:
-        # Catch the runtime linker failure (libGLESv2.so.2 not found) which
-        # surfaces as an OSError after mediapipe was successfully imported but
-        # the native .so could not be dlopen()-ed.
-        err_str = str(exc)
-        if 'libGLESv2' in err_str or 'libGL' in err_str or 'cannot open shared object' in err_str:
-            logger.error(f'AI PD Calculation Error (GL lib missing at runtime): {err_str}')
-            return {'error': 'Server GL library missing', 'details': _GLES_MISSING_HINT}, 503
-        logger.error(f'AI PD Calculation Error: {err_str}')
-        return {'error': 'Measurement failed', 'details': err_str}, 500
-
-    except Exception as e:
-        logger.error(f'AI PD Calculation Error: {str(e)}')
-        return {'error': 'Measurement failed', 'details': str(e)}, 500
+    score = best_score
+    long_px, short_px = _quad_edges(quad)
+    return {
+        'found': True,
+        'quad': [[round(float(x), 2), round(float(y), 2)] for x, y in quad],
+        'long_edge_px': round(long_px, 2),
+        'short_edge_px': round(short_px, 2),
+        'card_long_edge_mm': ID1_LONG_EDGE_MM,
+        'detection_score': score,
+        'image_size': {'width': w, 'height': h},
+    }, 200
 
 class CategoryViewSet(CachedReadMixin, viewsets.ModelViewSet):
     cache_namespace = 'catalog_categories'
@@ -1141,39 +1341,54 @@ class UserFaceViewSet(viewsets.ModelViewSet):
         """Upsert implementation for UserFace"""
         user = request.user
         image = request.FILES.get('image') or request.data.get('image')
-        pd_distance = request.data.get('pd_distance')
-        
+
         defaults = {}
         if image:
             defaults['image'] = image
-        
-        if pd_distance and pd_distance not in ['null', 'undefined']:
+
+        _BLANK = ('', 'null', 'undefined', None)
+
+        # pd_distance is the binocular total; pd_right_mm/pd_left_mm are the
+        # monocular halves the card measurement produces alongside it.
+        for payload_key, field in (
+            ('pd_distance', 'pd_distance'),
+            ('pd_right_mm', 'pd_right_mm'),
+            ('pd_left_mm', 'pd_left_mm'),
+        ):
+            raw = request.data.get(payload_key)
+            if raw in _BLANK:
+                continue
             try:
-                defaults['pd_distance'] = Decimal(str(pd_distance))
-            except (ValueError, TypeError):
+                defaults[field] = Decimal(str(raw))
+            except (ValueError, TypeError, InvalidOperation):
                 pass
+
+        method = request.data.get('pd_method')
+        if method in dict(UserFace.PD_METHOD_CHOICES):
+            defaults['pd_method'] = method
+        confidence = request.data.get('pd_confidence')
+        if confidence not in _BLANK:
+            defaults['pd_confidence'] = str(confidence)[:10]
 
         user_face, created = UserFace.objects.update_or_create(
             user=user,
             defaults=defaults
         )
-        
-        # If PD is provided, we could also optionally update the latest active prescription 
+
+        # If PD is provided, we could also optionally update the latest active prescription
         # but for now we keep them separate as per standard practice.
-        
+
         serializer = self.get_serializer(user_face)
         return Response(serializer.data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
 
-    @action(detail=False, methods=['post'])
-    def measure_pd(self, request):
-        """
-        AI-powered PD measurement using consolidated utility.
-        """
+    @action(detail=False, methods=['post'], url_path='detect-card')
+    def detect_card(self, request):
+        """Locate the ID-1 card in a captured frame (see DetectCardView)."""
         image_file = request.FILES.get('image')
         if not image_file:
             return Response({'error': 'No image provided'}, status=status.HTTP_400_BAD_REQUEST)
-            
-        result, http_status = calculate_pd_from_image(image_file)
+
+        result, http_status = detect_card_quad(image_file)
         return Response(result, status=http_status)
 
     @action(detail=False, methods=['get'])
@@ -1351,65 +1566,101 @@ class ReviewViewSet(viewsets.ModelViewSet):
         return Response(cache_aside(ck, TTL_REVIEWS, _produce))
 
 
-class MeasurePDView(APIView):
-    """
-    Standalone API endpoint for AI-powered PD measurement.
-    Endpoint: POST /api/measure-pd/
+class DetectCardView(APIView):
+    """Find the ID-1 card in a captured frame.  POST /api/detect-pd-card/
 
-    Two operating modes
-    -------------------
-    1. Client-side (preferred): The browser runs MediaPipe WASM, computes the
-       PD, and POSTs `pd_mm` (+ optionally `confidence` / `range`) here.  The
-       server just echoes the values back — no server-side GL dependency at all.
+    Half of the card PD measurement. The browser owns the face (pupils and head
+    pose, via MediaPipe WASM) and the arithmetic; the server owns finding the
+    card, because OpenCV's contour work is far cheaper here than shipping another
+    WASM build to the client.
 
-    2. Server-side (fallback): An `image` file is uploaded and the server runs
-       MediaPipe natively.  This requires libGLESv2.so.2 to be present on the
-       host; if the library is missing a 503 is returned with a clear message
-       instead of an opaque 500.
+    One request per capture, not per frame — live guidance stays client-side so
+    the camera overlay never waits on the network.
+
+    A card that isn't found comes back as 200 `{found: false}`, not an error: the
+    client falls back to letting the user drag the four corners by hand.
     """
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
-        # ── Mode 1: client already measured PD in the browser ─────────────────
-        pd_mm_raw = request.data.get('pd_mm')
-        if pd_mm_raw is not None:
-            try:
-                pd_mm = round(float(pd_mm_raw), 1)
-            except (ValueError, TypeError):
-                return Response(
-                    {'error': 'Invalid pd_mm value', 'details': 'pd_mm must be a number.'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
-            confidence = request.data.get('confidence', 'client')
-            range_min = request.data.get('range_min')
-            range_max = request.data.get('range_max')
-
-            result = {
-                'pd_mm': pd_mm,
-                'confidence': confidence,
-                'source': 'client',
-            }
-            if range_min is not None and range_max is not None:
-                try:
-                    result['range'] = {
-                        'min': round(float(range_min), 1),
-                        'max': round(float(range_max), 1),
-                    }
-                except (ValueError, TypeError):
-                    pass
-
-            logger.info(f'PD received from client-side measurement: {pd_mm} mm (confidence={confidence})')
-            return Response(result, status=status.HTTP_200_OK)
-
-        # ── Mode 2: server-side MediaPipe (requires libGLESv2) ────────────────
         image_file = request.FILES.get('image')
         if not image_file:
             return Response(
-                {'error': 'No input provided',
-                 'details': 'Supply either pd_mm (client-measured) or an image file.'},
-                status=status.HTTP_400_BAD_REQUEST
+                {'error': 'No image provided', 'details': 'POST a captured frame as `image`.'},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
-        result, http_status = calculate_pd_from_image(image_file)
+        result, http_status = detect_card_quad(image_file)
         return Response(result, status=http_status)
+
+
+class MeasurePDView(APIView):
+    """Validate and echo a client-measured PD.  POST /api/measure-pd/
+
+    The browser does the measuring (see frontend/src/services/faceMeasurement.js):
+    MediaPipe WASM for pupils and pose, the card quad from `DetectCardView` for
+    absolute scale. This endpoint exists so the value is range-checked and logged
+    in one place before anything stores it.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    # Outside this range the number is not a human PD — almost certainly a bad
+    # card detection or a mis-dragged corner rather than an unusual face.
+    PD_MIN_MM = 40.0
+    PD_MAX_MM = 85.0
+
+    def post(self, request):
+        pd_mm_raw = request.data.get('pd_mm')
+        if pd_mm_raw is None:
+            return Response(
+                {'error': 'No input provided', 'details': 'Supply pd_mm (measured in the browser).'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            pd_mm = round(float(pd_mm_raw), 1)
+        except (ValueError, TypeError):
+            return Response(
+                {'error': 'Invalid pd_mm value', 'details': 'pd_mm must be a number.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not (self.PD_MIN_MM <= pd_mm <= self.PD_MAX_MM):
+            return Response(
+                {'error': 'PD out of range',
+                 'details': f'pd_mm must be between {self.PD_MIN_MM} and {self.PD_MAX_MM} mm. '
+                            'Re-measure, or check the card corners are on the card.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        result = {
+            'pd_mm': pd_mm,
+            'confidence': request.data.get('confidence', 'client'),
+            'method': request.data.get('method', UserFace.PD_METHOD_CARD),
+            'source': 'client',
+        }
+
+        for key, field in (('pd_right_mm', 'pd_right_mm'), ('pd_left_mm', 'pd_left_mm')):
+            raw = request.data.get(key)
+            if raw is None:
+                continue
+            try:
+                result[field] = round(float(raw), 1)
+            except (ValueError, TypeError):
+                pass
+
+        range_min, range_max = request.data.get('range_min'), request.data.get('range_max')
+        if range_min is not None and range_max is not None:
+            try:
+                result['range'] = {
+                    'min': round(float(range_min), 1),
+                    'max': round(float(range_max), 1),
+                }
+            except (ValueError, TypeError):
+                pass
+
+        logger.info(
+            'PD measured in browser: %s mm (method=%s, confidence=%s)',
+            pd_mm, result['method'], result['confidence'],
+        )
+        return Response(result, status=status.HTTP_200_OK)

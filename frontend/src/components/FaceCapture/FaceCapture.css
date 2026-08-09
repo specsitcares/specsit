@@ -1,3 +1,13 @@
+/* ── /capture-face page shell ───────────────────────────────────────────────
+   The measurement UI itself is styled in PdCardMeasure.css; this file only
+   dresses the page around it.
+
+   The previous version of this stylesheet also carried rules for a hand-rolled
+   camera preview, a face oval, draggable pupil/card markers and a mode toggle.
+   All of that now lives in the shared component, so those rules are gone — one
+   of them was a bare `video { … }` element selector that leaked to every video
+   on the page.                                                                */
+
 .face-capture-container {
     display: flex;
     justify-content: center;
@@ -23,114 +33,27 @@
 
 .capture-card p {
     color: #666;
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
+    font-size: 13px;
+    line-height: 19px;
 }
 
-.video-wrapper {
-    position: relative;
-    width: 100%;
-    max-width: 384px;
-    margin: 0 auto;
-    aspect-ratio: var(--ar-gallery);
-    background: #000;
-    border-radius: 6px;
-    overflow: hidden;
-    border: 3px solid #eee;
-}
-
-video, .preview-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.face-oval-overlay {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 176px;
-    height: 240px;
-    border: 2px dashed rgba(255, 255, 255, 0.8);
-    border-radius: 50% / 40%;
-    box-shadow: 0 0 0 7999px rgba(0, 0, 0, 0.4);
-    pointer-events: none;
-    z-index: 10;
-}
-
-.card-guide-overlay {
-    position: absolute;
-    top: 20%;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 160px;
-    height: 101px; /* 1.586 aspect ratio */
-    border: 3px solid #ffd700;
-    border-radius: 6px;
-    box-shadow: 0 0 12px rgba(255, 215, 0, 0.5);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    color: #ffd700;
-    font-weight: bold;
-    font-size: 0.8rem;
-    pointer-events: none;
-    z-index: 20;
-}
-
-.card-guide-overlay::after {
-    content: 'HOLD CARD HERE';
-    background: rgba(0,0,0,0.7);
-    padding: 2px 6px;
-    border-radius: 3px;
-}
-
-.pd-marker {
-    position: absolute;
-    width: 16px;
-    height: 16px;
-    border: 2px solid #fff;
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
-    cursor: move;
-    z-index: 30;
-    box-shadow: 0 0 4px rgba(0,0,0,0.5);
-}
-
-.pd-marker.pupil { border-color: #3b82f6; background: rgba(59, 130, 246, 0.3); }
-.pd-marker.card { border-color: #ffd700; background: rgba(255, 215, 0, 0.3); }
-
-.pd-line {
-    position: absolute;
-    height: 2px;
-    background: rgba(255,255,255,0.5);
-    pointer-events: none;
-    z-index: 25;
-}
-
-.pd-results {
-    margin-top: 1rem;
-    padding: 1rem;
-    background: #f8fafc;
-    border-radius: 6px;
-    border: 1px solid #e2e8f0;
-}
-
-.pd-value {
-    font-size: 1.5rem;
-    font-weight: bold;
-    color: #1e293b;
+/* The shared component's own lists read better left-aligned inside the
+   otherwise centred card. */
+.capture-card .pdc__steps,
+.capture-card .pdc__manual-tip,
+.capture-card .pdc__result-reasons {
+    text-align: left;
 }
 
 .capture-actions {
-    margin-top: 2rem;
+    margin-top: 1.5rem;
     display: flex;
     justify-content: center;
     gap: 1rem;
 }
 
-.btn-capture, .btn-proceed {
+.btn-proceed {
     background: #1a1a1a;
     color: white;
     border: none;
@@ -141,7 +64,7 @@ video, .preview-img {
     transition: background 0.2s;
 }
 
-.btn-capture:hover, .btn-proceed:hover {
+.btn-proceed:hover {
     background: #333;
 }
 
@@ -153,6 +76,10 @@ video, .preview-img {
     border-radius: 5px;
     font-weight: 600;
     cursor: pointer;
+}
+
+.btn-retake:hover {
+    background: #ebebeb;
 }
 
 .error-msg {
@@ -173,38 +100,27 @@ video, .preview-img {
     text-align: center;
 }
 
-.saving-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0,0,0,0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-weight: bold;
-    border-radius: 10px;
+/* ── Saved confirmation ─────────────────────────────────────────────────── */
+
+.fc-saved__pd {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 44px;
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -1.5px;
+    color: #16a34a;
 }
 
-.mode-toggle {
-    display: flex;
-    justify-content: center;
-    gap: 8px;
+.fc-saved__pd span {
+    font-size: 16px;
+    font-weight: 700;
+    margin-left: 5px;
+    color: #71717A;
 }
 
-.mode-toggle button {
-    padding: 6px 13px;
-    border-radius: 16px;
-    border: 1px solid #ddd;
-    background: #f8fafc;
-    cursor: pointer;
-    font-weight: 600;
-}
-
-.mode-toggle button.active {
-    background: #1a1a1a;
-    color: white;
-    border-color: #1a1a1a;
+.fc-saved__meta {
+    margin: 8px 0 14px;
+    font-size: 12px;
+    line-height: 18px;
+    color: #71717A;
 }

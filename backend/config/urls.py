@@ -14,7 +14,7 @@ from django.views.static import serve
 from django.views.decorators.cache import never_cache
 from rest_framework.authtoken.views import obtain_auth_token
 from apps.catalog.core.views import login_view, logout_view, register_view
-from apps.catalog.views import MeasurePDView
+from apps.catalog.views import MeasurePDView, DetectCardView
 
 urlpatterns = [
     # Django Admin (Core administration panel for comparison)
@@ -28,8 +28,9 @@ urlpatterns = [
     path('api/logout/', logout_view, name='api_logout_compat'),
     path('api/register/', register_view, name='api_register_compat'),
     
-    # AI Measurement Endpoint
+    # AI Measurement Endpoints
     path('api/measure-pd/', MeasurePDView.as_view(), name='measure-pd'),
+    path('api/detect-pd-card/', DetectCardView.as_view(), name='detect-pd-card'),
     
     # Compatibility Eyewear Endpoints (mapped to catalog)
     path('api/eyewear-features/', include('apps.catalog.urls')),

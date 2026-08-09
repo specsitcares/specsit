@@ -410,12 +410,39 @@ class Prescription(models.Model):
 
 class UserFace(models.Model):
     """
-    Consolidated from eyewear_features. 
+    Consolidated from eyewear_features.
     Unified PD storage.
     """
+    # How the PD was arrived at. Worth recording per row: the card method is
+    # accurate to roughly ±0.5mm because it scales the photo against a real
+    # ISO/IEC 7810 ID-1 card, while rows written by the retired face-ratio
+    # measurement assumed a 140mm average face width and can be several mm out.
+    # Support needs to tell those apart before re-cutting a lens.
+    PD_METHOD_CARD = 'card'
+    PD_METHOD_MANUAL = 'manual'
+    PD_METHOD_FACE_RATIO = 'face_ratio'
+    PD_METHOD_CHOICES = [
+        (PD_METHOD_CARD, 'Card reference (ID-1)'),
+        (PD_METHOD_MANUAL, 'Entered manually'),
+        (PD_METHOD_FACE_RATIO, 'Face-width ratio (legacy)'),
+    ]
+
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='face_capture_v2')
     image = models.ImageField(upload_to='face_captures/')
     pd_distance = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+
+    # Monocular PD — each pupil to the bridge centre. The card measurement yields
+    # these from the same landmarks at no extra cost, and progressive lenses are
+    # glazed from them rather than from the binocular total.
+    pd_right_mm = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True,
+                                      help_text='Right eye (OD) to nose bridge centre, mm.')
+    pd_left_mm = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True,
+                                     help_text='Left eye (OS) to nose bridge centre, mm.')
+
+    pd_method = models.CharField(max_length=20, choices=PD_METHOD_CHOICES, blank=True,
+                                 help_text='How pd_distance was obtained.')
+    pd_confidence = models.CharField(max_length=10, blank=True,
+                                     help_text='high / medium / low, as reported by the measurement.')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

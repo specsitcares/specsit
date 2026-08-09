@@ -1489,6 +1489,14 @@
 @media (max-width: 900px) {
   .pd-brand-grid .product-card,
   .pd-style-grid .product-card { width: 200px; }
+
+  /* These rails carry a fixed card width, so the squeeze is driven by the card
+     and not the viewport: at 200px (and 170px below) the desktop 56/33 crop is
+     only ~118px tall. Same phone ratio as the 2-up listing grid. */
+  .pd-brand-grid .product-card__image-wrap,
+  .pd-style-grid .product-card__image-wrap {
+    aspect-ratio: var(--ar-product-compact);
+  }
 }
 
 @media (max-width: 600px) {

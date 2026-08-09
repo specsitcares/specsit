@@ -3,7 +3,8 @@ from rest_framework.routers import SimpleRouter
 from .views import (
     CategoryViewSet, BrandViewSet, ProductViewSet, VariantViewSet,
     VariantImageViewSet, CollectionViewSet, LensPackageViewSet, LensViewSet, LensConstraintViewSet,
-    ContactLensViewSet, PrescriptionViewSet, UserFaceViewSet, ReviewViewSet, MeasurePDView
+    ContactLensViewSet, PrescriptionViewSet, UserFaceViewSet, ReviewViewSet,
+    MeasurePDView, DetectCardView
 )
 
 router = SimpleRouter()
@@ -27,4 +28,6 @@ urlpatterns = [
     path('', include(router.urls)),
     # Standalone measure PD endpoint
     path('measure-pd/', MeasurePDView.as_view(), name='measure-pd'),
+    # Card-reference PD: locate the ID-1 card in a captured frame
+    path('detect-pd-card/', DetectCardView.as_view(), name='detect-pd-card'),
 ]

@@ -1100,6 +1100,14 @@
 
 @media (max-width: 480px) {
   .plp-product-grid { gap: 18px 10px; }
+
+  /* Below this width the 2-up columns are narrow enough (~163-219px) that the
+     desktop 56/33 crop leaves the frame under ~130px tall. Swap in the taller
+     phone ratio so the product is still legible; the tablet 2-up grid above
+     480px keeps the desktop ratio. */
+  .plp-product-grid .product-card__image-wrap {
+    aspect-ratio: var(--ar-product-compact);
+  }
   .sort-select { width: 140px; }
   .plp-mobile-3d,
   .plp-mobile-filter { padding: 11px 16px; font-size: 13px; }

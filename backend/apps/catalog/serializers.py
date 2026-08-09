@@ -608,7 +608,8 @@ class PrescriptionSerializer(serializers.ModelSerializer):
 class UserFaceSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserFace
-        fields = ['id', 'user', 'image', 'pd_distance', 'created_at', 'updated_at']
+        fields = ['id', 'user', 'image', 'pd_distance', 'pd_right_mm', 'pd_left_mm',
+                  'pd_method', 'pd_confidence', 'created_at', 'updated_at']
         read_only_fields = ['id', 'user', 'created_at', 'updated_at']
 
 class ReviewSerializer(serializers.ModelSerializer):
