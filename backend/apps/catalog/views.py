@@ -14,6 +14,7 @@ from .serializers import (
     LensPackageSerializer, LensSerializer, ContactLensSerializer, PrescriptionSerializer, UserFaceSerializer,
     ReviewSerializer, VariantImageSerializer, LensConstraintSerializer
 )
+from django.shortcuts import get_object_or_404  # type: ignore
 from decimal import Decimal, InvalidOperation
 import logging
 import io
@@ -601,6 +602,22 @@ class ProductViewSet(CachedReadMixin, viewsets.ModelViewSet):
     pagination_class = ProductPagination
     cache_namespace = 'catalog_products'
     cache_ttl = TTL_PRODUCT_LIST
+
+    def get_object(self):
+        """Resolve the URL segment as a slug, falling back to a primary key.
+
+        The storefront addresses products as /product/<product-slug>/<variant-slug>,
+        but order history, wishlists and any link shared before slugs existed still
+        carry a numeric id — so both have to keep working. An all-digit segment is
+        treated as a pk (slugs are never all-digit; unique_slug() prefixes those
+        with 'n-' precisely so this branch stays unambiguous).
+        """
+        lookup = self.kwargs.get(self.lookup_field)
+        queryset = self.filter_queryset(self.get_queryset())
+        filter_kwargs = {'pk' if str(lookup).isdigit() else 'slug': lookup}
+        obj = get_object_or_404(queryset, **filter_kwargs)
+        self.check_object_permissions(self.request, obj)
+        return obj
 
     @action(detail=True, methods=['get'], permission_classes=[permissions.AllowAny])
     def recommended_lenses(self, request, pk=None):

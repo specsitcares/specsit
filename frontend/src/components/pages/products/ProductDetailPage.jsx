@@ -36,7 +36,10 @@ const variantColorLabel = (v) => {
 };
 
 const ProductDetailPage = () => {
-    const { id } = useParams();
+    // URL is /product/<product-slug>/<variant-slug>; productSlug also accepts a
+    // bare numeric id (old links, order history) since the API resolves either.
+    const { productSlug, variantSlug } = useParams();
+    const id = productSlug;
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const { addToCart } = useCart();
@@ -71,13 +74,25 @@ const ProductDetailPage = () => {
     // Reviews
     const [reviews, setReviews] = useState([]);
 
+    // Keyed off the resolved numeric id rather than the URL segment: the segment is
+    // now a slug, and ?product= filters on the primary key.
+    const productId = product?.id;
     useEffect(() => {
-        const fetchReviews = () =>
-            apiClient.get(`/catalog/reviews/?product=${id}`)
-                .then(r => setReviews(r.data.results || r.data || []))
-                .catch(() => { });
-        fetchReviews();
-    }, [id]);
+        if (!productId) return;
+        apiClient.get(`/catalog/reviews/?product=${productId}`)
+            .then(r => setReviews(r.data.results || r.data || []))
+            .catch(() => { });
+    }, [productId]);
+
+    // The variant segment can change without this component remounting (swatch
+    // click, or browser back/forward between two colorways of the same product),
+    // and the fetch effect below only re-runs per product — so mirror it into the
+    // selected swatch here, otherwise the URL and the highlighted colour drift apart.
+    useEffect(() => {
+        if (!variantSlug || !product?.variants?.length) return;
+        const v = product.variants.find(x => x.slug === variantSlug);
+        if (v) setSelectedColor(variantColorLabel(v));
+    }, [variantSlug, product]);
 
     // On-scroll reveal for below-the-fold sections
     useEffect(() => {
@@ -101,21 +116,26 @@ const ProductDetailPage = () => {
                 const p = productRes.data;
                 setProduct(p);
 
-                // Init selected color/size — honour ?variant=id when coming from listing
+                // Init selected color/size. The colorway comes from the second URL
+                // segment (/product/<product-slug>/<variant-slug>); ?variant=<id> is
+                // still honoured so links created before slugs existed keep landing
+                // on the right colorway instead of silently falling back to the first.
                 if (p.variants?.length > 0) {
                     const variantParam = searchParams.get('variant');
-                    const target = variantParam
-                        ? (p.variants.find(v => String(v.id) === variantParam) || p.variants[0])
-                        : p.variants[0];
+                    const target =
+                        (variantSlug && p.variants.find(v => v.slug === variantSlug))
+                        || (variantParam && p.variants.find(v => String(v.id) === variantParam))
+                        || p.variants[0];
                     setSelectedColor(variantColorLabel(target));
                     const targetSizeKeys = (target.stock_by_size && typeof target.stock_by_size === 'object')
                         ? Object.keys(target.stock_by_size) : [];
                     setSelectedSize(target.frame_size || targetSizeKeys[0] || '');
                 }
 
-                // Recommended lenses
+                // Recommended lenses. Uses the resolved numeric id, not the URL
+                // segment — this endpoint looks the product up by primary key.
                 try {
-                    const lensRes = await apiClient.get(`/catalog/products/${id}/recommended_lenses/`);
+                    const lensRes = await apiClient.get(`/catalog/products/${p.id}/recommended_lenses/`);
                     setRecommendedLenses(lensRes.data.results || lensRes.data || []);
                 } catch { /* optional */ }
 
@@ -126,7 +146,7 @@ const ProductDetailPage = () => {
                             params: { brand_name: p.brand_name, page_size: 5 },
                         });
                         const brandData = brandRes.data.results || brandRes.data || [];
-                        setBrandProducts(brandData.filter(x => x.id !== parseInt(id)).slice(0, 4));
+                        setBrandProducts(brandData.filter(x => x.id !== p.id).slice(0, 4));
                     } catch { /* optional */ }
                 }
 
@@ -138,7 +158,7 @@ const ProductDetailPage = () => {
                             params: { category: catId, page_size: 5 },
                         });
                         const catData = catRes.data.results || catRes.data || [];
-                        setStyleProducts(catData.filter(x => x.id !== parseInt(id)).slice(0, 4));
+                        setStyleProducts(catData.filter(x => x.id !== p.id).slice(0, 4));
                     } catch { /* optional */ }
                 }
             } catch {
@@ -243,6 +263,7 @@ const ProductDetailPage = () => {
             // it's the active method, show the actual texture instead of a flat dot.
             paletteImage: v.color_selection_method === 'palette' ? (v.palette_image || null) : null,
             id: v.id,
+            slug: v.slug,
             images: (v.images || []).map(img => img.image || img).filter(Boolean),
         }))
         .filter((v, i, arr) => arr.findIndex(a => a.name === v.name) === i);
@@ -510,7 +531,17 @@ const ProductDetailPage = () => {
                                         style={v.paletteImage
                                             ? { backgroundImage: `url(${v.paletteImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }
                                             : { backgroundColor: v.code }}
-                                        onClick={() => { setSelectedColor(v.name); setActiveImage(0); }}
+                                        onClick={() => {
+                                            setSelectedColor(v.name);
+                                            setActiveImage(0);
+                                            // Keep the address bar on the colorway being
+                                            // viewed so it can be copied/shared. replace:true
+                                            // so flicking through swatches doesn't bury the
+                                            // previous page under history entries.
+                                            if (v.slug && product.slug) {
+                                                navigate(`/product/${product.slug}/${v.slug}`, { replace: true });
+                                            }
+                                        }}
                                         title={v.name}
                                         aria-label={v.name}
                                     />

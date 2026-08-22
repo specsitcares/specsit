@@ -147,7 +147,12 @@ const App = () => {
                                 <Route path="/" element={<Layout />}>
                                     <Route index element={<HomePage />} />
                                     <Route path="products" element={<ProductListingPage />} />
-                                    <Route path="product/:id" element={<ProductDetailPage />} />
+                                    {/* /product/<product-slug>/<variant-slug>. The variant segment is
+                                        optional (falls back to the first colorway), and the product
+                                        segment still accepts a bare numeric id so links shared before
+                                        slugs existed — and order-history rows — keep resolving. */}
+                                    <Route path="product/:productSlug" element={<ProductDetailPage />} />
+                                    <Route path="product/:productSlug/:variantSlug" element={<ProductDetailPage />} />
                                     <Route path="contact-lenses/:id" element={<ContactLensDetailPage />} />
                                     <Route path="cart" element={<CartPage />} />
                                     <Route path="checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />

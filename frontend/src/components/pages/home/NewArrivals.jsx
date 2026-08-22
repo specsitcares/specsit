@@ -170,12 +170,18 @@ const ProductCard = ({ product, replaceCtx = null, initialVariantId = null }) =>
     setActiveVariantIdx(idx);
   };
 
-  // Link to the exact colorway shown on this card (ProductDetailPage reads
-  // ?variant= to preselect it) — without this every card for the same product
-  // would land on the same default variant regardless of which one was clicked.
-  const cardHref = selectedVariantId
-    ? `/product/${product.id}?variant=${selectedVariantId}`
-    : `/product/${product.id}`;
+  // Link to the exact colorway shown on this card, as
+  // /product/<product-slug>/<variant-slug> — without the second segment every
+  // card for the same product would land on the same default variant regardless
+  // of which one was clicked. Falls back to ids for any payload served before
+  // the slug fields existed (or from a cached API response).
+  const productSeg = product.slug || product.id;
+  const variantSeg = selectedVariant?.slug;
+  const cardHref = variantSeg
+    ? `/product/${productSeg}/${variantSeg}`
+    : selectedVariantId
+      ? `/product/${productSeg}?variant=${selectedVariantId}`
+      : `/product/${productSeg}`;
 
   return (
     <Link to={cardHref} className="product-card" id={`product-card-${product.id}-${selectedVariantId || 'default'}`}>

@@ -60,6 +60,8 @@ class OrderItemSerializer(serializers.ModelSerializer):
     prescription_status = serializers.SerializerMethodField()
     price = serializers.ReadOnlyField(source='price_at_purchase')
     product_id = serializers.SerializerMethodField()
+    product_slug = serializers.SerializerMethodField()
+    variant_slug = serializers.SerializerMethodField()
 
     def get_brand_name(self, obj):
         if obj.variant and obj.variant.product:
@@ -97,6 +99,14 @@ class OrderItemSerializer(serializers.ModelSerializer):
     def get_product_id(self, obj):
         return obj.variant.product_id if obj.variant else None
 
+    # Storefront URL halves — /product/<product-slug>/<variant-slug>. Lets order
+    # history link back to the exact colorway that was purchased.
+    def get_product_slug(self, obj):
+        return obj.variant.product.slug if obj.variant else None
+
+    def get_variant_slug(self, obj):
+        return obj.variant.slug if obj.variant else None
+
     def get_prescription_status(self, obj):
         if obj.prescription and obj.prescription.status:
             return obj.prescription.status.label
@@ -124,7 +134,8 @@ class OrderItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrderItem
         fields = [
-            'id', 'variant', 'variant_name', 'variant_image', 'variant_sku', 'brand_name', 'product_id',
+            'id', 'variant', 'variant_name', 'variant_image', 'variant_sku', 'brand_name',
+            'product_id', 'product_slug', 'variant_slug',
             'quantity', 'unit_price', 'item_total', 'price_at_purchase', 'price',
             'lens_prescription_text', 'lens_pd',
             'contact_lens', 'contact_lens_name', 'contact_lens_image', 'contact_lens_power',
@@ -650,6 +661,10 @@ class CartSerializer(serializers.ModelSerializer):
 class WishlistSerializer(serializers.ModelSerializer):
     variant_name = serializers.ReadOnlyField(source='variant.product.title')
     product_id = serializers.ReadOnlyField(source='variant.product.id')
+    # Both halves of the storefront URL /product/<product-slug>/<variant-slug>,
+    # so a wishlist card links to the exact saved colorway.
+    product_slug = serializers.ReadOnlyField(source='variant.product.slug')
+    variant_slug = serializers.ReadOnlyField(source='variant.slug')
     variant_image = serializers.SerializerMethodField()
     product_price = serializers.ReadOnlyField(source='variant.product.base_price')
     product_selling_price = serializers.ReadOnlyField(source='variant.product.selling_price')
@@ -673,7 +688,8 @@ class WishlistSerializer(serializers.ModelSerializer):
     class Meta:
         model = Wishlist
         fields = [
-            'id', 'user', 'variant', 'product_id', 'variant_name', 'variant_image',
+            'id', 'user', 'variant', 'product_id', 'product_slug', 'variant_slug',
+            'variant_name', 'variant_image',
             'product_price', 'product_selling_price', 'product_discount_percentage',
             'variant_base_price', 'variant_selling_price', 'variant_discount_percent',
             'variant_color', 'variant_size', 'variant_sku', 'added_at'
@@ -841,6 +857,8 @@ class OrderItemListSerializer(serializers.ModelSerializer):
     prescription_status = serializers.SerializerMethodField()
     price = serializers.ReadOnlyField(source='price_at_purchase')
     product_id = serializers.SerializerMethodField()
+    product_slug = serializers.SerializerMethodField()
+    variant_slug = serializers.SerializerMethodField()
     contact_lens_name = serializers.SerializerMethodField()
     contact_lens_image = serializers.SerializerMethodField()
 
@@ -869,6 +887,14 @@ class OrderItemListSerializer(serializers.ModelSerializer):
     def get_product_id(self, obj):
         return obj.variant.product_id if obj.variant else None
 
+    # Storefront URL halves — /product/<product-slug>/<variant-slug>. Lets order
+    # history link back to the exact colorway that was purchased.
+    def get_product_slug(self, obj):
+        return obj.variant.product.slug if obj.variant else None
+
+    def get_variant_slug(self, obj):
+        return obj.variant.slug if obj.variant else None
+
     def get_prescription_status(self, obj):
         if obj.prescription:
             return obj.prescription.status.label if obj.prescription.status else 'Pending Review'
@@ -891,7 +917,8 @@ class OrderItemListSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrderItem
         fields = [
-            'id', 'variant', 'variant_name', 'variant_image', 'variant_sku', 'brand_name', 'product_id',
+            'id', 'variant', 'variant_name', 'variant_image', 'variant_sku', 'brand_name',
+            'product_id', 'product_slug', 'variant_slug',
             'quantity', 'unit_price', 'item_total', 'price_at_purchase', 'price',
             'lens_prescription_text', 'lens_pd',
             'contact_lens', 'contact_lens_name', 'contact_lens_image', 'contact_lens_power',
