@@ -39,6 +39,65 @@ class IsStaffOrReadOnly(permissions.BasePermission):
         return bool(request.user and request.user.is_authenticated and request.user.is_staff)
 
 
+class _PrivateFileView(APIView):
+    """Serve an owned upload only to its owner (or staff).
+
+    Prescriptions and face captures are medical and biometric data. The API around
+    them checked ownership correctly, but the FILES were written into MEDIA_ROOT and
+    served as ordinary static assets — a permanent, unauthenticated URL. On S3 /
+    Supabase the same applied via AWS_QUERYSTRING_AUTH=False. Anyone holding or
+    guessing the link had the file, forever.
+
+    Subclasses set `model` and `file_field`. On local storage the bytes are streamed
+    through this view; on a remote backend we hand back a short-lived signed URL and
+    redirect, so large files never proxy through the app server.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    model = None
+    file_field = None
+
+    def get(self, request, pk):
+        from django.http import FileResponse, HttpResponseRedirect
+        from django.shortcuts import get_object_or_404
+        from rest_framework.exceptions import PermissionDenied
+
+        obj = get_object_or_404(self.model, pk=pk)
+        if not request.user.is_staff and obj.user_id != request.user.id:
+            # 404 rather than 403 would also be defensible; 403 is clearer for the
+            # owner-facing UI and leaks nothing an authenticated caller can act on.
+            raise PermissionDenied('You do not have permission to view this file.')
+
+        f = getattr(obj, self.file_field, None)
+        if not f:
+            return Response({'detail': 'No file on record.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Remote storages sign URLs when AWS_QUERYSTRING_AUTH is on; a signed URL
+        # expires, so it is safe to hand out at this point (we just authorized it).
+        try:
+            from django.core.files.storage import default_storage
+            if default_storage.__class__.__name__ != 'CompressedFileSystemStorage':
+                return HttpResponseRedirect(f.url)
+        except Exception:
+            logger.warning('Signed-URL path failed for %s #%s; streaming instead',
+                           self.model.__name__, pk, exc_info=True)
+
+        response = FileResponse(f.open('rb'))
+        response['Cache-Control'] = 'private, max-age=0, no-store'
+        return response
+
+
+class PrescriptionFileView(_PrivateFileView):
+    """GET /api/catalog/prescriptions/<pk>/file/ — the owner's uploaded Rx."""
+    model = Prescription
+    file_field = 'prescription_file'
+
+
+class FaceCaptureFileView(_PrivateFileView):
+    """GET /api/catalog/faces/<pk>/file/ — the owner's stored face capture."""
+    model = UserFace
+    file_field = 'image'
+
+
 def _category_is_sunglasses(category):
     """A frame category is 'sunglasses' if its own or its parent's name says so."""
     cat_name = (getattr(category, 'name', '') or '').lower()
@@ -398,7 +457,10 @@ class CategoryViewSet(CachedReadMixin, viewsets.ModelViewSet):
     cache_ttl = TTL_CATEGORY_TREE
     queryset = Category.objects.select_related('parent').all().order_by('id')
     serializer_class = CategorySerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    # IsAuthenticatedOrReadOnly here meant "any logged-in customer may write" —
+    # catalog structure is staff-owned, so this is IsStaffOrReadOnly like
+    # ProductViewSet and VariantViewSet already are.
+    permission_classes = [IsStaffOrReadOnly]
 
     def get_queryset(self):
         qs = Category.objects.all() if self.request.user.is_staff else Category.objects.filter(is_active=True)
@@ -501,7 +563,7 @@ class BrandViewSet(CachedReadMixin, viewsets.ModelViewSet):
     cache_ttl = TTL_BRAND_LIST
     queryset = BrandLogo.objects.all().order_by('id')
     serializer_class = BrandSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [IsStaffOrReadOnly]
 
     def get_queryset(self):
         qs = BrandLogo.objects.all() if self.request.user.is_staff else BrandLogo.objects.filter(is_published=True)
@@ -1007,7 +1069,7 @@ class ProductViewSet(CachedReadMixin, viewsets.ModelViewSet):
 class VariantImageViewSet(viewsets.ModelViewSet):
     queryset = VariantImage.objects.all()
     serializer_class = VariantImageSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [IsStaffOrReadOnly]
 
 class VariantPagination(PageNumberPagination):
     # The admin Inventory table asks for page_size=1000 to load "everything" into
@@ -1146,7 +1208,7 @@ class CollectionViewSet(CachedReadMixin, viewsets.ModelViewSet):
     cache_ttl = TTL_COLLECTION
     queryset = Collection.objects.prefetch_related('products').all().order_by('id')
     serializer_class = CollectionSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [IsStaffOrReadOnly]
 
     def get_queryset(self):
         if self.request.user.is_staff:
@@ -1168,13 +1230,13 @@ class LensConstraintViewSet(viewsets.ModelViewSet):
     # run it after importing/editing products instead of relying on a page load.
     queryset = LensConstraint.objects.all().order_by('name')
     serializer_class = LensConstraintSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [IsStaffOrReadOnly]
 
 class LensViewSet(CachedReadMixin, viewsets.ModelViewSet):
     cache_namespace = 'catalog_lenses'
     cache_ttl = TTL_LENS_LIST
     serializer_class = LensSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [IsStaffOrReadOnly]
 
     def get_queryset(self):
         params = self.request.query_params
@@ -1217,7 +1279,7 @@ class ContactLensViewSet(CachedReadMixin, viewsets.ModelViewSet):
     cache_ttl = TTL_CONTACT_LENS
     """Contact lenses only — a separate table from spectacle Lenses."""
     serializer_class = ContactLensSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [IsStaffOrReadOnly]
 
     def get_queryset(self):
         params = self.request.query_params

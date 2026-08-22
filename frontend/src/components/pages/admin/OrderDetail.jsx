@@ -8,11 +8,25 @@ import {
   Check,
   X,
 } from 'lucide-react';
-import apiClient from '../../../services/api';
+import apiClient, { fetchProtectedBlobUrl } from '../../../services/api';
 import '../../../styles/order-detail.css';
 import AdminLoadingState from './AdminLoadingState';
 
 const OrderDetail = ({ orderId, onBack }) => {
+  // Prescriptions are served by an ownership-checked endpoint now, so opening one
+  // means fetching it with the auth header and handing the browser a blob — a
+  // plain <a href> navigation sends no header and would come back 401.
+  const openPrescriptionFile = async (url) => {
+    const objUrl = await fetchProtectedBlobUrl(url);
+    if (!objUrl) {
+      alert('Could not open the prescription file.');
+      return;
+    }
+    window.open(objUrl, '_blank', 'noopener');
+    // Give the new tab time to load before releasing the blob.
+    setTimeout(() => URL.revokeObjectURL(objUrl), 60000);
+  };
+
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
@@ -745,19 +759,19 @@ const OrderDetail = ({ orderId, onBack }) => {
                       </div>
                       <div>
                         <div className="file-name">
-                          {order.items[0].prescription.prescription_file.split('/').pop() || 'Prescription.pdf'}
+                          {order.items[0].prescription.prescription_file_name || 'Prescription.pdf'}
                         </div>
                         <div className="file-meta">Uploaded by Customer</div>
                       </div>
                     </div>
-                    <a
-                      href={order.items[0].prescription.prescription_file}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
+                      type="button"
+                      onClick={() => openPrescriptionFile(order.items[0].prescription.prescription_file)}
                       className="view-link"
+                      style={{ background: 'none', border: 'none', cursor: 'pointer' }}
                     >
                       View
-                    </a>
+                    </button>
                   </div>
                 )}
               </div>
@@ -851,14 +865,13 @@ const OrderDetail = ({ orderId, onBack }) => {
                       {item.prescription.prescription_file && !item.prescription.od_sphere && !item.prescription.os_sphere ? (
                         <div style={{ fontSize: 13, color: '#64748b', padding: '6px 0' }}>
                           Prescription submitted as document.{' '}
-                          <a
-                            href={item.prescription.prescription_file}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ color: '#68408d', textDecoration: 'underline' }}
+                          <button
+                            type="button"
+                            onClick={() => openPrescriptionFile(item.prescription.prescription_file)}
+                            style={{ color: '#68408d', textDecoration: 'underline', background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit' }}
                           >
                             View file
-                          </a>
+                          </button>
                         </div>
                       ) : (
                         <table className="prescription-table">

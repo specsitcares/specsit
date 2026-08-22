@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
-import apiClient from '../../../services/api';
+import apiClient, { fetchProtectedBlobUrl } from '../../../services/api';
 import AccountSidebar from './AccountSidebar';
 import '../../../styles/account.css';
 import '../../../styles/saved-models.css';
@@ -14,11 +14,33 @@ const SavedModelsPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [deleting, setDeleting] = useState(false);
+    // The stored face photo is biometric data behind an ownership check, so it
+    // can't be dropped straight into <img src> — fetch it with the auth header
+    // and render the resulting blob instead.
+    const [faceImageUrl, setFaceImageUrl] = useState(null);
 
     useEffect(() => {
         if (!user) { navigate('/login'); return; }
         fetchFaceData();
     }, [user]);
+
+    useEffect(() => {
+        if (!faceData?.image) { setFaceImageUrl(null); return; }
+        let cancelled = false;
+        let created = null;
+        fetchProtectedBlobUrl(faceData.image).then((objUrl) => {
+            if (cancelled) {
+                if (objUrl) URL.revokeObjectURL(objUrl);
+                return;
+            }
+            created = objUrl;
+            setFaceImageUrl(objUrl);
+        });
+        return () => {
+            cancelled = true;
+            if (created) URL.revokeObjectURL(created);
+        };
+    }, [faceData?.image]);
 
     const fetchFaceData = async () => {
         try {
@@ -106,9 +128,9 @@ const SavedModelsPage = () => {
                     ) : (
                         <div className="face-model-card">
                             <div className="face-model-card__preview">
-                                {faceData.image ? (
+                                {faceImageUrl ? (
                                     <img
-                                        src={faceData.image}
+                                        src={faceImageUrl}
                                         alt="Face scan"
                                         className="face-model-card__img"
                                     />

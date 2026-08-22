@@ -80,16 +80,32 @@ const AnalyticsPage = () => {
 
   /* Real-time Server-Sent Events (SSE) */
   useEffect(() => {
-    const token = getAuthToken();
-    if (!token) return;
+    if (!getAuthToken()) return;
 
-    const sseUrl = `/api/sales/analytics/live-stream/?token=${encodeURIComponent(token)}`;
-    const eventSource = new EventSource(sseUrl);
+    let eventSource = null;
+    let cancelled = false;
 
     const handleEvent = () => {
       // Trigger a silent refresh when any analytics event occurs
       fetchData(false);
     };
+
+    // Exchange the auth token for a single-use, 60-second stream ticket rather
+    // than putting the token itself in the URL — query strings end up in access
+    // logs, browser history and Referer headers.
+    (async () => {
+      let ticket;
+      try {
+        const res = await apiClient.post('/sales/analytics/stream-ticket/');
+        ticket = res.data.ticket;
+      } catch {
+        return; // not staff, or the mint failed — no live updates, page still works
+      }
+      if (cancelled || !ticket) return;
+
+      eventSource = new EventSource(
+        `/api/sales/analytics/live-stream/?ticket=${encodeURIComponent(ticket)}`
+      );
 
     eventSource.addEventListener('order_created', handleEvent);
     eventSource.addEventListener('order_updated', handleEvent);
@@ -101,13 +117,15 @@ const AnalyticsPage = () => {
     eventSource.addEventListener('live_activity', handleEvent);
     eventSource.addEventListener('visit_tracked', handleEvent);
 
-    eventSource.onerror = (err) => {
-      console.error('Analytics SSE connection error:', err);
-      eventSource.close();
-    };
+      eventSource.onerror = (err) => {
+        console.error('Analytics SSE connection error:', err);
+        eventSource.close();
+      };
+    })();
 
     return () => {
-      eventSource.close();
+      cancelled = true;
+      if (eventSource) eventSource.close();
     };
   }, [fetchData]);
 

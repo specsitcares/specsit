@@ -1,8 +1,32 @@
+import os
+import uuid
+
 from django.db import models #type: ignore
 from django.contrib.auth.models import User  # type: ignore
 from .core.models import MetadataItem  # type: ignore
 from decimal import Decimal
 from apps.cms.models import BrandLogo
+
+
+def _private_upload_path(subdir, filename):
+    """Store a private upload under an unguessable random name.
+
+    These files carry medical and biometric data, so they are served through an
+    authorization check rather than as static assets. Keeping the uploader's own
+    filename made stored paths guessable (prescriptions/prescription.pdf), which
+    is a second way in if a URL ever escapes; a UUID name removes that.
+    Module-level so Django migrations can serialize the reference.
+    """
+    ext = os.path.splitext(filename)[1].lower()[:10]
+    return f"{subdir}/{uuid.uuid4().hex}{ext}"
+
+
+def prescription_upload_path(instance, filename):
+    return _private_upload_path('prescriptions', filename)
+
+
+def face_capture_upload_path(instance, filename):
+    return _private_upload_path('face_captures', filename)
 
 class Category(models.Model):
     GROUP_CHOICES = [
@@ -399,7 +423,7 @@ class Prescription(models.Model):
     prism_base_os = models.CharField(max_length=20, blank=True)
     
     vision_type = models.CharField(max_length=50, blank=True) # Single Vision, Progressive, Bifocal
-    prescription_file = models.FileField(upload_to='prescriptions/', null=True, blank=True)
+    prescription_file = models.FileField(upload_to=prescription_upload_path, null=True, blank=True)
     review_notes = models.TextField(blank=True)
 
     status = models.ForeignKey(MetadataItem, on_delete=models.SET_NULL, null=True, blank=True, limit_choices_to={'group__name': 'Prescription Status'})
@@ -428,7 +452,7 @@ class UserFace(models.Model):
     ]
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='face_capture_v2')
-    image = models.ImageField(upload_to='face_captures/')
+    image = models.ImageField(upload_to=face_capture_upload_path)
     pd_distance = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
 
     # Monocular PD — each pupil to the bridge centre. The card measurement yields

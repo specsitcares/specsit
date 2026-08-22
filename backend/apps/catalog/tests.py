@@ -62,3 +62,45 @@ class FrameConstraintCompatibilityTests(TestCase):
         product = self._make_product('Full-rim')
 
         self.assertEqual(_frame_constraint_name(product), '')
+
+class AccessControlTests(TestCase):
+    """Negative-case coverage for the permission fixes.
+
+    Cheap to keep, never goes stale, and it is the only thing that reliably
+    catches a permission class being loosened again later.
+    """
+
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        from rest_framework.test import APIClient
+        self.client = APIClient()
+        User = get_user_model()
+        self.customer = User.objects.create_user(username='shopper', password='pw-8sk2mfhd')
+        self.staff = User.objects.create_user(username='admin2', password='pw-8sk2mfhd', is_staff=True)
+
+    def test_anonymous_cannot_write_metadata_items(self):
+        res = self.client.post('/api/core/metadata-items/',
+                               {'label': 'Injected', 'value': 'injected'}, format='json')
+        self.assertIn(res.status_code, (401, 403))
+
+    def test_anonymous_can_still_read_metadata_items(self):
+        res = self.client.get('/api/core/metadata-items/')
+        self.assertEqual(res.status_code, 200)
+
+    def test_customer_cannot_create_a_category(self):
+        self.client.force_authenticate(self.customer)
+        res = self.client.post('/api/catalog/categories/', {'name': 'Injected'}, format='json')
+        self.assertEqual(res.status_code, 403)
+
+    def test_customer_cannot_self_approve_a_review(self):
+        from apps.catalog.models import Review
+        from apps.catalog.serializers import ReviewSerializer
+        # The serializer is the enforcement point; assert the flags are read-only
+        # rather than depending on review-creation fixtures.
+        fields = ReviewSerializer().fields
+        self.assertTrue(fields['is_approved'].read_only)
+        self.assertTrue(fields['is_rejected'].read_only)
+
+    def test_prescription_file_route_requires_authentication(self):
+        res = self.client.get('/api/catalog/prescriptions/1/file/')
+        self.assertIn(res.status_code, (401, 403))

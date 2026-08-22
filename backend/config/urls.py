@@ -54,5 +54,20 @@ urlpatterns = [
 
 # Serve static and media files in development
 if settings.DEBUG:
+    from django.http import HttpResponseForbidden
+
+    def _private_media_denied(request, path=None):
+        """Refuse direct media access to the private upload directories.
+
+        Prescriptions and face captures are medical/biometric data and are served
+        through apps.catalog.views._PrivateFileView, which checks ownership. The
+        dev-only static() helper below would otherwise happily serve them straight
+        off disk with no check at all — the same hole the S3 config had.
+        """
+        return HttpResponseForbidden('Private media — use the authorized API route.')
+
+    urlpatterns += [
+        re_path(r'^media/(prescriptions|face_captures)/', _private_media_denied),
+    ]
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

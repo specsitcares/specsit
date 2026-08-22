@@ -2,6 +2,13 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 
+/**
+ * Route-level gate. This is a UX convenience only — `user` (and its `is_staff`)
+ * now comes from GET /accounts/me/ rather than from editable browser storage, but
+ * the real enforcement is server-side: every admin endpoint carries IsAdminUser,
+ * and every owned resource is scoped to request.user in its get_queryset.
+ * Never let this component be the only thing standing between a visitor and data.
+ */
 const ProtectedRoute = ({ children, requireAdmin = false }) => {
     const { user, loading } = useAuth();
     const location = useLocation();

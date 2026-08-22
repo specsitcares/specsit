@@ -102,6 +102,12 @@ AXES_FAILURE_LIMIT = 5
 AXES_COOLOFF_TIME = 0.167  # ~10 minutes, in hours
 AXES_RESET_ON_SUCCESS = True
 
+# Auth token lifetime (apps/core_utils/authentication.py). Idle timeout is what a
+# stolen token actually costs you; the absolute cap bounds it even for a session
+# kept warm on purpose. Both are enforced on every authenticated request.
+TOKEN_IDLE_TIMEOUT_SECONDS = env.int('TOKEN_IDLE_TIMEOUT_SECONDS', default=60 * 60 * 24)       # 24 hours
+TOKEN_MAX_AGE_SECONDS = env.int('TOKEN_MAX_AGE_SECONDS', default=60 * 60 * 24 * 14)           # 14 days
+
 # Dev-only origins are gated behind DEBUG so they can never leak into a prod build;
 # real deployment origins (e.g. the Render frontend) come from CSRF_TRUSTED_ORIGINS
 # in .env, with the current production origin kept as the default so this is a
@@ -192,7 +198,13 @@ if _supabase_bucket:
     AWS_S3_CUSTOM_DOMAIN = env('SUPABASE_S3_PUBLIC_HOST', default='') or None
     AWS_DEFAULT_ACL = None  # bucket policy controls access, not per-object ACLs
     AWS_S3_FILE_OVERWRITE = False
-    AWS_QUERYSTRING_AUTH = env.bool('AWS_QUERYSTRING_AUTH', default=False)
+    # Sign object URLs by default so they expire. This defaulted to False, which
+    # made every stored object — including uploaded prescriptions and face captures
+    # — a permanent public URL that no authorization check stood in front of.
+    # Keep the bucket itself private; product imagery is served from the same
+    # bucket and is signed too, which costs nothing but a query string.
+    AWS_QUERYSTRING_AUTH = env.bool('AWS_QUERYSTRING_AUTH', default=True)
+    AWS_QUERYSTRING_EXPIRE = env.int('AWS_QUERYSTRING_EXPIRE', default=900)  # 15 min
     AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400'}
     STORAGES['default'] = {'BACKEND': 'apps.core_utils.storage.CompressedS3Storage'}
 
@@ -219,6 +231,20 @@ else:
             'PORT': env('DB_PORT', default=''),
         }
     }
+
+# Test runs: build the schema straight from the models instead of replaying the
+# migration history. Set TEST_NO_MIGRATIONS=1 to enable.
+#
+# Needed because migration catalog.0042 drops `product_type` while the index
+# prod_act_type_created_idx still references it. Postgres drops dependent indexes
+# with the column so the chain replays fine there; SQLite rebuilds the table and
+# fails, which meant the suite could not run on a dev machine at all. This is a
+# workaround, not a fix — the migration itself still wants squashing.
+if env.bool('TEST_NO_MIGRATIONS', default=False):
+    class _NoMigrations:
+        def __contains__(self, item): return True
+        def __getitem__(self, item): return None
+    MIGRATION_MODULES = _NoMigrations()
 
 # Cache Configuration
 # LocMemCache is process-local — production-unsafe the moment you run more than
@@ -297,7 +323,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # REST Framework Configuration
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',
+        # Stock TokenAuthentication issues a key that never expires and survives a
+        # password change. This subclass adds an idle timeout and an absolute cap,
+        # both enforced server-side — see apps/core_utils/authentication.py.
+        'apps.core_utils.authentication.ExpiringTokenAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',

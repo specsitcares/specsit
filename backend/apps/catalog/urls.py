@@ -4,7 +4,8 @@ from .views import (
     CategoryViewSet, BrandViewSet, ProductViewSet, VariantViewSet,
     VariantImageViewSet, CollectionViewSet, LensPackageViewSet, LensViewSet, LensConstraintViewSet,
     ContactLensViewSet, PrescriptionViewSet, UserFaceViewSet, ReviewViewSet,
-    MeasurePDView, DetectCardView
+    MeasurePDView, DetectCardView,
+    PrescriptionFileView, FaceCaptureFileView,
 )
 
 router = SimpleRouter()
@@ -25,6 +26,12 @@ router.register(r'user-face', UserFaceViewSet, basename='user-face')
 router.register(r'reviews', ReviewViewSet)
 
 urlpatterns = [
+    # Authorized delivery for private uploads. These MUST be declared before the
+    # router include so the router's own /prescriptions/<pk>/ detail route doesn't
+    # shadow them.
+    path('prescriptions/<int:pk>/file/', PrescriptionFileView.as_view(), name='prescription-file'),
+    path('faces/<int:pk>/file/', FaceCaptureFileView.as_view(), name='face-capture-file'),
+
     path('', include(router.urls)),
     # Standalone measure PD endpoint
     path('measure-pd/', MeasurePDView.as_view(), name='measure-pd'),

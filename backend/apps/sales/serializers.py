@@ -290,6 +290,28 @@ class OrderSerializer(ReturnWindowMixin, serializers.ModelSerializer):
     return_window_ends_at = serializers.SerializerMethodField(read_only=True)
     can_request_return = serializers.SerializerMethodField(read_only=True)
 
+    # An order's lifecycle and money state is staff-owned. get_queryset scopes
+    # orders to their owner, so a customer holds legitimate write access to their
+    # OWN order row — which meant a single PATCH of {"payment_status": "paid"} on a
+    # cash-on-delivery order marked it settled and pushed it into fulfilment.
+    # These stay writable for staff (the admin order form edits total_amount and
+    # status) and are forced read-only for everyone else, in __init__ below.
+    STAFF_ONLY_FIELDS = (
+        'order_status', 'payment_status', 'status', 'delivery_date',
+        'total_amount', 'paid_amount', 'balance_amount', 'shipping_cost',
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        if user is not None and user.is_authenticated and user.is_staff:
+            return
+        for name in self.STAFF_ONLY_FIELDS:
+            field = self.fields.get(name)
+            if field is not None:
+                field.read_only = True
+
     def get_exchange_info(self, obj):
         """For a spawned replacement order (LO-…-R): the exchange context —
         the original order, the item it replaced, and the difference the customer paid."""
@@ -454,7 +476,18 @@ class OrderSerializer(ReturnWindowMixin, serializers.ModelSerializer):
             'has_review', 'review_rating', 'is_delivered',
             'return_window_days', 'return_window_ends_at', 'can_request_return',
         ]
-        read_only_fields = ['created_at', 'updated_at', 'order_date']
+        # Never writable through this serializer by anyone, staff included.
+        # `user` is set by perform_create as a save() kwarg (leaving it writable let
+        # an order be reassigned to another account); the subtotal/discount/tax
+        # figures are recomputed from the catalog in create(); the razorpay IDs are
+        # owned by the gateway callbacks. Fields that staff DO edit — status and the
+        # order total — are gated per-role in __init__ instead, see STAFF_ONLY_FIELDS.
+        read_only_fields = [
+            'created_at', 'updated_at', 'order_date',
+            'user', 'is_replacement',
+            'subtotal', 'discount_amount', 'tax_amount',
+            'razorpay_order_id', 'razorpay_payment_id',
+        ]
 
     def create(self, validated_data):
         request = self.context.get('request')
@@ -489,14 +522,19 @@ class OrderSerializer(ReturnWindowMixin, serializers.ModelSerializer):
             except Exception:
                 return Decimal(str(fallback))
 
-        paid_amount = _d(validated_data.pop('paid_amount', None) or request.data.get('paid_amount', 0))
-        balance_amount = _d(validated_data.pop('balance_amount', None) or request.data.get('balance_amount', 0))
+        # A new order is always unpaid. Nothing has reached the gateway yet, so
+        # paid/balance are not the client's to state — these previously fell back to
+        # reading request.data directly, which survived making the fields read-only.
+        # PaymentVerifyView is the only thing that moves them, and it recomputes both
+        # from the order total for every payment method.
+        validated_data.pop('paid_amount', None)
+        validated_data.pop('balance_amount', None)
 
         order = Order.objects.create(
             shipping_address=shipping_address,
             billing_address=shipping_address,
-            paid_amount=paid_amount,
-            balance_amount=balance_amount,
+            paid_amount=Decimal('0'),
+            balance_amount=Decimal('0'),
             **validated_data
         )
 
@@ -580,11 +618,14 @@ class OrderSerializer(ReturnWindowMixin, serializers.ModelSerializer):
             discount_amount=discount_amount,
             tax_amount=total_tax,
             total_amount=total_amount,
+            # Nothing is paid yet, so the whole server-computed total is outstanding.
+            balance_amount=total_amount,
         )
         order.subtotal = subtotal
         order.discount_amount = discount_amount
         order.tax_amount = total_tax
         order.total_amount = total_amount
+        order.balance_amount = total_amount
         return order
 
 class CartSerializer(serializers.ModelSerializer):

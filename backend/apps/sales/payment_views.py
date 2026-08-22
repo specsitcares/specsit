@@ -19,9 +19,18 @@ def _get_partial_pct():
 class PaymentSettingsView(APIView):
     permission_classes = [IsAuthenticated]
 
+    # What checkout genuinely needs to render its payment options. Everything else
+    # — the gateway key, the sandbox flag, whether a secret is stored — is operator
+    # configuration and was readable by any logged-in customer because only PUT
+    # checked is_staff. Same public/staff split NewsletterSettingsView already uses.
+    PUBLIC_FIELDS = (
+        'cod_enabled', 'online_payment_enabled',
+        'partial_payment_enabled', 'partial_payment_percentage',
+    )
+
     def get(self, request):
         config = PaymentGatewayConfig.objects.filter(name='razorpay', is_active=True).first()
-        return Response({
+        data = {
             'cod_enabled': config.cod_enabled if config else True,
             'online_payment_enabled': config.online_payment_enabled if config else True,
             'partial_payment_enabled': config.partial_payment_enabled if config else True,
@@ -29,7 +38,10 @@ class PaymentSettingsView(APIView):
             'key_id': config.key_id if config else '',
             'has_key_secret': bool(config and config.key_secret),
             'is_sandbox': config.is_sandbox if config else True,
-        })
+        }
+        if not request.user.is_staff:
+            data = {k: data[k] for k in self.PUBLIC_FIELDS}
+        return Response(data)
 
     def put(self, request):
         if not request.user.is_staff:
@@ -379,13 +391,25 @@ class PaymentWebhookView(APIView):
         signature = request.headers.get('X-Razorpay-Signature', '')
         body = request.body
 
-        if secret:
-            try:
-                import razorpay
-                razorpay.Utility().verify_webhook_signature(body.decode('utf-8'), signature, secret)
-            except Exception as e:
-                logger.warning("Razorpay webhook signature verification failed: %s", e)
-                return Response({'error': 'invalid signature'}, status=status.HTTP_400_BAD_REQUEST)
+        # Fail CLOSED on missing configuration. This was `if secret:` — a skipped
+        # check rather than a refused request — so with the env var unset (it is in
+        # neither .env.example nor render.yaml) this endpoint settled orders on the
+        # word of whoever posted to it. Harmless only while RAZORPAY_LIVE_MODE is
+        # off; it would arm itself the day real payments are switched on.
+        if not secret:
+            logger.error(
+                'RAZORPAY_WEBHOOK_SECRET is not configured — refusing webhook. '
+                'Set it in the environment before enabling live payments.'
+            )
+            return Response({'error': 'webhook not configured'},
+                            status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        try:
+            import razorpay
+            razorpay.Utility().verify_webhook_signature(body.decode('utf-8'), signature, secret)
+        except Exception as e:
+            logger.warning("Razorpay webhook signature verification failed: %s", e)
+            return Response({'error': 'invalid signature'}, status=status.HTTP_400_BAD_REQUEST)
 
         event = request.data or {}
         if event.get('event') not in ('payment.captured', 'order.paid'):

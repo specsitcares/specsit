@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
 from apps.core_utils.throttling import LoginThrottle, RegisterThrottle
+from apps.core_utils.authentication import issue_token
 from .models import MetadataGroup, MetadataItem, AnalyticsLog, SystemConfig
 from .serializers import (
     UserRegistrationSerializer, MetadataGroupSerializer,
@@ -23,7 +24,7 @@ def register_view(request):
     serializer = UserRegistrationSerializer(data=request.data)
     if serializer.is_valid():
         user = serializer.save()
-        token, created = Token.objects.get_or_create(user=user)
+        token = issue_token(user)
         return Response({
             'token': token.key,
             'user_id': user.id,
@@ -54,14 +55,22 @@ def login_view(request):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    # Support login via email address
+    # Support login via email address.
+    # This used .get(), which raises MultipleObjectsReturned — a 500 — as soon as
+    # two accounts share an address. Since email was never verified, anyone could
+    # point their own account at a victim's address and lock them out of email
+    # login that way. Resolve explicitly instead of assuming uniqueness.
     username = identifier
     if '@' in identifier:
-        try:
-            user_obj = User.objects.get(email__iexact=identifier)
-            username = user_obj.username
-        except User.DoesNotExist:
-            pass
+        matches = list(User.objects.filter(email__iexact=identifier)[:2])
+        if len(matches) > 1:
+            return Response(
+                {'error': 'That email is linked to more than one account. '
+                          'Please sign in with your username.'},
+                status=status.HTTP_409_CONFLICT
+            )
+        if matches:
+            username = matches[0].username
 
     # Authenticate user — axes' backend requires `request` to be passed through so
     # it can track failed attempts per IP/username; omitting it raises
@@ -80,8 +89,8 @@ def login_view(request):
             status=status.HTTP_403_FORBIDDEN
         )
 
-    # Get or create token for user
-    token, created = Token.objects.get_or_create(user=user)
+    # Issue (or refresh) a token that carries a lifetime.
+    token = issue_token(user)
 
     return Response({
         'token': token.key,
@@ -117,7 +126,15 @@ def logout_view(request):
 class MetadataGroupViewSet(viewsets.ModelViewSet):
     queryset = MetadataGroup.objects.all()
     serializer_class = MetadataGroupSerializer
-    permission_classes = [AllowAny]
+
+    # Read-open, write-closed. The storefront needs to read these labels to render
+    # status text, but they drive the order/shipment/prescription state machines —
+    # an AllowAny ModelViewSet let anyone (no account at all) rename or DELETE the
+    # rows that order settlement does get_or_create against.
+    def get_permissions(self):
+        if self.action in ('list', 'retrieve'):
+            return [AllowAny()]
+        return [IsAdminUser()]
 
     def get_queryset(self):
         queryset = MetadataGroup.objects.all()
@@ -129,7 +146,12 @@ class MetadataGroupViewSet(viewsets.ModelViewSet):
 class MetadataItemViewSet(viewsets.ModelViewSet):
     queryset = MetadataItem.objects.all().order_by('id')
     serializer_class = MetadataItemSerializer
-    permission_classes = [AllowAny]
+
+    # See MetadataGroupViewSet above — public reads, staff-only writes.
+    def get_permissions(self):
+        if self.action in ('list', 'retrieve'):
+            return [AllowAny()]
+        return [IsAdminUser()]
 
     def get_queryset(self):
         if self.action in ('retrieve', 'update', 'partial_update', 'destroy'):

@@ -9,7 +9,7 @@ const AuthCallbackPage = () => {
     const [error, setError] = useState(null);
     const navigate = useNavigate();
     const location = useLocation();
-    const { setUser } = useAuth();
+    const { refreshUser } = useAuth();
     const hasFetched = React.useRef(false); // Add ref to prevent double-fetching in StrictMode
 
     useEffect(() => {
@@ -31,14 +31,12 @@ const AuthCallbackPage = () => {
             const response = await apiClient.post('accounts/google-oauth/', { code });
 
             if (response.data.token) {
-                const { token, user } = response.data;
-                
-                // Save token and user details
-                setAuthToken(token);
-                setUser(user);
-                localStorage.setItem('user', JSON.stringify(user));
-                localStorage.setItem('username', user.username || 'Member');
-                
+                // Store the token only, then let the server tell us who this is.
+                // The user object from the response used to be persisted to
+                // localStorage, where its is_staff flag could be edited by hand.
+                setAuthToken(response.data.token);
+                await refreshUser();
+
                 setStatus('Login successful! Redirecting...');
                 setTimeout(() => {
                     navigate('/');
