@@ -52,12 +52,17 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
             'contact_number', 'contact_email', 'social_links', 'frame_sizes',
             'delivery_charge', 'delivery_min_order_value', 'delivery_max_order_value',
             'hsn_codes', 'return_window_days', 'warranty_window_days',
+            'store_location_label', 'store_address', 'store_timings',
+            'store_map_link', 'store_map_embed', 'store_delivery_note',
+            'max_upload_size_mb', 'image_compression_enabled',
+            'image_compression_quality', 'image_max_dimension_px',
+            'image_output_format',
         ]
 
 class HomeSectionSerializer(serializers.ModelSerializer):
     class Meta:
         model = HomeSection
-        fields = ['id', 'key', 'title', 'status', 'is_published', 'order', 'image', 'scheduled_at', 'updated_at']
+        fields = ['id', 'key', 'title', 'subtitle', 'status', 'is_published', 'order', 'image', 'scheduled_at', 'updated_at']
         read_only_fields = ['key', 'updated_at']
 
     def to_representation(self, instance):
@@ -359,6 +364,7 @@ class NewsletterSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = NewsletterSettings
         fields = ['headline', 'subheadline', 'email_placeholder', 'cta_text', 'bg_color',
+                  'success_text', 'consent_text',
                   'provider', 'api_key', 'api_key_set', 'list_id',
                   'discount_code', 'discount_value', 'auto_apply']
 
@@ -371,7 +377,8 @@ class NewsletterSettingsView(APIView):
     public reads only get the content fields used to render the section."""
     permission_classes = [AllowAny]
 
-    PUBLIC_FIELDS = ['headline', 'subheadline', 'email_placeholder', 'cta_text', 'bg_color', 'discount_code', 'discount_value']
+    PUBLIC_FIELDS = ['headline', 'subheadline', 'email_placeholder', 'cta_text', 'bg_color',
+                     'success_text', 'consent_text', 'discount_code', 'discount_value']
 
     def get(self, request):
         data = NewsletterSettingsSerializer(NewsletterSettings.get()).data
@@ -501,7 +508,7 @@ class HomeBundleView(APIView):
         sections = list(HomeSection.objects.all())
         section_map = {
             s.key: {
-                'is_published': s.is_published, 'title': s.title,
+                'is_published': s.is_published, 'title': s.title, 'subtitle': s.subtitle,
                 'max_visible': s.max_visible, 'sort': s.sort,
             } for s in sections
         }
@@ -554,14 +561,27 @@ class HomeBundleView(APIView):
         )
 
         ns = NewsletterSettings.get()
+        site = SiteSettings.get()
 
         return Response({
             'sections': section_map,
+            'benefits': BenefitSerializer(
+                Benefit.objects.filter(is_active=True).order_by('order', 'id'), many=True).data,
+            'store': {
+                'location_label': site.store_location_label,
+                'address': site.store_address,
+                'timings': site.store_timings,
+                'map_link': site.store_map_link,
+                'map_embed': site.store_map_embed,
+                'delivery_note': site.store_delivery_note,
+                'phone': site.contact_number,
+            },
             'newsletter': {
                 'headline': ns.headline, 'subheadline': ns.subheadline,
                 'email_placeholder': ns.email_placeholder, 'cta_text': ns.cta_text,
                 'bg_color': ns.bg_color, 'discount_code': ns.discount_code,
                 'discount_value': ns.discount_value,
+                'success_text': ns.success_text, 'consent_text': ns.consent_text,
             },
             'hero_slides': HeroSlideAdminSerializer(
                 HeroSlide.objects.filter(is_active=True, status='published').order_by('order', 'id'), many=True, context=ctx).data,

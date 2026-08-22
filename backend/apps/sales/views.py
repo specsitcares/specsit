@@ -11,6 +11,7 @@ from datetime import timedelta, datetime
 from .models import Order, OrderItem, Cart, Wishlist, Coupon, Shipment, LiveSession, SiteVisit, OrderTracking, Payment, ReturnRequest, WarrantyClaim
 from apps.catalog.models import Prescription, FrameVariant, FrameProduct
 from apps.core_utils.idempotency import idempotent_endpoint
+from apps.core_utils.images import CompressionPolicy
 from .serializers import (
     OrderSerializer, OrderItemSerializer, CartSerializer,
     WishlistSerializer, CouponSerializer, ShipmentSerializer,
@@ -25,9 +26,44 @@ from rest_framework.decorators import action  # type:ignore
 
 logger = logging.getLogger(__name__)
 
+
+class IsStaffOrReadOnly(permissions.BasePermission):
+    """Public/customer reads; only staff accounts may create, update, or delete.
+    Mirrors apps.catalog.views.IsStaffOrReadOnly."""
+
+    def has_permission(self, request, view):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return bool(request.user and request.user.is_authenticated and request.user.is_staff)
+
+
+class OrderAccessPermission(permissions.BasePermission):
+    """Customers read their own orders and place new ones; only staff may edit or
+    delete an existing one.
+
+    This replaces IsAuthenticatedOrReadOnly, which was wrong in both directions.
+    It let anonymous callers through to a get_queryset that filters on
+    `user=request.user` (an AnonymousUser there is a 500, not a permission error),
+    and it treated any authenticated request as write-eligible — so a customer
+    could PATCH the order row they legitimately own and change its payment state.
+
+    @action handlers that declare their own permission_classes still override this,
+    which is how the customer-facing mark_delivered / request_return /
+    request_warranty endpoints keep working.
+    """
+
+    def has_permission(self, request, view):
+        user = request.user
+        if not (user and user.is_authenticated):
+            return False
+        if request.method in permissions.SAFE_METHODS or request.method == 'POST':
+            return True
+        return bool(user.is_staff)
+
+
 class OrderViewSet(viewsets.ModelViewSet):
     serializer_class = OrderSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [OrderAccessPermission]
 
     filter_backends = [filters.SearchFilter]
     search_fields = [
@@ -970,9 +1006,12 @@ class OrderViewSet(viewsets.ModelViewSet):
             except (ValueError, TypeError):
                 pass
 
-        # Optional supporting photos (multipart "photos") — up to 5, max 5 MB, images only.
+        # Optional supporting photos (multipart "photos") — up to 5, images only.
+        # The intake ceiling is generous because storage compresses on write; it
+        # only guards against reading an absurd file into memory.
+        _intake = CompressionPolicy.from_site_settings().max_bytes * 8
         for ph in request.FILES.getlist('photos')[:5]:
-            if ph.size <= 5 * 1024 * 1024 and (ph.content_type or '').startswith('image/'):
+            if ph.size <= _intake and (ph.content_type or '').startswith('image/'):
                 ReturnRequestImage.objects.create(return_request=rr, image=ph)
 
         return Response(ReturnRequestSerializer(rr, context={'request': request}).data, status=status.HTTP_201_CREATED)
@@ -1011,9 +1050,10 @@ class OrderViewSet(viewsets.ModelViewSet):
             order=order, issue_description=issue, preferred_fix=preferred_fix, status='pending',
         )
 
-        # Optional evidence photos (multipart "photos") — up to 5, max 5 MB, images only.
+        # Optional evidence photos (multipart "photos") — up to 5, images only.
+        _intake = CompressionPolicy.from_site_settings().max_bytes * 8
         for ph in request.FILES.getlist('photos')[:5]:
-            if ph.size <= 5 * 1024 * 1024 and (ph.content_type or '').startswith('image/'):
+            if ph.size <= _intake and (ph.content_type or '').startswith('image/'):
                 WarrantyClaimImage.objects.create(warranty_claim=claim, image=ph)
 
         return Response(WarrantyClaimSerializer(claim, context={'request': request}).data, status=status.HTTP_201_CREATED)
@@ -1411,7 +1451,11 @@ class CouponViewSet(viewsets.ModelViewSet):
         results.sort(key=lambda r: (not r['eligible'], -r['discount_percentage']))
         return Response({'coupons': results})
 
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    # Was IsAuthenticatedOrReadOnly, i.e. any logged-in customer could POST a coupon
+    # — including one with discount_percentage=100 — and then redeem it. Reads stay
+    # open (the storefront lists and validates coupons via the AllowAny actions
+    # above); creating and editing them is staff-only.
+    permission_classes = [IsStaffOrReadOnly]
 
 class ShipmentViewSet(viewsets.ModelViewSet):
     queryset = Shipment.objects.select_related(
@@ -1614,10 +1658,11 @@ class ReturnRequestViewSet(viewsets.ModelViewSet):
         return Response(self.get_serializer(rr).data)
 
     def _save_stage_images(self, request, model):
-        """Store up to 8 image files (≤10 MB each) from multipart 'photos'."""
+        """Store up to 8 images from multipart 'photos'; storage compresses them."""
         rr = self.get_object()
+        _intake = CompressionPolicy.from_site_settings().max_bytes * 8
         for ph in request.FILES.getlist('photos')[:8]:
-            if ph.size <= 10 * 1024 * 1024 and (ph.content_type or '').startswith('image/'):
+            if ph.size <= _intake and (ph.content_type or '').startswith('image/'):
                 model.objects.create(return_request=rr, image=ph)
         return Response(self.get_serializer(rr, context={'request': request}).data)
 
@@ -1799,8 +1844,15 @@ class PrescriptionUploadView(views.APIView):
         ext = _os.path.splitext(prescription_file.name)[1].lower()
         if ext not in allowed_extensions:
             return Response({'error': 'Invalid file type. Only PDF, JPG, and PNG are allowed.'}, status=status.HTTP_400_BAD_REQUEST)
-        if prescription_file.size > 5 * 1024 * 1024:
-            return Response({'error': 'File exceeds the 5 MB size limit.'}, status=status.HTTP_400_BAD_REQUEST)
+        # PDFs pass through the compressor untouched, so for them the cap is the
+        # real limit; images are re-encoded and only rejected if still over it.
+        _policy = CompressionPolicy.from_site_settings()
+        _ceiling = _policy.max_bytes if ext == '.pdf' else _policy.max_bytes * 8
+        if prescription_file.size > _ceiling:
+            return Response(
+                {'error': f'File exceeds the {_policy.max_size_mb} MB size limit.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         # Bug #4: Parse numeric order ID if display format is sent
         try:
@@ -2095,30 +2147,64 @@ from rest_framework.authtoken.models import Token # type:ignore
 
 from .analytics_events import register_queue, unregister_queue
 
+class AnalyticsStreamTicketView(views.APIView):
+    """POST /api/sales/analytics/stream-ticket/ — mint a short-lived stream ticket.
+
+    EventSource cannot set an Authorization header, which is why the stream used to
+    accept `?token=<auth token>`. A URL carries into nginx access logs, browser
+    history and Referer headers, so that put working staff credentials — which
+    never expired — into plaintext logs. A ticket is single-use, expires in 60
+    seconds, and grants nothing but the read-only event stream.
+    """
+    permission_classes = [permissions.IsAdminUser]
+
+    TICKET_TTL_SECONDS = 60
+
+    @staticmethod
+    def cache_key(ticket):
+        return f'analytics_stream_ticket:{ticket}'
+
+    def post(self, request):
+        from django.core.cache import cache
+        ticket = uuid.uuid4().hex
+        cache.set(self.cache_key(ticket), request.user.pk, self.TICKET_TTL_SECONDS)
+        return Response({'ticket': ticket, 'expires_in': self.TICKET_TTL_SECONDS})
+
+
 class AnalyticsLiveStreamView(View):
     """
-    GET /api/sales/analytics/live-stream/
-    Streams real-time sales and analytics events to admin/staff users.
-    Authenticates via query param token or authorization header.
+    GET /api/sales/analytics/live-stream/?ticket=<one-time ticket>
+    Streams real-time sales and analytics events to staff users.
+    Accepts a session, an Authorization header, or a single-use ticket — never a
+    long-lived auth token in the query string (see AnalyticsStreamTicketView).
     """
     def get(self, request):
+        from django.core.cache import cache
+        from django.contrib.auth.models import User as AuthUser
+
         user = request.user
-        
-        # If user is not authenticated via Django session, check token
+
         if not user or user.is_anonymous:
-            token_key = request.GET.get('token')
-            if not token_key:
-                auth_header = request.headers.get('Authorization')
-                if auth_header and auth_header.startswith('Token '):
-                    token_key = auth_header.split(' ')[1]
-            
-            if token_key:
-                try:
-                    token = Token.objects.select_related('user').get(key=token_key)
-                    if token.user.is_staff:
+            # 1. One-time ticket (the EventSource path).
+            ticket = request.GET.get('ticket')
+            if ticket:
+                key = AnalyticsStreamTicketView.cache_key(ticket)
+                user_pk = cache.get(key)
+                if user_pk is not None:
+                    cache.delete(key)  # single use
+                    user = AuthUser.objects.filter(pk=user_pk).first() or user
+
+            # 2. Authorization header, for non-browser clients that can set one.
+            if (not user or user.is_anonymous):
+                auth_header = request.headers.get('Authorization', '')
+                if auth_header.startswith('Token '):
+                    try:
+                        token = Token.objects.select_related('user').get(
+                            key=auth_header.split(' ', 1)[1].strip()
+                        )
                         user = token.user
-                except Token.DoesNotExist:
-                    pass
+                    except Token.DoesNotExist:
+                        pass
 
         if not user or user.is_anonymous or not user.is_staff:
             return JsonResponse({'detail': 'Unauthorized'}, status=403)

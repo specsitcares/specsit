@@ -14,7 +14,7 @@ from django.views.static import serve
 from django.views.decorators.cache import never_cache
 from rest_framework.authtoken.views import obtain_auth_token
 from apps.catalog.core.views import login_view, logout_view, register_view
-from apps.catalog.views import MeasurePDView
+from apps.catalog.views import MeasurePDView, DetectCardView
 
 urlpatterns = [
     # Django Admin (Core administration panel for comparison)
@@ -28,8 +28,9 @@ urlpatterns = [
     path('api/logout/', logout_view, name='api_logout_compat'),
     path('api/register/', register_view, name='api_register_compat'),
     
-    # AI Measurement Endpoint
+    # AI Measurement Endpoints
     path('api/measure-pd/', MeasurePDView.as_view(), name='measure-pd'),
+    path('api/detect-pd-card/', DetectCardView.as_view(), name='detect-pd-card'),
     
     # Compatibility Eyewear Endpoints (mapped to catalog)
     path('api/eyewear-features/', include('apps.catalog.urls')),
@@ -53,5 +54,20 @@ urlpatterns = [
 
 # Serve static and media files in development
 if settings.DEBUG:
+    from django.http import HttpResponseForbidden
+
+    def _private_media_denied(request, path=None):
+        """Refuse direct media access to the private upload directories.
+
+        Prescriptions and face captures are medical/biometric data and are served
+        through apps.catalog.views._PrivateFileView, which checks ownership. The
+        dev-only static() helper below would otherwise happily serve them straight
+        off disk with no check at all — the same hole the S3 config had.
+        """
+        return HttpResponseForbidden('Private media — use the authorized API route.')
+
+    urlpatterns += [
+        re_path(r'^media/(prescriptions|face_captures)/', _private_media_denied),
+    ]
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

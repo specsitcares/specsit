@@ -130,7 +130,8 @@ class PrescriptionAdmin(admin.ModelAdmin):
 
 @admin.register(UserFace)
 class UserFaceAdmin(admin.ModelAdmin):
-    list_display = ('user', 'pd_distance', 'image', 'updated_at')
+    list_display = ('user', 'pd_distance', 'pd_method', 'pd_confidence', 'image', 'updated_at')
+    list_filter = ('pd_method', 'pd_confidence')
     search_fields = ('user__username',)
 
 @admin.register(Review)

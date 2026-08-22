@@ -229,8 +229,15 @@ const OrderCard = ({ order }) => {
     const reason = order.cancellation_reason || order.cancel_reason || '';
 
     const handleReorder = () => {
-        if (first.product_id) navigate(`/product/${first.product_id}`);
-        else navigate('/products');
+        // Prefer the slug URL, landing on the exact colorway that was ordered;
+        // fall back to the numeric id for orders serialized before slugs existed.
+        if (first.product_slug) {
+            navigate(`/product/${first.product_slug}${first.variant_slug ? `/${first.variant_slug}` : ''}`);
+        } else if (first.product_id) {
+            navigate(`/product/${first.product_id}`);
+        } else {
+            navigate('/products');
+        }
     };
 
     return (

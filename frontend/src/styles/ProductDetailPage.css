@@ -82,10 +82,13 @@
   gap: 32px;
 }
 
+/* The gallery takes its height from the main image's 4:3 ratio (which lands on
+   the Figma 520px at desktop width) instead of a fixed height, so the frame is
+   never letterboxed on wide screens or squashed on narrow ones. */
 .pd-gallery-section {
   display: flex;
   gap: 19px;
-  height: 520px;
+  align-items: flex-start;
 }
 
 .pd-thumbnails {
@@ -97,8 +100,11 @@
 }
 
 .pd-thumb {
+  /* flex-shrink:0 keeps the thumb square once the rail turns horizontal and
+     scrolls on mobile — otherwise flex would squeeze it out of ratio. */
+  flex: 0 0 64px;
   width: 64px;
-  height: 64px;
+  aspect-ratio: var(--ar-thumb);
   border-radius: var(--pd-radius-sm);
   border: 1px solid var(--pd-border);
   overflow: hidden;
@@ -124,11 +130,12 @@
 .pd-main-image-container,
 .pd-main-view {
   flex: 1;
+  min-width: 0;
   position: relative;
   background: var(--pd-border);
   border-radius: 6px;
   overflow: hidden;
-  height: 520px;
+  aspect-ratio: var(--ar-gallery);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -402,7 +409,7 @@
 
 .pd-showcase-img {
   width: 100%;
-  height: 240px;
+  aspect-ratio: var(--ar-editorial);
   background: #EFEDF0;
   border-radius: 0;
   overflow: hidden;
@@ -466,7 +473,7 @@
 }
 
 .pd-style-item {
-  aspect-ratio: 1;
+  aspect-ratio: var(--ar-thumb);
   background: var(--pd-surface);
   border-radius: 13px;
   overflow: hidden;
@@ -476,6 +483,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
   transition: transform 0.5s ease;
 }
 
@@ -1394,7 +1402,7 @@
 }
 
 .pd-user-photo-item {
-  aspect-ratio: 1;
+  aspect-ratio: var(--ar-thumb);
   background: #EFEDF0;
   border-radius: 6px;
   overflow: hidden;
@@ -1404,6 +1412,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
 }
 
 
@@ -1480,6 +1489,14 @@
 @media (max-width: 900px) {
   .pd-brand-grid .product-card,
   .pd-style-grid .product-card { width: 200px; }
+
+  /* These rails carry a fixed card width, so the squeeze is driven by the card
+     and not the viewport: at 200px (and 170px below) the desktop 56/33 crop is
+     only ~118px tall. Same phone ratio as the 2-up listing grid. */
+  .pd-brand-grid .product-card__image-wrap,
+  .pd-style-grid .product-card__image-wrap {
+    aspect-ratio: var(--ar-product-compact);
+  }
 }
 
 @media (max-width: 600px) {
@@ -1488,34 +1505,18 @@
 }
 
 /* ── Lifestyle Styling Grid ────────────────────────────── */
+/* Rows are sized by the tiles' 1:1 ratio — a fixed row height would have
+   overridden it and stretched the tiles as the columns widened. */
 .pd-lifestyle-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: repeat(2, 228px);
   gap: 13px;
-}
-
-.pd-lifestyle-item {
-  background: var(--pd-border);
-  border-radius: 13px;
-  overflow: hidden;
-}
-
-.pd-lifestyle-item img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.5s ease;
-}
-
-.pd-lifestyle-item:hover img {
-  transform: scale(1.04);
 }
 
 .pd-lifestyle-item {
   border-radius: 10px;
   overflow: hidden;
-  aspect-ratio: 1;
+  aspect-ratio: var(--ar-thumb);
   background: #F8F7F9;
 }
 
@@ -1523,6 +1524,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
   transition: transform 0.3s ease;
 }
 
@@ -1585,13 +1587,7 @@
 
   .pd-gallery-section {
     flex-direction: column-reverse;
-    height: auto;
     gap: 12px;
-  }
-
-  .pd-main-view {
-    height: auto;
-    aspect-ratio: 4 / 3;
   }
 
   .pd-thumbnails {

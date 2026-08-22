@@ -8,13 +8,16 @@ const FAQ = ({ faqs: faqsProp = null }) => {
   const faqs = faqsProp || home?.faqs || [];
   if (faqs.length === 0) return null;
 
+  const section = home?.sections?.faq || {};
+
   const toggle = (idx) => {
     setOpenIdx(openIdx === idx ? -1 : idx);
   };
 
   return (
     <section className="faq hp-reveal" id="faq-section">
-      <h2 className="faq__title">Frequently Asked Questions</h2>
+      {section.title && <h2 className="faq__title">{section.title}</h2>}
+      {section.subtitle && <p className="faq__subtitle">{section.subtitle}</p>}
       <div className="faq__list">
         {faqs.map((faq, idx) => (
           <div key={idx} className={`faq__item ${openIdx === idx ? 'faq__item--open' : ''}`}>

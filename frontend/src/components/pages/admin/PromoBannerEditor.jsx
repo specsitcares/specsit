@@ -19,7 +19,10 @@ const DropZone = ({ preview, onFile, hint }) => {
     const ref = useRef(null);
     return (
         <div onClick={() => ref.current?.click()} style={{ border: `1.5px dashed ${BORDER}`, borderRadius: 10, padding: preview ? 0 : '28px 16px', textAlign: 'center', cursor: 'pointer', background: '#F9FAFB', overflow: 'hidden' }}>
-            {preview ? <img src={preview} alt="" style={{ width: '100%', maxHeight: 170, objectFit: 'cover', display: 'block' }} /> : (
+            {/* 24:5 matches the storefront promo band (1440 × 300 medium), so the
+                preview crops the same way the shopper sees it instead of taking
+                its height from whatever the uploaded file's own ratio is. */}
+            {preview ? <img src={preview} alt="" style={{ width: '100%', aspectRatio: '24 / 5', objectFit: 'cover', display: 'block' }} /> : (
                 <><UploadCloud size={22} style={{ color: '#475467' }} /><div style={{ fontSize: 13, color: '#475467', marginTop: 8 }}>Drag your image here or <span style={{ color: PURPLE, fontWeight: 600 }}>browse files</span></div><div style={{ fontSize: 12, color: '#98A2B3', marginTop: 4 }}>{hint}</div></>
             )}
             <input ref={ref} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && onFile(e.target.files[0])} />
@@ -197,7 +200,10 @@ const PromoBannerEditor = ({ sectionKey, breadcrumb = 'Promotional Banner Manage
                             <Smartphone size={18} onClick={() => setDevice('mobile')} style={{ cursor: 'pointer', color: device === 'mobile' ? PURPLE : '#98A2B3' }} />
                         </div>
                     </div>
-                    <div style={{ margin: '0 auto', width: device === 'mobile' ? 220 : ({ full: '100%', three_quarter: '75%', half: '50%' }[b.width] || '100%'), borderRadius: 12, overflow: 'hidden', minHeight: ({ small: 130, medium: 180, large: 260 }[b.height] || 180), position: 'relative', background: b.bg_color || '#6B5CE7', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: alignItems, textAlign: b.alignment, padding: 28, gap: 10 }}>
+                    {/* Ratio mirrors the storefront band (1440 × the chosen height),
+                        so the preview crops the background art the same way the
+                        live page will. The old minHeight stays as the floor. */}
+                    <div style={{ margin: '0 auto', width: device === 'mobile' ? 220 : ({ full: '100%', three_quarter: '75%', half: '50%' }[b.width] || '100%'), borderRadius: 12, overflow: 'hidden', aspectRatio: `1440 / ${({ small: 180, medium: 300, large: 460 }[b.height] || 300)}`, minHeight: ({ small: 130, medium: 180, large: 260 }[b.height] || 180), position: 'relative', background: b.bg_color || '#6B5CE7', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: alignItems, textAlign: b.alignment, padding: 28, gap: 10 }}>
                         {(b.use_custom ? customPreview : bgPreview) && <img src={b.use_custom ? customPreview : bgPreview} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
                         {!b.use_custom && (
                             <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: alignItems, gap: 10, width: '100%' }}>

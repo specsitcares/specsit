@@ -78,8 +78,18 @@ apiClient.interceptors.response.use(
   (error) => {
     // Handle 401 Unauthorized
     if (error.response?.status === 401) {
-      const isLoginRequest = error.config && error.config.url && error.config.url.includes('/login');
-      if (!isLoginRequest) {
+      const url = error.config?.url || '';
+      // Two requests must NOT trigger the bounce-to-login:
+      //  • the login call itself (a wrong password is not a session expiry), and
+      //  • the accounts/me/ identity probe AuthContext runs on every page load —
+      //    it is expected to 401 when the stored token is stale, and AuthContext
+      //    handles that by clearing the token. Redirecting here would throw every
+      //    visitor with an old token onto /login from public pages too.
+      const skipRedirect =
+        url.includes('/login') ||
+        url.includes('accounts/me') ||
+        error.config?.skipAuthRedirect;
+      if (!skipRedirect) {
         clearAuthToken();
         window.location.href = '/login';
       }
@@ -177,5 +187,28 @@ const _flushCache = () => _getCache.clear();
 
 // Manual hook if a component ever needs to force-refresh.
 export const clearApiCache = _flushCache;
+
+/**
+ * Load a permission-checked file and return a blob: URL for it.
+ *
+ * Prescriptions and face captures are no longer public media — they're served by
+ * an endpoint that verifies ownership, which means the request has to carry the
+ * Authorization header. A bare <img src> or <a href> can't do that, so fetch the
+ * bytes through apiClient and hand back an object URL the DOM can use.
+ *
+ * Callers own the returned URL: call URL.revokeObjectURL() on cleanup.
+ * Returns null if the file is missing or access is refused.
+ */
+export const fetchProtectedBlobUrl = async (url) => {
+  if (!url) return null;
+  // Tolerate an absolute URL from the serializer — axios' baseURL wants a path.
+  const path = url.replace(/^https?:\/\/[^/]+\/api/, '').replace(/^https?:\/\/[^/]+/, '');
+  try {
+    const res = await apiClient.get(path, { responseType: 'blob', cache: false });
+    return URL.createObjectURL(res.data);
+  } catch {
+    return null;
+  }
+};
 
 export default apiClient;

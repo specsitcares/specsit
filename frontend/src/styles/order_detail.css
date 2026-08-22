@@ -68,10 +68,10 @@
 /* Product row */
 .od-product { display: flex; gap: 22px; }
 .od-product-img {
-  width: 170px; height: 150px; flex-shrink: 0; border-radius: 12px; overflow: hidden;
+  width: 170px; aspect-ratio: var(--ar-product); flex-shrink: 0; border-radius: 12px; overflow: hidden;
   background: #f1f1f1; display: flex; align-items: center; justify-content: center;
 }
-.od-product-img img { width: 100%; height: 100%; object-fit: cover; }
+.od-product-img img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .od-product-noimg { font-size: 34px; }
 .od-product-body { flex: 1; min-width: 0; padding-top: 4px; }
 .od-product-brand { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: #68408d; }
@@ -193,6 +193,7 @@
 
 @media (max-width: 480px) {
   .od-card { padding: 18px 16px; }
-  .od-product-img { width: 100%; height: 200px; }
+  /* Full-width on phones, height still from the product ratio. */
+  .od-product-img { width: 100%; }
   .od-ordno { font-size: 21px; }
 }

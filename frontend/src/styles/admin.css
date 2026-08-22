@@ -404,7 +404,8 @@ body {
 
 .profile-img-box {
   width: 26px;
-  height: 26px;
+  aspect-ratio: var(--ar-thumb);
+  flex-shrink: 0;
   border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.2);
   overflow: hidden;
@@ -762,6 +763,14 @@ body {
   vertical-align: middle;
 }
 
+/* Products page runs a larger type scale than the other admin tables, so its
+   column headers need to come up to match the 14px row text. BaseAdminTable
+   sets th font-size inline (10px), hence !important. Scoped so no other table
+   is affected. */
+.products-table-scope .figma-table th {
+  font-size: 13px !important;
+}
+
 /* Sub-row Grouping */
 .nested-row-group {
   background: #F9F5FF !important; /* Extremely subtle purple for grouping */
@@ -801,7 +810,8 @@ tr.expanded-parent {
 
 .item-thumb-v2 {
   width: 32px;
-  height: 32px;
+  aspect-ratio: var(--ar-thumb);
+  flex-shrink: 0;
   background: white;
   border: 1px solid var(--gray-200);
   border-radius: 6px;
@@ -1555,7 +1565,8 @@ tr.expanded-parent {
 
 .dh-items-thumb {
   width: 32px;
-  height: 32px;
+  aspect-ratio: var(--ar-thumb);
+  flex-shrink: 0;
   border-radius: 6px;
   border: 1px solid var(--gray-200);
   background: var(--gray-50);

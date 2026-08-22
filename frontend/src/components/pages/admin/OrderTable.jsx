@@ -716,7 +716,7 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewReplac
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <div style={{ width: 40, height: 40, border: '1px solid #EAECF0', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F9FAFB', overflow: 'hidden' }}>
                           {o.items?.[0]?.variant_image ? (
-                            <img src={o.items[0].variant_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            <img src={o.items[0].variant_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                           ) : (
                             <Glasses size={20} color="#D0D5DD" />
                           )}
@@ -971,7 +971,7 @@ const OrderTable = ({ category = null, onViewDetails, onViewReturn, onViewReplac
                               <div style={{ padding: '10px 0', display: 'flex', alignItems: 'center', gap: '10px' }}>
                                 <div style={{ width: '32px', height: '32px', border: '1px solid #EAECF0', borderRadius: '5px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F9FAFB', flexShrink: 0, overflow: 'hidden' }}>
                                   {item.variant_image ? (
-                                    <img src={item.variant_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    <img src={item.variant_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                                   ) : (
                                     <Glasses size={20} color="#D0D5DD" />
                                   )}

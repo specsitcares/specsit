@@ -40,7 +40,7 @@
   background: var(--bg-secondary, #f9fafb);
   border-radius: 13px;
   padding: 13px;
-  aspect-ratio: 1;
+  aspect-ratio: var(--ar-thumb);
   display: flex;
   align-items: center;
   justify-content: center;

@@ -15,12 +15,15 @@ const PremiumIntent = () => {
   const HEIGHT_MAP = { small: 180, medium: 300, large: 460 };
   const minH = HEIGHT_MAP[banner.height] || 300;
 
+  // Same ratio treatment as PromoBanner: the admin's height becomes the floor
+  // and the implied 1440px-canvas ratio drives it from there, so the background
+  // art keeps its framing at every viewport width.
   const inner = (
     <div
       className="premium-intent__banner-inner"
-      style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: align, textAlign: banner.alignment, gap: 14, padding: '56px 48px', minHeight: minH, justifyContent: 'center' }}
+      style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: align, textAlign: banner.alignment, gap: 14, padding: '56px 48px', aspectRatio: `1440 / ${minH}`, minHeight: minH, justifyContent: 'center' }}
     >
-      {bgImg && <img src={bgImg} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
+      {bgImg && <img src={bgImg} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }} />}
       {!banner.use_custom && (
         <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: align, gap: 14, maxWidth: 760 }}>
           <h2 style={{ color: textCol, fontSize: 34, fontWeight: 800, margin: 0, lineHeight: 1.2 }}>{banner.title}</h2>

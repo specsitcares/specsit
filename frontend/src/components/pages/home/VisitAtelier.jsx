@@ -1,13 +1,17 @@
 import React from 'react';
 
-const VisitAtelier = ({ data }) => {
-  const title = data?.title || 'Step Into Better Vision';
-  const description = data?.description || 'Try your perfect pair in person. Get expert guidance and instant fitting at our Hyderabad store.';
-  const addressTitle = data?.address_title || 'Store Address';
-  const addressVal = data?.address || 'Plot No. 42, Road No. 36, Jubilee Hills, Hyderabad, Telangana 500033';
-  const timingsTitle = data?.timings_title || 'Timings';
-  const timingsVal = data?.timings || 'Monday – Sunday: 10:00 AM – 9:00 PM';
-  const mapLink = data?.map_link || 'https://maps.google.com';
+/* Heading and lead line come from the section (Homepage Management), the store
+   details from Store Settings. Nothing on this section is hard-coded. */
+const VisitAtelier = ({ section = {}, store = {} }) => {
+  const title = section.title || '';
+  const description = section.subtitle || '';
+  const locationLabel = store?.location_label || '';
+  const addressVal = store?.address || '';
+  const timingsVal = store?.timings || '';
+  const mapLink = store?.map_link || '';
+  const mapEmbed = store?.map_embed || '';
+  const deliveryNote = store?.delivery_note || '';
+  const phone = store?.phone || '';
 
   return (
     <section className="visit-atelier hp-reveal" id="visit-the-atelier">
@@ -16,7 +20,7 @@ const VisitAtelier = ({ data }) => {
           <div className="visit-atelier__header">
             <div className="visit-atelier__line-title">
               <div className="visit-atelier__line" />
-              <span className="visit-atelier__label">OUR STORE LOCATION</span>
+              {locationLabel && <span className="visit-atelier__label">{locationLabel}</span>}
             </div>
             {title && <h2 className="visit-atelier__title">{title}</h2>}
             {description && <p className="visit-atelier__desc">{description}</p>}
@@ -29,7 +33,7 @@ const VisitAtelier = ({ data }) => {
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#68408D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                 </div>
                 <div className="visit-atelier__detail-content">
-                  <span className="visit-atelier__detail-label">{addressTitle || 'Store Address'}</span>
+                  <span className="visit-atelier__detail-label">Store Address</span>
                   <span className="visit-atelier__detail-value">{addressVal}</span>
                 </div>
               </div>
@@ -41,17 +45,19 @@ const VisitAtelier = ({ data }) => {
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#68408D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 </div>
                 <div className="visit-atelier__detail-content">
-                  <span className="visit-atelier__detail-label">{timingsTitle || 'Timings'}</span>
+                  <span className="visit-atelier__detail-label">Timings</span>
                   <span className="visit-atelier__detail-value">{timingsVal}</span>
                 </div>
               </div>
             )}
           </div>
 
-          <div className="visit-atelier__delivery-banner">
-            <span className="visit-atelier__delivery-icon">⚡</span>
-            <span className="visit-atelier__delivery-text">GET DELIVERY IN 1 – 2 HOURS ACROSS HYDERABAD</span>
-          </div>
+          {deliveryNote && (
+            <div className="visit-atelier__delivery-banner">
+              <span className="visit-atelier__delivery-icon">⚡</span>
+              <span className="visit-atelier__delivery-text">{deliveryNote}</span>
+            </div>
+          )}
 
           <div className="visit-atelier__actions">
             {mapLink && (
@@ -60,24 +66,28 @@ const VisitAtelier = ({ data }) => {
                 Get Directions
               </a>
             )}
-            <button className="visit-atelier__btn-outline">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '6px'}}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l2.27-2.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-              Call Us
-            </button>
+            {phone && (
+              <a href={`tel:${phone.replace(/\s+/g, '')}`} className="visit-atelier__btn-outline">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '6px'}}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l2.27-2.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                Call Us
+              </a>
+            )}
           </div>
         </div>
 
-        <div className="visit-atelier__map">
-          <div className="visit-atelier__map-placeholder">
-             <iframe
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3806.315!2d78.3875!3d17.4485!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTfCsDI2JzU0LjYiTiA3OMKwMjMnMTUuMCJF!5e0!3m2!1sen!2sin!4v1"
-              title="Store location"
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              allowFullScreen
-            />
+        {mapEmbed && (
+          <div className="visit-atelier__map">
+            <div className="visit-atelier__map-placeholder">
+              <iframe
+                src={mapEmbed}
+                title="Store location"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                allowFullScreen
+              />
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </section>
   );

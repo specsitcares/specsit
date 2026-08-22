@@ -302,7 +302,7 @@ const BrandLogosManager = () => {
                                     <button onClick={() => remove(b)} title="Remove" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#98A2B3' }}><X size={16} /></button>
                                 </div>
                             </div>
-                            <div style={{ height: 110, background: '#F2F4F7', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+                            <div style={{ aspectRatio: '16 / 9', background: '#F2F4F7', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
                                 {b.logo ? <img src={b.logo} alt={b.name} style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} onError={(e) => { e.target.style.display = 'none'; }} /> : <span style={{ fontSize: 18, fontWeight: 700, color: '#101828' }}>{b.name}</span>}
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px' }}>

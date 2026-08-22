@@ -854,7 +854,7 @@
   .vp-preview-card {
     width: 100%;
     height: auto;
-    aspect-ratio: 1/1;
+    aspect-ratio: var(--ar-thumb);
   }
 }
 

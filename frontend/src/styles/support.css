@@ -658,7 +658,8 @@
 
 .dt-gps-card__map {
     width: 147px;
-    height: 110px;
+    aspect-ratio: var(--ar-gallery); /* 147 × 110 in Figma; holds when the card
+                                        goes full-width on mobile */
     background: #EBE3F2;
     border-radius: 13px;
     flex-shrink: 0;
@@ -669,13 +670,16 @@
     position: relative;
 }
 
+/* Fills the box exactly. The old 133% height with a -16.67% offset was a Figma
+   export artifact that zoomed the map for no reason; `cover` already crops. */
 .dt-gps-card__map-img {
-    width: 100%;
-    height: 133%;
-    object-fit: cover;
     position: absolute;
-    top: -16.67%;
-    left: 0;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
 }
 
 .dt-gps-card__map-badge {

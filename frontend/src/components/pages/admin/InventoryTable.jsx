@@ -325,7 +325,7 @@ const InventoryTable = ({ initialFilter = 'all' }) => {
           <td style={{ ...CELL, minWidth: 176 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{ width: 32, height: 32, borderRadius: 3, border: '1px solid #e0e0e0', overflow: 'hidden', flexShrink: 0, background: '#fafafa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {imgSrc ? <img src={imgSrc} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Package size={14} color="#D0D5DD" />}
+                {imgSrc ? <img src={imgSrc} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <Package size={14} color="#D0D5DD" />}
               </div>
               <div>
                 <div style={{ ...TXT, fontWeight: 500 }}>{v.product_name || '—'}</div>

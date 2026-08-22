@@ -56,10 +56,12 @@
 }
 
 /* Image area — matches NewArrivals .product-card__background */
+/* Cards go fluid below 768px (.wl-card width:100%), so the image box holds the
+   product ratio instead of a fixed 177px height. */
 .wl-card__img-wrap {
   position: relative;
   width: 100%;
-  height: 177px;
+  aspect-ratio: var(--ar-product);
   background: #FEFCFF;
   border-radius: 6px;
   overflow: hidden;

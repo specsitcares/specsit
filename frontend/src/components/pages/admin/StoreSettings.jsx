@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Save, RefreshCw, Plus, Trash2, Store, Phone, Share2,
-  Ruler, Truck, FileText, Search, Eye, RotateCcw,
+  Ruler, Truck, FileText, Search, Eye, RotateCcw, MapPin, ImageDown,
 } from 'lucide-react';
 import apiClient from '../../../services/api';
 import '../../../styles/store_settings.css';
@@ -28,6 +28,12 @@ const DEFAULTS = {
   meta_description_template: '',
   contact_number: '',
   contact_email: '',
+  store_location_label: '',
+  store_address: '',
+  store_timings: '',
+  store_map_link: '',
+  store_map_embed: '',
+  store_delivery_note: '',
   social_links: [],
   frame_sizes: [],
   delivery_charge: '',
@@ -36,7 +42,18 @@ const DEFAULTS = {
   hsn_codes: [],
   return_window_days: '',
   warranty_window_days: '',
+  max_upload_size_mb: '',
+  image_compression_enabled: true,
+  image_compression_quality: '',
+  image_max_dimension_px: '',
+  image_output_format: 'webp',
 };
+
+const IMAGE_FORMATS = [
+  { value: 'webp',     label: 'WebP — smallest, keeps transparency' },
+  { value: 'jpeg',     label: 'JPEG — widest compatibility, no transparency' },
+  { value: 'original', label: 'Keep original format' },
+];
 
 /* Section card with icon chip + title, matching the analytics widgets.
    `span` sets how many of the 6 grid columns it occupies (2 → 3-per-row, 3 → 2-per-row); `wide` = full width. */
@@ -83,6 +100,11 @@ const StoreSettings = () => {
           delivery_max_order_value: d.delivery_max_order_value ?? '',
           return_window_days: d.return_window_days ?? '',
           warranty_window_days: d.warranty_window_days ?? '',
+          max_upload_size_mb: d.max_upload_size_mb ?? '',
+          image_compression_enabled: d.image_compression_enabled ?? true,
+          image_compression_quality: d.image_compression_quality ?? '',
+          image_max_dimension_px: d.image_max_dimension_px ?? '',
+          image_output_format: d.image_output_format || 'webp',
         });
         setPreview(p => ({ ...p, store_name: d.store_name || '' }));
       } catch {
@@ -105,6 +127,11 @@ const StoreSettings = () => {
   const updateRow = (key, i, sub, value) => setSettings(prev => ({ ...prev, [key]: (prev[key] || []).map((it, idx) => idx === i ? { ...it, [sub]: value } : it) }));
 
   const num = (v) => (v === '' || v == null ? 0 : Number(v) || 0);
+  const clamp = (v, min, max, fallback) => {
+    const n = Number(v);
+    if (v === '' || v == null || Number.isNaN(n)) return fallback;
+    return Math.min(max, Math.max(min, Math.round(n)));
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -118,6 +145,11 @@ const StoreSettings = () => {
         delivery_max_order_value: num(settings.delivery_max_order_value),
         return_window_days: num(settings.return_window_days),
         warranty_window_days: num(settings.warranty_window_days),
+        // Clamped to the same ranges the model validators enforce, so a stray
+        // keystroke gets corrected here instead of coming back as a 400.
+        max_upload_size_mb: clamp(settings.max_upload_size_mb, 1, 100, 5),
+        image_compression_quality: clamp(settings.image_compression_quality, 40, 100, 82),
+        image_max_dimension_px: clamp(settings.image_max_dimension_px, 320, 8000, 2000),
         social_links: (settings.social_links || []).filter(s => (s.platform || '').trim() || (s.url || '').trim()),
         frame_sizes:  (settings.frame_sizes  || []).filter(s => (s.name || '').trim() || s.lens_width || s.bridge_width || s.temple_length),
         hsn_codes:    (settings.hsn_codes    || []).filter(h => (h.label || '').trim() || (h.code || '').trim()),
@@ -194,6 +226,33 @@ const StoreSettings = () => {
           </div>
         </Card>
 
+        <Card wide icon={<MapPin size={16} />} title="Store Location" sub="Drives the store-location section on the home page. Its heading and lead line are edited in CMS Management → Step Into Better Vision.">
+          <div className="ss-field" style={{ marginBottom: 12 }}>
+            <label className="ss-label">Eyebrow Label</label>
+            <input className="ss-input" value={settings.store_location_label} onChange={e => handleChange('store_location_label', e.target.value)} placeholder="OUR STORE LOCATION" />
+          </div>
+          <div className="ss-field" style={{ marginBottom: 12 }}>
+            <label className="ss-label">Address</label>
+            <textarea rows={2} className="ss-input" value={settings.store_address} onChange={e => handleChange('store_address', e.target.value)} placeholder="Plot No. 42, Road No. 36, Jubilee Hills, Hyderabad, Telangana 500033" />
+          </div>
+          <div className="ss-field" style={{ marginBottom: 12 }}>
+            <label className="ss-label">Timings</label>
+            <input className="ss-input" value={settings.store_timings} onChange={e => handleChange('store_timings', e.target.value)} placeholder="Monday – Sunday: 10:00 AM – 9:00 PM" />
+          </div>
+          <div className="ss-field" style={{ marginBottom: 12 }}>
+            <label className="ss-label">Delivery Note</label>
+            <input className="ss-input" value={settings.store_delivery_note} onChange={e => handleChange('store_delivery_note', e.target.value)} placeholder="GET DELIVERY IN 1 – 2 HOURS ACROSS HYDERABAD" />
+          </div>
+          <div className="ss-field" style={{ marginBottom: 12 }}>
+            <label className="ss-label">Directions Link</label>
+            <input className="ss-input" value={settings.store_map_link} onChange={e => handleChange('store_map_link', e.target.value)} placeholder="https://maps.google.com/…" />
+          </div>
+          <div className="ss-field">
+            <label className="ss-label">Map Embed URL</label>
+            <input className="ss-input" value={settings.store_map_embed} onChange={e => handleChange('store_map_embed', e.target.value)} placeholder="https://www.google.com/maps/embed?pb=… (leave blank to hide the map)" />
+          </div>
+        </Card>
+
         <Card span={3} icon={<Truck size={16} />} title="Delivery Cost" sub="The charge applies to orders whose total falls between min and max.">
           <div className="ss-three">
             <div className="ss-field">
@@ -212,7 +271,50 @@ const StoreSettings = () => {
           <p className="ss-hint">Charge applies between Min and Max order value; above Max, delivery is free.</p>
         </Card>
 
-        {/* ── Row 3: Frame Sizes · Social Media ── */}
+        {/* ── Media & Uploads ── applies to every uploaded asset, storefront and admin ── */}
+        <Card span={3} icon={<ImageDown size={16} />} title="Media & Uploads" sub="Every uploaded image is re-encoded and size-capped on the way in — product photos, banners, logos, blog thumbnails, review and warranty photos.">
+          <div className="ss-two" style={{ marginBottom: 12 }}>
+            <div className="ss-field">
+              <label className="ss-label">Max Asset Size (MB)</label>
+              <input type="number" min="1" max="100" className="ss-input" value={settings.max_upload_size_mb} onChange={e => handleChange('max_upload_size_mb', e.target.value)} placeholder="5" />
+              <span className="ss-hint">Images are compressed first, so this only rejects files still over the limit afterwards. PDFs can't be compressed, so for them it's a hard limit.</span>
+            </div>
+            <div className="ss-field">
+              <label className="ss-label">Compression</label>
+              <select className="ss-input" value={settings.image_compression_enabled ? 'on' : 'off'} onChange={e => handleChange('image_compression_enabled', e.target.value === 'on')}>
+                <option value="on">On — re-encode uploads</option>
+                <option value="off">Off — store originals as-is</option>
+              </select>
+              <span className="ss-hint">Turning this off keeps every byte of the original, and the size cap becomes a hard limit for images too.</span>
+            </div>
+          </div>
+
+          <div className="ss-field" style={{ marginBottom: 12 }}>
+            <label className="ss-label">Output Format</label>
+            <select className="ss-input" value={settings.image_output_format} onChange={e => handleChange('image_output_format', e.target.value)} disabled={!settings.image_compression_enabled}>
+              {IMAGE_FORMATS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+            </select>
+          </div>
+
+          <div className="ss-two">
+            <div className="ss-field">
+              <label className="ss-label">Quality (40–100)</label>
+              <input type="number" min="40" max="100" className="ss-input" value={settings.image_compression_quality} onChange={e => handleChange('image_compression_quality', e.target.value)} placeholder="82" disabled={!settings.image_compression_enabled} />
+              <span className="ss-hint">80–85 is visually lossless for photos. Lower means smaller files and visible artefacts.</span>
+            </div>
+            <div className="ss-field">
+              <label className="ss-label">Max Dimension (px)</label>
+              <input type="number" min="320" max="8000" className="ss-input" value={settings.image_max_dimension_px} onChange={e => handleChange('image_max_dimension_px', e.target.value)} placeholder="2000" disabled={!settings.image_compression_enabled} />
+              <span className="ss-hint">Longest edge. Bigger uploads are downscaled to fit.</span>
+            </div>
+          </div>
+
+          <p className="ss-hint" style={{ marginTop: 10 }}>
+            Changes apply to the next file uploaded — no deploy needed. To apply them to assets already
+            stored, run <code>python manage.py compress_media</code> (add <code>--dry-run</code> to preview).
+          </p>
+        </Card>
+
         <Card span={3} icon={<Ruler size={16} />} title="Frame Sizes" sub="Your published size chart. Dimensions are in millimetres — values may be ranges (e.g. 48–52).">
           {settings.frame_sizes.length === 0 && <div className="ss-empty">No sizes defined yet — add your first size below.</div>}
           {settings.frame_sizes.length > 0 && (
@@ -236,6 +338,7 @@ const StoreSettings = () => {
           <button className="ss-add" onClick={() => addRow('frame_sizes', { name: '', lens_width: '', bridge_width: '', temple_length: '' })}><Plus size={14} /> Add size</button>
         </Card>
 
+        {/* ── Social Media ── */}
         <Card span={3} icon={<Share2 size={16} />} title="Social Media" sub="Add your social profiles and their links.">
           {settings.social_links.length === 0 && <div className="ss-empty">No social links yet — add one below.</div>}
           {settings.social_links.length > 0 && (

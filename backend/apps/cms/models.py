@@ -1,3 +1,4 @@
+from django.core.validators import MaxValueValidator, MinValueValidator #type: ignore
 from django.db import models #type: ignore
 
 class SiteSettings(models.Model):
@@ -15,6 +16,14 @@ class SiteSettings(models.Model):
     # Contact
     contact_number = models.CharField(max_length=30, blank=True, default='')
     contact_email = models.CharField(max_length=120, blank=True, default='')
+
+    # Physical store — drives the home page's store-location section
+    store_location_label = models.CharField(max_length=80, blank=True, default='OUR STORE LOCATION')
+    store_address = models.TextField(blank=True, default='')
+    store_timings = models.CharField(max_length=160, blank=True, default='')
+    store_map_link = models.CharField(max_length=500, blank=True, default='')
+    store_map_embed = models.CharField(max_length=1000, blank=True, default='', help_text='Google Maps embed URL (the src of the iframe).')
+    store_delivery_note = models.CharField(max_length=160, blank=True, default='')
 
     # Social media — list of {"platform": str, "url": str}
     social_links = models.JSONField(default=list, blank=True)
@@ -35,6 +44,39 @@ class SiteSettings(models.Model):
 
     # Warranty — global warranty window in days from delivery
     warranty_window_days = models.PositiveIntegerField(default=365)
+
+    # ── Media & uploads ──
+    # Read by apps.core_utils.images on every upload, so changing these takes
+    # effect immediately for the next file stored — no deploy needed.
+    max_upload_size_mb = models.PositiveSmallIntegerField(
+        default=5,
+        validators=[MinValueValidator(1), MaxValueValidator(100)],
+        help_text='Largest a stored asset may be. Images are compressed first, so '
+                  'the cap only rejects files that still exceed it afterwards.',
+    )
+    image_compression_enabled = models.BooleanField(
+        default=True,
+        help_text='Re-encode uploaded images. Turn off to store originals byte-for-byte.',
+    )
+    image_compression_quality = models.PositiveSmallIntegerField(
+        default=82,
+        validators=[MinValueValidator(40), MaxValueValidator(100)],
+        help_text='Encoder quality, 40–100. 80–85 is visually lossless for photos.',
+    )
+    image_max_dimension_px = models.PositiveIntegerField(
+        default=2000,
+        validators=[MinValueValidator(320), MaxValueValidator(8000)],
+        help_text='Longest edge, in pixels. Larger uploads are downscaled to fit.',
+    )
+    IMAGE_FORMAT_CHOICES = [
+        ('webp', 'WebP — smallest, keeps transparency'),
+        ('jpeg', 'JPEG — widest compatibility, no transparency'),
+        ('original', 'Keep original format'),
+    ]
+    image_output_format = models.CharField(
+        max_length=10, choices=IMAGE_FORMAT_CHOICES, default='webp',
+        help_text='Format uploaded images are re-encoded to.',
+    )
 
     class Meta:
         verbose_name = 'Site Settings'
@@ -71,6 +113,8 @@ class HomeSection(models.Model):
     ]
     key = models.SlugField(max_length=60, unique=True)
     title = models.CharField(max_length=120)
+    # Storefront sub-heading rendered under `title` (blank = no sub-heading)
+    subtitle = models.CharField(max_length=255, blank=True, default='')
     status = models.CharField(max_length=12, choices=STATUS_CHOICES, default='published')
     is_published = models.BooleanField(default=True)
     order = models.PositiveIntegerField(default=0)
@@ -333,6 +377,8 @@ class NewsletterSettings(models.Model):
     email_placeholder = models.CharField(max_length=100, default='Enter your email address')
     cta_text = models.CharField(max_length=50, default='Get 20% off')
     bg_color = models.CharField(max_length=20, default='#F3F4F6')
+    success_text = models.CharField(max_length=200, blank=True, default="You're in! Watch your inbox for exclusive offers.")
+    consent_text = models.TextField(blank=True, default='')
     # Integration
     provider = models.CharField(max_length=20, choices=PROVIDERS, default='mailchimp')
     api_key = models.CharField(max_length=255, blank=True, default='')

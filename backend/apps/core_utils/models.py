@@ -3,6 +3,30 @@ Core models for idempotency and shared functionality.
 """
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils import timezone
+
+
+class TokenActivity(models.Model):
+    """Last-use timestamp for an auth token.
+
+    DRF's Token records only `created`, so there was no way to expire a session
+    that had gone quiet — or to tell an active session from an abandoned one. This
+    companion row lets ExpiringTokenAuthentication apply an idle timeout without
+    swapping out the authtoken app. It is written at most once a minute per token.
+    """
+    token = models.OneToOneField(
+        'authtoken.Token',
+        on_delete=models.CASCADE,
+        primary_key=True,
+        related_name='activity',
+    )
+    last_used = models.DateTimeField(default=timezone.now, db_index=True)
+
+    class Meta:
+        verbose_name_plural = 'Token Activity'
+
+    def __str__(self):
+        return f"token …{self.token_id[-6:]} last used {self.last_used:%Y-%m-%d %H:%M}"
 
 
 class IdempotencyRecord(models.Model):

@@ -83,9 +83,14 @@
 /* =============================================================================
    HERO  (.hero-v2) — full-bleed image banner
    ============================================================================= */
+/* The band is ratio-driven so the banner art keeps the same framing on a laptop
+   and on an ultra-wide monitor. min/max height bound it: below ~1440px the
+   ratio would go shorter than the Figma 400px, above ~2230px it would tower. */
 .hero-v2 {
   position: relative;
+  aspect-ratio: var(--ar-hero);
   min-height: 400px;
+  max-height: 620px;
   display: flex;
   align-items: center;
   overflow: hidden;
@@ -290,12 +295,16 @@
   justify-content: center;
   overflow: hidden;
 }
+/* The offset is a share of the image's own width, not the Figma 155px: the card
+   is a fluid grid cell (~310px at 1440, ~160px in the 2-up mobile grid) and a
+   pixel offset pushed the frame further off-card the narrower it got.
+   35% of the image ≈ the 155px/412px framing the card was designed at. */
 .frame-lounge__card-img img {
   width: 108%;
   max-width: none;
   height: auto;
   object-fit: contain;
-  transform: translateX(155px) rotate(-4deg);
+  transform: translateX(35%) rotate(-4deg);
 }
 .frame-lounge__card-img svg {
   width: 92%;
@@ -458,7 +467,7 @@
 
 .frame-styles__shape-img {
   width: 100%;
-  height: 160px;
+  aspect-ratio: var(--ar-gallery);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -467,6 +476,7 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
+  display: block;
 }
 .frame-styles__shape-placeholder {
   width: 100%;
@@ -809,8 +819,10 @@
 }
 .blog-card:hover { box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05); transform: translateY(-2px); }
 .blog-card__img {
-  height: 180px;
+  aspect-ratio: var(--ar-editorial);
   background: linear-gradient(135deg, var(--sp-border) 0%, #d9d4df 100%);
+  background-size: cover;
+  background-position: center;
 }
 .blog-card__body { padding: 18px; }
 .blog-card__tag {
@@ -955,8 +967,10 @@
   background: var(--sp-border);
   border-radius: var(--sp-radius-lg);
   overflow: hidden;
+  /* Ratio-driven rather than "as tall as the copy beside it", so the map frames
+     the same area whatever the store address text runs to. */
+  aspect-ratio: var(--ar-gallery);
   min-height: 340px;
-  height: 100%;
 }
 .visit-atelier__map-placeholder { width: 100%; height: 100%; min-height: 340px; }
 .visit-atelier__map-placeholder iframe {
@@ -1148,7 +1162,7 @@
   text-decoration: none;
 }
 .blog-page__featured-img {
-  height: 300px;
+  aspect-ratio: var(--ar-editorial);
   border-radius: var(--sp-radius-lg);
   background: linear-gradient(135deg, var(--sp-border) 0%, #d9d4df 100%);
   background-size: cover;
@@ -1335,7 +1349,8 @@
   min-width: 0;
 }
 .blog-detail__hero-img {
-  height: 340px;
+  aspect-ratio: var(--ar-editorial);
+  max-height: 420px;
   border-radius: var(--sp-radius-lg);
   background: linear-gradient(135deg, var(--sp-border) 0%, #d9d4df 100%);
   background-size: cover;
@@ -1490,8 +1505,7 @@
   .testimonials-v2__grid { grid-template-columns: 1fr; }
   .blog-section__grid { grid-template-columns: 1fr; }
   .blog-page__grid { grid-template-columns: 1fr; }
-  .blog-page__featured-img { height: 220px; }
-  .blog-detail__hero-img { height: 220px; }
+  /* Both stay on the 16:9 ratio from the base rules — no height overrides. */
   .blog-detail__related { padding: 20px; }
   .promo-banner__heading { font-size: 24px; }
   .promo-banner { padding: 36px var(--sp-px); }
@@ -1513,8 +1527,9 @@
   .blog-section__subtitle { margin-left: 0; margin-right: 0; }
 
   /* Explore Frame Styles — compact cards so several peek into view */
+  /* No height override — the shape box keeps its 4:3 ratio as the card narrows
+     (150px here, 44vw below 480px), so every shape is framed the same. */
   .frame-styles__shape-card { width: 150px; padding: 16px 12px; gap: 12px; }
-  .frame-styles__shape-img { height: 104px; }
   .frame-styles__shape-name { font-size: 14px; }
   .frame-styles__carousel-track { gap: 14px; }
 

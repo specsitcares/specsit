@@ -1,8 +1,62 @@
+import os
+import re
+import uuid
+
 from django.db import models #type: ignore
 from django.contrib.auth.models import User  # type: ignore
+from django.utils.text import slugify  # type: ignore
 from .core.models import MetadataItem  # type: ignore
 from decimal import Decimal
 from apps.cms.models import BrandLogo
+
+
+def _private_upload_path(subdir, filename):
+    """Store a private upload under an unguessable random name.
+
+    These files carry medical and biometric data, so they are served through an
+    authorization check rather than as static assets. Keeping the uploader's own
+    filename made stored paths guessable (prescriptions/prescription.pdf), which
+    is a second way in if a URL ever escapes; a UUID name removes that.
+    Module-level so Django migrations can serialize the reference.
+    """
+    ext = os.path.splitext(filename)[1].lower()[:10]
+    return f"{subdir}/{uuid.uuid4().hex}{ext}"
+
+
+def unique_slug(model, source_text, fallback, *, scope=None, instance=None, max_length=280):
+    """Build a URL slug for `source_text` that is unique within `scope`.
+
+    Product and variant names are not unique on their own — two brands can both
+    ship a "Classic Aviator", and every product tends to have a "Black" colorway —
+    so a plain slugify() would produce URLs that collide. Duplicates get a -2, -3…
+    suffix. `scope` is the extra filter that defines the uniqueness domain (empty
+    for products, {'product': …} for variants).
+
+    A purely numeric slug (a product literally titled "2024") is prefixed, because
+    the detail routes treat an all-digit segment as a primary key.
+    """
+    base = slugify(source_text or '') or slugify(fallback or '') or 'item'
+    if base.isdigit():
+        base = f'n-{base}'
+    base = base[:max_length - 8]
+
+    qs = model.objects.filter(**(scope or {}))
+    if instance is not None and instance.pk:
+        qs = qs.exclude(pk=instance.pk)
+
+    slug, n = base, 1
+    while qs.filter(slug=slug).exists():
+        n += 1
+        slug = f'{base}-{n}'
+    return slug
+
+
+def prescription_upload_path(instance, filename):
+    return _private_upload_path('prescriptions', filename)
+
+
+def face_capture_upload_path(instance, filename):
+    return _private_upload_path('face_captures', filename)
 
 class Category(models.Model):
     GROUP_CHOICES = [
@@ -37,6 +91,10 @@ class FrameProduct(models.Model):
     GENDER_CHOICES = [('Men', 'Men'), ('Women', 'Women'), ('Unisex', 'Unisex'), ('Kids', 'Kids')]
 
     title = models.CharField(max_length=255, blank=True, default="", db_index=True)
+    # URL identity for the storefront: /product/<slug>/<variant-slug>. Derived from
+    # `title` on save and kept stable afterwards, so an already-published product
+    # URL doesn't break (and its SEO isn't lost) when someone edits the title.
+    slug = models.SlugField(max_length=280, unique=True, blank=True, db_index=True)
     product_type = models.CharField(max_length=10, choices=PRODUCT_TYPE_CHOICES, default='frame')
     description = models.TextField(blank=True, default='')
     category = models.ForeignKey('Category', on_delete=models.CASCADE, related_name='products')
@@ -69,6 +127,15 @@ class FrameProduct(models.Model):
             models.Index(fields=['is_bestseller', 'is_active'], name='fprod_bestseller_active_idx'),
         ]
 
+    def save(self, *args, **kwargs):
+        # Fill the slug only when it's empty — on create, or for rows that predate
+        # this field. Renaming a product afterwards deliberately does NOT re-slug it.
+        if not self.slug:
+            self.slug = unique_slug(
+                FrameProduct, self.title, f'product-{self.pk or ""}', instance=self,
+            )
+        super().save(*args, **kwargs)
+
     @property
     def stock_quantity(self):
         """Aggregate stock across all variants — not stored, always derived."""
@@ -95,6 +162,9 @@ class FrameVariant(models.Model):
 
     product = models.ForeignKey(FrameProduct, on_delete=models.CASCADE, related_name='variants')
     variant_name = models.CharField(max_length=100, default="", blank=True)
+    # Second segment of /product/<product-slug>/<variant-slug>. Unique per product
+    # rather than globally — every product is allowed its own "black" colorway.
+    slug = models.SlugField(max_length=140, blank=True, db_index=True)
     sku = models.CharField(max_length=100, unique=True)
     barcode = models.CharField(max_length=100, blank=True, default='', db_index=True)
 
@@ -143,6 +213,9 @@ class FrameVariant(models.Model):
     last_sold = models.DateTimeField(null=True, blank=True)
 
     class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['product', 'slug'], name='fvar_unique_product_slug'),
+        ]
         indexes = [
             models.Index(fields=['product', 'is_listed', 'stock'], name='fvar_prod_listed_stock_idx'),
             models.Index(fields=['sku'], name='fvar_sku_idx'),
@@ -170,6 +243,23 @@ class FrameVariant(models.Model):
         # Coming back in stock does NOT auto re-list — that's a deliberate admin call.
         if self.stock <= 0:
             self.is_listed = False
+        if not self.slug:
+            # variant_name is optional in the admin form, so fall back through the
+            # colour labels the storefront already displays, then the SKU (always set).
+            # Legacy rows stored a hex code in `color`; "#1a1a1a" is not a readable
+            # URL segment, so hex-looking values are skipped the same way the PDP
+            # skips them when labelling a swatch.
+            def _readable(*values):
+                for v in values:
+                    v = (v or '').strip()
+                    if v and not re.fullmatch(r'#?[0-9a-fA-F]{3,8}', v):
+                        return v
+                return ''
+            source = _readable(self.variant_name, self.color, self.frame_color)
+            self.slug = unique_slug(
+                FrameVariant, source, self.sku,
+                scope={'product_id': self.product_id}, instance=self, max_length=140,
+            )
         super().save(*args, **kwargs)
 
     def __str__(self): return f"{self.product.title} [{self.sku}]"
@@ -399,7 +489,7 @@ class Prescription(models.Model):
     prism_base_os = models.CharField(max_length=20, blank=True)
     
     vision_type = models.CharField(max_length=50, blank=True) # Single Vision, Progressive, Bifocal
-    prescription_file = models.FileField(upload_to='prescriptions/', null=True, blank=True)
+    prescription_file = models.FileField(upload_to=prescription_upload_path, null=True, blank=True)
     review_notes = models.TextField(blank=True)
 
     status = models.ForeignKey(MetadataItem, on_delete=models.SET_NULL, null=True, blank=True, limit_choices_to={'group__name': 'Prescription Status'})
@@ -410,12 +500,39 @@ class Prescription(models.Model):
 
 class UserFace(models.Model):
     """
-    Consolidated from eyewear_features. 
+    Consolidated from eyewear_features.
     Unified PD storage.
     """
+    # How the PD was arrived at. Worth recording per row: the card method is
+    # accurate to roughly ±0.5mm because it scales the photo against a real
+    # ISO/IEC 7810 ID-1 card, while rows written by the retired face-ratio
+    # measurement assumed a 140mm average face width and can be several mm out.
+    # Support needs to tell those apart before re-cutting a lens.
+    PD_METHOD_CARD = 'card'
+    PD_METHOD_MANUAL = 'manual'
+    PD_METHOD_FACE_RATIO = 'face_ratio'
+    PD_METHOD_CHOICES = [
+        (PD_METHOD_CARD, 'Card reference (ID-1)'),
+        (PD_METHOD_MANUAL, 'Entered manually'),
+        (PD_METHOD_FACE_RATIO, 'Face-width ratio (legacy)'),
+    ]
+
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='face_capture_v2')
-    image = models.ImageField(upload_to='face_captures/')
+    image = models.ImageField(upload_to=face_capture_upload_path)
     pd_distance = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+
+    # Monocular PD — each pupil to the bridge centre. The card measurement yields
+    # these from the same landmarks at no extra cost, and progressive lenses are
+    # glazed from them rather than from the binocular total.
+    pd_right_mm = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True,
+                                      help_text='Right eye (OD) to nose bridge centre, mm.')
+    pd_left_mm = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True,
+                                     help_text='Left eye (OS) to nose bridge centre, mm.')
+
+    pd_method = models.CharField(max_length=20, choices=PD_METHOD_CHOICES, blank=True,
+                                 help_text='How pd_distance was obtained.')
+    pd_confidence = models.CharField(max_length=10, blank=True,
+                                     help_text='high / medium / low, as reported by the measurement.')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

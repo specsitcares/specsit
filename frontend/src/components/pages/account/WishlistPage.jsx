@@ -32,6 +32,11 @@ const WishlistCard = ({ item, onRemove }) => {
     const [removing, setRemoving] = useState(false);
 
     const product = toProductShape(item);
+    // Link to the exact saved colorway. Falls back to the numeric id for rows
+    // served before the slug fields existed (the route accepts either).
+    const productHref = item.product_slug
+        ? `/product/${item.product_slug}${item.variant_slug ? `/${item.variant_slug}` : ''}`
+        : `/product/${product.id}`;
     const mrp            = Math.round(parseFloat(product.base_price || 0));
     const productSelling = parseFloat(product.selling_price || 0);
     const productDiscPct = parseFloat(product.discount_percentage || 0);
@@ -60,7 +65,7 @@ const WishlistCard = ({ item, onRemove }) => {
     };
 
     return (
-        <Link to={`/product/${product.id}`} className="wl-card">
+        <Link to={productHref} className="wl-card">
             {/* Image area — same background as NewArrivals product card */}
             <div className="wl-card__img-wrap">
                 {product.main_image ? (

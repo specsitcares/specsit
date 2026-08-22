@@ -1,4 +1,5 @@
 from rest_framework import serializers # type: ignore
+from django.urls import reverse # type: ignore
 from decimal import Decimal
 from .models import Category, BrandLogo, FrameProduct, FrameVariant, VariantImage, Collection, LensPackage, Lens, ContactLens, Prescription, UserFace, Review, LensConstraint, MetadataItem, SEO
 
@@ -565,6 +566,9 @@ class PrescriptionSerializer(serializers.ModelSerializer):
     order_id = serializers.SerializerMethodField()
     order_display_id = serializers.SerializerMethodField()
     prescription_file = serializers.SerializerMethodField()
+    # The delivery route has no file extension, so the UI can no longer sniff
+    # "is this a PDF or an image?" off the URL. Report it explicitly instead.
+    prescription_file_name = serializers.SerializerMethodField()
 
     def get_user_name(self, obj):
         return obj.user.get_full_name() or obj.user.username
@@ -583,12 +587,24 @@ class PrescriptionSerializer(serializers.ModelSerializer):
         return f'#LO-{str(item.order_id).zfill(7)}' if item else None
 
     def get_prescription_file(self, obj):
-        if obj.prescription_file:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.prescription_file.url)
-            return obj.prescription_file.url
-        return None
+        """Return the authorized delivery route, never the raw storage URL.
+
+        Emitting obj.prescription_file.url handed out a permanent, unauthenticated
+        link to a medical document — anyone it reached (browser history, a shared
+        link, a referrer header, a log) could read it forever. This route checks
+        ownership on every request.
+        """
+        if not obj.prescription_file:
+            return None
+        path = reverse('prescription-file', kwargs={'pk': obj.pk})
+        request = self.context.get('request')
+        return request.build_absolute_uri(path) if request else path
+
+    def get_prescription_file_name(self, obj):
+        import os as _os
+        if not obj.prescription_file:
+            return None
+        return _os.path.basename(obj.prescription_file.name)
 
     class Meta:
         model = Prescription
@@ -598,18 +614,33 @@ class PrescriptionSerializer(serializers.ModelSerializer):
             'os_sphere', 'os_cylinder', 'os_axis', 'os_add',
             'pd_distance', 'pd_type',
             'prism_od', 'prism_base_od', 'prism_os', 'prism_base_os',
-            'vision_type', 'prescription_file', 'review_notes',
+            'vision_type', 'prescription_file', 'prescription_file_name', 'review_notes',
             'status', 'status_label',
             'order_id', 'order_display_id',
             'created_at', 'updated_at',
         ]
-        read_only_fields = ['user', 'user_name', 'status_label', 'order_id', 'order_display_id', 'prescription_file']
+        read_only_fields = [
+            'user', 'user_name', 'status_label', 'order_id', 'order_display_id',
+            'prescription_file', 'prescription_file_name',
+        ]
 
 class UserFaceSerializer(serializers.ModelSerializer):
+    # Same reasoning as PrescriptionSerializer.get_prescription_file: a stored face
+    # photograph is biometric data and must not be exposed as a public asset URL.
+    image = serializers.SerializerMethodField()
+
+    def get_image(self, obj):
+        if not obj.image:
+            return None
+        path = reverse('face-capture-file', kwargs={'pk': obj.pk})
+        request = self.context.get('request')
+        return request.build_absolute_uri(path) if request else path
+
     class Meta:
         model = UserFace
-        fields = ['id', 'user', 'image', 'pd_distance', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'user', 'created_at', 'updated_at']
+        fields = ['id', 'user', 'image', 'pd_distance', 'pd_right_mm', 'pd_left_mm',
+                  'pd_method', 'pd_confidence', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'user', 'image', 'created_at', 'updated_at']
 
 class ReviewSerializer(serializers.ModelSerializer):
     username = serializers.ReadOnlyField(source='user.username')
@@ -623,4 +654,12 @@ class ReviewSerializer(serializers.ModelSerializer):
             'reviewer_display_name', 'review_images', 'is_verified_purchase',
             'is_approved', 'is_rejected', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'username', 'created_at', 'updated_at', 'is_verified_purchase']
+        # Moderation state is staff-owned. These were writable, and because a
+        # customer legitimately owns their own review row, a follow-up PATCH with
+        # {"is_approved": true} published it straight past moderation — undoing the
+        # is_approved=False that perform_create sets. Staff still set these through
+        # the approve/reject/feature actions, which write the model directly.
+        read_only_fields = [
+            'id', 'username', 'created_at', 'updated_at', 'is_verified_purchase',
+            'is_approved', 'is_rejected', 'order', 'product',
+        ]

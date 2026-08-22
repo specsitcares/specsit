@@ -36,8 +36,11 @@ const HomeContent = () => {
     return () => { observer.disconnect(); clearTimeout(t); };
   }, [home, observerCallback]);
 
+  // Every heading, sub-heading and copy string on this page comes from the CMS
+  // (Homepage Management → section title/subtitle). Nothing is hard-coded here.
   const sections = home?.sections || {};
   const show = (key) => (sections[key] ? sections[key].is_published : false);
+  const sec = (key) => sections[key] || {};
 
   const products = home?.products || [];
   const frameProducts = products.filter(p => p.product_type === 'frame' || !p.product_type);
@@ -59,8 +62,8 @@ const HomeContent = () => {
       {show('frame_range_categories') && <FrameLounge />}
       {show('top_new_arrivals') && newArrivals.length > 0 && (
         <ProductSection
-          title={sections.top_new_arrivals?.title || 'The New Arrivals'}
-          subtitle="Freshness guaranteed with our latest collection of eyewear."
+          title={sec('top_new_arrivals').title}
+          subtitle={sec('top_new_arrivals').subtitle}
           viewAllLink="/products?sort=newest"
           products={newArrivals}
         />
@@ -69,26 +72,30 @@ const HomeContent = () => {
       {show('built_with_premium_intent') && <PremiumIntent />}
       {show('explore_sunglasses') && sunglasses.length > 0 && (
         <ProductSection
-          title={sections.explore_sunglasses?.title || 'Explore Sunglasses'}
-          subtitle="Shield your eyes in style with our curated sunglass collection."
+          title={sec('explore_sunglasses').title}
+          subtitle={sec('explore_sunglasses').subtitle}
           viewAllLink="/products?category=sunglasses"
           products={sunglasses}
         />
       )}
       {show('best_sellers') && bestSellers.length > 0 && (
         <ProductSection
-          title={sections.best_sellers?.title || 'The Best Sellers'}
-          subtitle="Our most coveted pieces, loved by the community."
+          title={sec('best_sellers').title}
+          subtitle={sec('best_sellers').subtitle}
           viewAllLink="/products?sort=bestsellers"
           products={bestSellers}
         />
       )}
       {show('promo_banner_1') && <PromoBanner section="promo_banner_1" />}
       {show('client_testimonials') && <Testimonials />}
-      <ShippingBenefits />
+      {show('shipping_benefits') && (
+        <ShippingBenefits title={sec('shipping_benefits').title} benefits={home?.benefits || []} />
+      )}
       {show('our_blog') && <BlogSection />}
       {show('promo_banner_2') && <PromoBanner section="promo_banner_2" />}
-      {show('shop_into_better_vision') && <VisitAtelier />}
+      {show('shop_into_better_vision') && (
+        <VisitAtelier section={sec('shop_into_better_vision')} store={home?.store} />
+      )}
       {show('faq') && <FAQ />}
       {show('newsletter') && <Newsletter data={home?.newsletter} />}
     </div>

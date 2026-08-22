@@ -1,0 +1,461 @@
+/* ── Card-reference PD measurement ──────────────────────────────────────────
+   Shared by the lens-selection aside modal and the standalone capture page, so
+   everything is namespaced `pdc-`/`pdc__` and inherits the host's width.       */
+
+.pdc {
+  --pdc-accent: #68408D;
+  --pdc-accent-soft: #F4EBFF;
+  --pdc-ok: #16a34a;
+  --pdc-warn: #d97706;
+  --pdc-bad: #dc2626;
+  --pdc-text: #040205;
+  --pdc-muted: #71717A;
+  --pdc-border: #EFEDF0;
+  --pdc-surface: #FEFCFF;
+
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  color: var(--pdc-text);
+}
+
+.pdc__canvas { display: none; }
+
+/* ── Step 1: placement animation ──────────────────────────────────────────── */
+
+.pdc-anim {
+  width: 100%;
+  background: linear-gradient(180deg, var(--pdc-accent-soft) 0%, var(--pdc-surface) 100%);
+  border: 1px solid var(--pdc-border);
+  border-radius: 14px;
+  padding: 10px;
+}
+
+.pdc-anim__svg {
+  display: block;
+  width: 100%;
+  /* The viewBox is 240x190; the ratio keeps the head from stretching. */
+  aspect-ratio: 240 / 190;
+  height: auto;
+}
+
+.pdc-anim__head {
+  fill: #FBEFE4;
+  stroke: #E3CDB8;
+  stroke-width: 1.6;
+}
+
+.pdc-anim__line {
+  fill: none;
+  stroke: #C4A78F;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+
+.pdc-anim__eye {
+  fill: var(--pdc-accent);
+}
+
+/* Dashed target the card slides into. */
+.pdc-anim__target {
+  fill: none;
+  stroke: var(--pdc-accent);
+  stroke-width: 1.4;
+  stroke-dasharray: 4 4;
+  opacity: 0.35;
+}
+
+.pdc-anim__card-body {
+  fill: #FFFFFF;
+  stroke: var(--pdc-accent);
+  stroke-width: 1.6;
+}
+.pdc-anim__card-chip { fill: #FBBF24; }
+.pdc-anim__card-stripe { fill: #D9D2E0; }
+
+.pdc-anim__ruler-line {
+  stroke: var(--pdc-accent);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+}
+.pdc-anim__ruler-text,
+.pdc-anim__pd-text {
+  fill: var(--pdc-accent);
+  font-size: 11px;
+  font-weight: 700;
+  text-anchor: middle;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+.pdc-anim__pd-line {
+  stroke: var(--pdc-accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+/* ── The loop ──────────────────────────────────────────────────────────────
+   0.0s  card waits off-frame, lower right, rotated
+   0.6s  slides in and straightens
+   1.2s  lands on the forehead target
+   1.6s  a short "press flat" nudge
+   2.0s  the 85.6mm ruler appears — this is the point of the whole animation
+   2.6s  the pupil measurement appears
+   4.2s  hold, then restart
+   Transforms are grouped on separate elements so translate/rotate and the scale
+   pulse never fight over the same transform property.                        */
+
+@keyframes pdc-card-in {
+  0%        { transform: translate(74px, 96px) rotate(38deg); opacity: 0; }
+  8%        { transform: translate(74px, 96px) rotate(38deg); opacity: 1; }
+  28%       { transform: translate(26px, 34px) rotate(14deg); opacity: 1; }
+  40%, 100% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+}
+
+@keyframes pdc-card-press {
+  0%, 36%      { transform: scale(1); }
+  42%          { transform: scale(1.05); }
+  48%          { transform: scale(0.985); }
+  54%, 100%    { transform: scale(1); }
+}
+
+@keyframes pdc-fade-in {
+  0%, 46%   { opacity: 0; }
+  56%, 100% { opacity: 1; }
+}
+
+@keyframes pdc-fade-in-late {
+  0%, 60%   { opacity: 0; }
+  70%, 100% { opacity: 1; }
+}
+
+.pdc-anim__card {
+  animation: pdc-card-in 4.2s cubic-bezier(0.32, 0.72, 0.24, 1) infinite;
+  /* Rotate about the card's own centre rather than the SVG origin. */
+  transform-origin: 120px 80px;
+  transform-box: fill-box;
+}
+
+/* The press pulse lives on the body so it composes with the group's transform. */
+.pdc-anim__card-body {
+  animation: pdc-card-press 4.2s ease-in-out infinite;
+  transform-origin: center;
+  transform-box: fill-box;
+}
+
+.pdc-anim__ruler { animation: pdc-fade-in 4.2s ease-out infinite; }
+.pdc-anim__pd { animation: pdc-fade-in-late 4.2s ease-out infinite; }
+
+/* Motion off: show the finished, placed state — the instruction still reads. */
+@media (prefers-reduced-motion: reduce) {
+  .pdc-anim__card,
+  .pdc-anim__card-body,
+  .pdc-anim__ruler,
+  .pdc-anim__pd {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.pdc__steps {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 19px;
+  color: var(--pdc-text);
+}
+
+.pdc__why {
+  margin: 0;
+  padding: 9px 11px;
+  background: var(--pdc-accent-soft);
+  border-radius: 10px;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--pdc-accent);
+}
+
+/* ── Step 2/3: camera + review stage ──────────────────────────────────────── */
+
+.pdc__stage {
+  position: relative;
+  width: 100%;
+  /* Reserve the space from the ratio so the panel never jumps when the camera
+     starts — same reasoning as the app's other image boxes. */
+  aspect-ratio: var(--ar-gallery, 4 / 3);
+  border-radius: 14px;
+  overflow: hidden;
+  background: #1B1520;
+}
+
+.pdc__video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Ghost card outline. Sized from the card's real proportions so the user is
+   aiming at something the right shape, and placed over the forehead. */
+.pdc__ghost {
+  position: absolute;
+  top: 13%;
+  left: 50%;
+  width: 34%;
+  transform: translateX(-50%);
+  border: 2px dashed rgba(255, 255, 255, 0.75);
+  border-radius: 6px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 4px;
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  pointer-events: none;
+}
+
+.pdc__ghost-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.pdc__ghost--ok {
+  border-color: var(--pdc-ok);
+  border-style: solid;
+  background: rgba(22, 163, 74, 0.12);
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.18);
+}
+
+.pdc__overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: rgba(4, 2, 5, 0.55);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pdc__spinner {
+  width: 26px;
+  height: 26px;
+  border: 2.5px solid rgba(255, 255, 255, 0.25);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: pdc-spin 0.8s linear infinite;
+}
+
+@keyframes pdc-spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .pdc__spinner { animation-duration: 2.4s; }
+}
+
+.pdc__countdown {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 72px;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.55);
+  animation: pdc-pop 0.5s ease-out;
+  pointer-events: none;
+}
+
+@keyframes pdc-pop {
+  from { transform: scale(1.5); opacity: 0.2; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+.pdc__hints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 26px;
+}
+
+.pdc__hints span {
+  padding: 5px 10px;
+  border-radius: 20px;
+  background: #FEF3C7;
+  color: #92400E;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.pdc__hints--ok span {
+  background: #DCFCE7;
+  color: #15803D;
+}
+
+/* ── Manual corner placement ──────────────────────────────────────────────── */
+
+/* The stage carries the frame's own ratio here (set inline), so `contain` shows
+   the whole photo with no letterboxing and no crop — the corner handles map
+   linearly from box pixels to image pixels. */
+.pdc__stage--review { touch-action: none; }
+.pdc__stage--review .pdc__video { object-fit: contain; }
+
+.pdc__quad {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.pdc__quad-shape {
+  fill: rgba(104, 64, 141, 0.16);
+  stroke: #C4B5FD;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.pdc__handle {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  margin: -15px 0 0 -15px;
+  border: 2.5px solid var(--pdc-accent);
+  border-radius: 50%;
+  background: rgba(254, 252, 255, 0.9);
+  cursor: grab;
+  padding: 0;
+  touch-action: none;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
+}
+
+.pdc__handle:active { cursor: grabbing; transform: scale(1.12); }
+
+.pdc__manual-tip {
+  margin: 0;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--pdc-muted);
+}
+
+/* ── Result ───────────────────────────────────────────────────────────────── */
+
+.pdc__result {
+  border: 2px solid var(--pdc-border);
+  border-radius: 12px;
+  padding: 12px;
+  text-align: center;
+  background: var(--pdc-surface);
+}
+
+.pdc__result--high   { border-color: var(--pdc-ok); }
+.pdc__result--medium { border-color: var(--pdc-warn); }
+.pdc__result--low    { border-color: var(--pdc-bad); }
+
+.pdc__result-pd {
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -1px;
+}
+
+.pdc__result-pd span {
+  font-size: 14px;
+  font-weight: 700;
+  margin-left: 4px;
+  color: var(--pdc-muted);
+}
+
+.pdc__result--high   .pdc__result-pd { color: var(--pdc-ok); }
+.pdc__result--medium .pdc__result-pd { color: var(--pdc-warn); }
+.pdc__result--low    .pdc__result-pd { color: var(--pdc-bad); }
+
+.pdc__result-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 6px;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--pdc-muted);
+}
+
+.pdc__result-reasons {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  text-align: left;
+  font-size: 10px;
+  line-height: 15px;
+  color: var(--pdc-muted);
+}
+
+.pdc__error {
+  margin: 0;
+  padding: 9px 11px;
+  border-radius: 10px;
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  color: #B91C1C;
+  font-size: 11px;
+  line-height: 16px;
+}
+
+/* ── Actions ──────────────────────────────────────────────────────────────── */
+
+.pdc__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.pdc__btn {
+  flex: 1;
+  border-radius: 10px;
+  padding: 11px 12px;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  border: 1.5px solid var(--pdc-accent);
+  transition: background 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+}
+
+.pdc__btn--ghost {
+  background: var(--pdc-surface);
+  color: var(--pdc-accent);
+}
+.pdc__btn--ghost:hover { background: var(--pdc-accent-soft); }
+
+.pdc__btn--primary {
+  background: var(--pdc-accent);
+  color: #fff;
+}
+.pdc__btn--primary:hover { background: #56306F; }
+
+.pdc__btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ── Compact variant (inside the narrow lens-selection modal) ─────────────── */
+
+.pdc--compact .pdc__steps { font-size: 12px; line-height: 17px; gap: 4px; }
+.pdc--compact .pdc__result-pd { font-size: 28px; }
+.pdc--compact .pdc__countdown { font-size: 56px; }
+
+@media (max-width: 480px) {
+  .pdc__countdown { font-size: 54px; }
+  .pdc__result-pd { font-size: 28px; }
+  .pdc__handle { width: 34px; height: 34px; margin: -17px 0 0 -17px; }
+  .pdc__actions { flex-wrap: wrap; }
+  .pdc__btn { flex: 1 1 100%; }
+}

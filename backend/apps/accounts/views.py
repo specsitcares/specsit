@@ -14,6 +14,7 @@ from django.contrib.auth import login
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
+from apps.core_utils.authentication import issue_token
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +63,11 @@ class MeView(APIView):
             'first_name': user.first_name,
             'last_name': user.last_name,
             'date_joined': user.date_joined,
+            # Server-issued, and the ONLY trustworthy source of this flag. The admin
+            # route guard used to read it from a localStorage blob the visitor could
+            # edit, so setting is_staff:true in DevTools opened the admin panel.
+            'is_staff': user.is_staff,
+            'is_superuser': user.is_superuser,
             'phone': profile.phone if profile else '',
             'birthday': _serialize_birthday(profile.birthday) if profile else '',
             'gender': profile.gender if profile else '',
@@ -79,7 +85,23 @@ class MeView(APIView):
         u = request.user
         u.first_name = request.data.get('first_name', u.first_name)
         u.last_name = request.data.get('last_name', u.last_name)
-        u.email = request.data.get('email', u.email)
+
+        # An email change used to be written straight through with no checks at
+        # all, so anyone could point their account at another customer's address —
+        # which broke that customer's email login and could redirect their Google
+        # sign-in. Uniqueness is enforced here; ownership of the new address still
+        # needs a confirmation email (see the note in the security report).
+        new_email = request.data.get('email')
+        if new_email is not None and new_email != u.email:
+            new_email = new_email.strip()
+            if not new_email:
+                return Response({'email': ['Email cannot be blank.']},
+                                status=status.HTTP_400_BAD_REQUEST)
+            if User.objects.filter(email__iexact=new_email).exclude(pk=u.pk).exists():
+                return Response({'email': ['That email is already in use.']},
+                                status=status.HTTP_400_BAD_REQUEST)
+            u.email = new_email
+
         u.save()
 
         profile, _ = UserProfile.objects.get_or_create(user=u)
@@ -301,10 +323,32 @@ class GoogleOAuthView(APIView):
         if not email:
             return Response({'error': 'Email not provided by Google'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 3. Get or create user
-        user = User.objects.filter(email=email).first()
+        # Google must vouch for the address before we link it to an existing local
+        # account. Without this check, an unverified Google address matching a local
+        # one was enough to sign into that account.
+        if not user_info.get('verified_email', False):
+            return Response(
+                {'error': 'Your Google account email is not verified. '
+                          'Verify it with Google, or sign in with a password.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 3. Get or create user.
+        # .filter(email=...).first() silently picked the lowest-PK row when more
+        # than one account claimed the address — so a local account registered with
+        # a victim's email could capture the victim's Google sign-in. Refuse the
+        # ambiguous case instead of guessing.
+        candidates = list(User.objects.filter(email__iexact=email)[:2])
+        if len(candidates) > 1:
+            logger.error('Google sign-in blocked: %s matches multiple accounts', email)
+            return Response(
+                {'error': 'That email is linked to more than one account. '
+                          'Please contact support.'},
+                status=status.HTTP_409_CONFLICT
+            )
+        user = candidates[0] if candidates else None
         created = False
-        
+
         if not user:
             # Check if username exists as something else
             base_username = email.split('@')[0]
@@ -322,8 +366,8 @@ class GoogleOAuthView(APIView):
             )
             created = True
 
-        # 4. Generate/Get token for DRF
-        token, _ = Token.objects.get_or_create(user=user)
+        # 4. Issue a token that carries a lifetime (see core_utils.authentication)
+        token = issue_token(user)
 
         return Response({
             'token': token.key,

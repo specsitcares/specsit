@@ -97,15 +97,15 @@ const AccountInfoPage = () => {
                 bank_name: form.bank_name,
             });
 
-            // Sync auth context with updated user fields
-            const updated = {
-                ...user,
+            // Sync auth context from the server's own copy of the profile rather
+            // than persisting a user blob to localStorage (which is editable, and
+            // carried the is_staff flag the admin route guard used to trust).
+            setUser((prev) => ({
+                ...prev,
                 email: res.data.email,
                 first_name: res.data.first_name,
                 last_name: res.data.last_name,
-            };
-            setUser(updated);
-            localStorage.setItem('user', JSON.stringify(updated));
+            }));
 
             // Refresh form from server to ensure consistency
             setForm({

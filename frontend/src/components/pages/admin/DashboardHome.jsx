@@ -25,32 +25,49 @@ const DashboardHome = ({ onOrderClick, onNavigate }) => {
    }, []);
 
    useEffect(() => {
-      const token = localStorage.getItem('token');
-      if (!token) return;
+      if (!localStorage.getItem('token')) return;
 
-      const sseUrl = `/api/sales/analytics/live-stream/?token=${encodeURIComponent(token)}`;
-      const eventSource = new EventSource(sseUrl);
+      let eventSource = null;
+      let cancelled = false;
 
       const handleEvent = () => {
          fetchStats();
       };
 
-      eventSource.addEventListener('order_created', handleEvent);
-      eventSource.addEventListener('order_updated', handleEvent);
-      eventSource.addEventListener('live_activity', handleEvent);
-      eventSource.addEventListener('cart_created', handleEvent);
-      eventSource.addEventListener('cart_updated', handleEvent);
-      eventSource.addEventListener('cart_deleted', handleEvent);
-      eventSource.addEventListener('return_created', handleEvent);
-      eventSource.addEventListener('return_updated', handleEvent);
+      // Single-use 60-second ticket instead of the auth token in the URL — see
+      // AnalyticsStreamTicketView. Query strings leak into logs and history.
+      (async () => {
+         let ticket;
+         try {
+            const res = await apiClient.post('/sales/analytics/stream-ticket/');
+            ticket = res.data.ticket;
+         } catch {
+            return; // no live updates; the dashboard still polls/loads normally
+         }
+         if (cancelled || !ticket) return;
 
-      eventSource.onerror = (err) => {
-         console.error('Dashboard SSE connection error:', err);
-         eventSource.close();
-      };
+         eventSource = new EventSource(
+            `/api/sales/analytics/live-stream/?ticket=${encodeURIComponent(ticket)}`
+         );
+
+         eventSource.addEventListener('order_created', handleEvent);
+         eventSource.addEventListener('order_updated', handleEvent);
+         eventSource.addEventListener('live_activity', handleEvent);
+         eventSource.addEventListener('cart_created', handleEvent);
+         eventSource.addEventListener('cart_updated', handleEvent);
+         eventSource.addEventListener('cart_deleted', handleEvent);
+         eventSource.addEventListener('return_created', handleEvent);
+         eventSource.addEventListener('return_updated', handleEvent);
+
+         eventSource.onerror = (err) => {
+            console.error('Dashboard SSE connection error:', err);
+            eventSource.close();
+         };
+      })();
 
       return () => {
-         eventSource.close();
+         cancelled = true;
+         if (eventSource) eventSource.close();
       };
    }, []);
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, User, Phone, FileText, Check, Flag, Download } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import apiClient from '../../../services/api';
+import apiClient, { fetchProtectedBlobUrl } from '../../../services/api';
 
 const fmt = (v) => (v !== null && v !== undefined && v !== '' ? String(v) : '—');
 
@@ -43,19 +43,26 @@ const PrescriptionOffcanvas = ({ order, onClose, onApproved }) => {
 
   const rx = prescriptions[currentIndex] || null;
 
-  // Fetch PDF as blob to bypass X-Frame-Options
+  // Load the file as a blob. This was a bare fetch() against a public media URL;
+  // prescriptions now go through an ownership-checked endpoint, so the request has
+  // to carry the auth header — which only apiClient does. The blob doubles as the
+  // X-Frame-Options workaround the original fetch was there for.
   useEffect(() => {
     if (!rx?.prescription_file) return;
-    const rel = rx.prescription_file.replace(/^https?:\/\/[^/]+/, '');
-    if (!/\.pdf$/i.test(rel.split('?')[0])) return;
     let cancelled = false;
-    fetch(rel, { credentials: 'same-origin' })
-      .then(r => r.ok ? r.blob() : Promise.reject())
-      .then(blob => { if (!cancelled) setPdfBlobUrl(URL.createObjectURL(blob)); })
-      .catch(() => {});
+    let created = null;
+    fetchProtectedBlobUrl(rx.prescription_file).then((objUrl) => {
+      if (cancelled) {
+        if (objUrl) URL.revokeObjectURL(objUrl);
+        return;
+      }
+      created = objUrl;
+      setPdfBlobUrl(objUrl);
+    });
     return () => {
       cancelled = true;
-      setPdfBlobUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null; });
+      if (created) URL.revokeObjectURL(created);
+      setPdfBlobUrl(null);
     };
   }, [rx?.prescription_file]);
 
@@ -96,11 +103,12 @@ const PrescriptionOffcanvas = ({ order, onClose, onApproved }) => {
   };
 
   const handleDownload = () => {
-    if (!rx?.prescription_file) return;
-    const url = rx.prescription_file.replace(/^https?:\/\/[^/]+/, '');
+    // Download the already-authorized blob rather than pointing an <a> at the
+    // endpoint — a plain navigation carries no auth header and would 401.
+    if (!pdfBlobUrl) return;
     const a = document.createElement('a');
-    a.href = url;
-    a.download = url.split('/').pop() || 'prescription';
+    a.href = pdfBlobUrl;
+    a.download = rx?.prescription_file_name || 'prescription';
     a.click();
   };
 
@@ -108,11 +116,14 @@ const PrescriptionOffcanvas = ({ order, onClose, onApproved }) => {
   const customerName = order?.customer_name || 'Customer';
   const customerPhone = order?.customer_phone || order?.items?.[0]?.customer_phone || '';
 
+  // The delivery route carries no extension, so type is decided from the stored
+  // filename the API reports rather than from the URL.
   const hasFile = !!rx?.prescription_file;
-  const fileUrl = hasFile ? rx.prescription_file.replace(/^https?:\/\/[^/]+/, '') : '';
-  const isImage = hasFile && /\.(jpg|jpeg|png|gif|webp)$/i.test(fileUrl.split('?')[0]);
-  const isPdf   = hasFile && /\.pdf$/i.test(fileUrl.split('?')[0]);
-  const fileName = hasFile ? (fileUrl.split('/').pop() || 'Prescription File') : null;
+  const fileUrl = pdfBlobUrl || '';
+  const storedName = rx?.prescription_file_name || '';
+  const isImage = hasFile && /\.(jpg|jpeg|png|gif|webp)$/i.test(storedName);
+  const isPdf   = hasFile && /\.pdf$/i.test(storedName);
+  const fileName = hasFile ? (storedName || 'Prescription File') : null;
 
   const rows = rx ? [
     { eye: 'OD', sub: '(Right)', sph: rx.od_sphere, cyl: rx.od_cylinder, axis: rx.od_axis, add: rx.od_add },
@@ -218,7 +229,10 @@ const PrescriptionOffcanvas = ({ order, onClose, onApproved }) => {
                 }}>
                   {hasFile ? (
                     isImage ? (
-                      <img src={fileUrl} alt="Prescription" style={{ width: '100%', maxHeight: 340, objectFit: 'contain' }} />
+                      // Scaled down to fit the 340px viewer, keeping the scan's
+                      // own ratio — `width:100%` + maxHeight let the box height
+                      // vary with whatever each upload happened to be.
+                      <img src={fileUrl} alt="Prescription" style={{ maxWidth: '100%', maxHeight: 340, objectFit: 'contain', display: 'block' }} />
                     ) : isPdf ? (
                       pdfBlobUrl ? (
                         <iframe src={pdfBlobUrl} title="Prescription PDF" style={{ width: '100%', height: 340, border: 'none' }} />

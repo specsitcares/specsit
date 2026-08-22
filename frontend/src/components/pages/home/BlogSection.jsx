@@ -4,7 +4,7 @@ import { useHomeData } from '../../../context/HomeDataContext';
 
 const BlogSection = () => {
   const home = useHomeData();
-  const title = home?.sections?.our_blog?.title || 'Our Blog';
+  const section = home?.sections?.our_blog || {};
   const data = (home?.blogs || []).map(b => ({
     tag: b.category, title: b.title, excerpt: b.excerpt, slug: b.slug || b.id, image: b.thumbnail,
   }));
@@ -13,8 +13,8 @@ const BlogSection = () => {
   return (
     <section className="blog-section" id="blog-section">
       <div className="blog-section__header">
-        <h2 className="blog-section__title">{title}</h2>
-        <p className="blog-section__subtitle">Insights, styling tips, and expert advice to help you choose, wear, and care for your eyewear.</p>
+        {section.title && <h2 className="blog-section__title">{section.title}</h2>}
+        {section.subtitle && <p className="blog-section__subtitle">{section.subtitle}</p>}
       </div>
       <div className="blog-section__grid">
         {data.map((p, i) => (
