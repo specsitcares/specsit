@@ -763,6 +763,14 @@ body {
   vertical-align: middle;
 }
 
+/* Products page runs a larger type scale than the other admin tables, so its
+   column headers need to come up to match the 14px row text. BaseAdminTable
+   sets th font-size inline (10px), hence !important. Scoped so no other table
+   is affected. */
+.products-table-scope .figma-table th {
+  font-size: 13px !important;
+}
+
 /* Sub-row Grouping */
 .nested-row-group {
   background: #F9F5FF !important; /* Extremely subtle purple for grouping */

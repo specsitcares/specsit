@@ -10,9 +10,9 @@ const StatusBadge = ({ isActive }) => (
   <span style={{
     backgroundColor: isActive ? '#ECFDF3' : '#FEF3F2',
     color: isActive ? '#027A48' : '#B42318',
-    padding: '3px 8px',
+    padding: '5px 11px',
     borderRadius: '13px',
-    fontSize: '10px',
+    fontSize: '12px',
     fontWeight: 600,
     display: 'inline-flex',
     alignItems: 'center',
@@ -25,16 +25,16 @@ const StatusBadge = ({ isActive }) => (
 );
 
 const StockBadge = ({ qty, threshold = 10 }) => {
-  if (qty <= 0) return <span style={{ backgroundColor: '#FEF3F2', color: '#B42318', padding: '3px 8px', borderRadius: '13px', fontSize: '10px', fontWeight: 600, border: '1px solid #FECDCA' }}>Out of Stock</span>;
-  if (qty <= threshold) return <span style={{ backgroundColor: '#FFFAEB', color: '#B54708', padding: '3px 8px', borderRadius: '13px', fontSize: '10px', fontWeight: 600, border: '1px solid #FEDF89' }}>Low ({qty})</span>;
-  return <span style={{ backgroundColor: '#ECFDF3', color: '#027A48', padding: '3px 8px', borderRadius: '13px', fontSize: '10px', fontWeight: 600, border: '1px solid #ABEFC6' }}>{qty}</span>;
+  if (qty <= 0) return <span style={{ backgroundColor: '#FEF3F2', color: '#B42318', padding: '5px 11px', borderRadius: '13px', fontSize: '12px', fontWeight: 600, border: '1px solid #FECDCA' }}>Out of Stock</span>;
+  if (qty <= threshold) return <span style={{ backgroundColor: '#FFFAEB', color: '#B54708', padding: '5px 11px', borderRadius: '13px', fontSize: '12px', fontWeight: 600, border: '1px solid #FEDF89' }}>Low ({qty})</span>;
+  return <span style={{ backgroundColor: '#ECFDF3', color: '#027A48', padding: '5px 11px', borderRadius: '13px', fontSize: '12px', fontWeight: 600, border: '1px solid #ABEFC6' }}>{qty}</span>;
 };
 
 const ActionBtn = ({ onClick, danger, children }) => (
   <div
     onClick={onClick}
     style={{
-      width: 28, height: 28,
+      width: 34, height: 34,
       border: `1px solid ${danger ? '#FECDCA' : '#D0D5DD'}`,
       borderRadius: '6px',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -80,61 +80,61 @@ const VariantRow = ({ v, onEdit, onDelete, productType }) => {
   const gender = v.gender || '—';
   return (
     <tr style={{ borderBottom: '1px solid #EAECF0', backgroundColor: '#fff' }}>
-      <td style={{ padding: '10px 16px' }}>
+      <td style={{ padding: '12px 16px' }}>
         <input type="checkbox" onClick={e => e.stopPropagation()} style={{ cursor: 'pointer', accentColor: '#7F56D9' }} />
       </td>
       {/* Image + name */}
-      <td style={{ padding: '10px 16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 6, overflow: 'hidden', background: '#F9FAFB', border: '1px solid #EAECF0', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            {imgUrl ? <img src={imgUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <span style={{ fontSize: 15, color: '#D0D5DD' }}>👓</span>}
+      <td style={{ padding: '12px 16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 42, height: 42, borderRadius: 8, overflow: 'hidden', background: '#F9FAFB', border: '1px solid #EAECF0', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {imgUrl ? <img src={imgUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <span style={{ fontSize: 20, color: '#D0D5DD' }}>👓</span>}
           </div>
           <div>
-            <div style={{ fontWeight: 600, color: '#101828', fontSize: 12 }}>{v.product_name || '—'}</div>
-            <div style={{ fontSize: 10, color: '#9CA3AF', fontFamily: 'monospace', marginTop: 1 }}>{v.sku || '—'}</div>
+            <div style={{ fontWeight: 600, color: '#101828', fontSize: 15 }}>{v.product_name || '—'}</div>
+            <div style={{ fontSize: 12, color: '#9CA3AF', fontFamily: 'monospace', marginTop: 2 }}>{v.sku || '—'}</div>
           </div>
         </div>
       </td>
-      <td style={{ padding: '10px 16px', color: '#667085', fontSize: 11 }}>
+      <td style={{ padding: '12px 16px', color: '#667085', fontSize: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {v.brand_logo ? (
             <img
               src={v.brand_logo}
               alt={v.brand_name || 'Brand'}
-              style={{ width: 18, height: 18, objectFit: 'contain', flexShrink: 0 }}
+              style={{ width: 24, height: 24, objectFit: 'contain', flexShrink: 0 }}
               onError={(e) => { e.target.style.display = 'none'; }}
             />
           ) : null}
           <span>{v.brand_name || '—'}</span>
         </div>
       </td>
-      <td style={{ padding: '10px 16px', color: '#667085', fontSize: 11 }}>{v.category_name || '—'}</td>
-      <td style={{ padding: '10px 16px', fontSize: 11 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <td style={{ padding: '12px 16px', color: '#667085', fontSize: 14 }}>{v.category_name || '—'}</td>
+      <td style={{ padding: '12px 16px', fontSize: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {v.color_selection_method === 'palette' && v.palette_image ? (
-            <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundImage: `url(${v.palette_image})`, backgroundSize: 'cover', backgroundPosition: 'center', border: '1px solid #D0D5DD', flexShrink: 0 }} />
+            <span style={{ width: 13, height: 13, borderRadius: '50%', backgroundImage: `url(${v.palette_image})`, backgroundSize: 'cover', backgroundPosition: 'center', border: '1px solid #D0D5DD', flexShrink: 0 }} />
           ) : v.color_code ? (
-            <span style={{ width: 10, height: 10, borderRadius: '50%', background: v.color_code, border: '1px solid #D0D5DD', flexShrink: 0 }} />
+            <span style={{ width: 13, height: 13, borderRadius: '50%', background: v.color_code, border: '1px solid #D0D5DD', flexShrink: 0 }} />
           ) : null}
           <span style={{ color: '#344054' }}>{color}</span>
         </div>
       </td>
       {(productType === 'frame' || productType === 'eyeglasses' || productType === 'sunglasses') && (
         <>
-          <td style={{ padding: '10px 16px', color: '#667085', fontSize: 11 }}>{v.barcode || '—'}</td>
-          <td style={{ padding: '10px 16px', color: '#667085', fontSize: 11 }}>{v.frame_material || '—'}</td>
+          <td style={{ padding: '12px 16px', color: '#667085', fontSize: 14 }}>{v.barcode || '—'}</td>
+          <td style={{ padding: '12px 16px', color: '#667085', fontSize: 14 }}>{v.frame_material || '—'}</td>
         </>
       )}
-      <td style={{ padding: '10px 16px', fontSize: 11 }}><StockBadge qty={v.stock ?? 0} threshold={v.low_stock_threshold ?? 10} /></td>
-      <td style={{ padding: '10px 16px', color: '#344054', fontWeight: 600, fontSize: 11 }}>{price !== '—' ? formatPrice(price) : '—'}</td>
-      <td style={{ padding: '10px 16px', color: '#667085', fontSize: 11 }}>{discount}%</td>
+      <td style={{ padding: '12px 16px', fontSize: 14 }}><StockBadge qty={v.stock ?? 0} threshold={v.low_stock_threshold ?? 10} /></td>
+      <td style={{ padding: '12px 16px', color: '#344054', fontWeight: 600, fontSize: 14 }}>{price !== '—' ? formatPrice(price) : '—'}</td>
+      <td style={{ padding: '12px 16px', color: '#667085', fontSize: 14 }}>{discount}%</td>
       {productType !== 'accessory' && (
-        <td style={{ padding: '10px 16px', color: '#667085', fontSize: 11 }}>{gender}</td>
+        <td style={{ padding: '12px 16px', color: '#667085', fontSize: 14 }}>{gender}</td>
       )}
-      <td style={{ padding: '10px 16px' }} onClick={e => e.stopPropagation()}>
+      <td style={{ padding: '12px 16px' }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          <ActionBtn onClick={() => onEdit(productType, v.product)}><Edit2 size={14} /></ActionBtn>
-          <ActionBtn danger onClick={() => onDelete(v)}><Trash2 size={14} /></ActionBtn>
+          <ActionBtn onClick={() => onEdit(productType, v.product)}><Edit2 size={17} /></ActionBtn>
+          <ActionBtn danger onClick={() => onDelete(v)}><Trash2 size={17} /></ActionBtn>
         </div>
       </td>
     </tr>
@@ -322,7 +322,7 @@ const ProductsPage = ({ onAddNew, onEdit }) => {
   }, [activeGroup, groupsData]);
 
   return (
-    <div>
+    <div className="products-table-scope">
       {/* Group tabs */}
       <div style={{ display: 'flex', background: '#F9FAFB', border: '1px solid #EAECF0', borderRadius: 8, padding: 4, gap: 8, marginBottom: 12 }}>
         {groupsData.map(g => (
