@@ -53,16 +53,25 @@ class VariantSerializer(serializers.ModelSerializer):
         return prod.brand.logo.url
 
     def get_effective_stock(self, obj):
-        # Prefer variant-level stock; fallback to product-level aggregate stock
-        try:
-            if obj.stock and obj.stock > 0:
-                return obj.stock
-        except Exception:
-            pass
-        try:
-            return obj.product.stock_quantity or 0
-        except Exception:
-            return 0
+        """The variant's own stock. Authoritative — no product-level fallback.
+
+        A `return obj.product.stock_quantity` fallback used to sit here, and it was
+        correct when written (2a65607, 2026-05-21): FrameProduct.stock_quantity was a
+        stored IntegerField, read for free off the already-joined product row, and it
+        covered products whose stock was tracked at product level rather than per
+        variant. Removed because the schema moved out from under it, not because it
+        was slow — that column was later replaced by a derived property summing the
+        product's variants, which broke the fallback two ways:
+
+          • it costs a query per zero-stock variant (the property iterates variants), and
+          • a variant with no stock reports its SIBLINGS' stock as its own.
+
+        Measured on production: of 5 out-of-stock variants, 4 reported non-zero —
+        variant 12 (Ray Ban RB3124) holds 0 units and returned 2, borrowed from a
+        sibling colorway. to_representation() writes this into `stock`, so the admin
+        inventory table was showing units that do not exist for that colorway.
+        """
+        return obj.stock or 0
 
     def validate_sku(self, value):
         if not value:

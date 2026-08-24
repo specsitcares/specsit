@@ -3,6 +3,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, serializers, viewsets
 from rest_framework.permissions import AllowAny, IsAdminUser
+from apps.core_utils.cache import TTL_CMS, cache_aside, cache_version, invalidate
 from .models import Announcement, HeroSlide, EditorialSection, Benefit, HomeSectionTitle, SiteSettings, HomeSection, BrandLogo, FrameRangeCard, SectionCard, PromoBanner, Blog, Faq, NewsletterSettings, HeaderSettings
 
 Category = apps.get_model('catalog', 'Category')
@@ -92,7 +93,47 @@ class HeroSlideAdminSerializer(serializers.ModelSerializer):
         return data
 
 
-class HeroSlideViewSet(viewsets.ModelViewSet):
+class CmsHomeCacheBustMixin:
+    """Bump the `cms_home` namespace whenever CMS content changes.
+
+    Not a new caching mechanism — it calls the project's existing
+    apps.core_utils.cache.invalidate(). Without it the versioned key in HomeBundleView
+    would never change and an admin edit would take up to TTL_CMS (15 min) to appear.
+
+    WHY CMS DIFFERS FROM THE CATALOG. The note at the bottom of core_utils/cache.py
+    explains that CachedReadMixin invalidates on TTL alone, deliberately, so that admin
+    writes issue zero Redis commands. That reasoning is about the CATALOG write path,
+    which is high-frequency: bulk inventory edits, stock decrements on every order,
+    order-status changes. Bumping a namespace on each of those would put real traffic
+    on a metered Redis for no user-visible gain, since stock accuracy is already
+    guarded elsewhere.
+
+    CMS content is the opposite workload. A human edits a banner, a hero slide or a FAQ
+    a handful of times a day, and the whole point of the edit is that it should show up.
+    "I changed the homepage and nothing happened for 15 minutes" is a support ticket.
+    One INCR per edit against a 10,000/day budget is nothing.
+
+    So: catalog stays TTL-only; CMS busts on write. Different frequency, different
+    payoff, opposite answer — and that is the reason, not an oversight.
+    """
+
+    def _bust(self):
+        invalidate('cms_home')
+
+    def perform_create(self, serializer):
+        super().perform_create(serializer)
+        self._bust()
+
+    def perform_update(self, serializer):
+        super().perform_update(serializer)
+        self._bust()
+
+    def perform_destroy(self, instance):
+        super().perform_destroy(instance)
+        self._bust()
+
+
+class HeroSlideViewSet(CmsHomeCacheBustMixin, viewsets.ModelViewSet):
     """Hero Banner editor — full CRUD over slides. Public reads see active slides."""
     serializer_class = HeroSlideAdminSerializer
 
@@ -128,7 +169,7 @@ class BrandLogoSerializer(serializers.ModelSerializer):
         return data
 
 
-class BrandLogoViewSet(viewsets.ModelViewSet):
+class BrandLogoViewSet(CmsHomeCacheBustMixin, viewsets.ModelViewSet):
     """Homepage brand-logo strip. Public reads see published logos."""
     serializer_class = BrandLogoSerializer
 
@@ -157,7 +198,7 @@ class FrameRangeCardSerializer(serializers.ModelSerializer):
         return data
 
 
-class FrameRangeCardViewSet(viewsets.ModelViewSet):
+class FrameRangeCardViewSet(CmsHomeCacheBustMixin, viewsets.ModelViewSet):
     """Homepage 'Frame Lounge' category cards. Public reads see active cards."""
     serializer_class = FrameRangeCardSerializer
 
@@ -200,7 +241,7 @@ class PromoBannerSerializer(serializers.ModelSerializer):
         return data
 
 
-class PromoBannerViewSet(viewsets.ModelViewSet):
+class PromoBannerViewSet(CmsHomeCacheBustMixin, viewsets.ModelViewSet):
     """Promotional banner per homepage section. GET ?section=<key> returns the
     single banner (auto-created for admins); public sees it only if published."""
     serializer_class = PromoBannerSerializer
@@ -238,7 +279,7 @@ class BlogSerializer(serializers.ModelSerializer):
         return data
 
 
-class BlogViewSet(viewsets.ModelViewSet):
+class BlogViewSet(CmsHomeCacheBustMixin, viewsets.ModelViewSet):
     """Blog posts. Public reads see published; admins manage all. Supports
     ?sort=latest|oldest|featured and ?limit=N. Retrieve accepts a pk or a slug."""
     serializer_class = BlogSerializer
@@ -290,7 +331,7 @@ class FaqSerializer(serializers.ModelSerializer):
         fields = ['id', 'question', 'answer', 'order', 'is_active']
 
 
-class FaqViewSet(viewsets.ModelViewSet):
+class FaqViewSet(CmsHomeCacheBustMixin, viewsets.ModelViewSet):
     """Homepage FAQs. Public reads see active entries."""
     serializer_class = FaqSerializer
 
@@ -306,7 +347,7 @@ class FaqViewSet(viewsets.ModelViewSet):
         return [IsAdminUser()]
 
 
-class SectionCardViewSet(viewsets.ModelViewSet):
+class SectionCardViewSet(CmsHomeCacheBustMixin, viewsets.ModelViewSet):
     """Generic homepage section cards, filtered by ?section=<key>."""
     serializer_class = SectionCardSerializer
 
@@ -325,7 +366,7 @@ class SectionCardViewSet(viewsets.ModelViewSet):
         return [IsAdminUser()]
 
 
-class HomeSectionViewSet(viewsets.ModelViewSet):
+class HomeSectionViewSet(CmsHomeCacheBustMixin, viewsets.ModelViewSet):
     """Homepage Management grid. Public reads see only published sections; admins
     see all and can toggle/edit."""
     serializer_class = HomeSectionSerializer
@@ -353,6 +394,7 @@ class SiteSettingsView(APIView):
         s = SiteSettingsSerializer(SiteSettings.get(), data=request.data, partial=True)
         if s.is_valid():
             s.save()
+            invalidate('cms_home')   # feeds the home bundle's `store` rail
             return Response(s.data)
         return Response(s.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -396,6 +438,7 @@ class NewsletterSettingsView(APIView):
         s = NewsletterSettingsSerializer(NewsletterSettings.get(), data=payload, partial=True)
         if s.is_valid():
             s.save()
+            invalidate('cms_home')   # feeds the home bundle's `newsletter` rail
             return Response(s.data)
         return Response(s.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -476,11 +519,17 @@ class HomePageCMSView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        from apps.core_utils.cache import cache_aside, cache_version
         if request.user and request.user.is_staff:
             return Response(self._build(request))
-        key = f"cms_home:v{cache_version('cms_home')}"
-        return Response(cache_aside(key, 300, lambda: self._build(request)))
+        # Scheme+host scoped for the same reason as HomeBundleView: _build() hands
+        # `request` to serializers that turn media paths into absolute URLs, so an
+        # unscoped entry would serve one hostname's image links to visitors on
+        # another. This key was previously unscoped.
+        key = (
+            f"cms_home:v{cache_version('cms_home')}"
+            f":{request.scheme}://{request.get_host()}"
+        )
+        return Response(cache_aside(key, TTL_CMS, lambda: self._build(request)))
 
     def _build(self, request):
         announcement = Announcement.objects.filter(is_active=True).last()
@@ -500,10 +549,38 @@ class HomePageCMSView(APIView):
 
 class HomeBundleView(APIView):
     """Single endpoint that returns ALL public homepage data in one response,
-    so the storefront home page loads with one request instead of ~12."""
+    so the storefront home page loads with one request instead of ~12.
+
+    HOST SCOPING: the payload embeds absolute media URLs built from `request`
+    (get_main_image, get_brand_logo, and every serializer handed `ctx`). Caching it
+    unscoped would serve one host's media URLs to visitors on another — broken images
+    that only appear once a second hostname exists. The key therefore carries
+    scheme+host. That splits the entry per hostname, which is cheap: the split is
+    bounded by the number of hosts serving the API (not by traffic), and in production
+    the URLs are already absolute Supabase links, so the variants are byte-identical
+    anyway. The alternative — caching relative URLs and absolutising after the read —
+    would mean walking a ~70KB nested payload on every cache HIT and keeping an
+    exhaustive list of which fields are URLs; a new image field would silently ship
+    relative. Scoping the key is correct for every field, present and future.
+    """
     permission_classes = [AllowAny]
 
     def get(self, request):
+        # Staff bypass, same rule as CachedReadMixin and HomePageCMSView: the admin
+        # must never be shown a cached storefront while checking their own edits.
+        if request.user and request.user.is_staff:
+            return Response(self._build(request))
+
+        key = (
+            'cms:home_bundle:'
+            f"v{cache_version('cms_home')}"
+            f".{cache_version('catalog_products')}"
+            f".{cache_version('catalog_brands')}"
+            f":{request.scheme}://{request.get_host()}"
+        )
+        return Response(cache_aside(key, TTL_CMS, lambda: self._build(request)))
+
+    def _build(self, request):
         ctx = {'request': request}
         sections = list(HomeSection.objects.all())
         section_map = {
@@ -566,7 +643,7 @@ class HomeBundleView(APIView):
         ns = NewsletterSettings.get()
         site = SiteSettings.get()
 
-        return Response({
+        return {
             'sections': section_map,
             'benefits': BenefitSerializer(
                 Benefit.objects.filter(is_active=True).order_by('order', 'id'), many=True).data,
@@ -603,4 +680,4 @@ class HomeBundleView(APIView):
             'testimonials': ReviewSerializer(reviews, many=True, context=ctx).data,
             'products': ProductSerializer(products, many=True, context=ctx).data,
             'best_sellers': ProductSerializer(best_sellers, many=True, context=ctx).data,
-        })
+        }
