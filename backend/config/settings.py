@@ -217,9 +217,22 @@ WSGI_APPLICATION = 'config.wsgi.application'
 _database_url = env('DATABASE_URL', default='')
 if _database_url:
     DATABASES = {'default': env.db_url('DATABASE_URL')}
-    # Supabase's connection pooler (port 6543) runs PgBouncer in transaction mode,
-    # which doesn't support Django's persistent connections — keep them off.
-    DATABASES['default']['CONN_MAX_AGE'] = 0
+    # Supabase's pooler (Supavisor, port 6543) runs in transaction mode. What that
+    # actually constrains is SERVER-side session state — server-side prepared
+    # statements, session-scoped SET/LISTEN/advisory locks, WITH HOLD cursors —
+    # because the pooler hands a backend to a different client between transactions.
+    # It says nothing about CONN_MAX_AGE, which is Django reusing its own client
+    # socket TO the pooler across requests. That socket is ours for its whole life,
+    # so reuse is safe against transaction mode.
+    #
+    # Keeping it at 0 meant paying connection setup on every request: measured
+    # ~0.95s against this endpoint (TLS + SCRAM over a cross-region hop to
+    # ap-northeast-1) versus ~0.13s for an actual query.
+    #
+    # No prepared-statement opt-out is needed: psycopg2 binds parameters client-side
+    # and never issues a server-side PREPARE. (That setting only matters on psycopg3,
+    # and Django already defaults prepare_threshold to None there for this reason.)
+    DATABASES['default']['CONN_MAX_AGE'] = 60
 else:
     DATABASES = {
         'default': {
@@ -279,6 +292,13 @@ if _redis_url:
             'LOCATION': 'specsit-throttle',
         },
     }
+    # IGNORE_EXCEPTIONS above is what keeps a Redis outage from 500ing the site, but on
+    # its own it is completely silent — django-redis swallows the error and the app just
+    # quietly runs uncached, which looks identical to "Redis is fine, traffic is heavy".
+    # Log the swallowed exceptions so an outage is visible instead of merely survivable.
+    DJANGO_REDIS_LOG_IGNORED_EXCEPTIONS = True
+    DJANGO_REDIS_LOGGER = 'django_redis'
+
     # Session storage rides on the same Redis cache instead of the DB.
     SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
     SESSION_CACHE_ALIAS = 'default'

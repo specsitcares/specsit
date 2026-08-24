@@ -3,7 +3,7 @@ File: apps\catalog\tests.py
 Module: Catalog
 Description: Product management, categories, brands, and inventory catalog. Contains unit tests and integration tests for this module.
 """
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 
@@ -104,3 +104,60 @@ class AccessControlTests(TestCase):
     def test_prescription_file_route_requires_authentication(self):
         res = self.client.get('/api/catalog/prescriptions/1/file/')
         self.assertIn(res.status_code, (401, 403))
+
+
+# Today's measured cost of GET /api/catalog/products/?page_size=12 against the fixture
+# in ProductListQueryCountTests (5 products x 2 variants x 2 images, 1 review each).
+# Roughly: 2 for the page + count, then per product a variants fetch, a per-variant
+# image fetch, two review fetches and a brand-logo lookup. Lower it as fixes land.
+PRODUCT_LIST_QUERIES = 38
+
+
+@override_settings(CACHES={'default': {'BACKEND': 'django.core.cache.backends.dummy.DummyCache'}})
+class ProductListQueryCountTests(TestCase):
+    """Pin the query cost of the storefront product grid.
+
+    The number below is what the endpoint costs TODAY against this fixture, not a
+    target — the list still N+1s over variants, their images and reviews, and the
+    count scales with PRODUCTS rather than staying flat. That is exactly what makes
+    it a useful regression pin: tighten the number as each fix lands, and it fails
+    loudly if the cost creeps back up.
+
+    Cache is stubbed out with DummyCache on purpose — CachedReadMixin would otherwise
+    serve the second run from cache and measure zero queries. This pins the cold path.
+    `python manage.py query_report` measures the same endpoint against real data.
+    """
+    PRODUCTS = 5
+    VARIANTS_PER_PRODUCT = 2
+    IMAGES_PER_VARIANT = 2
+
+    @classmethod
+    def setUpTestData(cls):
+        from django.contrib.auth import get_user_model
+        from apps.catalog.models import FrameVariant, Review, VariantImage
+
+        category = Category.objects.create(name='Query Count Category')
+        brand = BrandLogo.objects.create(name='Query Count Brand')
+        reviewer = get_user_model().objects.create_user(username='qc-reviewer', password='pw-8sk2mfhd')
+
+        for p in range(cls.PRODUCTS):
+            product = Product.objects.create(
+                title=f'QC Product {p}', category=category, brand=brand, is_active=True,
+            )
+            Review.objects.create(product=product, user=reviewer, rating=5, is_approved=True)
+            for v in range(cls.VARIANTS_PER_PRODUCT):
+                variant = FrameVariant.objects.create(
+                    product=product, sku=f'QC-{p}-{v}', variant_name=f'Color {v}',
+                    stock=10, selling_price=1000, is_listed=True,
+                )
+                for i in range(cls.IMAGES_PER_VARIANT):
+                    VariantImage.objects.create(
+                        variant=variant, image=f'catalog/products/qc-{p}-{v}-{i}.jpg', order=i,
+                    )
+
+    def test_product_list_query_count(self):
+        with self.assertNumQueries(PRODUCT_LIST_QUERIES):
+            response = self.client.get('/api/catalog/products/', {'page_size': 12})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['results']), self.PRODUCTS)
