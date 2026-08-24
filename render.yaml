@@ -38,6 +38,42 @@ services:
       - key: SUPABASE_S3_SECRET_ACCESS_KEY
         sync: false
 
+  # ── Scheduled analytics warm-up ───────────────────────────────────────────
+  # Model writes only mark AnalyticsSnapshot rows stale (apps/sales/signals.py);
+  # nothing recomputes inline any more, because doing that on every save cost a
+  # storefront page view ~233 queries across five threads. This job is what makes
+  # the snapshots fresh again, so the admin dashboard reads a warm row instead of
+  # paying a synchronous recompute on first open.
+  #
+  # --only-stale keeps a quiet interval to a single SELECT. Without it every run
+  # would recompute all five snapshots (~233 queries to ap-northeast-1) whether or
+  # not anything changed — the same waste, just moved onto a timer.
+  #
+  # dockerCommand overrides the image CMD, so this does NOT run migrate /
+  # collectstatic / gunicorn. It runs the command and exits.
+  #
+  # Two things to know:
+  #   • Render cron jobs are not offered on the free instance type.
+  #   • envVars are NOT inherited from specsit-backend — the `sync: false` ones
+  #     below must be set on this service too, in the dashboard.
+  #   • REDIS_URL is deliberately absent: the compute path never touches the cache.
+  - type: cron
+    name: specsit-warm-analytics
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    schedule: "*/15 * * * *"
+    dockerCommand: python manage.py warm_analytics_snapshots --only-stale
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+
   - type: web
     name: specsit-frontend
     runtime: node
