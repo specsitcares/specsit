@@ -536,7 +536,7 @@ class HomeBundleView(APIView):
         reviews = Review.objects.filter(is_featured=True, is_approved=True).select_related('user', 'product').order_by('-updated_at')[:12]
         products = (Product.objects.filter(is_active=True)
                     .select_related('category', 'brand')
-                    .prefetch_related('variants', 'reviews')
+                    .prefetch_related('variants__images', 'reviews')
                     .order_by('-created_at')[:40])
 
         # Best Sellers must be justified by real sales, not just the admin flag.
@@ -550,7 +550,7 @@ class HomeBundleView(APIView):
         best_sellers = (
             Product.objects.filter(is_active=True, is_bestseller=True)
             .select_related('category', 'brand')
-            .prefetch_related('variants', 'reviews')
+            .prefetch_related('variants__images', 'reviews')
             .annotate(units_sold_90d=Sum(
                 'variants__orderitem__quantity',
                 filter=Q(variants__orderitem__order__created_at__gte=sales_window_start)

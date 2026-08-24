@@ -777,7 +777,7 @@ class ProductViewSet(CachedReadMixin, viewsets.ModelViewSet):
         # Staff performing write operations (update/delete) need access to ALL products
         # regardless of is_active or variant status, otherwise destroy/update will 404.
         if self.request.user.is_staff and self.action in ('retrieve', 'update', 'partial_update', 'destroy'):
-            return Product.objects.select_related('category', 'brand', 'seo').prefetch_related('variants').all()
+            return Product.objects.select_related('category', 'brand', 'seo').prefetch_related('variants__images').all()
 
         # Base filter: Always hide inactive products unless explicitly requested by staff
         is_active_filter = params.get('is_active')
@@ -794,13 +794,19 @@ class ProductViewSet(CachedReadMixin, viewsets.ModelViewSet):
         is_admin_request = self.request.user.is_staff and params.get('admin') == 'true'
         
         if not is_admin_request:
-            listed_variants = Variant.objects.filter(is_listed=True, stock__gt=0)
+            # Images are prefetched on the INNER queryset, not as a top-level
+            # 'variants__images' path. A top-level path would fetch images for the
+            # unlisted / out-of-stock variants this Prefetch deliberately excludes —
+            # wasted rows, and a delisted variant's photos could resurface.
+            listed_variants = Variant.objects.filter(
+                is_listed=True, stock__gt=0
+            ).prefetch_related('images')
             listed = Variant.objects.filter(product=OuterRef('pk'), is_listed=True, stock__gt=0)
             queryset = queryset.filter(Exists(listed)).prefetch_related(
                 Prefetch('variants', queryset=listed_variants)
             )
         else:
-            queryset = queryset.prefetch_related('variants')
+            queryset = queryset.prefetch_related('variants__images')
 
         queryset = queryset.select_related('category', 'brand', 'seo')
 
