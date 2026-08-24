@@ -15,6 +15,9 @@ from .serializers import (
     ReviewSerializer, VariantImageSerializer, LensConstraintSerializer
 )
 from django.shortcuts import get_object_or_404  # type: ignore
+from django.db.models import (
+    Avg, Count, FloatField, IntegerField, OuterRef, Subquery,
+)
 from decimal import Decimal, InvalidOperation
 import logging
 import io
@@ -584,6 +587,31 @@ class BrandViewSet(CachedReadMixin, viewsets.ModelViewSet):
         return qs.order_by('id')
     
 
+def annotate_review_stats(queryset):
+    """Attach `avg_rating` and `review_total` (approved reviews only) to a product queryset.
+
+    Deliberately a correlated Subquery, NOT queryset.annotate(Avg('reviews__rating')).
+    The storefront queryset already annotates Sum('variants__stock') and
+    Min('variants__selling_price'); adding an aggregate over the unrelated `reviews`
+    relation to the same query multiplies the variant rows by the review rows and
+    silently corrupts BOTH — the same hazard the rating_min filter documents below.
+    A subquery is evaluated independently per product, so nothing fans out.
+
+    Matches ProductSerializer._approved_reviews(): is_approved=True only.
+    """
+    approved = Review.objects.filter(product=OuterRef('pk'), is_approved=True)
+    return queryset.annotate(
+        avg_rating=Subquery(
+            approved.values('product').annotate(a=Avg('rating')).values('a')[:1],
+            output_field=FloatField(),
+        ),
+        review_total=Subquery(
+            approved.values('product').annotate(c=Count('id')).values('c')[:1],
+            output_field=IntegerField(),
+        ),
+    )
+
+
 class ProductPagination(PageNumberPagination):
     # The storefront listing page asks for a specific page_size (12, to match its
     # grid) — the default PageNumberPagination silently ignores that param unless
@@ -777,7 +805,10 @@ class ProductViewSet(CachedReadMixin, viewsets.ModelViewSet):
         # Staff performing write operations (update/delete) need access to ALL products
         # regardless of is_active or variant status, otherwise destroy/update will 404.
         if self.request.user.is_staff and self.action in ('retrieve', 'update', 'partial_update', 'destroy'):
-            return Product.objects.select_related('category', 'brand', 'seo').prefetch_related('variants__images').all()
+            return annotate_review_stats(
+                Product.objects.select_related('category', 'brand', 'seo')
+                .prefetch_related('variants__images')
+            ).all()
 
         # Base filter: Always hide inactive products unless explicitly requested by staff
         is_active_filter = params.get('is_active')
@@ -807,6 +838,8 @@ class ProductViewSet(CachedReadMixin, viewsets.ModelViewSet):
             )
         else:
             queryset = queryset.prefetch_related('variants__images')
+        # avg_rating / review_total as subqueries — see annotate_review_stats().
+        queryset = annotate_review_stats(queryset)
 
         queryset = queryset.select_related('category', 'brand', 'seo')
 
@@ -1133,7 +1166,7 @@ class VariantViewSet(viewsets.ModelViewSet):
         params = self.request.query_params
         
         # Always hide variants of inactive products
-        qs = Variant.objects.filter(product__is_active=True).select_related('product', 'product__brand').prefetch_related('images')
+        qs = Variant.objects.filter(product__is_active=True).select_related('product', 'product__brand', 'product__category').prefetch_related('images')
         
         # Filter listed/stock for customers. Staff in admin context sees everything.
         is_staff = self.request.user.is_staff

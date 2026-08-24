@@ -231,15 +231,24 @@ class ProductSerializer(serializers.ModelSerializer):
                 field.required = False
 
     def _approved_reviews(self, obj):
+        """Fallback only. Costs one query per product, so every listing queryset
+        annotates avg_rating/review_total instead (see views.annotate_review_stats)."""
         return [r for r in obj.reviews.all() if r.is_approved]
 
     def get_average_rating(self, obj):
+        # `avg_rating` is NULL when a product has no approved reviews, which is why
+        # the sentinel here is the missing attribute, not a falsy value — 0.0 would
+        # be a legitimate average and must not fall through to the Python path.
+        if hasattr(obj, 'avg_rating'):
+            return None if obj.avg_rating is None else round(float(obj.avg_rating), 1)
         reviews = self._approved_reviews(obj)
         if not reviews:
             return None
         return round(sum(r.rating for r in reviews) / len(reviews), 1)
 
     def get_review_count(self, obj):
+        if hasattr(obj, 'review_total'):
+            return obj.review_total or 0
         return len(self._approved_reviews(obj))
 
     def get_units_sold(self, obj):
@@ -255,6 +264,33 @@ class ProductSerializer(serializers.ModelSerializer):
     def get_computed_final_price(self, obj):
         return float(obj.selling_price or 0)
 
+    def _cms_logo_by_name(self):
+        """Published BrandLogo rows that actually have a logo file, keyed by UPPER(name).
+
+        Built once per serialization pass instead of one query per product whose brand
+        has no logo of its own — on a 40-product home bundle that was up to 40 queries.
+        DRF reuses a single child serializer for the whole `many=True` list, so the memo
+        covers the entire page and dies with the serializer at the end of the request.
+
+        Ordering and filtering mirror the query this replaced exactly: published, logo
+        non-empty, ordered by (order, id), first match wins per name. Keeping the first
+        occurrence is what makes duplicate/legacy rows resolve the same way `.first()`
+        did — and only rows WITH a logo are loaded, so a logo-less duplicate can never
+        mask a real one.
+        """
+        cached = getattr(self, '_cms_logo_cache', None)
+        if cached is None:
+            from apps.cms.models import BrandLogo
+            cached = {}
+            for row in (BrandLogo.objects.filter(is_published=True)
+                        .exclude(logo='').exclude(logo__isnull=True)
+                        .order_by('order', 'id')):
+                # Key on the stored name uppercased (not stripped) so lookups behave
+                # like the name__iexact this replaced.
+                cached.setdefault((row.name or '').upper(), row)
+            self._cms_logo_cache = cached
+        return cached
+
     def get_brand_logo(self, obj):
         """Return the brand logo URL from the catalog brand or CMS fallback."""
         request = self.context.get('request')
@@ -264,15 +300,7 @@ class ProductSerializer(serializers.ModelSerializer):
             logo_file = obj.brand.logo
 
         if not logo_file and obj.brand and obj.brand.name:
-            from apps.cms.models import BrandLogo
-            # Must filter for an actual logo file here, not just take the first
-            # name match and check afterward — when multiple BrandLogo rows share
-            # a name (duplicate/legacy entries), .first() could just as easily
-            # return one with no logo, silently hiding a real logo that exists.
-            cms_logo = BrandLogo.objects.filter(
-                name__iexact=obj.brand.name.strip(),
-                is_published=True,
-            ).exclude(logo='').exclude(logo__isnull=True).order_by('order', 'id').first()
+            cms_logo = self._cms_logo_by_name().get(obj.brand.name.strip().upper())
             if cms_logo and cms_logo.logo:
                 logo_file = cms_logo.logo
 
@@ -287,12 +315,19 @@ class ProductSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         # There's no dedicated product-level image — use the first image of the
         # first (listed) variant.
+        #
+        # Sorted in Python, NOT with .order_by(). Django only reuses a prefetch cache
+        # for a bare .all() — adding .order_by() builds a fresh queryset and goes back
+        # to the DB once per product, which defeated the variants/images prefetch in
+        # ProductViewSet.get_queryset and HomeBundleView (30 image queries on a
+        # 12-product page instead of 1). The ordering is identical: variants by id,
+        # images by `order` (which is also VariantImage.Meta.ordering).
         img = None
-        first_variant = obj.variants.all().order_by('id').first()
-        if first_variant:
-            first_image = first_variant.images.all().order_by('order').first()
-            if first_image:
-                img = first_image.image
+        variants = sorted(obj.variants.all(), key=lambda v: v.id)
+        if variants:
+            images = sorted(variants[0].images.all(), key=lambda i: i.order)
+            if images:
+                img = images[0].image
         try:
             if not img:
                 return None

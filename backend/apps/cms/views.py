@@ -534,9 +534,11 @@ class HomeBundleView(APIView):
         from apps.catalog.models import Review, FrameProduct as Product
         from apps.catalog.serializers import ReviewSerializer, ProductSerializer
         reviews = Review.objects.filter(is_featured=True, is_approved=True).select_related('user', 'product').order_by('-updated_at')[:12]
-        products = (Product.objects.filter(is_active=True)
-                    .select_related('category', 'brand')
-                    .prefetch_related('variants__images', 'reviews')
+        from apps.catalog.views import annotate_review_stats
+        products = (annotate_review_stats(
+                        Product.objects.filter(is_active=True)
+                        .select_related('category', 'brand', 'seo')
+                        .prefetch_related('variants__images'))
                     .order_by('-created_at')[:40])
 
         # Best Sellers must be justified by real sales, not just the admin flag.
@@ -548,9 +550,10 @@ class HomeBundleView(APIView):
         from datetime import timedelta
         sales_window_start = timezone.now() - timedelta(days=90)
         best_sellers = (
-            Product.objects.filter(is_active=True, is_bestseller=True)
-            .select_related('category', 'brand')
-            .prefetch_related('variants__images', 'reviews')
+            annotate_review_stats(
+                Product.objects.filter(is_active=True, is_bestseller=True)
+                .select_related('category', 'brand', 'seo')
+                .prefetch_related('variants__images'))
             .annotate(units_sold_90d=Sum(
                 'variants__orderitem__quantity',
                 filter=Q(variants__orderitem__order__created_at__gte=sales_window_start)
@@ -585,8 +588,11 @@ class HomeBundleView(APIView):
             },
             'hero_slides': HeroSlideAdminSerializer(
                 HeroSlide.objects.filter(is_active=True, status='published').order_by('order', 'id'), many=True, context=ctx).data,
+            # prefetch categories: BrandLogoSerializer reads the M2M per logo, which was
+            # one query per carousel entry.
             'brand_logos': BrandLogoSerializer(
-                BrandLogo.objects.filter(is_published=True, in_corousel=True).order_by('order', 'id'), many=True, context=ctx).data,
+                BrandLogo.objects.filter(is_published=True, in_corousel=True)
+                .prefetch_related('categories').order_by('order', 'id'), many=True, context=ctx).data,
             'frame_range_cards': FrameRangeCardSerializer(
                 FrameRangeCard.objects.filter(is_active=True).order_by('order', 'id'), many=True, context=ctx).data,
             'explore_frame_styles': SectionCardSerializer(

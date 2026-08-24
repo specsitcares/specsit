@@ -106,11 +106,13 @@ class AccessControlTests(TestCase):
         self.assertIn(res.status_code, (401, 403))
 
 
-# Today's measured cost of GET /api/catalog/products/?page_size=12 against the fixture
-# in ProductListQueryCountTests (5 products x 2 variants x 2 images, 1 review each).
-# Roughly: 2 for the page + count, then per product a variants fetch, a per-variant
-# image fetch, two review fetches and a brand-logo lookup. Lower it as fixes land.
-PRODUCT_LIST_QUERIES = 38
+# Measured cost of GET /api/catalog/products/?page_size=12 against the fixture in
+# ProductListQueryCountTests (5 products x 2 variants x 2 images, 1 review each).
+# 38 -> 19 when variants/images were prefetched and get_main_image was taught to use
+# the prefetch cache; 19 -> 10 when 'reviews' was added to the prefetch. What is left
+# is flat: page, count, products, variants, images and the brand-logo lookup. The
+# reviews query went away entirely when avg_rating/review_total became subqueries.
+PRODUCT_LIST_QUERIES = 5
 
 
 @override_settings(CACHES={'default': {'BACKEND': 'django.core.cache.backends.dummy.DummyCache'}})

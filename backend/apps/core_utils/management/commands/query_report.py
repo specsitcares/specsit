@@ -37,36 +37,68 @@ from django.test import RequestFactory
 # survives whatever else app startup decides to log to stdout.
 _PEER_MARKER = 'QUERY_REPORT_PEER_READ:'
 
-# Matches the table in FROM / JOIN / INSERT INTO / UPDATE / DELETE FROM, quoted the way any
-# of the supported backends quotes it. A subquery ("FROM (SELECT ...") deliberately does not
-# match, so the scan falls through to the first real table inside it — which is the table the
-# query should be attributed to anyway.
-_TABLE_RE = re.compile(
-    r'\b(?:FROM|JOIN|INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+'
-    r'("[^"]+"|`[^`]+`|\[[^\]]+\]|[A-Za-z_]\w*)',
-    re.IGNORECASE,
-)
+_KW_RE = re.compile(r'\b(?:FROM|JOIN|INSERT\s+INTO|UPDATE|DELETE\s+FROM)\b', re.IGNORECASE)
+_TBL_RE = re.compile(r'("[^"]+"|`[^`]+`|\[[^\]]+\]|[A-Za-z_]\w*)')
 _TXN_RE = re.compile(r'^\s*(BEGIN|COMMIT|ROLLBACK|SAVEPOINT|RELEASE)\b', re.IGNORECASE)
+
+
+def _scan(text):
+    """First table named by a FROM/JOIN at the OUTERMOST nesting level.
+
+    Depth-tracking matters: an annotation subquery (Subquery/OuterRef) lands in the
+    SELECT list, textually BEFORE the statement's real FROM. A naive left-to-right
+    regex attributes the whole query to the subquery's table — which had the product
+    list reporting 2 `catalog_review` queries that do not exist. When the outermost
+    FROM is a derived table ("FROM (SELECT ...) x"), descend into it instead.
+    """
+    depth = 0
+    i = 0
+    n = len(text)
+    while i < n:
+        c = text[i]
+        if c == '(':
+            depth += 1
+        elif c == ')':
+            depth -= 1
+        elif depth == 0:
+            m = _KW_RE.match(text, i)
+            if m:
+                j = m.end()
+                while j < n and text[j].isspace():
+                    j += 1
+                if j < n and text[j] == '(':          # derived table -> look inside
+                    k, d = j + 1, 1
+                    while k < n and d:
+                        if text[k] == '(':
+                            d += 1
+                        elif text[k] == ')':
+                            d -= 1
+                        k += 1
+                    inner = _scan(text[j + 1:k - 1])
+                    if inner:
+                        return inner
+                    i = k
+                    continue
+                tm = _TBL_RE.match(text, j)
+                if tm:
+                    return tm.group(1).strip('"`[]')
+                i = j
+                continue
+        i += 1
+    return None
 
 
 def primary_table(sql):
     """The table a query is attributed to: the first one it reads from or writes to.
 
-    Grouping on the SQL rather than the ORM call site is deliberate — an N+1 fired from a
-    serializer property, a signal handler and a template tag all land on the same table
+    Grouping on the SQL rather than the ORM call site is deliberate — an N+1 fired from
+    a serializer property, a signal handler and a template tag all land on the same table
     here, which is the thing you actually have to go and fix.
     """
-    match = _TABLE_RE.search(sql or '')
-    if match:
-        return match.group(1).strip('"`[]')
-    if _TXN_RE.match(sql or ''):
+    sql = sql or ''
+    if _TXN_RE.match(sql):
         return '(transaction)'
-    return '(unparsed)'
-
-
-def redact(location):
-    """Hide the password in a cache LOCATION before printing it."""
-    return re.sub(r'://([^:/@]*):([^@]*)@', r'://\1:***@', str(location))
+    return _scan(sql) or '(unparsed)'
 
 
 def call_view(view, path, params=None):

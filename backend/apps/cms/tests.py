@@ -12,12 +12,12 @@ from apps.catalog.models import (
 )
 from apps.cms.models import BrandLogo, HomeSection, NewsletterSettings, SiteSettings
 
-# Today's measured cost of GET /api/cms/home-bundle/ against the fixture in
+# Measured cost of GET /api/cms/home-bundle/ against the fixture in
 # HomeBundleQueryCountTests (5 products x 2 variants x 2 images, 1 featured review each).
-# Dominated by ProductSerializer N+1ing over each product's variants, their images and
-# their reviews — the same per-row cost pinned by PRODUCT_LIST_QUERIES in
-# apps/catalog/tests.py — plus one flat query per CMS rail. Lower it as fixes land.
-HOME_BUNDLE_QUERIES = 47
+# 47 -> 28 with the variants/images prefetch and the get_main_image fix, then 28 -> 23
+# once 'seo' was select_related and the brand-logo categories prefetched. What is left is
+# essentially one flat query per CMS rail, which is the floor for this endpoint.
+HOME_BUNDLE_QUERIES = 18
 
 
 @override_settings(CACHES={'default': {'BACKEND': 'django.core.cache.backends.dummy.DummyCache'}})
