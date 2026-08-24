@@ -524,14 +524,15 @@ def compute_dashboard_stats():
     Compute all stats for the Admin Dashboard (except for live sessions/live activity
     which are resolved on the fly in the view).
     
-    Time complexity: O(n log n) due to the 12 monthly aggregations.
-    Executed in a background thread or on cache miss.
+    Time complexity: one grouped scan per metric family — no per-month queries.
+    Executed on cache miss or from the scheduled warm_analytics_snapshots run.
     """
     from apps.sales.models import Order, Shipment
     from apps.catalog.models import Prescription, FrameVariant as Variant
     from django.db.models import Q, F, Sum, Count
+    from django.db.models.functions import TruncMonth
     from django.utils import timezone
-    from datetime import timedelta
+    from datetime import date, timedelta
 
     today = timezone.now().date()
     now = timezone.now()
@@ -542,31 +543,41 @@ def compute_dashboard_stats():
     )
     rev_qs = base_qs.exclude(is_replacement=True)
 
-    # 1. Total Orders & Revenue
-    total_orders = base_qs.count()
-    revenue_agg = rev_qs.aggregate(total=Sum('total_amount'))
-    total_revenue = float(revenue_agg.get('total') or 0)
-
-    # 2. Trends (Last 30 days vs Previous 30 days)
     last_30_start = today - timedelta(days=30)
     prev_30_start = today - timedelta(days=60)
 
-    curr_30_orders = base_qs.filter(created_at__date__gte=last_30_start).count()
-    prev_30_orders = base_qs.filter(
-        created_at__date__gte=prev_30_start,
-        created_at__date__lt=last_30_start
-    ).count()
+    # ── SINGLE-PASS AGGREGATION ─────────────────────────────────────────────
+    # One round-trip for the seven order/revenue scalars that were seven separate
+    # .count()/.aggregate() calls over the same table (pattern: views.py:443).
+    # Revenue excludes replacement orders; is_replacement is a non-null BooleanField,
+    # so ~Q(is_replacement=True) inside filter= is exactly base_qs.exclude(...).
+    _real = ~Q(is_replacement=True)
+    _curr30 = Q(created_at__date__gte=last_30_start)
+    _prev30 = Q(created_at__date__gte=prev_30_start, created_at__date__lt=last_30_start)
+
+    totals = base_qs.aggregate(
+        total_orders=Count('id'),
+        total_revenue=Sum('total_amount', filter=_real),
+        curr_30_orders=Count('id', filter=_curr30),
+        prev_30_orders=Count('id', filter=_prev30),
+        curr_30_revenue=Sum('total_amount', filter=_curr30 & _real),
+        prev_30_revenue=Sum('total_amount', filter=_prev30 & _real),
+        today_orders=Count('id', filter=Q(created_at__date=today)),
+    )
+
+    # 1. Total Orders & Revenue
+    total_orders = totals['total_orders']
+    total_revenue = float(totals['total_revenue'] or 0)
+
+    # 2. Trends (Last 30 days vs Previous 30 days)
+    curr_30_orders = totals['curr_30_orders']
+    prev_30_orders = totals['prev_30_orders']
     order_trend = round(
         ((curr_30_orders - prev_30_orders) / max(prev_30_orders, 1)) * 100, 1
     ) if prev_30_orders > 0 else 0
 
-    curr_30_revenue = rev_qs.filter(created_at__date__gte=last_30_start).aggregate(
-        total=Sum('total_amount')
-    ).get('total') or 0
-    prev_30_revenue = rev_qs.filter(
-        created_at__date__gte=prev_30_start,
-        created_at__date__lt=last_30_start
-    ).aggregate(total=Sum('total_amount')).get('total') or 0
+    curr_30_revenue = totals['curr_30_revenue'] or 0
+    prev_30_revenue = totals['prev_30_revenue'] or 0
     revenue_trend = round(
         ((curr_30_revenue - prev_30_revenue) / max(prev_30_revenue, 1)) * 100, 1
     ) if prev_30_revenue > 0 else 0
@@ -580,8 +591,8 @@ def compute_dashboard_stats():
     low_stock_products = Variant.objects.filter(stock__gt=0, stock__lte=20).count()
     out_of_stock = Variant.objects.filter(stock__lte=0).count()
 
-    # 5. Today's Orders
-    today_orders = base_qs.filter(created_at__date=today).count()
+    # 5. Today's Orders (from the single-pass aggregate above)
+    today_orders = totals['today_orders']
 
     # 6. Active Shipments
     active_shipments = Shipment.objects.exclude(
@@ -601,25 +612,38 @@ def compute_dashboard_stats():
     pending_orders_count = get_inclusive_count(['Pending', 'Received'])
     processing_orders_count = get_inclusive_count(['Processing', 'Preparing', 'Quality', 'Ready', 'Accepted'])
 
-    # 8. Monthly Revenue Trend (Last 12 months)
-    trend_data = []
-    for i in range(11, -1, -1):
-        target_month = today - timedelta(days=30*i)
-        month_start = target_month.replace(day=1)
-        if target_month.month == 12:
-            month_end = month_start.replace(year=month_start.year+1, month=1)
-        else:
-            month_end = month_start.replace(month=month_start.month+1)
-        
-        monthly_revenue = rev_qs.filter(
-            created_at__date__gte=month_start,
-            created_at__date__lt=month_end
-        ).aggregate(total=Sum('total_amount')).get('total') or 0
-        
-        trend_data.append({
-            "name": target_month.strftime('%b'),
-            "value": float(monthly_revenue)
-        })
+    # 8. Monthly Revenue Trend (Last 12 months) — one grouped query, padded in Python.
+    #
+    # The months are stepped by real calendar arithmetic, NOT by `today - 30*i days`.
+    # Thirty-day steps drift against actual month lengths, so the old loop duplicated
+    # one month and skipped another on 62 days of 2026 (every run from roughly the
+    # 25th onward). This returns the true trailing 12 calendar months on every date.
+    def _month_start(anchor, months_back):
+        m = anchor.month - 1 - months_back
+        return date(anchor.year + m // 12, m % 12 + 1, 1)
+
+    month_starts = [_month_start(today, i) for i in range(11, -1, -1)]
+
+    monthly_rows = (
+        rev_qs.filter(created_at__date__gte=month_starts[0])
+        .annotate(month=TruncMonth('created_at'))
+        .values('month')
+        .annotate(total=Sum('total_amount'))
+    )
+    # TruncMonth truncates in TIME_ZONE (UTC here), matching the created_at__date
+    # filters used everywhere else in this function.
+    by_month = {
+        (row['month'].year, row['month'].month): float(row['total'] or 0)
+        for row in monthly_rows if row['month'] is not None
+    }
+
+    trend_data = [
+        {
+            "name": ms.strftime('%b'),
+            "value": by_month.get((ms.year, ms.month), 0.0),
+        }
+        for ms in month_starts
+    ]
 
     # 9. Trends for other metrics
     prev_pending_pres = Prescription.objects.filter(
