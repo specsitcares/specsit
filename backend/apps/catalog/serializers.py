@@ -459,7 +459,14 @@ class LensSerializer(serializers.ModelSerializer):
             data['package_name'] = instance.package.name
             data['description'] = instance.package.description
             data['features'] = instance.package.features
-            data['categories'] = list(instance.package.categories.values('id', 'name'))
+            # Built in Python from the prefetch cache, NOT .values('id', 'name').
+            # prefetch_related caches model instances; .values() builds a fresh queryset
+            # that ignores that cache and goes back to the DB — one query per lens, the
+            # same trap as .order_by() and .first() on a prefetched relation. Ordering is
+            # unchanged either way: it comes from Category.Meta.ordering.
+            data['categories'] = [
+                {'id': c.id, 'name': c.name} for c in instance.package.categories.all()
+            ]
             data['package_cost_price'] = float(instance.package.cost_price or 0)
             data['package_selling_price'] = float(instance.package.selling_price or 0)
             data['package_warranty_months'] = instance.package.warranty_months

@@ -717,11 +717,16 @@ class ProductViewSet(CachedReadMixin, viewsets.ModelViewSet):
         from .serializers import LensSerializer
 
         try:
-            product = Product.objects.get(pk=pk)
+            product = Product.objects.select_related('category').get(pk=pk)
         except Product.DoesNotExist:
             return []
 
-        lenses = Lens.objects.filter(is_active=True).select_related('package', 'brand', 'type', 'type__group')
+        # prefetch_related mirrors LensViewSet.get_queryset: LensSerializer walks the
+        # constraints M2M and package.categories once per lens, which cost one query
+        # EACH here — 26 queries for 11 lenses on a single product page.
+        lenses = (Lens.objects.filter(is_active=True)
+                  .select_related('package', 'brand', 'type', 'type__group')
+                  .prefetch_related('constraints', 'package__categories'))
 
         # Contact lenses are a separate product line (metadata group "Contact Lens Type").
         # They must NEVER appear inside an eyeglasses/sunglasses frame PDP.
@@ -771,7 +776,7 @@ class ProductViewSet(CachedReadMixin, viewsets.ModelViewSet):
         from django.db.models import Q
 
         try:
-            product = Product.objects.get(pk=pk)
+            product = Product.objects.select_related('category').get(pk=pk)
         except Product.DoesNotExist:
             return Response([])
 
@@ -1345,7 +1350,14 @@ class LensViewSet(CachedReadMixin, viewsets.ModelViewSet):
 
     def get_queryset(self):
         params = self.request.query_params
-        qs = Lens.objects.select_related('package', 'type').all()
+        # brand is followed by LensSerializer.to_representation (brand_name/brand_logo);
+        # constraints and package__categories are both walked per lens there and in the
+        # declared `constraints` field. Without these three the list cost one query per
+        # lens for each — 41 queries for 13 lenses.
+        qs = (Lens.objects
+              .select_related('package', 'type', 'brand')
+              .prefetch_related('constraints', 'package__categories')
+              .all())
         
         # Hide inactive lenses for customers. Staff in admin context/actions sees everything.
         is_staff = self.request.user.is_staff
@@ -1377,7 +1389,11 @@ class LensViewSet(CachedReadMixin, viewsets.ModelViewSet):
             else:
                 qs = qs.filter(constraint__name__iexact=constraint)
 
-        return qs
+        # Lens has no Meta.ordering, so an unordered queryset let Postgres return rows
+        # in any order it liked between requests — meaning a paginated client could see
+        # the same lens on two pages and never see another. Matches the sibling
+        # ContactLensViewSet, which already orders by id.
+        return qs.order_by('id')
 
 class ContactLensViewSet(CachedReadMixin, viewsets.ModelViewSet):
     cache_namespace = 'catalog_contact_lenses'
