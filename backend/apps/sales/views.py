@@ -145,18 +145,35 @@ class OrderViewSet(viewsets.ModelViewSet):
             review_prefetch,
         ]
 
-        # Extra prefetch paths only needed by detail/retrieve view actions
-        if self.action != 'list':
-            prefetch_paths.extend([
-                'items__prescription__order_items',
-                'items__lens__type',
-                'items__lens__brand',
-                'items__lens__package',
-                'items__lens__package__categories',
-                'items__lens__constraints',
-                'items__contact_lens__type',
-                'items__contact_lens__brand',
-            ])
+        # These were gated behind `if self.action != 'list'` as "detail-only". They are
+        # not: OrderViewSet uses ONE serializer for both actions, and OrderSerializer's
+        # `items` nests OrderItemSerializer, which renders `lens` (LensSerializer) and
+        # `prescription` (PrescriptionSerializer) in full on the list too. Withholding
+        # these paths did not save the list any work — it converted eight prefetches
+        # into N+1s. Measured on a 13-order staff page before this change:
+        #
+        #     28  sales_orderitem        PrescriptionSerializer.get_order_id /
+        #                                get_order_display_id -> obj.order_items.all()
+        #     12  catalog_lensconstraint LensSerializer.constraints
+        #     12  catalog_category       lens.package.categories
+        #      6  catalog_lenspackage    lens.package
+        #      5  core_metadataitem      lens.type
+        #
+        # ~63 avoidable queries to withhold 8. Restored to the shared set.
+        #
+        # items__prescription__user is new: PrescriptionSerializer.get_user_name reads
+        # obj.user and nothing ever prefetched it, which was 13 more auth_user queries.
+        prefetch_paths.extend([
+            'items__prescription__order_items',
+            'items__prescription__user',
+            'items__lens__type',
+            'items__lens__brand',
+            'items__lens__package',
+            'items__lens__package__categories',
+            'items__lens__constraints',
+            'items__contact_lens__type',
+            'items__contact_lens__brand',
+        ])
 
         qs = Order.objects.select_related(
             'status', 'coupon', 'shipping_address', 'billing_address', 'user',

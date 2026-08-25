@@ -133,3 +133,94 @@ class WebhookConfigTests(TestCase):
         finally:
             if old is not None:
                 os.environ['RAZORPAY_WEBHOOK_SECRET'] = old
+
+
+# Cost of the order list for this fixture (2 orders, one of them a replacement).
+# Pinned so the exchange_info prefetches cannot be quietly moved back out of the
+# shared set: without them this climbs, while the correctness assertions above
+# still pass. Raise it deliberately if the list legitimately grows.
+EXCHANGE_LIST_QUERIES = 25
+
+
+class ExchangeInfoOnListTests(TestCase):
+    """exchange_info must render on the LIST, not just the detail view.
+
+    OrderViewSet uses one serializer for both actions and `exchange_info` is in
+    Meta.fields, so the list renders it too. That is why source_returns__* and
+    replaces_order__items__* belong in the shared prefetch set rather than a
+    detail-only branch — the live database has no replacement orders, so a
+    regression here would be invisible until the first real exchange.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        from apps.catalog.models import Category, FrameProduct, FrameVariant
+        from apps.sales.models import OrderItem, ReturnRequest
+
+        cls.user = get_user_model().objects.create_user(
+            username='exchange-cx', password='pw-9x2mfk4q',
+        )
+        category = Category.objects.create(name='Exchange Category')
+        product = FrameProduct.objects.create(
+            title='Exchange Frame', category=category, is_active=True,
+        )
+        variant = FrameVariant.objects.create(
+            product=product, sku='EXCH-1', variant_name='Original',
+            color='Matte Black', stock=5, selling_price=2000, is_listed=True,
+        )
+
+        cls.original = Order.objects.create(
+            user=cls.user, total_amount=2000, order_status='delivered',
+        )
+        original_item = OrderItem.objects.create(
+            order=cls.original, variant=variant, quantity=1, price_at_purchase=2000,
+        )
+        cls.replacement = Order.objects.create(
+            user=cls.user, total_amount=2000, order_status='confirmed',
+            is_replacement=True, replaces_order=cls.original,
+        )
+        # source_returns is the reverse of ReturnRequest.replacement_order, so this
+        # exercises get_exchange_info's PRIMARY path. (Omitting replacement_order
+        # would silently fall through to the replaces_order.items fallback and the
+        # source_returns prefetches would never be touched.)
+        ReturnRequest.objects.create(
+            order=cls.original, order_item=original_item,
+            replacement_order=cls.replacement,
+            request_type='replacement', status='replaced',
+        )
+
+    def test_exchange_info_renders_on_the_list(self):
+        client = APIClient()
+        client.force_authenticate(user=self.user)
+        response = client.get('/api/sales/orders/', {'page_size': 50})
+        self.assertEqual(response.status_code, 200)
+
+        rows = {row['id']: row for row in response.data['results']}
+        self.assertIn(self.replacement.id, rows, 'replacement order missing from list')
+
+        info = rows[self.replacement.id]['exchange_info']
+        self.assertIsNotNone(info, 'exchange_info is null on the LIST — the '
+                                   'source_returns / replaces_order prefetches have '
+                                   'been moved out of the shared set.')
+        self.assertEqual(info['source_order_id'], self.original.id)
+        self.assertEqual(info['original_sku'], 'EXCH-1')
+
+        # A non-replacement order still reports None, as before.
+        self.assertIsNone(rows[self.original.id]['exchange_info'])
+
+    def test_exchange_info_costs_no_extra_queries(self):
+        """The correctness test above passes with or without the prefetches — a
+        missing prefetch is an N+1, not a wrong answer. Only a query count catches
+        it, so pin one. Raise the number deliberately if the list legitimately grows."""
+        client = APIClient()
+        client.force_authenticate(user=self.user)
+        client.get('/api/sales/orders/', {'page_size': 50})  # warm SiteSettings cache
+        with self.assertNumQueries(EXCHANGE_LIST_QUERIES):
+            client.get('/api/sales/orders/', {'page_size': 50})
+
+    def test_list_and_detail_agree_on_exchange_info(self):
+        client = APIClient()
+        client.force_authenticate(user=self.user)
+        listed = {r['id']: r for r in client.get('/api/sales/orders/', {'page_size': 50}).data['results']}
+        detail = client.get(f'/api/sales/orders/{self.replacement.id}/').data
+        self.assertEqual(listed[self.replacement.id]['exchange_info'], detail['exchange_info'])
