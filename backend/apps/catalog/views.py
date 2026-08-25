@@ -16,7 +16,7 @@ from .serializers import (
 )
 from django.shortcuts import get_object_or_404  # type: ignore
 from django.db.models import (
-    Avg, Count, FloatField, IntegerField, OuterRef, Subquery,
+    Avg, Count, FloatField, IntegerField, OuterRef, Subquery, Sum,
 )
 from decimal import Decimal, InvalidOperation
 import logging
@@ -612,6 +612,56 @@ def annotate_review_stats(queryset):
     )
 
 
+# Trailing window that decides bestseller status. Named so the storefront listing
+# and the home bundle can never drift apart on it.
+BESTSELLER_WINDOW_DAYS = 90
+
+
+def annotate_units_sold_90d(queryset):
+    """Attach `units_sold_90d` — units actually sold in the trailing 90 days.
+
+    Deliberately a correlated Subquery, NOT
+    queryset.annotate(Sum('variants__orderitem__quantity', filter=...)).
+
+    That form was a correctness bug, not just a slow query. The storefront queryset
+    already annotates Sum('variants__stock'); joining `variants__orderitem` on the
+    SAME query multiplies the variant rows by the order-item rows, so every variant's
+    stock was counted once per matching order item and total_stock came back inflated.
+    Measured on live data before the fix:
+
+        Ray Ban Lenskart -Air Switch    reported 33   actual 22
+        Ray Ban Airframe Slim Big Shape reported 27   actual  9
+        Cleaning Cloth                  reported 22   actual 11
+        Vogue VO9876                    reported  4   actual  3
+
+    total_stock feeds the in_stock / low_stock / out_of_stock filters, so the
+    inflation also mis-bucketed inventory. A subquery is evaluated per product and
+    never joins into the outer query, so neither aggregate can disturb the other —
+    the same reasoning as annotate_review_stats() above.
+
+    Returns NULL (not 0) for a product with no qualifying sales, matching the old
+    filtered-Sum behaviour that `units_sold_90d__gt=0` and `nulls_last=True` rely on.
+    """
+    from django.utils import timezone
+    from datetime import timedelta
+    from apps.sales.models import OrderItem
+
+    since = timezone.now() - timedelta(days=BESTSELLER_WINDOW_DAYS)
+    sold = (
+        OrderItem.objects
+        .filter(variant__product=OuterRef('pk'), order__created_at__gte=since)
+        # order_status is non-null (CharField, default='pending'), so exclude() here
+        # is exactly equivalent to the ~Q() the filtered Sum used.
+        .exclude(order__order_status='cancelled')
+        .values('variant__product')
+        .annotate(total=Sum('quantity'))
+        .values('total')[:1]
+    )
+    return queryset.annotate(
+        units_sold_90d=Subquery(sold, output_field=IntegerField())
+    )
+
+
 class ProductPagination(PageNumberPagination):
     # The storefront listing page asks for a specific page_size (12, to match its
     # grid) — the default PageNumberPagination silently ignores that param unless
@@ -1001,20 +1051,19 @@ class ProductViewSet(CachedReadMixin, viewsets.ModelViewSet):
             except (ValueError, TypeError):
                 pass
 
+        # Sorting
+        sort_by = params.get('sort_by', '-created_at')
+
         # Units actually sold in the trailing 90 days (cancelled orders excluded), so
         # the storefront can justify bestseller status with real sales instead of the
         # default-True admin flag alone.
-        from django.utils import timezone
-        from datetime import timedelta
-        sales_window_start = timezone.now() - timedelta(days=90)
-        queryset = queryset.annotate(units_sold_90d=Sum(
-            'variants__orderitem__quantity',
-            filter=Q(variants__orderitem__order__created_at__gte=sales_window_start)
-                   & ~Q(variants__orderitem__order__order_status='cancelled'),
-        ))
-
-        # Sorting
-        sort_by = params.get('sort_by', '-created_at')
+        #
+        # Added only for the bestsellers sort. It used to run on every listing request
+        # and be discarded — the value is surfaced solely as `units_sold`, which
+        # ProductSerializer.get_units_sold defaults to 0 when the annotation is absent,
+        # so the other sorts are unaffected.
+        if sort_by == 'bestsellers':
+            queryset = annotate_units_sold_90d(queryset)
         sort_map = {
             'final_price': 'min_selling_price', '-final_price': '-min_selling_price',
             'stock_quantity': 'total_stock', '-stock_quantity': '-total_stock',

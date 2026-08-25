@@ -163,3 +163,121 @@ class ProductListQueryCountTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data['results']), self.PRODUCTS)
+
+
+class BestsellerStockFanOutTests(TestCase):
+    """The 90-day sales figure must never disturb the stock aggregate.
+
+    Regression for a real production bug. `units_sold_90d` was a chained
+    Sum('variants__orderitem__quantity') on the same queryset that annotates
+    Sum('variants__stock'). Joining order items multiplies the variant rows, so each
+    variant's stock was counted once per matching order item — live products reported
+    27 units in stock against a true 9, and 33 against a true 22.
+
+    That number is not cosmetic: total_stock drives the in_stock / low_stock /
+    out_of_stock filters, so inflation silently mis-buckets inventory. The fixture
+    below is built so the inflated figure lands in a DIFFERENT bucket than the true
+    one, which is what makes this test fail if the subquery is ever unpicked.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        from django.contrib.auth import get_user_model
+        from apps.catalog.models import FrameVariant
+        from apps.sales.models import Order, OrderItem
+
+        category = Category.objects.create(name='Fan Out Category')
+        cls.user = get_user_model().objects.create_user(username='fanout-buyer', password='pw-2j4kd91x')
+
+        # true stock = 4 + 2 = 6, threshold 10 -> low_stock.
+        # Fanned out across 3 order items it reads as 14 -> in_stock. Different bucket.
+        cls.product = Product.objects.create(
+            title='Fan Out Frame', category=category, is_active=True,
+            is_bestseller=True, low_stock_threshold=10,
+        )
+        cls.v1 = FrameVariant.objects.create(
+            product=cls.product, sku='FANOUT-1', variant_name='One',
+            stock=4, selling_price=1000, is_listed=True,
+        )
+        cls.v2 = FrameVariant.objects.create(
+            product=cls.product, sku='FANOUT-2', variant_name='Two',
+            stock=2, selling_price=1000, is_listed=True,
+        )
+
+        # Three orders spread across both variants: two touch v1, one touches v2.
+        for variant, qty in ((cls.v1, 1), (cls.v1, 2), (cls.v2, 3)):
+            order = Order.objects.create(user=cls.user, total_amount=1000, order_status='delivered')
+            OrderItem.objects.create(order=order, variant=variant, quantity=qty)
+
+        # A cancelled order must not count toward units sold.
+        cancelled = Order.objects.create(user=cls.user, total_amount=1000, order_status='cancelled')
+        OrderItem.objects.create(order=cancelled, variant=cls.v1, quantity=99)
+
+    def _queryset(self, query=''):
+        from django.contrib.auth.models import AnonymousUser
+        from django.test import RequestFactory
+        from rest_framework.request import Request
+        from apps.catalog.views import ProductViewSet
+
+        wsgi = RequestFactory().get('/api/catalog/products/?' + query)
+        wsgi.user = AnonymousUser()
+        view = ProductViewSet()
+        view.request = Request(wsgi)
+        view.action = 'list'
+        view.format_kwarg = None
+        return view.get_queryset()
+
+    def test_total_stock_is_not_multiplied_by_order_items(self):
+        """Must query the BESTSELLERS path — that is the only one at risk.
+
+        units_sold_90d is added only for sort_by=bestsellers, so it is the sole
+        queryset where the sales figure and Sum('variants__stock') coexist and a
+        chained annotate could fan out. Asserting this on the default listing would
+        pass even with the bug reintroduced, and test nothing.
+        """
+        product = self._queryset('sort_by=bestsellers').get(pk=self.product.pk)
+        true_stock = sum(v.stock or 0 for v in self.product.variants.all())
+
+        self.assertEqual(true_stock, 6)
+        self.assertEqual(
+            product.total_stock, true_stock,
+            'total_stock was multiplied by the order-item join — units_sold_90d has '
+            'been chained onto the main queryset again instead of using a Subquery.',
+        )
+
+    def test_inflated_stock_would_change_the_bucket(self):
+        """Guards the consequence, not just the number.
+
+        True stock is 6 against a threshold of 10, so this product is low_stock.
+        Fanned out across its 3 order items it reads as 14 — in_stock. The bucket
+        flip is the reason this bug mattered: it hides depleted inventory.
+        """
+        product = self._queryset('sort_by=bestsellers').get(pk=self.product.pk)
+        self.assertLessEqual(product.total_stock, self.product.low_stock_threshold)
+
+        low = [p.pk for p in self._queryset('sort_by=bestsellers&stock_status=low_stock')]
+        high = [p.pk for p in self._queryset('sort_by=bestsellers&stock_status=in_stock')]
+        self.assertIn(self.product.pk, low)
+        self.assertNotIn(self.product.pk, high)
+
+    def test_default_listing_stock_is_correct(self):
+        """The conditional is itself load-bearing — pin it.
+
+        Removing `if sort_by == 'bestsellers'` would put the sales figure back on
+        every listing request, so a future chained annotate would corrupt stock
+        site-wide rather than only under one sort.
+        """
+        product = self._queryset().get(pk=self.product.pk)
+        self.assertEqual(product.total_stock, 6)
+        self.assertIn(self.product.pk, [p.pk for p in self._queryset('stock_status=low_stock')])
+
+    def test_units_sold_counts_real_sales_and_skips_cancelled(self):
+        product = self._queryset('sort_by=bestsellers').get(pk=self.product.pk)
+        # 1 + 2 + 3 across the live orders; the cancelled order's 99 is excluded.
+        self.assertEqual(product.units_sold_90d, 6)
+
+    def test_units_sold_is_absent_unless_sorting_by_bestsellers(self):
+        """It is only surfaced for that sort; the serializer defaults it to 0."""
+        product = self._queryset().get(pk=self.product.pk)
+        self.assertFalse(hasattr(product, 'units_sold_90d'))
+        self.assertEqual(ProductSerializer(product).data['units_sold'], 0)

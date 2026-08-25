@@ -611,7 +611,7 @@ class HomeBundleView(APIView):
         from apps.catalog.models import Review, FrameProduct as Product
         from apps.catalog.serializers import ReviewSerializer, ProductSerializer
         reviews = Review.objects.filter(is_featured=True, is_approved=True).select_related('user', 'product').order_by('-updated_at')[:12]
-        from apps.catalog.views import annotate_review_stats
+        from apps.catalog.views import annotate_review_stats, annotate_units_sold_90d
         products = (annotate_review_stats(
                         Product.objects.filter(is_active=True)
                         .select_related('category', 'brand', 'seo')
@@ -622,20 +622,16 @@ class HomeBundleView(APIView):
         # A product qualifies only if it is admin-flagged AND actually sold units in
         # the trailing 90 days (cancelled orders excluded); results are ranked by that
         # volume so the strongest sellers surface first.
-        from django.db.models import Sum, Q
-        from django.utils import timezone
-        from datetime import timedelta
-        sales_window_start = timezone.now() - timedelta(days=90)
+        # units_sold_90d comes from the shared subquery helper, not a chained
+        # Sum('variants__orderitem__quantity') — that form joins order items into the
+        # product query and inflates any variant aggregate alongside it. See
+        # apps.catalog.views.annotate_units_sold_90d for the measured damage.
         best_sellers = (
-            annotate_review_stats(
-                Product.objects.filter(is_active=True, is_bestseller=True)
-                .select_related('category', 'brand', 'seo')
-                .prefetch_related('variants__images'))
-            .annotate(units_sold_90d=Sum(
-                'variants__orderitem__quantity',
-                filter=Q(variants__orderitem__order__created_at__gte=sales_window_start)
-                       & ~Q(variants__orderitem__order__order_status='cancelled'),
-            ))
+            annotate_units_sold_90d(
+                annotate_review_stats(
+                    Product.objects.filter(is_active=True, is_bestseller=True)
+                    .select_related('category', 'brand', 'seo')
+                    .prefetch_related('variants__images')))
             .filter(units_sold_90d__gt=0)
             .order_by('-units_sold_90d', '-created_at')[:12]
         )
