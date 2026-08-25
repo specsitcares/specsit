@@ -20,6 +20,10 @@
   --sp-radius-md:     8px;
   --sp-radius-lg:     12px;
   --sp-transition:    0.2s ease;
+  /* Loading skeleton — tinted toward --sp-accent rather than a neutral grey, so
+     the placeholder reads as part of this page and not as a broken image. */
+  --sp-skel-base:     #EFEAF3;
+  --sp-skel-hi:       #F8F5FA;
 }
 
 /* =============================================================================
@@ -78,6 +82,65 @@
     transform: none;
     transition: none;
   }
+}
+
+/* =============================================================================
+   LOADING SKELETON — while /cms/home-bundle/ is in flight
+   =============================================================================
+   The homepage still renders all at once: every section's visibility comes from
+   `home.sections`, so nothing can paint until the bundle lands, and sections must
+   not pop in one at a time. What this changes is only what fills the gap. An empty
+   white screen reads as a broken page; the page's own shape reads as a loading one.
+
+   Children carry .hp-visible deliberately. `.homepage > *` starts at opacity 0 and
+   is revealed by the IntersectionObserver in HomePage, which bails while `home` is
+   null — so without it every skeleton block would be invisible. */
+
+.hp-skel {
+  background-color: var(--sp-skel-base);
+  background-image: linear-gradient(
+    100deg,
+    var(--sp-skel-base) 0%,
+    var(--sp-skel-hi)  45%,
+    var(--sp-skel-base) 70%
+  );
+  background-size: 300% 100%;
+  border-radius: var(--sp-radius-md);
+  animation: hp-skel-sweep 1.4s ease-in-out infinite;
+}
+
+@keyframes hp-skel-sweep {
+  from { background-position: 150% 0; }
+  to   { background-position: -50% 0; }
+}
+
+/* Layout blocks mirror the real sections they stand in for. */
+.hp-skel-row     { display: flex; flex-wrap: wrap; gap: 24px; }
+.hp-skel-section { display: flex; flex-direction: column; gap: 12px; }
+.hp-skel-card    { display: flex; flex-direction: column; gap: 10px; }
+.hp-skel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+  margin-top: 12px;
+}
+
+/* Same ratio and bounds as .hero-v2, so the fold doesn't jump when data lands. */
+.hp-skel__hero {
+  aspect-ratio: var(--ar-hero);
+  min-height: 400px;
+  max-height: 620px;
+  border-radius: 0;
+}
+.hp-skel__brand        { width: 120px; height: 48px; }
+.hp-skel__title        { width: min(320px, 60%); height: 28px; }
+.hp-skel__subtitle     { width: min(460px, 80%); height: 16px; }
+.hp-skel__thumb        { width: 100%; aspect-ratio: 1 / 1; }
+.hp-skel__line         { width: 90%; height: 14px; }
+.hp-skel__line--short  { width: 55%; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hp-skel { animation: none; background-image: none; }
 }
 
 /* =============================================================================

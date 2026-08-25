@@ -15,6 +15,39 @@ import FAQ from './FAQ';
 import Newsletter from './Newsletter';
 import '../../../styles/home.css';
 
+// Placeholder shown while /cms/home-bundle/ is in flight.
+//
+// The page still renders all at once — section visibility is driven by
+// `home.sections`, so nothing can paint before the bundle arrives, and sections
+// are not meant to appear one by one. This only replaces the blank screen with
+// the page's own shape, so a cold first load reads as loading rather than broken.
+// On a warm cache the bundle returns in ~2ms and this is never seen.
+const HomeSkeleton = () => (
+  <div className="homepage" id="homepage" aria-busy="true" aria-label="Loading homepage">
+    <div className="hp-skel hp-skel__hero hp-visible" />
+    <div className="hp-skel-row hp-visible">
+      {Array.from({ length: 6 }, (_, i) => (
+        <div key={i} className="hp-skel hp-skel__brand" />
+      ))}
+    </div>
+    {Array.from({ length: 2 }, (_, s) => (
+      <div key={s} className="hp-skel-section hp-visible">
+        <div className="hp-skel hp-skel__title" />
+        <div className="hp-skel hp-skel__subtitle" />
+        <div className="hp-skel-grid">
+          {Array.from({ length: 4 }, (_, c) => (
+            <div key={c} className="hp-skel-card">
+              <div className="hp-skel hp-skel__thumb" />
+              <div className="hp-skel hp-skel__line" />
+              <div className="hp-skel hp-skel__line hp-skel__line--short" />
+            </div>
+          ))}
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
 const HomeContent = () => {
   const home = useHomeData(); // null while the single bundle loads
   const observerCallback = useCallback((entries, obs) => {
@@ -53,7 +86,7 @@ const HomeContent = () => {
   const bestSellers = (home?.best_sellers || []).slice(0, 8);
   const sunglasses = sunglassProducts.length > 0 ? sunglassProducts.slice(0, 8) : frameProducts.slice(8, 16);
 
-  if (!home) return <div className="homepage" id="homepage" style={{ minHeight: '60vh' }} />;
+  if (!home) return <HomeSkeleton />;
 
   return (
     <div className="homepage" id="homepage">
