@@ -351,9 +351,22 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
+    # The LOCAL throttle classes, not DRF's stock ones. Stock AnonRateThrottle /
+    # UserRateThrottle write their counters to the DEFAULT cache — which is Upstash.
+    # That put four Redis round-trips (get+set for anon, get+set for user) on EVERY
+    # API request, cached or not: measured 6-8 round-trips for a warm product list,
+    # of which 4 were these counters. With Redis in a different region from the app
+    # that is pure latency for a number nobody reads across processes.
+    #
+    # apps/core_utils/throttling.py binds these to the local in-memory 'throttle'
+    # cache, exactly as the note beside the CACHES setting describes. The counters
+    # become per-worker rather than global: at 1000/hour anonymous and 10000/hour
+    # authenticated those are abuse ceilings, not quotas anyone legitimately reaches,
+    # so per-worker accounting is the right trade. The limits that genuinely matter
+    # (LoginThrottle 5/min, RegisterThrottle 10/hour) already use this same cache.
     'DEFAULT_THROTTLE_CLASSES': [
-        'rest_framework.throttling.AnonRateThrottle',
-        'rest_framework.throttling.UserRateThrottle'
+        'apps.core_utils.throttling.LocalAnonThrottle',
+        'apps.core_utils.throttling.LocalUserThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
         'anon': '1000/hour',
