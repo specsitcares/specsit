@@ -1257,7 +1257,14 @@ class CartViewSet(viewsets.ModelViewSet):
     serializer_class = CartSerializer
     permission_classes = [permissions.IsAuthenticated]
     def get_queryset(self):
-        return Cart.objects.filter(user=self.request.user).select_related('variant', 'variant__product')
+        from django.db.models import Prefetch  # type:ignore
+        # to_attr='_prefetched_images' matches the pattern OrderViewSet already uses
+        # for the same field (serializers.py OrderItemSerializer.get_variant_image).
+        # Without it the thumbnail cost one query per row: 22 queries for a 20-item
+        # cart, 20 of them catalog_variantimage.
+        return (Cart.objects.filter(user=self.request.user)
+                .select_related('variant', 'variant__product')
+                .prefetch_related(Prefetch('variant__images', to_attr='_prefetched_images')))
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
@@ -1265,7 +1272,21 @@ class WishlistViewSet(viewsets.ModelViewSet):
     serializer_class = WishlistSerializer
     permission_classes = [permissions.IsAuthenticated]
     def get_queryset(self):
-        return Wishlist.objects.filter(user=self.request.user).select_related('variant', 'variant__product').order_by('-added_at')
+        from django.db.models import Prefetch  # type:ignore
+        # Same thumbnail N+1 as the cart above; same fix.
+        #
+        # variant__product__variants is extra, and only the wishlist needs it:
+        # WishlistSerializer exposes product_selling_price, which resolves to the
+        # FrameProduct.selling_price PROPERTY — that iterates self.variants.all() to
+        # find the lowest price, so it queried once per wishlist row. CartSerializer
+        # only reads the product's title and id, so the cart never paid for it.
+        return (Wishlist.objects.filter(user=self.request.user)
+                .select_related('variant', 'variant__product')
+                .prefetch_related(
+                    Prefetch('variant__images', to_attr='_prefetched_images'),
+                    'variant__product__variants',
+                )
+                .order_by('-added_at'))
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 

@@ -612,6 +612,38 @@ def annotate_review_stats(queryset):
     )
 
 
+# ── Lens loading ──────────────────────────────────────────────────────────────
+# Everything LensSerializer reads for each lens it renders:
+#   package  -> name, description, features, cost/selling price, warranty
+#   brand    -> brand_name, brand_logo
+#   type     -> type_label
+#   constraints, package.categories -> two M2Ms, walked per lens
+#
+# Both lens-loading call sites go through lens_queryset() so they cannot drift
+# apart. They already had: _recommended_lenses_data carried 'brand' while
+# LensViewSet.get_queryset did not, so the PDP paid a brand lookup per lens that
+# the admin list did not — and neither prefetched the M2Ms, which cost one query
+# per lens EACH (41 queries for 13 lenses on the list, 26 for 11 on the PDP).
+#
+# 'type__group' is deliberately absent. Nothing serialized reads type.group; it
+# appears only in filters (exclude(type__group__name=...), filter(type__group__name=...)),
+# and a filter builds its own join without help from select_related.
+LENS_SELECT_RELATED = ('package', 'brand', 'type')
+LENS_PREFETCH_RELATED = ('constraints', 'package__categories')
+
+
+def lens_queryset(base=None):
+    """A Lens queryset with every relation LensSerializer touches already loaded.
+
+    Pass `base` to start from an existing queryset; the relations are additive, so
+    callers keep filtering, excluding and ordering afterwards exactly as before.
+    This changes only HOW lenses are loaded, never WHICH ones come back — including
+    alongside the .distinct() that the frame-type constraint filter applies.
+    """
+    qs = Lens.objects.all() if base is None else base
+    return qs.select_related(*LENS_SELECT_RELATED).prefetch_related(*LENS_PREFETCH_RELATED)
+
+
 # Trailing window that decides bestseller status. Named so the storefront listing
 # and the home bundle can never drift apart on it.
 BESTSELLER_WINDOW_DAYS = 90
@@ -721,12 +753,7 @@ class ProductViewSet(CachedReadMixin, viewsets.ModelViewSet):
         except Product.DoesNotExist:
             return []
 
-        # prefetch_related mirrors LensViewSet.get_queryset: LensSerializer walks the
-        # constraints M2M and package.categories once per lens, which cost one query
-        # EACH here — 26 queries for 11 lenses on a single product page.
-        lenses = (Lens.objects.filter(is_active=True)
-                  .select_related('package', 'brand', 'type', 'type__group')
-                  .prefetch_related('constraints', 'package__categories'))
+        lenses = lens_queryset(Lens.objects.filter(is_active=True))
 
         # Contact lenses are a separate product line (metadata group "Contact Lens Type").
         # They must NEVER appear inside an eyeglasses/sunglasses frame PDP.
@@ -1350,14 +1377,7 @@ class LensViewSet(CachedReadMixin, viewsets.ModelViewSet):
 
     def get_queryset(self):
         params = self.request.query_params
-        # brand is followed by LensSerializer.to_representation (brand_name/brand_logo);
-        # constraints and package__categories are both walked per lens there and in the
-        # declared `constraints` field. Without these three the list cost one query per
-        # lens for each — 41 queries for 13 lenses.
-        qs = (Lens.objects
-              .select_related('package', 'type', 'brand')
-              .prefetch_related('constraints', 'package__categories')
-              .all())
+        qs = lens_queryset()
         
         # Hide inactive lenses for customers. Staff in admin context/actions sees everything.
         is_staff = self.request.user.is_staff

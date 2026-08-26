@@ -645,7 +645,18 @@ class CartSerializer(serializers.ModelSerializer):
     variant_image = serializers.SerializerMethodField()
 
     def get_variant_image(self, obj):
-        first_img = obj.variant.images.first()
+        # Reads the prefetch cache populated by the viewset, NOT .images.first().
+        # .first() builds a fresh queryset and ignores the prefetch entirely — the
+        # same trap as .order_by() and .values() — so it re-queried once per row even
+        # with the prefetch in place. Ordering is unchanged: the prefetch queryset
+        # applies VariantImage.Meta.ordering = ['order'], so element 0 is the same
+        # image .first() returned.
+        if not obj.variant:
+            return None
+        images = getattr(obj.variant, '_prefetched_images', None)
+        if images is None:                      # no prefetch (detail route, nested use)
+            images = list(obj.variant.images.all())
+        first_img = images[0] if images else None
         if first_img:
             request = self.context.get('request')
             if request:
@@ -677,7 +688,18 @@ class WishlistSerializer(serializers.ModelSerializer):
     variant_sku = serializers.ReadOnlyField(source='variant.sku')
 
     def get_variant_image(self, obj):
-        first_img = obj.variant.images.first()
+        # Reads the prefetch cache populated by the viewset, NOT .images.first().
+        # .first() builds a fresh queryset and ignores the prefetch entirely — the
+        # same trap as .order_by() and .values() — so it re-queried once per row even
+        # with the prefetch in place. Ordering is unchanged: the prefetch queryset
+        # applies VariantImage.Meta.ordering = ['order'], so element 0 is the same
+        # image .first() returned.
+        if not obj.variant:
+            return None
+        images = getattr(obj.variant, '_prefetched_images', None)
+        if images is None:                      # no prefetch (detail route, nested use)
+            images = list(obj.variant.images.all())
+        first_img = images[0] if images else None
         if first_img:
             request = self.context.get('request')
             if request:

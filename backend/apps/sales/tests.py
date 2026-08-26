@@ -224,3 +224,78 @@ class ExchangeInfoOnListTests(TestCase):
         listed = {r['id']: r for r in client.get('/api/sales/orders/', {'page_size': 50}).data['results']}
         detail = client.get(f'/api/sales/orders/{self.replacement.id}/').data
         self.assertEqual(listed[self.replacement.id]['exchange_info'], detail['exchange_info'])
+
+
+# Floor cost for the fixture below (3 rows, 2 images each), pinned so the thumbnail
+# N+1 cannot come back.
+#   cart     = count + page + images
+#   wishlist = the same, plus one prefetch of the product's sibling variants:
+#              WishlistSerializer exposes product_selling_price, which resolves to
+#              the FrameProduct.selling_price PROPERTY (it scans self.variants.all()
+#              for the lowest price). One prefetch replaces one query per row.
+CART_LIST_QUERIES = 3
+WISHLIST_LIST_QUERIES = 4
+
+
+class VariantThumbnailPrefetchTests(TestCase):
+    """Cart and wishlist thumbnails must come from the prefetch cache.
+
+    Both serializers used obj.variant.images.first(), which builds a fresh queryset
+    and ignores prefetch_related entirely — the same trap as .order_by() and
+    .values(). Measured before the fix: 22 queries for a 20-row cart, 20 of them
+    catalog_variantimage.
+
+    The wishlist half is covered here because the live database has no wishlist
+    rows, so only a fixture exercises that path.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        from apps.catalog.models import Category, FrameProduct, FrameVariant, VariantImage
+        from apps.sales.models import Cart, Wishlist
+
+        cls.user = get_user_model().objects.create_user(
+            username='thumb-cx', password='pw-4k1sn8dv',
+        )
+        category = Category.objects.create(name='Thumb Category')
+        product = FrameProduct.objects.create(
+            title='Thumb Frame', category=category, is_active=True,
+        )
+        for i in range(3):
+            variant = FrameVariant.objects.create(
+                product=product, sku=f'THUMB-{i}', variant_name=f'Colour {i}',
+                stock=5, selling_price=1000, is_listed=True,
+            )
+            # order=1 created FIRST so a naive [0] on insertion order picks the wrong one.
+            VariantImage.objects.create(variant=variant, image=f'catalog/products/t{i}-second.jpg', order=1)
+            VariantImage.objects.create(variant=variant, image=f'catalog/products/t{i}-first.jpg', order=0)
+            Cart.objects.create(user=cls.user, variant=variant, quantity=1)
+            Wishlist.objects.create(user=cls.user, variant=variant)
+
+    def _client(self):
+        c = APIClient()
+        c.force_authenticate(user=self.user)
+        return c
+
+    def test_cart_thumbnails_cost_no_extra_queries(self):
+        with self.assertNumQueries(CART_LIST_QUERIES):
+            response = self._client().get('/api/sales/cart/')
+        self.assertEqual(response.status_code, 200)
+        rows = response.data.get('results', response.data)
+        self.assertEqual(len(rows), 3)
+
+    def test_wishlist_thumbnails_cost_no_extra_queries(self):
+        with self.assertNumQueries(WISHLIST_LIST_QUERIES):
+            response = self._client().get('/api/sales/wishlist/')
+        self.assertEqual(response.status_code, 200)
+        rows = response.data.get('results', response.data)
+        self.assertEqual(len(rows), 3)
+
+    def test_thumbnail_respects_image_order_not_insertion_order(self):
+        """Meta.ordering is ['order'], so order=0 wins even though it was created second."""
+        for url in ('/api/sales/cart/', '/api/sales/wishlist/'):
+            response = self._client().get(url)
+            rows = response.data.get('results', response.data)
+            for row in rows:
+                self.assertIn('-first.jpg', row['variant_image'],
+                              f'{url} picked the wrong image — ordering was lost')

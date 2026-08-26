@@ -1,10 +1,23 @@
 services:
+  # Region is pinned on every service below. It was previously unset, which meant
+  # placement was whatever was chosen in the dashboard at creation time — a blueprint
+  # re-create could silently land a service in a different region from the others.
+  #
+  # Singapore is the closest region Render offers to the customer base (India) and to
+  # the data. Users see ~60ms instead of ~260ms from Oregon; once Postgres and Redis
+  # sit here too, app→database drops from ~100ms to single digits, which is what makes
+  # query count stop dominating page time.
+  #
+  # NOTE: Render cannot change an existing service's region in place. Changing this
+  # value creates a NEW service — the old one keeps running until you repoint traffic.
+  # Every `sync: false` variable must be set again on each new service; none are
+  # inherited, and SECRET_KEY has no default, so a missing one crashes at import.
   - type: web
     name: specsit-backend
     runtime: docker
+    region: singapore
     # Docker (not native python) so we can install the GL system libraries
-    # MediaPipe/OpenCV need for the AI PD measurement. Migrate + collectstatic
-    # run from the image CMD (see ./Dockerfile).
+    # MediaPipe/OpenCV need for the AI PD measurement.
     dockerfilePath: ./Dockerfile
     dockerContext: .
     envVars:
@@ -60,6 +73,7 @@ services:
   - type: cron
     name: specsit-warm-analytics
     runtime: docker
+    region: singapore
     dockerfilePath: ./Dockerfile
     dockerContext: .
     schedule: "*/15 * * * *"
@@ -74,6 +88,11 @@ services:
       - key: DATABASE_URL
         sync: false
 
+  # No region here on purpose. This service has `staticPublishPath`, which makes it a
+  # static site — Render serves those from its global CDN, so there is no origin region
+  # to pin and the blueprint validator may reject the key outright. Latency to the
+  # frontend is a CDN-edge concern, not a region choice; only the API service below
+  # benefits from being near the data.
   - type: web
     name: specsit-frontend
     runtime: node
