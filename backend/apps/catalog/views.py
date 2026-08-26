@@ -44,18 +44,7 @@ class IsStaffOrReadOnly(permissions.BasePermission):
 
 
 class _PrivateFileView(APIView):
-    """Serve an owned upload only to its owner (or staff).
 
-    Prescriptions and face captures are medical and biometric data. The API around
-    them checked ownership correctly, but the FILES were written into MEDIA_ROOT and
-    served as ordinary static assets — a permanent, unauthenticated URL. On S3 /
-    Supabase the same applied via AWS_QUERYSTRING_AUTH=False. Anyone holding or
-    guessing the link had the file, forever.
-
-    Subclasses set `model` and `file_field`. On local storage the bytes are streamed
-    through this view; on a remote backend we hand back a short-lived signed URL and
-    redirect, so large files never proxy through the app server.
-    """
     permission_classes = [permissions.IsAuthenticated]
     model = None
     file_field = None

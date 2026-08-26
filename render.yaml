@@ -1,23 +1,8 @@
 services:
-  # Region is pinned on every service below. It was previously unset, which meant
-  # placement was whatever was chosen in the dashboard at creation time — a blueprint
-  # re-create could silently land a service in a different region from the others.
-  #
-  # Singapore is the closest region Render offers to the customer base (India) and to
-  # the data. Users see ~60ms instead of ~260ms from Oregon; once Postgres and Redis
-  # sit here too, app→database drops from ~100ms to single digits, which is what makes
-  # query count stop dominating page time.
-  #
-  # NOTE: Render cannot change an existing service's region in place. Changing this
-  # value creates a NEW service — the old one keeps running until you repoint traffic.
-  # Every `sync: false` variable must be set again on each new service; none are
-  # inherited, and SECRET_KEY has no default, so a missing one crashes at import.
   - type: web
     name: specsit-backend
     runtime: docker
     region: singapore
-    # Docker (not native python) so we can install the GL system libraries
-    # MediaPipe/OpenCV need for the AI PD measurement.
     dockerfilePath: ./Dockerfile
     dockerContext: .
     envVars:
@@ -35,9 +20,6 @@ services:
         sync: false
       - key: CORS_ALLOWED_ORIGINS
         sync: false
-      # ── Supabase Storage (uploaded product/variant images) ──
-      # Non-secret config is set here; the two access keys are entered in the
-      # Render dashboard (sync: false) so they never live in git.
       - key: SUPABASE_S3_ENDPOINT
         value: https://yvnqwhgjvxktlyhnikzx.storage.supabase.co/storage/v1/s3
       - key: SUPABASE_S3_BUCKET
@@ -50,26 +32,6 @@ services:
         sync: false
       - key: SUPABASE_S3_SECRET_ACCESS_KEY
         sync: false
-
-  # ── Scheduled analytics warm-up ───────────────────────────────────────────
-  # Model writes only mark AnalyticsSnapshot rows stale (apps/sales/signals.py);
-  # nothing recomputes inline any more, because doing that on every save cost a
-  # storefront page view ~233 queries across five threads. This job is what makes
-  # the snapshots fresh again, so the admin dashboard reads a warm row instead of
-  # paying a synchronous recompute on first open.
-  #
-  # --only-stale keeps a quiet interval to a single SELECT. Without it every run
-  # would recompute all five snapshots (~233 queries to ap-northeast-1) whether or
-  # not anything changed — the same waste, just moved onto a timer.
-  #
-  # dockerCommand overrides the image CMD, so this does NOT run migrate /
-  # collectstatic / gunicorn. It runs the command and exits.
-  #
-  # Two things to know:
-  #   • Render cron jobs are not offered on the free instance type.
-  #   • envVars are NOT inherited from specsit-backend — the `sync: false` ones
-  #     below must be set on this service too, in the dashboard.
-  #   • REDIS_URL is deliberately absent: the compute path never touches the cache.
   - type: cron
     name: specsit-warm-analytics
     runtime: docker
@@ -88,14 +50,10 @@ services:
       - key: DATABASE_URL
         sync: false
 
-  # No region here on purpose. This service has `staticPublishPath`, which makes it a
-  # static site — Render serves those from its global CDN, so there is no origin region
-  # to pin and the blueprint validator may reject the key outright. Latency to the
-  # frontend is a CDN-edge concern, not a region choice; only the API service below
-  # benefits from being near the data.
   - type: web
     name: specsit-frontend
     runtime: node
+    region: singapore
     rootDir: frontend
     buildCommand: npm ci && npm run build
     staticPublishPath: dist
