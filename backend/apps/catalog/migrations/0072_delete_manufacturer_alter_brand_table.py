@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
         # Drop the legacy manufacturer table if it exists; some environments
         # may have already removed it. Use IF EXISTS to avoid errors.
         migrations.RunSQL(
-            sql="DROP TABLE IF EXISTS catalog_manufacturer CASCADE;",
+            sql="DROP TABLE IF EXISTS catalog_manufacturer;",
             reverse_sql=migrations.RunSQL.noop,
         ),
         migrations.AlterModelTable(
