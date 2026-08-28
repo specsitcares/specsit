@@ -128,10 +128,6 @@ class Migration(migrations.Migration):
         ),
         migrations.RemoveIndex(
             model_name='product',
-            name='prod_act_type_created_idx',
-        ),
-        migrations.RemoveIndex(
-            model_name='product',
             name='product_brand_active_idx',
         ),
         migrations.RemoveIndex(
