@@ -10,6 +10,10 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.RemoveIndex(
+            model_name='product',
+            name='prod_act_type_created_idx',
+        ),
         migrations.RemoveField(
             model_name='product',
             name='product_type',
