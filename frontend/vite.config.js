@@ -8,6 +8,8 @@ export default defineConfig({
     base: process.env.VERCEL
         ? '/'
         : (process.env.NODE_ENV === 'production' ? '/static/' : '/'),
+    // Read VITE_* vars from the single project-wide .env at the repo root
+    envDir: '..',
     plugins: [
         react(),
         tailwindcss(),

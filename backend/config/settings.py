@@ -22,8 +22,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # We use full package paths (e.g., apps.catalog) for better IDE resolution.
 
-# Read .env file
-environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
+# Read the single project-wide .env at the repo root
+environ.Env.read_env(os.path.join(BASE_DIR.parent, '.env'))
 
 # Quick-start development settings - unsuitable for production
 # No insecure defaults: if these aren't set in .env, the app crashes at startup
@@ -55,6 +55,10 @@ CSRF_COOKIE_HTTPONLY = True
 X_FRAME_OPTIONS = 'DENY'
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_BROWSER_XSS_FILTER = True
+# Django's default COOP ('same-origin') severs the opener link to the Google
+# sign-in popup, so it closes without handing the auth code back and login silently
+# stalls. Matches the header the Vite dev server sends (frontend/vite.config.js).
+SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin-allow-popups'
 
 # HTTPS-dependent hardening — only makes sense once actually served over HTTPS.
 if not DEBUG:

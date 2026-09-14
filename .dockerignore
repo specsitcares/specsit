@@ -3,6 +3,10 @@
 .gitignore
 .claude
 
+# Secrets come from the host environment (Render), never baked into the image
+.env
+**/.env
+
 # Local Python virtualenv & caches (wrong-platform binaries — never ship these)
 venv
 **/venv
