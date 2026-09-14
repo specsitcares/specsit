@@ -98,87 +98,68 @@ class OrderViewSet(viewsets.ModelViewSet):
             to_attr='_user_reviews',
         )
 
-        # Base prefetch paths needed by all views (both list and detail)
-        prefetch_paths = [
-            # Coupon M2M: avoid N+1 in CouponSerializer
+        # How orders are loaded. OrderViewSet uses ONE serializer for list and detail, and
+        # OrderSerializer walks every relation below on both — so all of it is shared.
+        #
+        # The rule: a relation that points at ONE row (an item's variant, a lens's brand,
+        # a prescription's status) is JOINED into the query that loads its parent, via
+        # select_related inside a Prefetch. Only relations that point at MANY rows (items,
+        # images, returns, M2Ms) get their own query. This used to be 44 flat
+        # prefetch_related paths, and every one of those is a separate round-trip even when
+        # it fetches a single row per parent. On a page where every relation is populated:
+        # 43 queries before, 20 after, byte-identical output (list, all three admin tabs,
+        # and detail).
+        #
+        # Adding a relation: if it is a forward FK / one-to-one, add it to the relevant
+        # select_related below. Only add a new Prefetch for reverse FKs and M2Ms.
+        from apps.catalog.models import Category
+        from .models import ReturnRequestNote
+
+        items = OrderItem.objects.select_related(
+            'variant__product__brand',                                  # brand_name, variant_name, slugs
+            'prescription__status', 'prescription__user',               # PrescriptionSerializer
+            'lens__type', 'lens__brand', 'lens__package',               # LensSerializer
+            'contact_lens__package', 'contact_lens__type', 'contact_lens__brand',
+        )
+        prefetches = [
+            # Coupon M2Ms (CouponSerializer); a category's parent rides along as a join.
             'coupon__brands',
-            'coupon__categories',
-            'coupon__categories__parent',
-            'items',
-            'items__variant',
-            'items__variant__product',
-            'items__variant__product__brand',
-            Prefetch(
-                'items__variant__images',
-                to_attr='_prefetched_images',
-            ),
-            'items__prescription',
-            'items__prescription__status',
-            'items__lens',
-            'items__contact_lens',
-            'items__contact_lens__package',
-            'tracking',
+            Prefetch('coupon__categories', queryset=Category.objects.select_related('parent')),
+
+            Prefetch('items', queryset=items),
+            # to_attr is read by name in OrderItemSerializer.get_variant_image — keep it.
+            Prefetch('items__variant__images', to_attr='_prefetched_images'),
+            # PrescriptionSerializer.get_order_id / get_order_display_id.
+            'items__prescription__order_items',
+            # LensSerializer's two M2Ms.
+            'items__lens__package__categories',
+            'items__lens__constraints',
+
             'payments',
-            'return_requests',
-            'return_requests__order_item',
-            'return_requests__order_item__variant',
-            'return_requests__order_item__variant__product',
-            # ReturnRequest image sub-relations — avoid N+1 in ReturnRequestSerializer
+
+            Prefetch('return_requests', queryset=ReturnRequest.objects.select_related(
+                'order_item__variant__product', 'replacement_variant__product')),
             'return_requests__images',
             'return_requests__received_images',
             'return_requests__pickup_images',
-            'return_requests__replacement_variant',
-            'return_requests__replacement_variant__product',
-            'return_requests__notes',
-            'return_requests__notes__author',
-            # WarrantyClaim image sub-relation — avoid N+1 in WarrantyClaimSerializer
+            Prefetch('return_requests__notes', queryset=ReturnRequestNote.objects.select_related('author')),
+
             'warranty_claims',
             'warranty_claims__images',
-            'source_returns',  # for get_exchange_info on replacement orders
-            'source_returns__order_item',
-            'source_returns__order_item__variant',
-            'source_returns__order_item__variant__product',
-            # get_exchange_info fallback: obj.replaces_order.items.first()
-            'replaces_order__items',
-            'replaces_order__items__variant',
-            'replaces_order__items__variant__product',
-            review_prefetch,
-        ]
 
-        # These were gated behind `if self.action != 'list'` as "detail-only". They are
-        # not: OrderViewSet uses ONE serializer for both actions, and OrderSerializer's
-        # `items` nests OrderItemSerializer, which renders `lens` (LensSerializer) and
-        # `prescription` (PrescriptionSerializer) in full on the list too. Withholding
-        # these paths did not save the list any work — it converted eight prefetches
-        # into N+1s. Measured on a 13-order staff page before this change:
-        #
-        #     28  sales_orderitem        PrescriptionSerializer.get_order_id /
-        #                                get_order_display_id -> obj.order_items.all()
-        #     12  catalog_lensconstraint LensSerializer.constraints
-        #     12  catalog_category       lens.package.categories
-        #      6  catalog_lenspackage    lens.package
-        #      5  core_metadataitem      lens.type
-        #
-        # ~63 avoidable queries to withhold 8. Restored to the shared set.
-        #
-        # items__prescription__user is new: PrescriptionSerializer.get_user_name reads
-        # obj.user and nothing ever prefetched it, which was 13 more auth_user queries.
-        prefetch_paths.extend([
-            'items__prescription__order_items',
-            'items__prescription__user',
-            'items__lens__type',
-            'items__lens__brand',
-            'items__lens__package',
-            'items__lens__package__categories',
-            'items__lens__constraints',
-            'items__contact_lens__type',
-            'items__contact_lens__brand',
-        ])
+            # get_exchange_info: the return that spawned a replacement order, and its
+            # fallback, the replaced order's first item.
+            Prefetch('source_returns', queryset=ReturnRequest.objects.select_related('order_item__variant__product')),
+            Prefetch('replaces_order__items', queryset=OrderItem.objects.select_related('variant__product')),
+
+            review_prefetch,   # to_attr='_user_reviews', read by get_has_review / get_review_rating
+        ]
 
         qs = Order.objects.select_related(
             'status', 'coupon', 'shipping_address', 'billing_address', 'user',
-            'replaces_order',  # needed by get_exchange_info without extra hit
-        ).prefetch_related(*prefetch_paths)
+            'replaces_order',  # get_exchange_info
+            'tracking',        # reverse one-to-one: a join, not a separate query
+        ).prefetch_related(*prefetches)
 
         # Hide online orders that were never paid — payment failed at the gateway or the
         # customer abandoned it. These should not appear as placed orders anywhere.
@@ -375,15 +356,20 @@ class OrderViewSet(viewsets.ModelViewSet):
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
-        
+
         items_updated = False
         has_pending_items = False
+        status_changed = False
 
-        for i in instance.items.select_related('lens', 'prescription__status').all():
+        # .all() reads the items get_queryset() already prefetched, with lens and
+        # prescription status joined in. The previous .select_related(...).all() built a
+        # fresh queryset and went back to the database for rows already in memory.
+        items = list(instance.items.all())
+        for i in items:
             if i.status == 'pending':
                 is_frame_only = not i.lens_id
                 rx_approved = i.prescription and i.prescription.status and i.prescription.status.label == 'Approved'
-                
+
                 if is_frame_only or rx_approved:
                     i.status = 'confirmed'
                     i.save(update_fields=['status'])
@@ -394,14 +380,22 @@ class OrderViewSet(viewsets.ModelViewSet):
         if items_updated:
             instance.refresh_from_db()
 
-        if instance.order_status == 'pending' and not has_pending_items and instance.items.exists():
+        if instance.order_status == 'pending' and not has_pending_items and items:
             conf_meta = self._get_status_meta('Confirmed', 'confirmed')
             Order.objects.filter(pk=instance.pk).update(
                 order_status='confirmed', status=conf_meta
             )
             instance.refresh_from_db()
-            
-        return super().retrieve(request, *args, **kwargs)
+            status_changed = True
+
+        if items_updated or status_changed:
+            # Something was written above: re-fetch so the response reflects it.
+            return super().retrieve(request, *args, **kwargs)
+
+        # Nothing changed, so the instance loaded above is exactly what a re-fetch would
+        # return. super().retrieve() would call get_object() — and therefore the whole
+        # prefetch set — a second time; serialize what we already have instead.
+        return Response(self.get_serializer(instance).data)
 
     @action(detail=False, methods=['get'])
     def analytics(self, request):
