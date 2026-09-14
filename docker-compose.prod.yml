@@ -19,7 +19,7 @@ services:
       context: .
       dockerfile: Dockerfile
     env_file:
-      - ./backend/.env
+      - ./.env
     environment:
       PORT: "8000"
       DEBUG: "False"
