@@ -65,11 +65,13 @@ class VariantSerializer(serializers.ModelSerializer):
 
           • it costs a query per zero-stock variant (the property iterates variants), and
           • a variant with no stock reports its SIBLINGS' stock as its own.
-
+                ----------------ex scene-------------
         Measured on production: of 5 out-of-stock variants, 4 reported non-zero —
         variant 12 (Ray Ban RB3124) holds 0 units and returned 2, borrowed from a
         sibling colorway. to_representation() writes this into `stock`, so the admin
         inventory table was showing units that do not exist for that colorway.
+
+        ----------------ex scene-------------
         """
         return obj.stock or 0
 
