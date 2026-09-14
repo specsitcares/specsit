@@ -81,10 +81,57 @@ class SiteSettings(models.Model):
     class Meta:
         verbose_name = 'Site Settings'
 
+    # One row, read on almost every request (return window, warranty window, image
+    # settings) and written maybe monthly. Long TTL is fine because save() busts it.
+    CACHE_KEY = 'cms:site_settings:v1'
+    CACHE_TTL = 3600
+
     @classmethod
     def get(cls):
-        obj, _ = cls.objects.get_or_create(pk=1)
+        """The singleton settings row, cached.
+
+        Returns a rebuilt instance rather than a cached model object on purpose: the
+        Redis cache is configured with django_redis' JSONSerializer, which cannot
+        serialise a model and would raise on every set. With IGNORE_EXCEPTIONS=True
+        that failure is swallowed, so the cache would appear to work while silently
+        never storing anything. A model_to_dict payload is JSON-safe.
+
+        The instance handed back is a READ-ONLY snapshot. Do not call .save() on it —
+        use SiteSettings.objects.get(pk=1) if you intend to write.
+        """
+        from django.core.cache import cache
+        from django.forms.models import model_to_dict
+
+        try:
+            data = cache.get(cls.CACHE_KEY)
+        except Exception:
+            data = None
+
+        if data is None:
+            obj, _ = cls.objects.get_or_create(pk=1)
+            try:
+                cache.set(cls.CACHE_KEY, model_to_dict(obj), cls.CACHE_TTL)
+            except Exception:
+                pass
+            return obj
+
+        obj = cls(**data)
+        # model_to_dict drops non-editable fields, so the AutoField pk never survives
+        # the round trip. Restore it — without this the snapshot has pk=None and a
+        # stray .save() would INSERT a second settings row instead of failing loudly.
+        obj.pk = 1
         return obj
+
+    def save(self, *args, **kwargs):
+        """Bust the cache on every write path — the API view, Django admin, shell,
+        fixtures. Doing it here rather than in the serializer means no future writer
+        can forget."""
+        super().save(*args, **kwargs)
+        try:
+            from django.core.cache import cache
+            cache.delete(self.CACHE_KEY)
+        except Exception:
+            pass
 
     def resolve(self, product_name='', variant_name='', brand='', category=''):
         ctx = {

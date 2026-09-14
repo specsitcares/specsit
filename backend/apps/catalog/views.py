@@ -15,6 +15,9 @@ from .serializers import (
     ReviewSerializer, VariantImageSerializer, LensConstraintSerializer
 )
 from django.shortcuts import get_object_or_404  # type: ignore
+from django.db.models import (
+    Avg, Count, FloatField, IntegerField, OuterRef, Subquery, Sum,
+)
 from decimal import Decimal, InvalidOperation
 import logging
 import io
@@ -41,18 +44,7 @@ class IsStaffOrReadOnly(permissions.BasePermission):
 
 
 class _PrivateFileView(APIView):
-    """Serve an owned upload only to its owner (or staff).
 
-    Prescriptions and face captures are medical and biometric data. The API around
-    them checked ownership correctly, but the FILES were written into MEDIA_ROOT and
-    served as ordinary static assets — a permanent, unauthenticated URL. On S3 /
-    Supabase the same applied via AWS_QUERYSTRING_AUTH=False. Anyone holding or
-    guessing the link had the file, forever.
-
-    Subclasses set `model` and `file_field`. On local storage the bytes are streamed
-    through this view; on a remote backend we hand back a short-lived signed URL and
-    redirect, so large files never proxy through the app server.
-    """
     permission_classes = [permissions.IsAuthenticated]
     model = None
     file_field = None
@@ -584,6 +576,113 @@ class BrandViewSet(CachedReadMixin, viewsets.ModelViewSet):
         return qs.order_by('id')
     
 
+def annotate_review_stats(queryset):
+    """Attach `avg_rating` and `review_total` (approved reviews only) to a product queryset.
+
+    Deliberately a correlated Subquery, NOT queryset.annotate(Avg('reviews__rating')).
+    The storefront queryset already annotates Sum('variants__stock') and
+    Min('variants__selling_price'); adding an aggregate over the unrelated `reviews`
+    relation to the same query multiplies the variant rows by the review rows and
+    silently corrupts BOTH — the same hazard the rating_min filter documents below.
+    A subquery is evaluated independently per product, so nothing fans out.
+
+    Matches ProductSerializer._approved_reviews(): is_approved=True only.
+    """
+    approved = Review.objects.filter(product=OuterRef('pk'), is_approved=True)
+    return queryset.annotate(
+        avg_rating=Subquery(
+            approved.values('product').annotate(a=Avg('rating')).values('a')[:1],
+            output_field=FloatField(),
+        ),
+        review_total=Subquery(
+            approved.values('product').annotate(c=Count('id')).values('c')[:1],
+            output_field=IntegerField(),
+        ),
+    )
+
+
+# ── Lens loading ──────────────────────────────────────────────────────────────
+# Everything LensSerializer reads for each lens it renders:
+#   package  -> name, description, features, cost/selling price, warranty
+#   brand    -> brand_name, brand_logo
+#   type     -> type_label
+#   constraints, package.categories -> two M2Ms, walked per lens
+#
+# Both lens-loading call sites go through lens_queryset() so they cannot drift
+# apart. They already had: _recommended_lenses_data carried 'brand' while
+# LensViewSet.get_queryset did not, so the PDP paid a brand lookup per lens that
+# the admin list did not — and neither prefetched the M2Ms, which cost one query
+# per lens EACH (41 queries for 13 lenses on the list, 26 for 11 on the PDP).
+#
+# 'type__group' is deliberately absent. Nothing serialized reads type.group; it
+# appears only in filters (exclude(type__group__name=...), filter(type__group__name=...)),
+# and a filter builds its own join without help from select_related.
+LENS_SELECT_RELATED = ('package', 'brand', 'type')
+LENS_PREFETCH_RELATED = ('constraints', 'package__categories')
+
+
+def lens_queryset(base=None):
+    """A Lens queryset with every relation LensSerializer touches already loaded.
+
+    Pass `base` to start from an existing queryset; the relations are additive, so
+    callers keep filtering, excluding and ordering afterwards exactly as before.
+    This changes only HOW lenses are loaded, never WHICH ones come back — including
+    alongside the .distinct() that the frame-type constraint filter applies.
+    """
+    qs = Lens.objects.all() if base is None else base
+    return qs.select_related(*LENS_SELECT_RELATED).prefetch_related(*LENS_PREFETCH_RELATED)
+
+
+# Trailing window that decides bestseller status. Named so the storefront listing
+# and the home bundle can never drift apart on it.
+BESTSELLER_WINDOW_DAYS = 90
+
+
+def annotate_units_sold_90d(queryset):
+    """Attach `units_sold_90d` — units actually sold in the trailing 90 days.
+
+    Deliberately a correlated Subquery, NOT
+    queryset.annotate(Sum('variants__orderitem__quantity', filter=...)).
+
+    That form was a correctness bug, not just a slow query. The storefront queryset
+    already annotates Sum('variants__stock'); joining `variants__orderitem` on the
+    SAME query multiplies the variant rows by the order-item rows, so every variant's
+    stock was counted once per matching order item and total_stock came back inflated.
+    Measured on live data before the fix:
+
+        Ray Ban Lenskart -Air Switch    reported 33   actual 22
+        Ray Ban Airframe Slim Big Shape reported 27   actual  9
+        Cleaning Cloth                  reported 22   actual 11
+        Vogue VO9876                    reported  4   actual  3
+
+    total_stock feeds the in_stock / low_stock / out_of_stock filters, so the
+    inflation also mis-bucketed inventory. A subquery is evaluated per product and
+    never joins into the outer query, so neither aggregate can disturb the other —
+    the same reasoning as annotate_review_stats() above.
+
+    Returns NULL (not 0) for a product with no qualifying sales, matching the old
+    filtered-Sum behaviour that `units_sold_90d__gt=0` and `nulls_last=True` rely on.
+    """
+    from django.utils import timezone
+    from datetime import timedelta
+    from apps.sales.models import OrderItem
+
+    since = timezone.now() - timedelta(days=BESTSELLER_WINDOW_DAYS)
+    sold = (
+        OrderItem.objects
+        .filter(variant__product=OuterRef('pk'), order__created_at__gte=since)
+        # order_status is non-null (CharField, default='pending'), so exclude() here
+        # is exactly equivalent to the ~Q() the filtered Sum used.
+        .exclude(order__order_status='cancelled')
+        .values('variant__product')
+        .annotate(total=Sum('quantity'))
+        .values('total')[:1]
+    )
+    return queryset.annotate(
+        units_sold_90d=Subquery(sold, output_field=IntegerField())
+    )
+
+
 class ProductPagination(PageNumberPagination):
     # The storefront listing page asks for a specific page_size (12, to match its
     # grid) — the default PageNumberPagination silently ignores that param unless
@@ -639,11 +738,11 @@ class ProductViewSet(CachedReadMixin, viewsets.ModelViewSet):
         from .serializers import LensSerializer
 
         try:
-            product = Product.objects.get(pk=pk)
+            product = Product.objects.select_related('category').get(pk=pk)
         except Product.DoesNotExist:
             return []
 
-        lenses = Lens.objects.filter(is_active=True).select_related('package', 'brand', 'type', 'type__group')
+        lenses = lens_queryset(Lens.objects.filter(is_active=True))
 
         # Contact lenses are a separate product line (metadata group "Contact Lens Type").
         # They must NEVER appear inside an eyeglasses/sunglasses frame PDP.
@@ -693,7 +792,7 @@ class ProductViewSet(CachedReadMixin, viewsets.ModelViewSet):
         from django.db.models import Q
 
         try:
-            product = Product.objects.get(pk=pk)
+            product = Product.objects.select_related('category').get(pk=pk)
         except Product.DoesNotExist:
             return Response([])
 
@@ -777,7 +876,10 @@ class ProductViewSet(CachedReadMixin, viewsets.ModelViewSet):
         # Staff performing write operations (update/delete) need access to ALL products
         # regardless of is_active or variant status, otherwise destroy/update will 404.
         if self.request.user.is_staff and self.action in ('retrieve', 'update', 'partial_update', 'destroy'):
-            return Product.objects.select_related('category', 'brand', 'seo').prefetch_related('variants').all()
+            return annotate_review_stats(
+                Product.objects.select_related('category', 'brand', 'seo')
+                .prefetch_related('variants__images')
+            ).all()
 
         # Base filter: Always hide inactive products unless explicitly requested by staff
         is_active_filter = params.get('is_active')
@@ -794,13 +896,21 @@ class ProductViewSet(CachedReadMixin, viewsets.ModelViewSet):
         is_admin_request = self.request.user.is_staff and params.get('admin') == 'true'
         
         if not is_admin_request:
-            listed_variants = Variant.objects.filter(is_listed=True, stock__gt=0)
+            # Images are prefetched on the INNER queryset, not as a top-level
+            # 'variants__images' path. A top-level path would fetch images for the
+            # unlisted / out-of-stock variants this Prefetch deliberately excludes —
+            # wasted rows, and a delisted variant's photos could resurface.
+            listed_variants = Variant.objects.filter(
+                is_listed=True, stock__gt=0
+            ).prefetch_related('images')
             listed = Variant.objects.filter(product=OuterRef('pk'), is_listed=True, stock__gt=0)
             queryset = queryset.filter(Exists(listed)).prefetch_related(
                 Prefetch('variants', queryset=listed_variants)
             )
         else:
-            queryset = queryset.prefetch_related('variants')
+            queryset = queryset.prefetch_related('variants__images')
+        # avg_rating / review_total as subqueries — see annotate_review_stats().
+        queryset = annotate_review_stats(queryset)
 
         queryset = queryset.select_related('category', 'brand', 'seo')
 
@@ -962,20 +1072,19 @@ class ProductViewSet(CachedReadMixin, viewsets.ModelViewSet):
             except (ValueError, TypeError):
                 pass
 
+        # Sorting
+        sort_by = params.get('sort_by', '-created_at')
+
         # Units actually sold in the trailing 90 days (cancelled orders excluded), so
         # the storefront can justify bestseller status with real sales instead of the
         # default-True admin flag alone.
-        from django.utils import timezone
-        from datetime import timedelta
-        sales_window_start = timezone.now() - timedelta(days=90)
-        queryset = queryset.annotate(units_sold_90d=Sum(
-            'variants__orderitem__quantity',
-            filter=Q(variants__orderitem__order__created_at__gte=sales_window_start)
-                   & ~Q(variants__orderitem__order__order_status='cancelled'),
-        ))
-
-        # Sorting
-        sort_by = params.get('sort_by', '-created_at')
+        #
+        # Added only for the bestsellers sort. It used to run on every listing request
+        # and be discarded — the value is surfaced solely as `units_sold`, which
+        # ProductSerializer.get_units_sold defaults to 0 when the annotation is absent,
+        # so the other sorts are unaffected.
+        if sort_by == 'bestsellers':
+            queryset = annotate_units_sold_90d(queryset)
         sort_map = {
             'final_price': 'min_selling_price', '-final_price': '-min_selling_price',
             'stock_quantity': 'total_stock', '-stock_quantity': '-total_stock',
@@ -1127,7 +1236,7 @@ class VariantViewSet(viewsets.ModelViewSet):
         params = self.request.query_params
         
         # Always hide variants of inactive products
-        qs = Variant.objects.filter(product__is_active=True).select_related('product', 'product__brand').prefetch_related('images')
+        qs = Variant.objects.filter(product__is_active=True).select_related('product', 'product__brand', 'product__category').prefetch_related('images')
         
         # Filter listed/stock for customers. Staff in admin context sees everything.
         is_staff = self.request.user.is_staff
@@ -1257,7 +1366,7 @@ class LensViewSet(CachedReadMixin, viewsets.ModelViewSet):
 
     def get_queryset(self):
         params = self.request.query_params
-        qs = Lens.objects.select_related('package', 'type').all()
+        qs = lens_queryset()
         
         # Hide inactive lenses for customers. Staff in admin context/actions sees everything.
         is_staff = self.request.user.is_staff
@@ -1289,7 +1398,11 @@ class LensViewSet(CachedReadMixin, viewsets.ModelViewSet):
             else:
                 qs = qs.filter(constraint__name__iexact=constraint)
 
-        return qs
+        # Lens has no Meta.ordering, so an unordered queryset let Postgres return rows
+        # in any order it liked between requests — meaning a paginated client could see
+        # the same lens on two pages and never see another. Matches the sibling
+        # ContactLensViewSet, which already orders by id.
+        return qs.order_by('id')
 
 class ContactLensViewSet(CachedReadMixin, viewsets.ModelViewSet):
     cache_namespace = 'catalog_contact_lenses'

@@ -53,42 +53,65 @@ def compute_analytics(period='last_30'):
             return 0
         return round(((curr - prev) / prev) * 100, 1)
 
+    # ── SINGLE-PASS AGGREGATION ───────────────────────────────────────────────
+    # Each of these blocks used to scan the same table once per metric — the same
+    # rows re-read with a slightly different date or status filter. Conditional
+    # aggregation asks every question in one pass instead. Q objects are shared so
+    # the current/previous windows can never drift apart between metrics.
+    _curr = Q(created_at__date__gte=start_date)
+    _prev = Q(created_at__date__gte=prev_start, created_at__date__lt=start_date)
+
+    # Orders: 7 queries -> 1 (counts, revenue, distinct buyers, non-cancelled).
+    order_totals = base_qs.filter(created_at__date__gte=prev_start).aggregate(
+        curr_orders=Count('id', filter=_curr),
+        prev_orders=Count('id', filter=_prev),
+        curr_revenue=Sum('total_amount', filter=_curr),
+        prev_revenue=Sum('total_amount', filter=_prev),
+        curr_users=Count('user', distinct=True, filter=_curr),
+        prev_users=Count('user', distinct=True, filter=_prev),
+        curr_placed=Count('id', filter=_curr & ~Q(order_status='cancelled')),
+    )
+
+    # Carts: 4 queries -> 1 (counts + distinct owners, both windows).
+    _cart_curr = Q(added_at__date__gte=start_date)
+    _cart_prev = Q(added_at__date__gte=prev_start, added_at__date__lt=start_date)
+    cart_totals = Cart.objects.filter(added_at__date__gte=prev_start).aggregate(
+        curr_count=Count('id', filter=_cart_curr),
+        prev_count=Count('id', filter=_cart_prev),
+        curr_users=Count('user', distinct=True, filter=_cart_curr),
+        prev_users=Count('user', distinct=True, filter=_cart_prev),
+    )
+
+    # Products sold: 2 queries -> 1.
+    item_totals = OrderItem.objects.filter(
+        order__is_replacement=False, order__created_at__date__gte=prev_start
+    ).aggregate(
+        curr=Sum('quantity', filter=Q(order__created_at__date__gte=start_date)),
+        prev=Sum('quantity', filter=Q(order__created_at__date__gte=prev_start,
+                                      order__created_at__date__lt=start_date)),
+    )
+
     # ── 1. Total Orders ────────────────────────────────────────────────────────
-    total_orders      = curr_qs.count()
-    prev_total_orders = prev_qs.count()
+    total_orders      = order_totals['curr_orders']
+    prev_total_orders = order_totals['prev_orders']
     orders_trend      = safe_trend(total_orders, prev_total_orders)
 
     # ── 2. Carts Created ───────────────────────────────────────────────────────
-    carts_curr = Cart.objects.filter(added_at__date__gte=start_date).count()
-    carts_prev = Cart.objects.filter(
-        added_at__date__gte=prev_start, added_at__date__lt=start_date
-    ).count()
+    carts_curr = cart_totals['curr_count']
+    carts_prev = cart_totals['prev_count']
     carts_trend     = safe_trend(carts_curr, carts_prev)
     conversion_rate = round((total_orders / max(carts_curr, 1)) * 100, 1)
 
     # ── 3. Revenue ─────────────────────────────────────────────────────────────
     # Already excluded replacements via base_qs, so no need to exclude again
-    total_revenue = float(
-        curr_qs.aggregate(total=Sum('total_amount'))['total'] or 0
-    )
-    prev_revenue = float(
-        prev_qs.aggregate(total=Sum('total_amount'))['total'] or 0
-    )
+    total_revenue = float(order_totals['curr_revenue'] or 0)
+    prev_revenue  = float(order_totals['prev_revenue'] or 0)
     revenue_trend = safe_trend(total_revenue, prev_revenue)
     avg_order     = round(total_revenue / max(total_orders, 1), 2)
 
     # ── 4. Products Sold ───────────────────────────────────────────────────────
-    # Filter by orders that exclude replacements
-    products_curr = (
-        OrderItem.objects.filter(
-            order__in=curr_qs
-        ).aggregate(total=Sum('quantity'))['total'] or 0
-    )
-    products_prev = (
-        OrderItem.objects.filter(
-            order__in=prev_qs
-        ).aggregate(total=Sum('quantity'))['total'] or 0
-    )
+    products_curr  = item_totals['curr'] or 0
+    products_prev  = item_totals['prev'] or 0
     products_trend = safe_trend(products_curr, products_prev)
 
     # ── 5. Product Category Breakdown ─────────────────────────────────────────
@@ -96,17 +119,20 @@ def compute_analytics(period='last_30'):
     CAT_COLORS = ['#A855F7', '#6366F1', '#EC4899', '#F59E0B',
                   '#10B981', '#3B82F6', '#EF4444', '#14B8A6']
 
-    sales_qs = (
+    # One pass over OrderItem-by-category serves BOTH the units breakdown here and the
+    # revenue breakdown in section 13 (was two queries with the same GROUP BY).
+    cat_rows = list(
         OrderItem.objects.filter(order__in=curr_qs)
         .values('variant__product__category__id', 'variant__product__category__name')
-        .annotate(total=Sum('quantity'))
+        .annotate(total=Sum('quantity'),
+                  revenue=Sum('item_total', output_field=FloatField()))
     )
     sales_map = {
         row['variant__product__category__id']: {
             'name':  row['variant__product__category__name'] or 'Other',
             'total': row['total'] or 0,
         }
-        for row in sales_qs
+        for row in cat_rows
     }
 
     all_cats  = list(CatalogCategory.objects.filter(is_active=True, group='frame').order_by('name'))
@@ -151,9 +177,16 @@ def compute_analytics(period='last_30'):
         order__in=curr_qs,
         delivery_cost__isnull=False,
     )
-    total_carrier_cost = float(dispatched.aggregate(t=Sum('delivery_cost'))['t'] or 0)
+    # 3 queries -> 1: carrier cost, rate charged and the dispatched count in one pass.
+    _rated = Q(delivery_rate_charged__isnull=False)
+    dispatch_totals = dispatched.aggregate(
+        carrier_cost=Sum('delivery_cost'),
+        rate_charged=Sum('delivery_rate_charged', filter=_rated),
+        n_dispatched=Count('id'),
+    )
+    total_carrier_cost = float(dispatch_totals['carrier_cost'] or 0)
     with_rate          = dispatched.filter(delivery_rate_charged__isnull=False)
-    total_rate_charged = float(with_rate.aggregate(t=Sum('delivery_rate_charged'))['t'] or 0)
+    total_rate_charged = float(dispatch_totals['rate_charged'] or 0)
     pocket_money       = round(total_carrier_cost - total_rate_charged, 2)
 
     band_qs = (
@@ -187,33 +220,31 @@ def compute_analytics(period='last_30'):
         'totalRateCharged': total_rate_charged,
         'totalCarrierCost': total_carrier_cost,
         'pocketMoney':      pocket_money,
-        'ordersWithData':   dispatched.count(),
+        'ordersWithData':   dispatch_totals['n_dispatched'],
         'segments':         segments,
         'bandBreakdown':    band_breakdown,
     }
 
     # ── 8. Top Lenses ──────────────────────────────────────────────────────────
-    frame_lens_qs = (
-        OrderItem.objects.filter(
-            order__in=curr_qs,
-            lens__isnull=False, lens__replacement__isnull=True,
-        ).values('lens__package__name').annotate(count=Count('id')).order_by('-count')[:6]
+    # 2 queries -> 1. Frame vs contact lenses differ only by lens__replacement, so
+    # group by package once and count both kinds in the same pass.
+    lens_rows = list(
+        OrderItem.objects.filter(order__in=curr_qs, lens__isnull=False)
+        .values('lens__package__name')
+        .annotate(
+            frame_count=Count('id', filter=Q(lens__replacement__isnull=True)),
+            contact_count=Count('id', filter=Q(lens__replacement__isnull=False)),
+        )
     )
-    top_frame_lenses = [
-        {'label': r['lens__package__name'] or 'Unknown', 'value': r['count']}
-        for r in frame_lens_qs
-    ]
 
-    contact_lens_qs = (
-        OrderItem.objects.filter(
-            order__in=curr_qs,
-            lens__isnull=False, lens__replacement__isnull=False,
-        ).values('lens__package__name').annotate(count=Count('id')).order_by('-count')[:6]
-    )
-    top_contact_lenses = [
-        {'label': r['lens__package__name'] or 'Unknown', 'value': r['count']}
-        for r in contact_lens_qs
-    ]
+    def _top_lenses(key):
+        rows = [r for r in lens_rows if r[key]]
+        rows.sort(key=lambda r: -r[key])
+        return [{'label': r['lens__package__name'] or 'Unknown', 'value': r[key]}
+                for r in rows[:6]]
+
+    top_frame_lenses   = _top_lenses('frame_count')
+    top_contact_lenses = _top_lenses('contact_count')
 
     # ── 9. Frame Materials & Accessories ───────────────────────────────────────
     mat_qs = (
@@ -226,34 +257,38 @@ def compute_analytics(period='last_30'):
         for r in mat_qs
     ]
 
-    acc_qs = (
-        OrderItem.objects.filter(
-            order__in=curr_qs,
-            variant__product__category__group='accessory',
-        ).values('variant__product__title').annotate(units=Sum('quantity')).order_by('-units')[:6]
+    # One pass over OrderItem-by-title serves both the accessories chart here and
+    # sold_by_title in section 10 (was two queries with the same GROUP BY).
+    title_rows = list(
+        OrderItem.objects.filter(order__in=curr_qs)
+        .values('variant__product__title')
+        .annotate(units=Sum('quantity'),
+                  acc_units=Sum('quantity',
+                                filter=Q(variant__product__category__group='accessory')))
     )
+    _acc = [r for r in title_rows if r['acc_units']]
+    _acc.sort(key=lambda r: -r['acc_units'])
     accessories_data = [
-        {'name': r['variant__product__title'] or 'Unknown', 'units': r['units']}
-        for r in acc_qs
+        {'name': r['variant__product__title'] or 'Unknown', 'units': r['acc_units']}
+        for r in _acc[:6]
     ]
 
     # ── 10. Abandoned Cart Analytics ───────────────────────────────────────────
-    cart_users_curr  = Cart.objects.filter(added_at__date__gte=start_date).values('user').distinct().count()
-    order_users_curr = curr_qs.values('user').distinct().count()
+    # All four distinct-user counts came from the cart/order single-pass aggregates above.
+    cart_users_curr  = cart_totals['curr_users']
+    order_users_curr = order_totals['curr_users']
     abandonment_rate = round(
         max(0, cart_users_curr - order_users_curr) / max(cart_users_curr, 1) * 100, 1
     )
 
-    cart_users_prev  = Cart.objects.filter(
-        added_at__date__gte=prev_start, added_at__date__lt=start_date
-    ).values('user').distinct().count()
-    order_users_prev  = prev_qs.values('user').distinct().count()
+    cart_users_prev  = cart_totals['prev_users']
+    order_users_prev = order_totals['prev_users']
     prev_abandonment  = round(
         max(0, cart_users_prev - order_users_prev) / max(cart_users_prev, 1) * 100, 1
     )
     abandonment_trend = round(abandonment_rate - prev_abandonment, 1)
 
-    funnel_placed = curr_qs.exclude(order_status='cancelled').count()
+    funnel_placed = order_totals['curr_placed']
     funnel_max    = max(carts_curr, 1)
     funnel_data   = [
         {'label': 'Cart Created',     'count': carts_curr,    'pct': 100},
@@ -272,12 +307,10 @@ def compute_analytics(period='last_30'):
             )
         )
     )
-    sold_by_title = {}
-    for row in (
-        OrderItem.objects.filter(order__in=curr_qs)
-        .values('variant__product__title').annotate(total=Sum('quantity'))
-    ):
-        sold_by_title[row['variant__product__title']] = int(row['total'] or 0)
+    sold_by_title = {
+        row['variant__product__title']: int(row['units'] or 0)
+        for row in title_rows          # reuses the single pass built above
+    }
 
     top_abandoned_data = []
     for item in all_products_list:
@@ -295,22 +328,48 @@ def compute_analytics(period='last_30'):
         visited_at__date__gte=prev_start, visited_at__date__lt=start_date
     )
 
-    tv_curr = visits_curr.values('session_id').distinct().count()
-    tv_prev = visits_prev.values('session_id').distinct().count()
-    uu_curr = visits_curr.filter(user__isnull=False).values('user').distinct().count()
-    uu_prev = visits_prev.filter(user__isnull=False).values('user').distinct().count()
+    # 6 queries -> 1: sessions, signed-in users and average duration, both windows.
+    _v_curr = Q(visited_at__date__gte=start_date)
+    _v_prev = Q(visited_at__date__gte=prev_start, visited_at__date__lt=start_date)
+    visit_totals = SiteVisit.objects.filter(visited_at__date__gte=prev_start).aggregate(
+        tv_curr=Count('session_id', distinct=True, filter=_v_curr),
+        tv_prev=Count('session_id', distinct=True, filter=_v_prev),
+        uu_curr=Count('user', distinct=True, filter=_v_curr & Q(user__isnull=False)),
+        uu_prev=Count('user', distinct=True, filter=_v_prev & Q(user__isnull=False)),
+        avg_curr=Avg('duration_sec', filter=_v_curr & Q(duration_sec__isnull=False)),
+        avg_prev=Avg('duration_sec', filter=_v_prev & Q(duration_sec__isnull=False)),
+    )
+    tv_curr = visit_totals['tv_curr']
+    tv_prev = visit_totals['tv_prev']
+    uu_curr = visit_totals['uu_curr']
+    uu_prev = visit_totals['uu_prev']
 
-    avg_sec_curr    = visits_curr.filter(duration_sec__isnull=False).aggregate(a=Avg('duration_sec'))['a'] or 0
-    avg_sec_prev    = visits_prev.filter(duration_sec__isnull=False).aggregate(a=Avg('duration_sec'))['a'] or 0
+    avg_sec_curr    = visit_totals['avg_curr'] or 0
+    avg_sec_prev    = visit_totals['avg_prev'] or 0
     avg_session_str = f"{int(avg_sec_curr // 60)}m {int(avg_sec_curr % 60)}s"
 
-    sess_views   = visits_curr.values('session_id').annotate(pv=Count('id'))
-    total_sess   = sess_views.count() or 1
-    bounce_curr  = round(sess_views.filter(pv=1).count() / total_sess * 100, 1)
+    # Bounce rate: 4 queries -> 1. Group each session once and get its page-view count
+    # in BOTH windows, then tally in Python. A session spanning both windows still gets
+    # counted separately per window, exactly as the two separate group-bys did.
+    sess_rows = (
+        SiteVisit.objects.filter(visited_at__date__gte=prev_start)
+        .values('session_id')
+        .annotate(curr_pv=Count('id', filter=_v_curr),
+                  prev_pv=Count('id', filter=_v_prev))
+    )
+    curr_pvs = []
+    prev_pvs = []
+    for row in sess_rows:
+        if row['curr_pv']:
+            curr_pvs.append(row['curr_pv'])
+        if row['prev_pv']:
+            prev_pvs.append(row['prev_pv'])
 
-    prev_sv     = visits_prev.values('session_id').annotate(pv=Count('id'))
-    prev_ts     = prev_sv.count() or 1
-    bounce_prev = round(prev_sv.filter(pv=1).count() / prev_ts * 100, 1)
+    total_sess   = len(curr_pvs) or 1
+    bounce_curr  = round(sum(1 for pv in curr_pvs if pv == 1) / total_sess * 100, 1)
+
+    prev_ts     = len(prev_pvs) or 1
+    bounce_prev = round(sum(1 for pv in prev_pvs if pv == 1) / prev_ts * 100, 1)
 
     device_raw   = list(visits_curr.values('device_type').annotate(cnt=Count('id')))
     device_total = sum(d['cnt'] for d in device_raw) or 1
@@ -371,33 +430,55 @@ def compute_analytics(period='last_30'):
         created_at__date__gte=prev_start, created_at__date__lt=start_date
     )
 
-    refund_curr  = rr_curr.filter(request_type='refund').count()
-    replace_curr = rr_curr.filter(request_type='replacement').count()
-    refund_prev  = rr_prev.filter(request_type='refund').count()
-    replace_prev = rr_prev.filter(request_type='replacement').count()
+    # 6 queries -> 1: refund/replacement counts and refunded totals, both windows.
+    _r_curr = Q(created_at__date__gte=start_date)
+    _r_prev = Q(created_at__date__gte=prev_start, created_at__date__lt=start_date)
+    rr_totals = ReturnRequest.objects.filter(created_at__date__gte=prev_start).aggregate(
+        refund_curr=Count('id', filter=_r_curr & Q(request_type='refund')),
+        replace_curr=Count('id', filter=_r_curr & Q(request_type='replacement')),
+        refund_prev=Count('id', filter=_r_prev & Q(request_type='refund')),
+        replace_prev=Count('id', filter=_r_prev & Q(request_type='replacement')),
+        refunded_curr=Sum('refund_amount', filter=_r_curr & Q(status='refunded')),
+        refunded_prev=Sum('refund_amount', filter=_r_prev & Q(status='refunded')),
+    )
+    refund_curr  = rr_totals['refund_curr']
+    replace_curr = rr_totals['replace_curr']
+    refund_prev  = rr_totals['refund_prev']
+    replace_prev = rr_totals['replace_prev']
 
     return_rate_curr  = round(refund_curr  / max(total_orders, 1) * 100, 1)
     return_rate_prev  = round(refund_prev  / max(prev_total_orders, 1) * 100, 1)
     exch_rate_curr    = round(replace_curr / max(total_orders, 1) * 100, 1)
     exch_rate_prev    = round(replace_prev / max(prev_total_orders, 1) * 100, 1)
 
-    total_refunds_curr = float(rr_curr.filter(status='refunded').aggregate(t=Sum('refund_amount'))['t'] or 0)
-    total_refunds_prev = float(rr_prev.filter(status='refunded').aggregate(t=Sum('refund_amount'))['t'] or 0)
+    total_refunds_curr = float(rr_totals['refunded_curr'] or 0)
+    total_refunds_prev = float(rr_totals['refunded_prev'] or 0)
 
+    # Was .exists() plus a full row fetch into Python (2 queries + every resolved row).
+    # One aggregate does it: average the age of resolved requests in the database.
     avg_proc_days = 0.0
-    resolved_qs   = rr_curr.filter(status__in=['refunded', 'replaced', 'rejected'])
-    if resolved_qs.exists():
-        deltas = [
-            (rr.updated_at - rr.created_at).total_seconds() / 86400
-            for rr in resolved_qs.only('created_at', 'updated_at')
-        ]
-        avg_proc_days = round(sum(deltas) / len(deltas), 1) if deltas else 0.0
+    resolved_avg = rr_curr.filter(
+        status__in=['refunded', 'replaced', 'rejected']
+    ).aggregate(a=Avg(F('updated_at') - F('created_at')))['a']
+    if resolved_avg is not None:
+        avg_proc_days = round(resolved_avg.total_seconds() / 86400, 1)
 
     _reason_labels = {
         'defective': 'Defective', 'wrong_item': 'Wrong Item',
         'size_issue': 'Wrong Fit', 'not_as_described': 'Not as Described', 'other': 'Other',
     }
-    reason_counts    = list(rr_curr.values('reason').annotate(cnt=Count('id')).order_by('-cnt'))
+    # 2 queries -> 1: group once by (reason, status) — at most a few dozen rows — and
+    # tally each dimension in Python. status_counts_rr is derived from the same result.
+    rr_dims = list(rr_curr.values('reason', 'status').annotate(cnt=Count('id')))
+
+    def _tally(field):
+        acc = {}
+        for row in rr_dims:
+            acc[row[field]] = acc.get(row[field], 0) + row['cnt']
+        return acc
+
+    reason_counts = [{'reason': k, 'cnt': v} for k, v in _tally('reason').items()]
+    reason_counts.sort(key=lambda r: -r['cnt'])
     total_reason     = sum(r['cnt'] for r in reason_counts) or 1
     top_reasons_data = [
         {
@@ -429,7 +510,7 @@ def compute_analytics(period='last_30'):
         'pending': 'Pending', 'approved': 'Approved', 'rejected': 'Rejected',
         'refunded': 'Refunded', 'picked_up': 'Picked Up', 'received': 'Received', 'replaced': 'Replaced',
     }
-    status_counts_rr = list(rr_curr.values('status').annotate(cnt=Count('id')))
+    status_counts_rr = [{'status': k, 'cnt': v} for k, v in _tally('status').items()]
     total_status     = sum(s['cnt'] for s in status_counts_rr) or 1
     status_breakdown = sorted(
         [
@@ -470,22 +551,23 @@ def compute_analytics(period='last_30'):
     }
 
     # ── 13. Product Profit (revenue share by category) ─────────────────────────
-    profit_qs = (
-        OrderItem.objects.filter(
-            order__in=curr_qs
-        ).values('variant__product__category__name')
-        .annotate(revenue=Sum('item_total', output_field=FloatField()))
-        .order_by('-revenue')[:4]
-    )
-    profit_total  = sum(float(p['revenue'] or 0) for p in profit_qs) or 1
+    # Revenue per category name, folded from the single cat_rows pass in section 5.
+    # Grouped by NAME (not id) so two categories sharing a name merge, as before.
+    _rev_by_name = {}
+    for row in cat_rows:
+        name = row['variant__product__category__name']
+        _rev_by_name[name] = _rev_by_name.get(name, 0.0) + float(row['revenue'] or 0)
+    profit_qs = sorted(_rev_by_name.items(), key=lambda kv: -kv[1])[:4]
+
+    profit_total  = sum(rev for _, rev in profit_qs) or 1
     profit_colors = ['#6366F1', '#A855F7', '#EC4899', '#94A3B8']
     profit_data   = [
         {
-            'label':   (p['variant__product__category__name'] or 'Other'),
-            'percent': round((float(p['revenue'] or 0) / profit_total) * 100),
+            'label':   (name or 'Other'),
+            'percent': round((rev / profit_total) * 100),
             'color':   profit_colors[i % len(profit_colors)],
         }
-        for i, p in enumerate(profit_qs)
+        for i, (name, rev) in enumerate(profit_qs)
     ] or delivery_cost_data
 
     # ── Final payload (identical shape to the old inline view) ─────────────────
@@ -524,14 +606,15 @@ def compute_dashboard_stats():
     Compute all stats for the Admin Dashboard (except for live sessions/live activity
     which are resolved on the fly in the view).
     
-    Time complexity: O(n log n) due to the 12 monthly aggregations.
-    Executed in a background thread or on cache miss.
+    Time complexity: one grouped scan per metric family — no per-month queries.
+    Executed on cache miss or from the scheduled warm_analytics_snapshots run.
     """
     from apps.sales.models import Order, Shipment
     from apps.catalog.models import Prescription, FrameVariant as Variant
     from django.db.models import Q, F, Sum, Count
+    from django.db.models.functions import TruncMonth
     from django.utils import timezone
-    from datetime import timedelta
+    from datetime import date, timedelta
 
     today = timezone.now().date()
     now = timezone.now()
@@ -542,31 +625,41 @@ def compute_dashboard_stats():
     )
     rev_qs = base_qs.exclude(is_replacement=True)
 
-    # 1. Total Orders & Revenue
-    total_orders = base_qs.count()
-    revenue_agg = rev_qs.aggregate(total=Sum('total_amount'))
-    total_revenue = float(revenue_agg.get('total') or 0)
-
-    # 2. Trends (Last 30 days vs Previous 30 days)
     last_30_start = today - timedelta(days=30)
     prev_30_start = today - timedelta(days=60)
 
-    curr_30_orders = base_qs.filter(created_at__date__gte=last_30_start).count()
-    prev_30_orders = base_qs.filter(
-        created_at__date__gte=prev_30_start,
-        created_at__date__lt=last_30_start
-    ).count()
+    # ── SINGLE-PASS AGGREGATION ─────────────────────────────────────────────
+    # One round-trip for the seven order/revenue scalars that were seven separate
+    # .count()/.aggregate() calls over the same table (pattern: views.py:443).
+    # Revenue excludes replacement orders; is_replacement is a non-null BooleanField,
+    # so ~Q(is_replacement=True) inside filter= is exactly base_qs.exclude(...).
+    _real = ~Q(is_replacement=True)
+    _curr30 = Q(created_at__date__gte=last_30_start)
+    _prev30 = Q(created_at__date__gte=prev_30_start, created_at__date__lt=last_30_start)
+
+    totals = base_qs.aggregate(
+        total_orders=Count('id'),
+        total_revenue=Sum('total_amount', filter=_real),
+        curr_30_orders=Count('id', filter=_curr30),
+        prev_30_orders=Count('id', filter=_prev30),
+        curr_30_revenue=Sum('total_amount', filter=_curr30 & _real),
+        prev_30_revenue=Sum('total_amount', filter=_prev30 & _real),
+        today_orders=Count('id', filter=Q(created_at__date=today)),
+    )
+
+    # 1. Total Orders & Revenue
+    total_orders = totals['total_orders']
+    total_revenue = float(totals['total_revenue'] or 0)
+
+    # 2. Trends (Last 30 days vs Previous 30 days)
+    curr_30_orders = totals['curr_30_orders']
+    prev_30_orders = totals['prev_30_orders']
     order_trend = round(
         ((curr_30_orders - prev_30_orders) / max(prev_30_orders, 1)) * 100, 1
     ) if prev_30_orders > 0 else 0
 
-    curr_30_revenue = rev_qs.filter(created_at__date__gte=last_30_start).aggregate(
-        total=Sum('total_amount')
-    ).get('total') or 0
-    prev_30_revenue = rev_qs.filter(
-        created_at__date__gte=prev_30_start,
-        created_at__date__lt=last_30_start
-    ).aggregate(total=Sum('total_amount')).get('total') or 0
+    curr_30_revenue = totals['curr_30_revenue'] or 0
+    prev_30_revenue = totals['prev_30_revenue'] or 0
     revenue_trend = round(
         ((curr_30_revenue - prev_30_revenue) / max(prev_30_revenue, 1)) * 100, 1
     ) if prev_30_revenue > 0 else 0
@@ -580,8 +673,8 @@ def compute_dashboard_stats():
     low_stock_products = Variant.objects.filter(stock__gt=0, stock__lte=20).count()
     out_of_stock = Variant.objects.filter(stock__lte=0).count()
 
-    # 5. Today's Orders
-    today_orders = base_qs.filter(created_at__date=today).count()
+    # 5. Today's Orders (from the single-pass aggregate above)
+    today_orders = totals['today_orders']
 
     # 6. Active Shipments
     active_shipments = Shipment.objects.exclude(
@@ -601,25 +694,38 @@ def compute_dashboard_stats():
     pending_orders_count = get_inclusive_count(['Pending', 'Received'])
     processing_orders_count = get_inclusive_count(['Processing', 'Preparing', 'Quality', 'Ready', 'Accepted'])
 
-    # 8. Monthly Revenue Trend (Last 12 months)
-    trend_data = []
-    for i in range(11, -1, -1):
-        target_month = today - timedelta(days=30*i)
-        month_start = target_month.replace(day=1)
-        if target_month.month == 12:
-            month_end = month_start.replace(year=month_start.year+1, month=1)
-        else:
-            month_end = month_start.replace(month=month_start.month+1)
-        
-        monthly_revenue = rev_qs.filter(
-            created_at__date__gte=month_start,
-            created_at__date__lt=month_end
-        ).aggregate(total=Sum('total_amount')).get('total') or 0
-        
-        trend_data.append({
-            "name": target_month.strftime('%b'),
-            "value": float(monthly_revenue)
-        })
+    # 8. Monthly Revenue Trend (Last 12 months) — one grouped query, padded in Python.
+    #
+    # The months are stepped by real calendar arithmetic, NOT by `today - 30*i days`.
+    # Thirty-day steps drift against actual month lengths, so the old loop duplicated
+    # one month and skipped another on 62 days of 2026 (every run from roughly the
+    # 25th onward). This returns the true trailing 12 calendar months on every date.
+    def _month_start(anchor, months_back):
+        m = anchor.month - 1 - months_back
+        return date(anchor.year + m // 12, m % 12 + 1, 1)
+
+    month_starts = [_month_start(today, i) for i in range(11, -1, -1)]
+
+    monthly_rows = (
+        rev_qs.filter(created_at__date__gte=month_starts[0])
+        .annotate(month=TruncMonth('created_at'))
+        .values('month')
+        .annotate(total=Sum('total_amount'))
+    )
+    # TruncMonth truncates in TIME_ZONE (UTC here), matching the created_at__date
+    # filters used everywhere else in this function.
+    by_month = {
+        (row['month'].year, row['month'].month): float(row['total'] or 0)
+        for row in monthly_rows if row['month'] is not None
+    }
+
+    trend_data = [
+        {
+            "name": ms.strftime('%b'),
+            "value": by_month.get((ms.year, ms.month), 0.0),
+        }
+        for ms in month_starts
+    ]
 
     # 9. Trends for other metrics
     prev_pending_pres = Prescription.objects.filter(

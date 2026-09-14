@@ -2,9 +2,7 @@ services:
   - type: web
     name: specsit-backend
     runtime: docker
-    # Docker (not native python) so we can install the GL system libraries
-    # MediaPipe/OpenCV need for the AI PD measurement. Migrate + collectstatic
-    # run from the image CMD (see ./Dockerfile).
+    region: singapore
     dockerfilePath: ./Dockerfile
     dockerContext: .
     envVars:
@@ -22,9 +20,6 @@ services:
         sync: false
       - key: CORS_ALLOWED_ORIGINS
         sync: false
-      # ── Supabase Storage (uploaded product/variant images) ──
-      # Non-secret config is set here; the two access keys are entered in the
-      # Render dashboard (sync: false) so they never live in git.
       - key: SUPABASE_S3_ENDPOINT
         value: https://yvnqwhgjvxktlyhnikzx.storage.supabase.co/storage/v1/s3
       - key: SUPABASE_S3_BUCKET
@@ -37,10 +32,28 @@ services:
         sync: false
       - key: SUPABASE_S3_SECRET_ACCESS_KEY
         sync: false
+  - type: cron
+    name: specsit-warm-analytics
+    runtime: docker
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    schedule: "*/15 * * * *"
+    dockerCommand: python manage.py warm_analytics_snapshots --only-stale
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
 
   - type: web
     name: specsit-frontend
     runtime: node
+    region: singapore
     rootDir: frontend
     buildCommand: npm ci && npm run build
     staticPublishPath: dist

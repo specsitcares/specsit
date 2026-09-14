@@ -145,18 +145,35 @@ class OrderViewSet(viewsets.ModelViewSet):
             review_prefetch,
         ]
 
-        # Extra prefetch paths only needed by detail/retrieve view actions
-        if self.action != 'list':
-            prefetch_paths.extend([
-                'items__prescription__order_items',
-                'items__lens__type',
-                'items__lens__brand',
-                'items__lens__package',
-                'items__lens__package__categories',
-                'items__lens__constraints',
-                'items__contact_lens__type',
-                'items__contact_lens__brand',
-            ])
+        # These were gated behind `if self.action != 'list'` as "detail-only". They are
+        # not: OrderViewSet uses ONE serializer for both actions, and OrderSerializer's
+        # `items` nests OrderItemSerializer, which renders `lens` (LensSerializer) and
+        # `prescription` (PrescriptionSerializer) in full on the list too. Withholding
+        # these paths did not save the list any work — it converted eight prefetches
+        # into N+1s. Measured on a 13-order staff page before this change:
+        #
+        #     28  sales_orderitem        PrescriptionSerializer.get_order_id /
+        #                                get_order_display_id -> obj.order_items.all()
+        #     12  catalog_lensconstraint LensSerializer.constraints
+        #     12  catalog_category       lens.package.categories
+        #      6  catalog_lenspackage    lens.package
+        #      5  core_metadataitem      lens.type
+        #
+        # ~63 avoidable queries to withhold 8. Restored to the shared set.
+        #
+        # items__prescription__user is new: PrescriptionSerializer.get_user_name reads
+        # obj.user and nothing ever prefetched it, which was 13 more auth_user queries.
+        prefetch_paths.extend([
+            'items__prescription__order_items',
+            'items__prescription__user',
+            'items__lens__type',
+            'items__lens__brand',
+            'items__lens__package',
+            'items__lens__package__categories',
+            'items__lens__constraints',
+            'items__contact_lens__type',
+            'items__contact_lens__brand',
+        ])
 
         qs = Order.objects.select_related(
             'status', 'coupon', 'shipping_address', 'billing_address', 'user',
@@ -1240,7 +1257,14 @@ class CartViewSet(viewsets.ModelViewSet):
     serializer_class = CartSerializer
     permission_classes = [permissions.IsAuthenticated]
     def get_queryset(self):
-        return Cart.objects.filter(user=self.request.user).select_related('variant', 'variant__product')
+        from django.db.models import Prefetch  # type:ignore
+        # to_attr='_prefetched_images' matches the pattern OrderViewSet already uses
+        # for the same field (serializers.py OrderItemSerializer.get_variant_image).
+        # Without it the thumbnail cost one query per row: 22 queries for a 20-item
+        # cart, 20 of them catalog_variantimage.
+        return (Cart.objects.filter(user=self.request.user)
+                .select_related('variant', 'variant__product')
+                .prefetch_related(Prefetch('variant__images', to_attr='_prefetched_images')))
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
@@ -1248,7 +1272,21 @@ class WishlistViewSet(viewsets.ModelViewSet):
     serializer_class = WishlistSerializer
     permission_classes = [permissions.IsAuthenticated]
     def get_queryset(self):
-        return Wishlist.objects.filter(user=self.request.user).select_related('variant', 'variant__product').order_by('-added_at')
+        from django.db.models import Prefetch  # type:ignore
+        # Same thumbnail N+1 as the cart above; same fix.
+        #
+        # variant__product__variants is extra, and only the wishlist needs it:
+        # WishlistSerializer exposes product_selling_price, which resolves to the
+        # FrameProduct.selling_price PROPERTY — that iterates self.variants.all() to
+        # find the lowest price, so it queried once per wishlist row. CartSerializer
+        # only reads the product's title and id, so the cart never paid for it.
+        return (Wishlist.objects.filter(user=self.request.user)
+                .select_related('variant', 'variant__product')
+                .prefetch_related(
+                    Prefetch('variant__images', to_attr='_prefetched_images'),
+                    'variant__product__variants',
+                )
+                .order_by('-added_at'))
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 

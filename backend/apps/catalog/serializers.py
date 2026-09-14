@@ -53,16 +53,25 @@ class VariantSerializer(serializers.ModelSerializer):
         return prod.brand.logo.url
 
     def get_effective_stock(self, obj):
-        # Prefer variant-level stock; fallback to product-level aggregate stock
-        try:
-            if obj.stock and obj.stock > 0:
-                return obj.stock
-        except Exception:
-            pass
-        try:
-            return obj.product.stock_quantity or 0
-        except Exception:
-            return 0
+        """The variant's own stock. Authoritative — no product-level fallback.
+
+        A `return obj.product.stock_quantity` fallback used to sit here, and it was
+        correct when written (2a65607, 2026-05-21): FrameProduct.stock_quantity was a
+        stored IntegerField, read for free off the already-joined product row, and it
+        covered products whose stock was tracked at product level rather than per
+        variant. Removed because the schema moved out from under it, not because it
+        was slow — that column was later replaced by a derived property summing the
+        product's variants, which broke the fallback two ways:
+
+          • it costs a query per zero-stock variant (the property iterates variants), and
+          • a variant with no stock reports its SIBLINGS' stock as its own.
+
+        Measured on production: of 5 out-of-stock variants, 4 reported non-zero —
+        variant 12 (Ray Ban RB3124) holds 0 units and returned 2, borrowed from a
+        sibling colorway. to_representation() writes this into `stock`, so the admin
+        inventory table was showing units that do not exist for that colorway.
+        """
+        return obj.stock or 0
 
     def validate_sku(self, value):
         if not value:
@@ -231,15 +240,24 @@ class ProductSerializer(serializers.ModelSerializer):
                 field.required = False
 
     def _approved_reviews(self, obj):
+        """Fallback only. Costs one query per product, so every listing queryset
+        annotates avg_rating/review_total instead (see views.annotate_review_stats)."""
         return [r for r in obj.reviews.all() if r.is_approved]
 
     def get_average_rating(self, obj):
+        # `avg_rating` is NULL when a product has no approved reviews, which is why
+        # the sentinel here is the missing attribute, not a falsy value — 0.0 would
+        # be a legitimate average and must not fall through to the Python path.
+        if hasattr(obj, 'avg_rating'):
+            return None if obj.avg_rating is None else round(float(obj.avg_rating), 1)
         reviews = self._approved_reviews(obj)
         if not reviews:
             return None
         return round(sum(r.rating for r in reviews) / len(reviews), 1)
 
     def get_review_count(self, obj):
+        if hasattr(obj, 'review_total'):
+            return obj.review_total or 0
         return len(self._approved_reviews(obj))
 
     def get_units_sold(self, obj):
@@ -255,6 +273,33 @@ class ProductSerializer(serializers.ModelSerializer):
     def get_computed_final_price(self, obj):
         return float(obj.selling_price or 0)
 
+    def _cms_logo_by_name(self):
+        """Published BrandLogo rows that actually have a logo file, keyed by UPPER(name).
+
+        Built once per serialization pass instead of one query per product whose brand
+        has no logo of its own — on a 40-product home bundle that was up to 40 queries.
+        DRF reuses a single child serializer for the whole `many=True` list, so the memo
+        covers the entire page and dies with the serializer at the end of the request.
+
+        Ordering and filtering mirror the query this replaced exactly: published, logo
+        non-empty, ordered by (order, id), first match wins per name. Keeping the first
+        occurrence is what makes duplicate/legacy rows resolve the same way `.first()`
+        did — and only rows WITH a logo are loaded, so a logo-less duplicate can never
+        mask a real one.
+        """
+        cached = getattr(self, '_cms_logo_cache', None)
+        if cached is None:
+            from apps.cms.models import BrandLogo
+            cached = {}
+            for row in (BrandLogo.objects.filter(is_published=True)
+                        .exclude(logo='').exclude(logo__isnull=True)
+                        .order_by('order', 'id')):
+                # Key on the stored name uppercased (not stripped) so lookups behave
+                # like the name__iexact this replaced.
+                cached.setdefault((row.name or '').upper(), row)
+            self._cms_logo_cache = cached
+        return cached
+
     def get_brand_logo(self, obj):
         """Return the brand logo URL from the catalog brand or CMS fallback."""
         request = self.context.get('request')
@@ -264,15 +309,7 @@ class ProductSerializer(serializers.ModelSerializer):
             logo_file = obj.brand.logo
 
         if not logo_file and obj.brand and obj.brand.name:
-            from apps.cms.models import BrandLogo
-            # Must filter for an actual logo file here, not just take the first
-            # name match and check afterward — when multiple BrandLogo rows share
-            # a name (duplicate/legacy entries), .first() could just as easily
-            # return one with no logo, silently hiding a real logo that exists.
-            cms_logo = BrandLogo.objects.filter(
-                name__iexact=obj.brand.name.strip(),
-                is_published=True,
-            ).exclude(logo='').exclude(logo__isnull=True).order_by('order', 'id').first()
+            cms_logo = self._cms_logo_by_name().get(obj.brand.name.strip().upper())
             if cms_logo and cms_logo.logo:
                 logo_file = cms_logo.logo
 
@@ -287,12 +324,19 @@ class ProductSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         # There's no dedicated product-level image — use the first image of the
         # first (listed) variant.
+        #
+        # Sorted in Python, NOT with .order_by(). Django only reuses a prefetch cache
+        # for a bare .all() — adding .order_by() builds a fresh queryset and goes back
+        # to the DB once per product, which defeated the variants/images prefetch in
+        # ProductViewSet.get_queryset and HomeBundleView (30 image queries on a
+        # 12-product page instead of 1). The ordering is identical: variants by id,
+        # images by `order` (which is also VariantImage.Meta.ordering).
         img = None
-        first_variant = obj.variants.all().order_by('id').first()
-        if first_variant:
-            first_image = first_variant.images.all().order_by('order').first()
-            if first_image:
-                img = first_image.image
+        variants = sorted(obj.variants.all(), key=lambda v: v.id)
+        if variants:
+            images = sorted(variants[0].images.all(), key=lambda i: i.order)
+            if images:
+                img = images[0].image
         try:
             if not img:
                 return None
@@ -415,7 +459,14 @@ class LensSerializer(serializers.ModelSerializer):
             data['package_name'] = instance.package.name
             data['description'] = instance.package.description
             data['features'] = instance.package.features
-            data['categories'] = list(instance.package.categories.values('id', 'name'))
+            # Built in Python from the prefetch cache, NOT .values('id', 'name').
+            # prefetch_related caches model instances; .values() builds a fresh queryset
+            # that ignores that cache and goes back to the DB — one query per lens, the
+            # same trap as .order_by() and .first() on a prefetched relation. Ordering is
+            # unchanged either way: it comes from Category.Meta.ordering.
+            data['categories'] = [
+                {'id': c.id, 'name': c.name} for c in instance.package.categories.all()
+            ]
             data['package_cost_price'] = float(instance.package.cost_price or 0)
             data['package_selling_price'] = float(instance.package.selling_price or 0)
             data['package_warranty_months'] = instance.package.warranty_months

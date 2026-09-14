@@ -26,6 +26,7 @@ router.register(r'user-face', UserFaceViewSet, basename='user-face')
 router.register(r'reviews', ReviewViewSet)
 
 urlpatterns = [
+    
     # Authorized delivery for private uploads. These MUST be declared before the
     # router include so the router's own /prescriptions/<pk>/ detail route doesn't
     # shadow them.

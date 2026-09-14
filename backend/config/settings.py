@@ -238,9 +238,22 @@ WSGI_APPLICATION = 'config.wsgi.application'
 _database_url = env('DATABASE_URL', default='')
 if _database_url:
     DATABASES = {'default': env.db_url('DATABASE_URL')}
-    # Supabase's connection pooler (port 6543) runs PgBouncer in transaction mode,
-    # which doesn't support Django's persistent connections — keep them off.
-    DATABASES['default']['CONN_MAX_AGE'] = 0
+    # Supabase's pooler (Supavisor, port 6543) runs in transaction mode. What that
+    # actually constrains is SERVER-side session state — server-side prepared
+    # statements, session-scoped SET/LISTEN/advisory locks, WITH HOLD cursors —
+    # because the pooler hands a backend to a different client between transactions.
+    # It says nothing about CONN_MAX_AGE, which is Django reusing its own client
+    # socket TO the pooler across requests. That socket is ours for its whole life,
+    # so reuse is safe against transaction mode.
+    #
+    # Keeping it at 0 meant paying connection setup on every request: measured
+    # ~0.95s against this endpoint (TLS + SCRAM over a cross-region hop to
+    # ap-northeast-1) versus ~0.13s for an actual query.
+    #
+    # No prepared-statement opt-out is needed: psycopg2 binds parameters client-side
+    # and never issues a server-side PREPARE. (That setting only matters on psycopg3,
+    # and Django already defaults prepare_threshold to None there for this reason.)
+    DATABASES['default']['CONN_MAX_AGE'] = 60
 else:
     DATABASES = {
         'default': {
@@ -300,6 +313,13 @@ if _redis_url:
             'LOCATION': 'specsit-throttle',
         },
     }
+    # IGNORE_EXCEPTIONS above is what keeps a Redis outage from 500ing the site, but on
+    # its own it is completely silent — django-redis swallows the error and the app just
+    # quietly runs uncached, which looks identical to "Redis is fine, traffic is heavy".
+    # Log the swallowed exceptions so an outage is visible instead of merely survivable.
+    DJANGO_REDIS_LOG_IGNORED_EXCEPTIONS = True
+    DJANGO_REDIS_LOGGER = 'django_redis'
+
     # Session storage rides on the same Redis cache instead of the DB.
     SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
     SESSION_CACHE_ALIAS = 'default'
@@ -352,9 +372,22 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
+    # The LOCAL throttle classes, not DRF's stock ones. Stock AnonRateThrottle /
+    # UserRateThrottle write their counters to the DEFAULT cache — which is Upstash.
+    # That put four Redis round-trips (get+set for anon, get+set for user) on EVERY
+    # API request, cached or not: measured 6-8 round-trips for a warm product list,
+    # of which 4 were these counters. With Redis in a different region from the app
+    # that is pure latency for a number nobody reads across processes.
+    #
+    # apps/core_utils/throttling.py binds these to the local in-memory 'throttle'
+    # cache, exactly as the note beside the CACHES setting describes. The counters
+    # become per-worker rather than global: at 1000/hour anonymous and 10000/hour
+    # authenticated those are abuse ceilings, not quotas anyone legitimately reaches,
+    # so per-worker accounting is the right trade. The limits that genuinely matter
+    # (LoginThrottle 5/min, RegisterThrottle 10/hour) already use this same cache.
     'DEFAULT_THROTTLE_CLASSES': [
-        'rest_framework.throttling.AnonRateThrottle',
-        'rest_framework.throttling.UserRateThrottle'
+        'apps.core_utils.throttling.LocalAnonThrottle',
+        'apps.core_utils.throttling.LocalUserThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
         'anon': '1000/hour',

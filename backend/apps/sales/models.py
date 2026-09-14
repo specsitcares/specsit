@@ -524,8 +524,9 @@ class AnalyticsSnapshot(models.Model):
     Precomputed analytics payload per time-period.
 
     Read path  → O(log n): single WHERE period = '...' on the unique index.
-    Write path → O(n log n): compute_analytics() runs in a daemon thread
-                              triggered by Django signals — never blocks HTTP.
+    Write path → signals only flip is_stale (one O(1) UPDATE). The O(n log n)
+                 recompute happens in the scheduled warm_analytics_snapshots
+                 command, or in the admin views' stale-fallback on a miss.
     """
     PERIOD_CHOICES = [
         ('last_7',    'Last 7 Days'),
