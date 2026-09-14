@@ -32,6 +32,21 @@ SECRET_KEY = env('SECRET_KEY')
 DEBUG = env.bool('DEBUG', default=False)
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
 
+# Render injects this automatically for every web service — trust it directly
+# so the app isn't locked out by a stale/mismatched manual ALLOWED_HOSTS entry
+# in the dashboard whenever the service is renamed or recreated (e.g. the
+# current host is specsit-3.onrender.com, which nothing else in this repo
+# references).
+_render_hostname = env('RENDER_EXTERNAL_HOSTNAME', default='')
+if _render_hostname:
+    ALLOWED_HOSTS.append(_render_hostname)
+
+# Render terminates TLS at its edge proxy and forwards over plain HTTP
+# internally, setting X-Forwarded-Proto. Without trusting that header,
+# request.is_secure() is always False behind the proxy, which turns
+# SECURE_SSL_REDIRECT below into an infinite redirect loop.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 # Security headers that are safe (and cost nothing) in every environment —
 # these don't depend on HTTPS, so they were previously and incorrectly gated
 # behind `if not DEBUG`, meaning local/dev requests got none of them.
@@ -125,6 +140,12 @@ if DEBUG:
         'http://127.0.0.1:3000', 'http://127.0.0.1:8000',
     ]
 CSRF_TRUSTED_ORIGINS += env.list('CSRF_TRUSTED_ORIGINS', default=['https://specsit1.onrender.com'])
+# Same dynamic Render hostname used for ALLOWED_HOSTS above — covers the
+# actual live origin (currently specsit-3.onrender.com) without hardcoding it,
+# so a renamed/respun Render service is never locked out of CSRF-protected
+# POST endpoints (login, checkout, admin) by a stale manual entry either.
+if _render_hostname:
+    CSRF_TRUSTED_ORIGINS.append(f'https://{_render_hostname}')
 
 # Session/Cookie settings for cross-origin admin access (development)
 SESSION_COOKIE_SAMESITE = 'Lax'

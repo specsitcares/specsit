@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RunSQL(
-            sql="DROP TABLE IF EXISTS catalog_manufacturer CASCADE;",
+            sql="DROP TABLE IF EXISTS catalog_manufacturer;",
             reverse_sql=migrations.RunSQL.noop,
         ),
     ]
