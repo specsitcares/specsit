@@ -8,7 +8,7 @@ from django.urls import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 
 from apps.catalog.models import BrandLogo, Category, FrameProduct as Product, LensConstraint
-from apps.catalog.serializers import ProductSerializer
+from apps.catalog.serializers import ProductSerializer, VariantSerializer
 from apps.catalog.views import _frame_constraint_name
 
 
@@ -281,3 +281,52 @@ class BestsellerStockFanOutTests(TestCase):
         product = self._queryset().get(pk=self.product.pk)
         self.assertFalse(hasattr(product, 'units_sold_90d'))
         self.assertEqual(ProductSerializer(product).data['units_sold'], 0)
+
+
+class VariantSlugNotRequiredTests(TestCase):
+    """The admin never sends a slug — the model derives one in save().
+
+    FrameVariant has a UniqueConstraint on ('product', 'slug'), and DRF turns every
+    field of a unique-together set into a required one when the model field carries
+    no default, so every POST /api/catalog/variants/ came back as
+    400 {'slug': ['This field is required.']}. The serializer now supplies a
+    create-only blank default; these tests pin both halves of that: creates work
+    without a slug, and a later full save does not re-slug the variant.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        category = Category.objects.create(name='Slug Category')
+        cls.product = Product.objects.create(title='Slug Frame', category=category)
+
+    def _payload(self, **overrides):
+        data = {'product': self.product.pk, 'sku': 'SLUG-1', 'variant_name': 'Matte Black'}
+        data.update(overrides)
+        return data
+
+    def test_create_without_slug_is_valid(self):
+        serializer = VariantSerializer(data=self._payload())
+
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+
+        variant = serializer.save()
+        self.assertEqual(variant.slug, 'matte-black')
+
+    def test_create_accepts_an_explicit_slug(self):
+        serializer = VariantSerializer(data=self._payload(slug='gunmetal'))
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+
+        self.assertEqual(serializer.save().slug, 'gunmetal')
+
+    def test_full_update_without_slug_keeps_the_existing_one(self):
+        """The default is create-only: a PUT that omits the slug must not blank it,
+        because save() would then derive a brand-new one and break the variant URL."""
+        serializer = VariantSerializer(data=self._payload())
+        serializer.is_valid(raise_exception=True)
+        variant = serializer.save()
+
+        update = VariantSerializer(variant, data=self._payload(variant_name='Gloss Black'))
+        self.assertTrue(update.is_valid(), update.errors)
+        updated = update.save()
+
+        self.assertEqual(updated.slug, 'matte-black')

@@ -29,6 +29,18 @@ class VariantSerializer(serializers.ModelSerializer):
     effective_stock = serializers.SerializerMethodField()
     is_bestseller = serializers.ReadOnlyField(source='product.is_bestseller')
     low_stock_threshold = serializers.ReadOnlyField(source='product.low_stock_threshold')
+    # The slug is derived in FrameVariant.save() and the admin forms never send it,
+    # but the ('product', 'slug') UniqueConstraint makes DRF treat it as required:
+    # get_uniqueness_extra_kwargs() marks every field of a unique-together set
+    # required when the model field has no default, and UniqueTogetherValidator then
+    # rejects any create whose attrs lack it. That turned every variant POST into
+    # 400 {'slug': ['This field is required.']}. A create-only blank default keeps
+    # both checks satisfied (blank -> save() generates the real slug) while leaving
+    # an existing slug alone on PUT/PATCH, so editing a variant never re-slugs it.
+    slug = serializers.SlugField(
+        max_length=140, allow_blank=True,
+        default=serializers.CreateOnlyDefault(''),
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

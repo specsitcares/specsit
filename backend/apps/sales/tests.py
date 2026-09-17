@@ -139,7 +139,7 @@ class WebhookConfigTests(TestCase):
 # Pinned so the exchange_info prefetches cannot be quietly moved back out of the
 # shared set: without them this climbs, while the correctness assertions above
 # still pass. Raise it deliberately if the list legitimately grows.
-EXCHANGE_LIST_QUERIES = 25
+EXCHANGE_LIST_QUERIES = 14  # was 25 before single-row relations were joined into their parent query
 
 
 class ExchangeInfoOnListTests(TestCase):
@@ -299,3 +299,109 @@ class VariantThumbnailPrefetchTests(TestCase):
             for row in rows:
                 self.assertIn('-first.jpg', row['variant_image'],
                               f'{url} picked the wrong image — ordering was lost')
+
+
+# Query cost of the order endpoints for the fully populated fixture below. Pinned so
+# neither of the two fixes can be quietly undone:
+#   * single-row relations (variant, product, brand, lens type/brand/package,
+#     prescription status/user, tracking, ...) are JOINED into their parent's query,
+#     not fetched by separate prefetch_related paths — 43 queries -> 20 on this data;
+#   * retrieve() loads the order once. It used to call get_object() itself and then
+#     again via super().retrieve(), running the whole prefetch set twice.
+# Raise these deliberately if the serializer legitimately grows a new relation.
+ORDER_LIST_QUERIES = 21     # was 44 (count + page + 19 relation queries)
+ORDER_DETAIL_QUERIES = 18   # was 72: the order and its relations loaded once, not twice
+
+
+class OrderLoadingQueryCountTests(TestCase):
+    """Every relation OrderSerializer walks is populated, so a regression in how any of
+    them is loaded shows up as extra queries here."""
+
+    @classmethod
+    def setUpTestData(cls):
+        from apps.catalog.models import (Category, FrameProduct, FrameVariant, VariantImage, Lens,
+                                         LensPackage, LensConstraint, Prescription, Review)
+        from apps.catalog.core.models import MetadataGroup, MetadataItem
+        from apps.cms.models import BrandLogo
+        from apps.sales.models import (OrderItem, Coupon, ReturnRequest, ReturnRequestImage,
+                                       ReturnReceivedImage, ReturnPickupImage, ReturnRequestNote,
+                                       WarrantyClaim, WarrantyClaimImage, OrderTracking, Payment)
+        User = get_user_model()
+        cls.staff = User.objects.create_user('ol-staff', password='pw-7q2mdk1x', is_staff=True)
+        cls.user = User.objects.create_user('ol-cx', password='pw-3n8vbz5t')
+        parent = Category.objects.create(name='OL Eyewear')
+        cat = Category.objects.create(name='OL Frames', parent=parent)
+        brand = BrandLogo.objects.create(name='OL Brand')
+        product = FrameProduct.objects.create(title='OL Frame', category=cat, brand=brand, is_active=True)
+        variants = []
+        for i in range(3):
+            v = FrameVariant.objects.create(product=product, sku=f'OL-{i}', variant_name=f'C{i}',
+                                            stock=9, selling_price=1000, is_listed=True)
+            VariantImage.objects.create(variant=v, image=f'catalog/products/ol{i}.jpg', order=0)
+            variants.append(v)
+        lens_type = MetadataItem.objects.create(group=MetadataGroup.objects.create(name='Lens Type'),
+                                                label='Single', value='single')
+        rx_status = MetadataItem.objects.create(group=MetadataGroup.objects.create(name='Prescription Status'),
+                                                label='Approved', value='approved')
+        package = LensPackage.objects.create(name='OL Blue Cut')
+        package.categories.add(cat)
+        lens = Lens.objects.create(package=package, price=500, type=lens_type, brand=brand)
+        lens.constraints.add(LensConstraint.objects.create(name='OL Full Rim'))
+        coupon = Coupon.objects.create(code='OLSAVE')
+        coupon.brands.add(brand)
+        coupon.categories.add(cat)
+
+        def make_order(**kw):
+            order = Order.objects.create(user=cls.user, total_amount=2000, order_status='delivered',
+                                         coupon=coupon, **kw)
+            rx = Prescription.objects.create(user=cls.user, status=rx_status)
+            # status='confirmed' so retrieve() has nothing to auto-confirm (its common path)
+            OrderItem.objects.create(order=order, variant=variants[0], quantity=1, price_at_purchase=1000,
+                                     lens=lens, prescription=rx, status='confirmed')
+            OrderItem.objects.create(order=order, variant=variants[1], quantity=1, price_at_purchase=1000,
+                                     status='confirmed')
+            OrderTracking.objects.create(order=order)
+            Payment.objects.create(order=order, payment_method='cod', amount_paid=2000)
+            return order
+
+        orders = [make_order() for _ in range(4)]
+        cls.order = orders[0]
+        rr = ReturnRequest.objects.create(order=orders[0], order_item=orders[0].items.first(), reason='scratch',
+                                          request_type='replacement', replacement_variant=variants[2])
+        for model in (ReturnRequestImage, ReturnReceivedImage, ReturnPickupImage):
+            model.objects.create(return_request=rr, image='returns/ol.jpg')
+        ReturnRequestNote.objects.create(return_request=rr, text='checked', author=cls.staff)
+        claim = WarrantyClaim.objects.create(order=orders[1], issue_description='hinge')
+        WarrantyClaimImage.objects.create(warranty_claim=claim, image='warranty/ol.jpg')
+        rr.replacement_order = make_order(is_replacement=True, replaces_order=orders[0])
+        rr.save()
+        Review.objects.create(user=cls.user, product=product, order=orders[0], rating=5)
+
+    def _client(self, user):
+        client = APIClient()
+        client.force_authenticate(user=user)
+        return client
+
+    def test_customer_order_list_query_count(self):
+        client = self._client(self.user)
+        client.get('/api/sales/orders/')                 # warm the SiteSettings cache
+        with self.assertNumQueries(ORDER_LIST_QUERIES):
+            response = client.get('/api/sales/orders/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['results']), 5)
+
+    def test_admin_order_list_query_count(self):
+        client = self._client(self.staff)
+        client.get('/api/sales/orders/')
+        with self.assertNumQueries(ORDER_LIST_QUERIES):
+            response = client.get('/api/sales/orders/')
+        self.assertEqual(response.status_code, 200)
+
+    def test_order_detail_loads_the_order_once(self):
+        client = self._client(self.user)
+        client.get(f'/api/sales/orders/{self.order.pk}/')
+        with self.assertNumQueries(ORDER_DETAIL_QUERIES):
+            response = client.get(f'/api/sales/orders/{self.order.pk}/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['items']), 2)
+        self.assertIsNotNone(response.data['items'][0]['lens'])
