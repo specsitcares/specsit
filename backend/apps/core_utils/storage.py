@@ -13,6 +13,7 @@ production.
 """
 import logging
 
+from django.conf import settings
 from django.core.files.storage import FileSystemStorage
 
 from .images import AssetTooLarge, compress
@@ -59,3 +60,46 @@ except ImportError:  # pragma: no cover — dev installs without django-storages
 else:
     class CompressedS3Storage(CompressingStorageMixin, _S3Boto3Storage):
         """Supabase Storage (S3-compatible) media storage."""
+
+    class PrivateS3Storage(CompressingStorageMixin, _S3Boto3Storage):
+        """Prescriptions and face captures — own bucket, signed URLs only.
+
+        Everything here is overridden per-instance rather than read from the AWS_*
+        settings, because those describe the PUBLIC catalog bucket:
+
+        * `custom_domain` must stay unset. With one set, django-storages' url()
+          returns the plain public URL and ignores querystring_auth completely
+          (storages/backends/s3.py), so a file meant to be signed would be handed
+          out as a permanent unauthenticated link.
+        * `signature_version` must be s3v4. Supabase rejects boto3's default SigV2
+          presigned URL outright with `AccessDenied: Missing signature`.
+        """
+
+        def __init__(self, **overrides):
+            super().__init__(**{
+                'bucket_name': settings.AWS_PRIVATE_STORAGE_BUCKET_NAME,
+                'custom_domain': None,
+                'querystring_auth': True,
+                'signature_version': 's3v4',
+                **overrides,
+            })
+
+
+def private_media_storage():
+    """Storage for medical/biometric uploads. Passed as FileField(storage=...).
+
+    These live apart from storefront media because the catalog bucket is public:
+    Supabase only serves /storage/v1/object/public/<bucket>/... for buckets flagged
+    public, and a private one answers `Bucket not found` — which is why product
+    imagery was invisible on the live site while the objects sat in the bucket.
+    Making that bucket public is the right call for catalog imagery and the wrong
+    one for a customer's prescription, so these get their own private bucket and are
+    only ever addressed through a signed, expiring URL.
+
+    Falls back to local disk when S3 is not configured at all (dev), and to the main
+    bucket when SUPABASE_S3_PRIVATE_BUCKET is unset — still signed, but only a
+    separate private bucket actually keeps the object off the public route.
+    """
+    if _S3Boto3Storage is None or not getattr(settings, 'AWS_STORAGE_BUCKET_NAME', ''):
+        return CompressedFileSystemStorage()
+    return PrivateS3Storage()

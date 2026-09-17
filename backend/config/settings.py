@@ -230,8 +230,24 @@ if _supabase_bucket:
     # bucket and is signed too, which costs nothing but a query string.
     AWS_QUERYSTRING_AUTH = env.bool('AWS_QUERYSTRING_AUTH', default=True)
     AWS_QUERYSTRING_EXPIRE = env.int('AWS_QUERYSTRING_EXPIRE', default=900)  # 15 min
+    # Supabase's S3 endpoint only accepts SigV4. boto3 otherwise falls back to a
+    # SigV2 presigned URL here, which the endpoint rejects with
+    # `AccessDenied: Missing signature` — so every signed URL 403s.
+    AWS_S3_SIGNATURE_VERSION = 's3v4'
     AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400'}
     STORAGES['default'] = {'BACKEND': 'apps.core_utils.storage.CompressedS3Storage'}
+
+    # Prescriptions and face captures never go in the bucket above. That one has to
+    # be public — Supabase serves /storage/v1/object/public/<bucket>/... only for
+    # public buckets, and AWS_S3_CUSTOM_DOMAIN makes django-storages address every
+    # file that way — so anything stored there is world-readable by URL. Medical and
+    # biometric uploads get their own private bucket instead, reached only through
+    # the signed URLs apps.core_utils.storage.PrivateS3Storage generates.
+    # Unset it and they stay in the main bucket: signed, but sitting in a public
+    # bucket, so set it in any environment that accepts real customer uploads.
+    AWS_PRIVATE_STORAGE_BUCKET_NAME = (
+        env('SUPABASE_S3_PRIVATE_BUCKET', default='') or _supabase_bucket
+    )
 
 WSGI_APPLICATION = 'config.wsgi.application'
 

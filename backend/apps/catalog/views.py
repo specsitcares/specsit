@@ -64,11 +64,20 @@ class _PrivateFileView(APIView):
         if not f:
             return Response({'detail': 'No file on record.'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Remote storages sign URLs when AWS_QUERYSTRING_AUTH is on; a signed URL
-        # expires, so it is safe to hand out at this point (we just authorized it).
+        # Redirect only when the URL is genuinely signed: that is what makes it safe
+        # to hand out right after the check above, because it expires. Ask the FILE's
+        # own storage, not the default one — these fields sit on a separate private
+        # bucket, and django-storages silently stops signing when a storage has a
+        # custom domain, which the public catalog storage does. Getting this wrong
+        # turns an authorized redirect into a permanent public link to a
+        # prescription, so the fallback below streams instead of guessing.
+        storage = getattr(f, 'storage', None)
+        serves_signed_urls = (
+            bool(getattr(storage, 'querystring_auth', False))
+            and not getattr(storage, 'custom_domain', None)
+        )
         try:
-            from django.core.files.storage import default_storage
-            if default_storage.__class__.__name__ != 'CompressedFileSystemStorage':
+            if serves_signed_urls:
                 return HttpResponseRedirect(f.url)
         except Exception:
             logger.warning('Signed-URL path failed for %s #%s; streaming instead',

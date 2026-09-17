@@ -8,6 +8,7 @@ from django.utils.text import slugify  # type: ignore
 from .core.models import MetadataItem  # type: ignore
 from decimal import Decimal
 from apps.cms.models import BrandLogo
+from apps.core_utils.storage import private_media_storage
 
 
 def _private_upload_path(subdir, filename):
@@ -489,7 +490,10 @@ class Prescription(models.Model):
     prism_base_os = models.CharField(max_length=20, blank=True)
     
     vision_type = models.CharField(max_length=50, blank=True) # Single Vision, Progressive, Bifocal
-    prescription_file = models.FileField(upload_to=prescription_upload_path, null=True, blank=True)
+    prescription_file = models.FileField(
+        upload_to=prescription_upload_path, storage=private_media_storage,
+        null=True, blank=True,
+    )
     review_notes = models.TextField(blank=True)
 
     status = models.ForeignKey(MetadataItem, on_delete=models.SET_NULL, null=True, blank=True, limit_choices_to={'group__name': 'Prescription Status'})
@@ -518,7 +522,7 @@ class UserFace(models.Model):
     ]
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='face_capture_v2')
-    image = models.ImageField(upload_to=face_capture_upload_path)
+    image = models.ImageField(upload_to=face_capture_upload_path, storage=private_media_storage)
     pd_distance = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
 
     # Monocular PD — each pupil to the bridge centre. The card measurement yields
